@@ -36,6 +36,7 @@
 #include <ql/math/randomnumbers/sobolrsg.hpp>
 #include <ql/methods/montecarlo/blackscholespathmodel.hpp>
 #include <ql/methods/montecarlo/parallelmontecarlomodel.hpp>
+#include <ql/methods/montecarlo/simdparallelmontecarlomodel.hpp>
 #include <ql/pricingengines/blackformula.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
@@ -171,6 +172,43 @@ int main() {
         std::printf("%2u threads      : %8.1f ms  (%.2fx)\n", n, ms, serialMs / ms);
     }
     report("parallel run at least 4x the serial kernel", serialMs / best >= 4.0);
+
+    // The SIMD layer repeats the inverse-cumulative-normal constants because
+    // InverseCumulativeNormal keeps them private. Check the two agree bit for
+    // bit across the central region and both tails before trusting the rest.
+    std::printf("\n--- gate 4: SIMD inverse cumulative normal ---\n");
+    {
+        Size checked = 0, differing = 0;
+        const Size W = RealBatch::size();
+        for (Size k = 1; k + W < 200000; k += W) {
+            RealBatch u;
+            for (Size l = 0; l < W; ++l)
+                u[l] = Real(k + l) / 200000.0;
+            RealBatch got = inverseCumulativeNormal(u);
+            for (Size l = 0; l < W; ++l) {
+                ++checked;
+                if (got[l] != InverseCumulativeNormal::standard_value(u[l]))
+                    ++differing;
+            }
+        }
+        std::printf("checked %zu values (both tails included), %zu differ\n", checked, differing);
+        report("SIMD icn bit-identical to scalar", differing == 0);
+    }
+
+    std::printf("\n--- gate 5: SIMD path batching ---\n");
+    double simdMs = 0.0;
+    {
+        SimdParallelMonteCarloModel simdMc(model, makeRsg, EuropeanCall{strike, mkt.discount}, 1024,
+                                           bridge);
+        auto ts = std::chrono::steady_clock::now();
+        std::vector<Real> simdRes = simdMc.runSerial(paths);
+        simdMs = msSince(ts);
+        std::printf("lane width      : %zu doubles\n", SimdParallelMonteCarloModel<
+                    BlackScholesPathModel, decltype(makeRsg), EuropeanCall>::laneCount());
+        std::printf("scalar kernel   : %8.1f ms\n", serialMs);
+        std::printf("simd kernel     : %8.1f ms  (%.2fx)\n", simdMs, serialMs / simdMs);
+        report("SIMD results bit-identical to scalar", simdRes == serial);
+    }
 
     std::printf("\n--- end-to-end vs MCEuropeanEngine ---\n");
     EuropeanOption option(ext::make_shared<PlainVanillaPayoff>(Option::Call, strike),

@@ -1749,6 +1749,7 @@ set(QL_HEADERS
     methods/montecarlo/pathgenerator.hpp
     methods/montecarlo/pathpricer.hpp
     methods/montecarlo/sample.hpp
+    methods/montecarlo/simdparallelmontecarlomodel.hpp
     models/calibrationhelper.hpp
     models/equity/batesmodel.hpp
     models/equity/gjrgarchmodel.hpp

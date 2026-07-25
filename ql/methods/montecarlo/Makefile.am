@@ -22,7 +22,8 @@ this_include_HEADERS = \
 	path.hpp \
 	pathgenerator.hpp \
 	pathpricer.hpp \
-	sample.hpp
+	sample.hpp \
+	simdparallelmontecarlomodel.hpp
 
 cpp_files = \
 	brownianbridge.cpp \
