@@ -49,11 +49,36 @@ namespace QuantLib {
             }
         }
         volatilityValues_ = Sqrt(2*varianceValues_);
+
+        // without a leverage function the slice never changes, so build it
+        // once here instead of on every setTime call
+        L_ = Array(mesher_->layout()->size(), 1.0);
     }
 
     void FdmHestonEquityPart::setTime(Time t1, Time t2) {
         const Rate r = rTS_->forwardRate(t1, t2, Continuous).rate();
         const Rate q = qTS_->forwardRate(t1, t2, Continuous).rate();
+
+        /* Without a leverage function the slice is identically one, and it
+           stays one for every time step. Taking the general path then rebuilds
+           a whole triple-band operator per step -- dxxMap_.mult(Lsquare)
+           allocates and writes three grid-sized arrays -- only to reproduce
+           dxxMap_, and multiplies varianceValues_ by ones. Since x*1.0 == x
+           exactly, skipping that work leaves the operator unchanged bit for
+           bit. L_ is set once in the constructor so that getL() keeps
+           returning the same array as before.
+        */
+        if (leverageFct_ == nullptr) {
+            if (quantoHelper_ != nullptr) {
+                mapT_.axpyb(r - q - varianceValues_
+                    - quantoHelper_->quantoAdjustment(volatilityValues_, t1, t2),
+                    dxMap_, dxxMap_, Array(1, -0.5*r));
+            } else {
+                mapT_.axpyb(r - q - varianceValues_, dxMap_,
+                            dxxMap_, Array(1, -0.5*r));
+            }
+            return;
+        }
 
         L_ = getLeverageFctSlice(t1, t2);
         const Array Lsquare = L_*L_;
@@ -150,6 +175,12 @@ namespace QuantLib {
     }
 
     Array FdmHestonOp::apply(const Array& u) const {
+        // getL() is identically one without a leverage function; the multiply
+        // would be a grid-sized no-op, and x*1.0 == x exactly
+        if (!dxMap_.hasLeverage())
+            return dyMap_.getMap().apply(u) + dxMap_.getMap().apply(u)
+                  + correlationMap_.apply(u);
+
         return dyMap_.getMap().apply(u) + dxMap_.getMap().apply(u)
               + dxMap_.getL()*correlationMap_.apply(u);
     }
@@ -165,6 +196,9 @@ namespace QuantLib {
     }
 
     Array FdmHestonOp::apply_mixed(const Array& r) const {
+        if (!dxMap_.hasLeverage())
+            return correlationMap_.apply(r);
+
         return dxMap_.getL()*correlationMap_.apply(r);
     }
 

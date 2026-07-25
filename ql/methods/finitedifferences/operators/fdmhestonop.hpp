@@ -49,6 +49,8 @@ namespace QuantLib {
         void setTime(Time t1, Time t2);
         const TripleBandLinearOp& getMap() const;
         const Array& getL() const { return L_; }
+        //! true when getL() is not identically one and must be applied
+        bool hasLeverage() const { return leverageFct_ != nullptr; }
 
       protected:
         Array getLeverageFctSlice(Time t1, Time t2) const;
