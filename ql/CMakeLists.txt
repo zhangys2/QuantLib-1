@@ -1730,10 +1730,12 @@ set(QL_HEADERS
     methods/lattices/tflattice.hpp
     methods/lattices/tree.hpp
     methods/lattices/trinomialtree.hpp
+    methods/montecarlo/blackscholespathmodel.hpp
     methods/montecarlo/brownianbridge.hpp
     methods/montecarlo/earlyexercisepathpricer.hpp
     methods/montecarlo/exercisestrategy.hpp
     methods/montecarlo/genericlsregression.hpp
+    methods/montecarlo/indexedgaussiansequence.hpp
     methods/montecarlo/longstaffschwartzpathpricer.hpp
     methods/montecarlo/lsmbasissystem.hpp
     methods/montecarlo/mctraits.hpp
@@ -1741,6 +1743,7 @@ set(QL_HEADERS
     methods/montecarlo/multipath.hpp
     methods/montecarlo/multipathgenerator.hpp
     methods/montecarlo/nodedata.hpp
+    methods/montecarlo/parallelmontecarlomodel.hpp
     methods/montecarlo/parametricexercise.hpp
     methods/montecarlo/path.hpp
     methods/montecarlo/pathgenerator.hpp

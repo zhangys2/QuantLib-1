@@ -4,10 +4,12 @@ AM_CPPFLAGS = -I${top_builddir} -I${top_srcdir}
 this_includedir=${includedir}/${subdir}
 this_include_HEADERS = \
 	all.hpp \
+	blackscholespathmodel.hpp \
 	brownianbridge.hpp \
 	earlyexercisepathpricer.hpp \
 	exercisestrategy.hpp \
 	genericlsregression.hpp \
+	indexedgaussiansequence.hpp \
 	longstaffschwartzpathpricer.hpp \
 	lsmbasissystem.hpp \
 	mctraits.hpp \
@@ -15,6 +17,7 @@ this_include_HEADERS = \
 	multipath.hpp \
 	multipathgenerator.hpp \
 	nodedata.hpp \
+	parallelmontecarlomodel.hpp \
 	parametricexercise.hpp \
 	path.hpp \
 	pathgenerator.hpp \

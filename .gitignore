@@ -121,3 +121,8 @@ nbproject
 .dir-locals.el
 Build.props
 Directory.Build.props
+
+# C++26 parallel Monte Carlo work
+build-gcc/
+build-cxx26/
+external/
