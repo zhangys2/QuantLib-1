@@ -57,6 +57,9 @@ nanobind_add_module(
     src/bind_instruments.cpp
     src/bind_pricing.cpp
     src/bind_rates_options.cpp
+    src/bind_credit.cpp
+    src/bind_cms.cpp
+    src/bind_inflation.cpp
     src/bind_experimental.cpp
 )
 

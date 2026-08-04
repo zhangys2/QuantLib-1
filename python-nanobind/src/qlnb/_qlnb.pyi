@@ -36,6 +36,13 @@ class BusinessDayConvention:
 class DateGeneration:
     Backward: DateGeneration
     Forward: DateGeneration
+    TwentiethIMM: DateGeneration
+    CDS: DateGeneration
+    CDS2015: DateGeneration
+
+class ProtectionSide:
+    Buyer: ProtectionSide
+    Seller: ProtectionSide
 
 class Compounding:
     Simple: Compounding
@@ -59,6 +66,14 @@ class BarrierType:
     UpIn: BarrierType
     DownOut: BarrierType
     UpOut: BarrierType
+
+class AverageType:
+    Arithmetic: AverageType
+    Geometric: AverageType
+
+class CdsPricingModel:
+    Midpoint: CdsPricingModel
+    ISDA: CdsPricingModel
 
 class CapFloorType:
     Cap: CapFloorType
@@ -119,6 +134,7 @@ class Settings:
     @staticmethod
     def instance() -> Settings: ...
     evaluation_date: Date
+    include_todays_cash_flows: bool | None
 
 class Quote:
     def value(self) -> float: ...
@@ -444,11 +460,120 @@ class CapFloor:
         displacement: float = ...,
     ) -> None: ...
 
+class BermudanExercise:
+    def __init__(
+        self, dates: Sequence[Date], payoff_at_expiry: bool = ...
+    ) -> None: ...
+    def dates(self) -> list[Date]: ...
+    def last_date(self) -> Date: ...
+
+class HullWhite:
+    def __init__(
+        self,
+        term_structure: YieldTermStructureHandle,
+        a: float = ...,
+        sigma: float = ...,
+    ) -> None: ...
+
+class DefaultProbabilityTermStructureHandle:
+    def empty(self) -> bool: ...
+    def survival_probability(
+        self, date: Date | float, extrapolate: bool = ...
+    ) -> float: ...
+    def hazard_rate(self, date: Date, extrapolate: bool = ...) -> float: ...
+    def default_probability(
+        self, date: Date, extrapolate: bool = ...
+    ) -> float: ...
+    def reference_date(self) -> Date: ...
+    def max_date(self) -> Date: ...
+
+class IsdaCdsNumericalFix:
+    None: IsdaCdsNumericalFix
+    Taylor: IsdaCdsNumericalFix
+
+class IsdaCdsAccrualBias:
+    HalfDayBias: IsdaCdsAccrualBias
+    NoBias: IsdaCdsAccrualBias
+
+class IsdaCdsForwardsInCouponPeriod:
+    Flat: IsdaCdsForwardsInCouponPeriod
+    Piecewise: IsdaCdsForwardsInCouponPeriod
+
+class Gsr:
+    @overload
+    def __init__(
+        self,
+        term_structure: YieldTermStructureHandle,
+        vol_step_dates: Sequence[Date],
+        volatilities: Sequence[float],
+        reversion: float,
+        T: float = ...,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        term_structure: YieldTermStructureHandle,
+        vol_step_dates: Sequence[Date],
+        volatilities: Sequence[float],
+        reversions: Sequence[float],
+        T: float = ...,
+    ) -> None: ...
+    def zerobond(
+        self, maturity: float, t: float = ..., y: float = ...
+    ) -> float: ...
+    def numeraire_time(self) -> float: ...
+
+class CreditDefaultSwap:
+    def __init__(
+        self,
+        side: ProtectionSide,
+        notional: float,
+        spread: float,
+        schedule: Schedule,
+        payment_convention: BusinessDayConvention,
+        day_counter: DayCounter,
+        settles_accrual: bool = ...,
+        pays_at_default_time: bool = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def fair_spread(self) -> float: ...
+    def fair_upfront(self) -> float: ...
+    def coupon_leg_NPV(self) -> float: ...
+    def default_leg_NPV(self) -> float: ...
+    def side(self) -> ProtectionSide: ...
+    def notional(self) -> float: ...
+    def running_spread(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def set_pricing_engine(
+        self,
+        probability: DefaultProbabilityTermStructureHandle,
+        recovery_rate: float,
+        discount_curve: YieldTermStructureHandle,
+    ) -> None: ...
+    def set_isda_pricing_engine(
+        self,
+        probability: DefaultProbabilityTermStructureHandle,
+        recovery_rate: float,
+        discount_curve: YieldTermStructureHandle,
+        numerical_fix: IsdaCdsNumericalFix = ...,
+        accrual_bias: IsdaCdsAccrualBias = ...,
+        forwards_in_coupon_period: IsdaCdsForwardsInCouponPeriod = ...,
+    ) -> None: ...
+
 class Swaption:
+    @overload
     def __init__(
         self,
         swap: VanillaSwap,
         exercise: EuropeanExercise,
+        delivery: SettlementType = ...,
+        settlement_method: SettlementMethod = ...,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        swap: VanillaSwap,
+        exercise: BermudanExercise,
         delivery: SettlementType = ...,
         settlement_method: SettlementMethod = ...,
     ) -> None: ...
@@ -464,6 +589,52 @@ class Swaption:
         day_counter: DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
+    def set_tree_pricing_engine(
+        self, model: HullWhite, time_steps: int = ...
+    ) -> None: ...
+    def set_jamshidian_pricing_engine(self, model: HullWhite) -> None: ...
+    def set_gaussian1d_pricing_engine(
+        self,
+        model: Gsr,
+        integration_points: int = ...,
+        stddevs: float = ...,
+        extrapolate_payoff: bool = ...,
+        flat_payoff_extrapolation: bool = ...,
+    ) -> None: ...
+    def set_fd_hullwhite_pricing_engine(
+        self,
+        model: HullWhite,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
+
+class ContinuousAveragingAsianOption:
+    def __init__(
+        self,
+        average_type: AverageType,
+        payoff: PlainVanillaPayoff,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def delta(self) -> float: ...
+    def gamma(self) -> float: ...
+    def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
+
+class DiscreteAveragingAsianOption:
+    def __init__(
+        self,
+        average_type: AverageType,
+        running_accumulator: float,
+        past_fixings: int,
+        fixing_dates: Sequence[Date],
+        payoff: PlainVanillaPayoff,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
+
+class DefaultProbabilityHelper: ...
 
 def set_evaluation_date(date: Date) -> None: ...
 def get_evaluation_date() -> Date: ...
@@ -557,6 +728,76 @@ def UnitedStates(market: UnitedStatesMarket = ...) -> Calendar: ...
 def FlatForward(
     reference_date: Date, forward: float | QuoteHandle, day_counter: DayCounter
 ) -> YieldTermStructureHandle: ...
+@overload
+def FlatHazardRate(
+    reference_date: Date, hazard_rate: float, day_counter: DayCounter
+) -> DefaultProbabilityTermStructureHandle: ...
+@overload
+def FlatHazardRate(
+    settlement_days: int,
+    calendar: Calendar,
+    hazard_rate: float,
+    day_counter: DayCounter,
+) -> DefaultProbabilityTermStructureHandle: ...
+def InterpolatedHazardRateCurve(
+    dates: Sequence[Date],
+    hazard_rates: Sequence[float],
+    day_counter: DayCounter,
+    calendar: Calendar = ...,
+) -> DefaultProbabilityTermStructureHandle: ...
+def SpreadCdsHelper(
+    running_spread: float,
+    tenor: Period,
+    settlement_days: int,
+    calendar: Calendar,
+    frequency: Frequency,
+    payment_convention: BusinessDayConvention,
+    rule: DateGeneration,
+    day_counter: DayCounter,
+    recovery_rate: float,
+    discount_curve: YieldTermStructureHandle,
+    settles_accrual: bool = ...,
+    pays_at_default_time: bool = ...,
+    model: CdsPricingModel = ...,
+) -> DefaultProbabilityHelper: ...
+def PiecewiseHazardRateCurve(
+    reference_date: Date,
+    helpers: Sequence[DefaultProbabilityHelper],
+    day_counter: DayCounter,
+) -> DefaultProbabilityTermStructureHandle: ...
+def MidPointCdsEngine(
+    probability: DefaultProbabilityTermStructureHandle,
+) -> DefaultProbabilityTermStructureHandle: ...
+def IsdaCdsEngine(
+    probability: DefaultProbabilityTermStructureHandle,
+) -> DefaultProbabilityTermStructureHandle: ...
+def TreeSwaptionEngine(model: HullWhite) -> HullWhite: ...
+def Gaussian1dSwaptionEngine(model: Gsr) -> Gsr: ...
+def FdHullWhiteSwaptionEngine(model: HullWhite) -> HullWhite: ...
+def AnalyticContinuousGeometricAveragePriceAsianEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def AnalyticDiscreteGeometricAveragePriceAsianEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def uniform_1d_mesher_locations(
+    start: float, end: float, size: int
+) -> object: ...
+def fdm_black_scholes_mesher_locations(
+    size: int,
+    process: BlackScholesMertonProcess,
+    maturity: float,
+    strike: float,
+) -> object: ...
+def fdm_black_scholes_values(
+    process: BlackScholesMertonProcess,
+    strike: float,
+    maturity: float,
+    option_type: OptionType = ...,
+    t_grid: int = ...,
+    x_grid: int = ...,
+    damping_steps: int = ...,
+) -> object: ...
 def DepositRateHelper(
     rate: float | QuoteHandle,
     tenor: Period,
@@ -616,5 +857,288 @@ def Estr(handle: YieldTermStructureHandle) -> OvernightIndex: ...
 def Eonia() -> OvernightIndex: ...
 @overload
 def Eonia(handle: YieldTermStructureHandle) -> OvernightIndex: ...
+
+class YieldCurveModel:
+    Standard: YieldCurveModel
+    ExactYield: YieldCurveModel
+    ParallelShifts: YieldCurveModel
+    NonParallelShifts: YieldCurveModel
+
+class VolatilityType:
+    ShiftedLognormal: VolatilityType
+    Normal: VolatilityType
+
+class SwapIndex:
+    def name(self) -> str: ...
+    def tenor(self) -> Period: ...
+    def fixing_days(self) -> int: ...
+    def fixing_calendar(self) -> Calendar: ...
+    def day_counter(self) -> DayCounter: ...
+    def add_fixing(
+        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+    ) -> None: ...
+    def fixing(self, fixing_date: Date, forecast_today: bool = ...) -> float: ...
+    def value_date(self, fixing_date: Date) -> Date: ...
+
+class SwapSpreadIndex:
+    def name(self) -> str: ...
+    def fixing_days(self) -> int: ...
+    def fixing_calendar(self) -> Calendar: ...
+    def day_counter(self) -> DayCounter: ...
+    def gearing1(self) -> float: ...
+    def gearing2(self) -> float: ...
+    def swap_index1(self) -> SwapIndex: ...
+    def swap_index2(self) -> SwapIndex: ...
+    def fixing(self, fixing_date: Date, forecast_today: bool = ...) -> float: ...
+    def value_date(self, fixing_date: Date) -> Date: ...
+
+class SwaptionVolatilityStructureHandle:
+    def empty(self) -> bool: ...
+    def volatility(
+        self,
+        option_date: Date,
+        swap_tenor: Period,
+        strike: float,
+        extrapolate: bool = ...,
+    ) -> float: ...
+
+class CmsCouponPricer: ...
+
+class CmsCoupon:
+    def __init__(
+        self,
+        payment_date: Date,
+        nominal: float,
+        start_date: Date,
+        end_date: Date,
+        fixing_days: int,
+        index: SwapIndex,
+        gearing: float = ...,
+        spread: float = ...,
+        ref_period_start: Date = ...,
+        ref_period_end: Date = ...,
+        day_counter: DayCounter = ...,
+        is_in_arrears: bool = ...,
+    ) -> None: ...
+    def rate(self) -> float: ...
+    def amount(self) -> float: ...
+    def nominal(self) -> float: ...
+    def accrual_start_date(self) -> Date: ...
+    def accrual_end_date(self) -> Date: ...
+    def set_pricer(self, pricer: CmsCouponPricer) -> None: ...
+
+class Swap:
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def number_of_legs(self) -> int: ...
+    def set_pricing_engine(
+        self, discount_curve: YieldTermStructureHandle
+    ) -> None: ...
+    def set_cms_coupon_pricer(self, pricer: CmsCouponPricer) -> None: ...
+
+@overload
+def EuriborSwapIsdaFixA(
+    tenor: Period, handle: YieldTermStructureHandle = ...
+) -> SwapIndex: ...
+@overload
+def EuriborSwapIsdaFixA(
+    tenor: Period,
+    forwarding: YieldTermStructureHandle,
+    discounting: YieldTermStructureHandle,
+) -> SwapIndex: ...
+def ConstantSwaptionVolatility(
+    reference_date: Date,
+    calendar: Calendar,
+    bdc: BusinessDayConvention,
+    volatility: float,
+    day_counter: DayCounter,
+    type: VolatilityType = ...,
+    shift: float = ...,
+) -> SwaptionVolatilityStructureHandle: ...
+def AnalyticHaganPricer(
+    swaption_vol: SwaptionVolatilityStructureHandle,
+    model: YieldCurveModel,
+    mean_reversion: QuoteHandle,
+) -> CmsCouponPricer: ...
+def NumericHaganPricer(
+    swaption_vol: SwaptionVolatilityStructureHandle,
+    model: YieldCurveModel,
+    mean_reversion: QuoteHandle,
+    lower_limit: float = ...,
+    upper_limit: float = ...,
+    precision: float = ...,
+) -> CmsCouponPricer: ...
+def make_cms(
+    swap_tenor: Period,
+    swap_index: SwapIndex,
+    ibor_index: IborIndex,
+    ibor_spread: float = ...,
+    forward_start: Period = ...,
+    discount_curve: YieldTermStructureHandle = ...,
+    pricer: CmsCouponPricer | None = ...,
+    nominal: float = ...,
+) -> Swap: ...
+def make_swap_spread_index(
+    family_name: str,
+    swap_index1: SwapIndex,
+    swap_index2: SwapIndex,
+    gearing1: float = ...,
+    gearing2: float = ...,
+) -> SwapSpreadIndex: ...
+def LinearTsrPricer(
+    swaption_vol: SwaptionVolatilityStructureHandle,
+    mean_reversion: QuoteHandle,
+    coupon_discount_curve: YieldTermStructureHandle = ...,
+) -> CmsCouponPricer: ...
+class CmsSpreadCouponPricer: ...
+def LognormalCmsSpreadPricer(
+    cms_pricer: CmsCouponPricer,
+    correlation: QuoteHandle,
+    coupon_discount_curve: YieldTermStructureHandle = ...,
+    integration_points: int = ...,
+) -> CmsSpreadCouponPricer: ...
+class CmsSpreadCoupon:
+    def __init__(
+        self,
+        payment_date: Date,
+        nominal: float,
+        start_date: Date,
+        end_date: Date,
+        fixing_days: int,
+        index: SwapSpreadIndex,
+        gearing: float = ...,
+        spread: float = ...,
+        ref_period_start: Date = ...,
+        ref_period_end: Date = ...,
+        day_counter: DayCounter = ...,
+        is_in_arrears: bool = ...,
+    ) -> None: ...
+    def rate(self) -> float: ...
+    def amount(self) -> float: ...
+    def fixing_date(self) -> Date: ...
+    def set_pricer(self, pricer: CmsSpreadCouponPricer) -> None: ...
+class CappedFlooredCmsSpreadCoupon:
+    def __init__(
+        self,
+        payment_date: Date,
+        nominal: float,
+        start_date: Date,
+        end_date: Date,
+        fixing_days: int,
+        index: SwapSpreadIndex,
+        gearing: float = ...,
+        spread: float = ...,
+        cap: float | None = ...,
+        floor: float | None = ...,
+        ref_period_start: Date = ...,
+        ref_period_end: Date = ...,
+        day_counter: DayCounter = ...,
+        is_in_arrears: bool = ...,
+    ) -> None: ...
+    def rate(self) -> float: ...
+    def amount(self) -> float: ...
+    def set_pricer(self, pricer: CmsSpreadCouponPricer) -> None: ...
+
+class CPIInterpolationType:
+    Flat: CPIInterpolationType
+    Linear: CPIInterpolationType
+
+class ZeroInflationTermStructureHandle:
+    def empty(self) -> bool: ...
+    def zero_rate(self, date: Date, extrapolate: bool = ...) -> float: ...
+    def base_date(self) -> Date: ...
+    def max_date(self) -> Date: ...
+    def frequency(self) -> Frequency: ...
+    def reference_date(self) -> Date: ...
+
+class RelinkableZeroInflationTermStructureHandle:
+    def empty(self) -> bool: ...
+    def link_to(self, handle: ZeroInflationTermStructureHandle) -> None: ...
+    def as_handle(self) -> ZeroInflationTermStructureHandle: ...
+    def zero_rate(self, date: Date, extrapolate: bool = ...) -> float: ...
+
+class ZeroInflationIndex:
+    def name(self) -> str: ...
+    def frequency(self) -> Frequency: ...
+    def availability_lag(self) -> Period: ...
+    def last_fixing_date(self) -> Date: ...
+    def add_fixing(
+        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+    ) -> None: ...
+    def fixing(self, fixing_date: Date, forecast_today: bool = ...) -> float: ...
+
+class ZeroInflationHelper: ...
+
+class ZeroCouponInflationSwap:
+    def __init__(
+        self,
+        type: SwapType,
+        nominal: float,
+        start_date: Date,
+        maturity: Date,
+        fix_calendar: Calendar,
+        fix_convention: BusinessDayConvention,
+        day_counter: DayCounter,
+        fixed_rate: float,
+        index: ZeroInflationIndex,
+        observation_lag: Period,
+        observation_interpolation: CPIInterpolationType,
+        adjust_inf_obs_dates: bool = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def fair_rate(self) -> float: ...
+    def fixed_rate(self) -> float: ...
+    def nominal(self) -> float: ...
+    def type(self) -> SwapType: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def fixed_leg_NPV(self) -> float: ...
+    def inflation_leg_NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def set_pricing_engine(
+        self, discount_curve: YieldTermStructureHandle
+    ) -> None: ...
+
+@overload
+def UKRPI(handle: ZeroInflationTermStructureHandle = ...) -> ZeroInflationIndex: ...
+@overload
+def UKRPI(
+    handle: RelinkableZeroInflationTermStructureHandle,
+) -> ZeroInflationIndex: ...
+def EUHICP(
+    handle: ZeroInflationTermStructureHandle = ...,
+) -> ZeroInflationIndex: ...
+def InterpolatedZeroInflationCurve(
+    reference_date: Date,
+    dates: Sequence[Date],
+    rates: Sequence[float],
+    frequency: Frequency,
+    day_counter: DayCounter,
+) -> ZeroInflationTermStructureHandle: ...
+def FlatZeroInflationCurve(
+    reference_date: Date,
+    base_date: Date,
+    max_date: Date,
+    rate: float,
+    frequency: Frequency,
+    day_counter: DayCounter,
+) -> ZeroInflationTermStructureHandle: ...
+def ZeroCouponInflationSwapHelper(
+    quote: QuoteHandle,
+    observation_lag: Period,
+    maturity: Date,
+    calendar: Calendar,
+    payment_convention: BusinessDayConvention,
+    day_counter: DayCounter,
+    index: ZeroInflationIndex,
+    observation_interpolation: CPIInterpolationType,
+) -> ZeroInflationHelper: ...
+def PiecewiseZeroInflationCurve(
+    reference_date: Date,
+    base_date: Date,
+    frequency: Frequency,
+    day_counter: DayCounter,
+    helpers: Sequence[ZeroInflationHelper],
+) -> ZeroInflationTermStructureHandle: ...
 
 __version__: str

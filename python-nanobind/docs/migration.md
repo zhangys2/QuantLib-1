@@ -228,7 +228,7 @@ Requires NumPy at import/use time (`pip install qlnb[numpy]` or the `test` extra
 | Flat forward | curve object → wrap in handle | factory returns handle |
 | Engines | construct engine, `setPricingEngine` | `set_pricing_engine(handle_or_process)` |
 | Naming | camelCase | snake_case |
-| Coverage | broad SWIG surface | focused phase 0–6 surface |
+| Coverage | broad SWIG surface | focused phase 0–12 surface |
 
 ## Compatibility shim (`qlnb.compat`)
 
@@ -337,6 +337,198 @@ print(ois.fair_rate(), ois.NPV())
 
 `qlnb.compat` adds camelCase aliases (`setBinomialPricingEngine`,
 `FloatingRateBond.cleanPrice`, `makeOIS`).
+
+## Phase-7 CDS, Bermudan tree swaption, FD mesher
+
+Credit default swaps use a flat hazard-rate factory that returns a
+`DefaultProbabilityTermStructureHandle` (same handle-factory pattern as
+`FlatForward`):
+
+```python
+prob = ql.FlatHazardRate(today, 0.01234, ql.Actual360())
+# or: ql.FlatHazardRate(0, calendar, 0.01234, ql.Actual360())
+cds = ql.CreditDefaultSwap(
+    ql.ProtectionSide.Seller,  # compat: ql.Protection.Seller
+    notional,
+    spread,
+    schedule,
+    ql.BusinessDayConvention.ModifiedFollowing,
+    ql.Actual360(),
+)
+cds.set_pricing_engine(prob, recovery_rate=0.4, discount_curve=curve)
+print(cds.NPV(), cds.fair_spread())
+```
+
+Bermudan swaptions attach a Hull–White tree engine (no Gaussian1d/LGM stack):
+
+```python
+model = ql.HullWhite(curve, a=0.05, sigma=0.006)
+berm = ql.Swaption(swap, ql.BermudanExercise(exercise_dates))
+berm.set_tree_pricing_engine(model, time_steps=50)
+
+euro = ql.Swaption(swap, ql.EuropeanExercise(exercise_dates[0]))
+euro.set_jamshidian_pricing_engine(model)  # same HW model, European
+```
+
+FD mesher locations as NumPy (requires NumPy):
+
+```python
+import numpy as np
+
+x = ql.uniform_1d_mesher_locations(0.0, 100.0, 51)
+ln_s = ql.fdm_black_scholes_mesher_locations(101, process, maturity=1.0, strike=100.0)
+```
+
+`qlnb.compat` adds `Protection.Buyer` / `Protection.Seller`, camelCase CDS /
+swaption tree aliases, and `uniform1dMesherLocations`.
+
+## Phase-8 ISDA CDS, GSR / Gaussian1d, FD value grid
+
+ISDA Standard Model engine (same handle args as mid-point, plus numerical
+flags):
+
+```python
+cds.set_isda_pricing_engine(
+    prob,
+    recovery_rate=0.4,
+    discount_curve=curve,
+    numerical_fix=ql.IsdaCdsNumericalFix.Taylor,
+    accrual_bias=ql.IsdaCdsAccrualBias.HalfDayBias,
+    forwards_in_coupon_period=ql.IsdaCdsForwardsInCouponPeriod.Piecewise,
+)
+```
+
+Piecewise hazard rates via BackwardFlat interpolation:
+
+```python
+haz = ql.InterpolatedHazardRateCurve(
+    [today, today + ql.Period(5, ql.TimeUnit.Years)],
+    [0.01, 0.015],
+    ql.Actual365Fixed(),
+    ql.TARGET(),
+)
+```
+
+GSR / Gaussian1d European swaption (constant reversion / vol):
+
+```python
+model = ql.Gsr(curve, [], [0.01], 0.01, T=50.0)
+swaption.set_gaussian1d_pricing_engine(model)
+```
+
+FD value grid export (European Black–Scholes; columns `[spot, value]`):
+
+```python
+grid = ql.fdm_black_scholes_values(
+    process, strike=100.0, maturity=1.0, option_type=ql.OptionType.Call,
+    t_grid=50, x_grid=51,
+)
+# grid.shape == (51, 2)
+```
+
+## Phase-9 CDS bootstrap, Asians, FD Hull–White swaption
+
+Hazard-rate bootstrap from spread CDS quotes (same pattern as
+`DepositRateHelper` + piecewise yield curves):
+
+```python
+helpers = [
+    ql.SpreadCdsHelper(
+        0.005, ql.Period(1, ql.TimeUnit.Years), 1, cal,
+        ql.Frequency.Quarterly, ql.BusinessDayConvention.Following,
+        ql.DateGeneration.TwentiethIMM, ql.Thirty360(...), 0.4, discount,
+    ),
+    # ...
+]
+hazard = ql.PiecewiseHazardRateCurve(today, helpers, ql.Thirty360(...))
+# For fair-spread round-trip vs quotes, set:
+ql.Settings.instance().include_todays_cash_flows = True
+```
+
+Geometric Asian options (analytic engines only in this phase):
+
+```python
+cont = ql.ContinuousAveragingAsianOption(
+    ql.AverageType.Geometric, payoff, exercise
+)
+cont.set_pricing_engine(process)  # continuous geometric average-price
+
+disc = ql.DiscreteAveragingAsianOption(
+    ql.AverageType.Geometric, 1.0, 0, fixing_dates, payoff, exercise
+)
+disc.set_pricing_engine(process)  # discrete geometric average-price
+```
+
+FD Hull–White Bermudan swaption:
+
+```python
+berm.set_fd_hullwhite_pricing_engine(hw_model, t_grid=100, x_grid=100)
+```
+
+## Phase-10 CMS / SwapIndex / Hagan pricers
+
+```python
+swap_index = ql.EuriborSwapIsdaFixA(ql.Period(10, ql.TimeUnit.Years), curve)
+vol = ql.ConstantSwaptionVolatility(
+    today, ql.TARGET(), ql.BusinessDayConvention.Following, 0.20, ql.Actual365Fixed()
+)
+pricer = ql.AnalyticHaganPricer(vol, ql.YieldCurveModel.Standard, ql.make_quote_handle(0.0))
+# compat: ql.GFunctionFactory.Standard
+
+coupon = ql.CmsCoupon(pay, 1.0, start, pay, swap_index.fixing_days(), swap_index,
+                      day_counter=ibor.day_counter())
+coupon.set_pricer(pricer)
+print(coupon.rate())
+
+cms = ql.make_cms(ql.Period(5, ql.TimeUnit.Years), swap_index, ibor,
+                  discount_curve=curve, pricer=pricer)
+print(cms.NPV())
+```
+
+## Phase-11 CMS-spread
+
+```python
+cms10 = ql.EuriborSwapIsdaFixA(ql.Period(10, ql.TimeUnit.Years), curve, curve)
+cms2 = ql.EuriborSwapIsdaFixA(ql.Period(2, ql.TimeUnit.Years), curve, curve)
+spread = ql.SwapSpreadIndex("cms10y2y", cms10, cms2)  # make_swap_spread_index
+
+tsr = ql.LinearTsrPricer(vol, ql.make_quote_handle(0.01), curve)
+sp_pricer = ql.LognormalCmsSpreadPricer(
+    tsr, ql.make_quote_handle(0.6), curve, integration_points=32
+)
+cpn = ql.CmsSpreadCoupon(pay, 10000.0, start, pay, spread.fixing_days(), spread,
+                         day_counter=ql.Actual360())
+cpn.set_pricer(sp_pricer)
+
+capped = ql.CappedFlooredCmsSpreadCoupon(
+    pay, 10000.0, start, pay, 2, spread, cap=0.03, day_counter=ql.Actual360()
+)
+```
+
+## Phase-12 zero inflation / ZCIS
+
+```python
+hz = ql.RelinkableZeroInflationTermStructureHandle()
+index = ql.UKRPI(hz)
+# add historic RPI fixings…
+helpers = [
+    ql.ZeroCouponInflationSwapHelper(
+        ql.make_quote_handle(0.0293), ql.Period(3, ql.TimeUnit.Months),
+        maturity, ql.UnitedKingdom(), ql.BusinessDayConvention.ModifiedFollowing,
+        ql.Thirty360(...), index, ql.CPIInterpolationType.Flat,  # compat: ql.CPI.Flat
+    )
+]
+curve = ql.PiecewiseZeroInflationCurve(today, index.last_fixing_date(),
+                                       ql.Frequency.Monthly, dc, helpers)
+hz.link_to(curve)
+
+zcis = ql.ZeroCouponInflationSwap(
+    ql.SwapType.Payer, 1e6, today, maturity, cal, bdc, dc, 0.0293,
+    index, ql.Period(3, ql.TimeUnit.Months), ql.CPIInterpolationType.Flat,
+)
+zcis.set_pricing_engine(nominal_curve)  # DiscountingSwapEngine
+print(zcis.NPV(), zcis.fair_rate())
+```
 
 ## When to stay on SWIG
 

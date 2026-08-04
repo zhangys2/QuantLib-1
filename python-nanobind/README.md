@@ -58,6 +58,46 @@ Experimental Python package that binds a focused QuantLib surface with
 - `make_ois` → `OvernightIndexedSwap` + discounting engine
 - `qlnb.compat` aliases for floating bonds / tree-FD / OIS
 
+### Phase 7 (CDS, Bermudan tree swaption, FD mesher NumPy)
+- `CreditDefaultSwap` + `MidPointCdsEngine`; `FlatHazardRate` → default-probability handle
+- Bermudan `Swaption` via `BermudanExercise` + `TreeSwaptionEngine` on `HullWhite`
+  (`set_tree_pricing_engine` / `set_jamshidian_pricing_engine`)
+- FD mesher NumPy helpers: `uniform_1d_mesher_locations`,
+  `fdm_black_scholes_mesher_locations`
+- New translation unit: `src/bind_credit.cpp`
+
+### Phase 8 (ISDA CDS, GSR/Gaussian1d, FD value grid)
+- `CreditDefaultSwap.set_isda_pricing_engine` + ISDA numerical enums
+- `InterpolatedHazardRateCurve` (BackwardFlat) factory
+- `Gsr` model + `Swaption.set_gaussian1d_pricing_engine`
+- `fdm_black_scholes_values` → NumPy `(x_grid, 2)` `[spot, value]` grid
+
+### Phase 9 (CDS bootstrap, Asians, FD Hull–White swaption)
+- `SpreadCdsHelper` + `PiecewiseHazardRateCurve` hazard bootstrap
+- Continuous / discrete geometric Asian options (analytic engines)
+- `Swaption.set_fd_hullwhite_pricing_engine`
+- `Settings.include_todays_cash_flows` (needed for CDS bootstrap parity)
+
+### Phase 10 (CMS / SwapIndex / Hagan)
+- `EuriborSwapIsdaFixA` → opaque `SwapIndex`
+- `ConstantSwaptionVolatility` → `SwaptionVolatilityStructureHandle`
+- `AnalyticHaganPricer` / `NumericHaganPricer` → `CmsCouponPricer`
+- `CmsCoupon` + `make_cms` → standalone `Swap`
+- New translation unit: `src/bind_cms.cpp`
+
+### Phase 11 (CMS-spread)
+- `SwapIndex.add_fixing` / `fixing` / `value_date`
+- `SwapSpreadIndex` (`make_swap_spread_index`; also aliased as `ql.SwapSpreadIndex`)
+- `LinearTsrPricer`, `LognormalCmsSpreadPricer`
+- `CmsSpreadCoupon` / `CappedFlooredCmsSpreadCoupon`
+
+### Phase 12 (zero inflation / ZCIS)
+- `UKRPI` / `EUHICP` → `ZeroInflationIndex`
+- `InterpolatedZeroInflationCurve` / `FlatZeroInflationCurve` /
+  `PiecewiseZeroInflationCurve` + `ZeroCouponInflationSwapHelper`
+- `ZeroCouponInflationSwap` + `DiscountingSwapEngine`
+- New translation unit: `src/bind_inflation.cpp`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

@@ -182,6 +182,74 @@ def _install_aliases() -> None:
         Swaption.settlementType = Swaption.settlement_type  # type: ignore[attr-defined]
         Swaption.settlementMethod = Swaption.settlement_method  # type: ignore[attr-defined]
         Swaption.isExpired = Swaption.is_expired  # type: ignore[attr-defined]
+        if hasattr(Swaption, "set_tree_pricing_engine"):
+            Swaption.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_tree_pricing_engine
+            )
+        if hasattr(Swaption, "set_jamshidian_pricing_engine"):
+            Swaption.setJamshidianPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_jamshidian_pricing_engine
+            )
+        if hasattr(Swaption, "set_gaussian1d_pricing_engine"):
+            Swaption.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Swaption, "set_fd_hullwhite_pricing_engine"):
+            Swaption.setFdHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_fd_hullwhite_pricing_engine
+            )
+
+    CreditDefaultSwap = getattr(_ql, "CreditDefaultSwap", None)
+    if CreditDefaultSwap is not None:
+        CreditDefaultSwap.fairSpread = CreditDefaultSwap.fair_spread  # type: ignore[attr-defined]
+        CreditDefaultSwap.fairUpfront = CreditDefaultSwap.fair_upfront  # type: ignore[attr-defined]
+        CreditDefaultSwap.couponLegNPV = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.coupon_leg_NPV
+        )
+        CreditDefaultSwap.defaultLegNPV = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.default_leg_NPV
+        )
+        CreditDefaultSwap.runningSpread = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.running_spread
+        )
+        CreditDefaultSwap.setPricingEngine = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.set_pricing_engine
+        )
+        CreditDefaultSwap.isExpired = CreditDefaultSwap.is_expired  # type: ignore[attr-defined]
+        if hasattr(CreditDefaultSwap, "set_isda_pricing_engine"):
+            CreditDefaultSwap.setIsdaPricingEngine = (  # type: ignore[attr-defined]
+                CreditDefaultSwap.set_isda_pricing_engine
+            )
+
+    BermudanExercise = getattr(_ql, "BermudanExercise", None)
+    if BermudanExercise is not None:
+        BermudanExercise.lastDate = BermudanExercise.last_date  # type: ignore[attr-defined]
+
+    DefaultProbabilityTermStructureHandle = getattr(
+        _ql, "DefaultProbabilityTermStructureHandle", None
+    )
+    if DefaultProbabilityTermStructureHandle is not None:
+        DefaultProbabilityTermStructureHandle.survivalProbability = (  # type: ignore[attr-defined]
+            DefaultProbabilityTermStructureHandle.survival_probability
+        )
+        DefaultProbabilityTermStructureHandle.hazardRate = (  # type: ignore[attr-defined]
+            DefaultProbabilityTermStructureHandle.hazard_rate
+        )
+        DefaultProbabilityTermStructureHandle.referenceDate = (  # type: ignore[attr-defined]
+            DefaultProbabilityTermStructureHandle.reference_date
+        )
+        if hasattr(DefaultProbabilityTermStructureHandle, "default_probability"):
+            DefaultProbabilityTermStructureHandle.defaultProbability = (  # type: ignore[attr-defined]
+                DefaultProbabilityTermStructureHandle.default_probability
+            )
+        if hasattr(DefaultProbabilityTermStructureHandle, "max_date"):
+            DefaultProbabilityTermStructureHandle.maxDate = (  # type: ignore[attr-defined]
+                DefaultProbabilityTermStructureHandle.max_date
+            )
+
+    Gsr = getattr(_ql, "Gsr", None)
+    if Gsr is not None and hasattr(Gsr, "numeraire_time"):
+        Gsr.numeraireTime = Gsr.numeraire_time  # type: ignore[attr-defined]
 
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
@@ -272,6 +340,176 @@ _ql.VanillaSwap.Receiver = _ql.SwapType.Receiver  # type: ignore[attr-defined]
 
 # Phase-6 MakeOIS-style alias.
 makeOIS = getattr(_ql, "make_ois", None)
+
+# Phase-7 Protection nested namespace (SWIG: ql.Protection.Seller).
+class Protection:
+    """SWIG-style Protection.Buyer / Protection.Seller namespace."""
+
+    Buyer = getattr(_ql, "ProtectionSide").Buyer
+    Seller = getattr(_ql, "ProtectionSide").Seller
+
+# FD mesher / value-grid NumPy helpers (camelCase aliases).
+uniform1dMesherLocations = getattr(_ql, "uniform_1d_mesher_locations", None)
+fdmBlackScholesMesherLocations = getattr(
+    _ql, "fdm_black_scholes_mesher_locations", None
+)
+fdmBlackScholesValues = getattr(_ql, "fdm_black_scholes_values", None)
+
+# Phase-9 CDS bootstrap / Asian aliases.
+SpreadCdsHelper = getattr(_ql, "SpreadCdsHelper", None)
+PiecewiseHazardRateCurve = getattr(_ql, "PiecewiseHazardRateCurve", None)
+ContinuousAveragingAsianOption = getattr(
+    _ql, "ContinuousAveragingAsianOption", None
+)
+DiscreteAveragingAsianOption = getattr(
+    _ql, "DiscreteAveragingAsianOption", None
+)
+if ContinuousAveragingAsianOption is not None:
+    ContinuousAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
+        ContinuousAveragingAsianOption.set_pricing_engine
+    )
+if DiscreteAveragingAsianOption is not None:
+    DiscreteAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
+        DiscreteAveragingAsianOption.set_pricing_engine
+    )
+
+# Phase-10 CMS / SwapIndex aliases.
+EuriborSwapIsdaFixA = getattr(_ql, "EuriborSwapIsdaFixA", None)
+ConstantSwaptionVolatility = getattr(_ql, "ConstantSwaptionVolatility", None)
+AnalyticHaganPricer = getattr(_ql, "AnalyticHaganPricer", None)
+NumericHaganPricer = getattr(_ql, "NumericHaganPricer", None)
+makeCms = getattr(_ql, "make_cms", None)
+
+CmsCoupon = getattr(_ql, "CmsCoupon", None)
+if CmsCoupon is not None:
+    CmsCoupon.setPricer = CmsCoupon.set_pricer  # type: ignore[attr-defined]
+    CmsCoupon.accrualStartDate = CmsCoupon.accrual_start_date  # type: ignore[attr-defined]
+    CmsCoupon.accrualEndDate = CmsCoupon.accrual_end_date  # type: ignore[attr-defined]
+
+Swap = getattr(_ql, "Swap", None)
+if Swap is not None:
+    Swap.setPricingEngine = Swap.set_pricing_engine  # type: ignore[attr-defined]
+    Swap.isExpired = Swap.is_expired  # type: ignore[attr-defined]
+    Swap.numberOfLegs = Swap.number_of_legs  # type: ignore[attr-defined]
+    if hasattr(Swap, "set_cms_coupon_pricer"):
+        Swap.setCmsCouponPricer = Swap.set_cms_coupon_pricer  # type: ignore[attr-defined]
+
+SwapIndex = getattr(_ql, "SwapIndex", None)
+if SwapIndex is not None:
+    SwapIndex.fixingDays = SwapIndex.fixing_days  # type: ignore[attr-defined]
+    SwapIndex.fixingCalendar = SwapIndex.fixing_calendar  # type: ignore[attr-defined]
+    SwapIndex.dayCounter = SwapIndex.day_counter  # type: ignore[attr-defined]
+    if hasattr(SwapIndex, "add_fixing"):
+        SwapIndex.addFixing = SwapIndex.add_fixing  # type: ignore[attr-defined]
+    if hasattr(SwapIndex, "value_date"):
+        SwapIndex.valueDate = SwapIndex.value_date  # type: ignore[attr-defined]
+
+# Phase-11 CMS-spread aliases.
+LinearTsrPricer = getattr(_ql, "LinearTsrPricer", None)
+LognormalCmsSpreadPricer = getattr(_ql, "LognormalCmsSpreadPricer", None)
+SwapSpreadIndex = getattr(_ql, "make_swap_spread_index", None)
+CmsSpreadCoupon = getattr(_ql, "CmsSpreadCoupon", None)
+if CmsSpreadCoupon is not None:
+    CmsSpreadCoupon.setPricer = CmsSpreadCoupon.set_pricer  # type: ignore[attr-defined]
+    CmsSpreadCoupon.fixingDate = CmsSpreadCoupon.fixing_date  # type: ignore[attr-defined]
+CappedFlooredCmsSpreadCoupon = getattr(_ql, "CappedFlooredCmsSpreadCoupon", None)
+if CappedFlooredCmsSpreadCoupon is not None:
+    CappedFlooredCmsSpreadCoupon.setPricer = (  # type: ignore[attr-defined]
+        CappedFlooredCmsSpreadCoupon.set_pricer
+    )
+
+# Phase-12 zero-inflation / ZCIS aliases.
+UKRPI = getattr(_ql, "UKRPI", None)
+EUHICP = getattr(_ql, "EUHICP", None)
+ZeroCouponInflationSwapHelper = getattr(
+    _ql, "ZeroCouponInflationSwapHelper", None
+)
+PiecewiseZeroInflationCurve = getattr(_ql, "PiecewiseZeroInflationCurve", None)
+InterpolatedZeroInflationCurve = getattr(
+    _ql, "InterpolatedZeroInflationCurve", None
+)
+FlatZeroInflationCurve = getattr(_ql, "FlatZeroInflationCurve", None)
+
+ZeroInflationIndex = getattr(_ql, "ZeroInflationIndex", None)
+if ZeroInflationIndex is not None:
+    ZeroInflationIndex.addFixing = ZeroInflationIndex.add_fixing  # type: ignore[attr-defined]
+    ZeroInflationIndex.lastFixingDate = (  # type: ignore[attr-defined]
+        ZeroInflationIndex.last_fixing_date
+    )
+    ZeroInflationIndex.availabilityLag = (  # type: ignore[attr-defined]
+        ZeroInflationIndex.availability_lag
+    )
+
+ZeroCouponInflationSwap = getattr(_ql, "ZeroCouponInflationSwap", None)
+if ZeroCouponInflationSwap is not None:
+    ZeroCouponInflationSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.set_pricing_engine
+    )
+    ZeroCouponInflationSwap.fairRate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.fair_rate
+    )
+    ZeroCouponInflationSwap.fixedRate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.fixed_rate
+    )
+    ZeroCouponInflationSwap.fixedLegNPV = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.fixed_leg_NPV
+    )
+    ZeroCouponInflationSwap.inflationLegNPV = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.inflation_leg_NPV
+    )
+    ZeroCouponInflationSwap.startDate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.start_date
+    )
+    ZeroCouponInflationSwap.maturityDate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.maturity_date
+    )
+    ZeroCouponInflationSwap.isExpired = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.is_expired
+    )
+
+ZeroInflationTermStructureHandle = getattr(
+    _ql, "ZeroInflationTermStructureHandle", None
+)
+if ZeroInflationTermStructureHandle is not None:
+    ZeroInflationTermStructureHandle.zeroRate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.zero_rate
+    )
+    ZeroInflationTermStructureHandle.baseDate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.base_date
+    )
+    ZeroInflationTermStructureHandle.maxDate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.max_date
+    )
+    ZeroInflationTermStructureHandle.referenceDate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.reference_date
+    )
+
+RelinkableZeroInflationTermStructureHandle = getattr(
+    _ql, "RelinkableZeroInflationTermStructureHandle", None
+)
+if RelinkableZeroInflationTermStructureHandle is not None:
+    RelinkableZeroInflationTermStructureHandle.linkTo = (  # type: ignore[attr-defined]
+        RelinkableZeroInflationTermStructureHandle.link_to
+    )
+    RelinkableZeroInflationTermStructureHandle.asHandle = (  # type: ignore[attr-defined]
+        RelinkableZeroInflationTermStructureHandle.as_handle
+    )
+
+# SWIG-style CPI.Flat nested namespace.
+class CPI:
+    """SWIG-style CPI.Flat / CPI.Linear namespace."""
+
+    Flat = getattr(_ql, "CPIInterpolationType").Flat
+    Linear = getattr(_ql, "CPIInterpolationType").Linear
+
+# SWIG-style GFunctionFactory.Standard nested namespace.
+class GFunctionFactory:
+    """SWIG-style GFunctionFactory.Standard / ExactYield / … namespace."""
+
+    Standard = getattr(_ql, "YieldCurveModel").Standard
+    ExactYield = getattr(_ql, "YieldCurveModel").ExactYield
+    ParallelShifts = getattr(_ql, "YieldCurveModel").ParallelShifts
+    NonParallelShifts = getattr(_ql, "YieldCurveModel").NonParallelShifts
 
 
 __all__ = [name for name in globals() if not name.startswith("_")]
