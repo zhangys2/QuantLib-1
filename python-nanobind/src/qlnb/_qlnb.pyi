@@ -476,6 +476,27 @@ class SoftBarrierOption:
     def vega(self) -> float: ...
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
 
+class PartialBarrierRange:
+    Start: PartialBarrierRange
+    EndB1: PartialBarrierRange
+    EndB2: PartialBarrierRange
+
+class PartialTimeBarrierOption:
+    def __init__(
+        self,
+        barrier_type: BarrierType,
+        barrier_range: PartialBarrierRange,
+        barrier: float,
+        rebate: float,
+        cover_event_date: Date,
+        payoff: PlainVanillaPayoff,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def delta(self) -> float: ...
+    def gamma(self) -> float: ...
+    def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
+
 class DoubleBarrierOption:
     @overload
     def __init__(
@@ -761,6 +782,9 @@ def AnalyticBarrierEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 def AnalyticSoftBarrierEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def AnalyticPartialTimeBarrierOptionEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 def AnalyticDoubleBarrierEngine(
