@@ -376,6 +376,17 @@ def _install_aliases() -> None:
             SoftBarrierOption.set_pricing_engine
         )
 
+    # Phase-30 partial-time barrier aliases.
+    PartialBarrierRange = getattr(_ql, "PartialBarrierRange", None)
+    PartialTimeBarrierOption = getattr(_ql, "PartialTimeBarrierOption", None)
+    AnalyticPartialTimeBarrierOptionEngine = getattr(
+        _ql, "AnalyticPartialTimeBarrierOptionEngine", None
+    )
+    if PartialTimeBarrierOption is not None:
+        PartialTimeBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+            PartialTimeBarrierOption.set_pricing_engine
+        )
+
     # Phase-25/26 double-barrier aliases.
     DoubleBarrierType = getattr(_ql, "DoubleBarrierType", None)
     DoubleBarrierOption = getattr(_ql, "DoubleBarrierOption", None)

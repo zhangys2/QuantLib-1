@@ -16,6 +16,7 @@
 #include <ql/instruments/doublebarriertype.hpp>
 #include <ql/instruments/lookbackoption.hpp>
 #include <ql/instruments/makecapfloor.hpp>
+#include <ql/instruments/partialtimebarrieroption.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/option.hpp>
@@ -24,6 +25,7 @@
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticdoublebarrierbinaryengine.hpp>
 #include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
+#include <ql/pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp>
 #include <ql/pricingengines/barrier/analyticsoftbarrierengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
@@ -226,6 +228,65 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "SoftBarrierOption.set_pricing_engine.");
+
+    // --- Phase 30: partial-time barrier options (standalone wrappers) -------
+    nb::enum_<PartialBarrier::Range>(m, "PartialBarrierRange")
+        .value("Start", PartialBarrier::Start)
+        .value("EndB1", PartialBarrier::EndB1)
+        .value("EndB2", PartialBarrier::EndB2);
+
+    nb::class_<PartialTimeBarrierOption>(m, "PartialTimeBarrierOption")
+        .def(
+            "__init__",
+            [](PartialTimeBarrierOption* self,
+               Barrier::Type barrier_type,
+               PartialBarrier::Range barrier_range,
+               Real barrier,
+               Real rebate,
+               const Date& cover_event_date,
+               const PlainVanillaPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) PartialTimeBarrierOption(
+                    barrier_type,
+                    barrier_range,
+                    barrier,
+                    rebate,
+                    cover_event_date,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("barrier_type"),
+            nb::arg("barrier_range"),
+            nb::arg("barrier"),
+            nb::arg("rebate"),
+            nb::arg("cover_event_date"),
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def("NPV", [](PartialTimeBarrierOption& opt) { return opt.NPV(); })
+        .def("delta",
+             [](PartialTimeBarrierOption& opt) { return opt.delta(); })
+        .def("gamma",
+             [](PartialTimeBarrierOption& opt) { return opt.gamma(); })
+        .def(
+            "set_pricing_engine",
+            [](PartialTimeBarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticPartialTimeBarrierOptionEngine>(
+                        process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticPartialTimeBarrierOptionEngine (Haug). "
+            "Knock-in partial-time end options are not covered.");
+
+    m.def(
+        "AnalyticPartialTimeBarrierOptionEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "PartialTimeBarrierOption.set_pricing_engine.");
 
     // --- Phase 25/26: double-barrier options (standalone; OneAssetOption MI)
     nb::enum_<DoubleBarrier::Type>(m, "DoubleBarrierType")
