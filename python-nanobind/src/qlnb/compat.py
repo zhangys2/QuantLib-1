@@ -400,6 +400,16 @@ def _install_aliases() -> None:
             PartialTimeBarrierOption.set_pricing_engine
         )
 
+    # Phase-32 two-asset barrier aliases.
+    TwoAssetBarrierOption = getattr(_ql, "TwoAssetBarrierOption", None)
+    if TwoAssetBarrierOption is not None:
+        TwoAssetBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+            TwoAssetBarrierOption.set_pricing_engine
+        )
+        TwoAssetBarrierOption.isExpired = (  # type: ignore[attr-defined]
+            TwoAssetBarrierOption.is_expired
+        )
+
     # Phase-25/26 double-barrier aliases.
     DoubleBarrierType = getattr(_ql, "DoubleBarrierType", None)
     DoubleBarrierOption = getattr(_ql, "DoubleBarrierOption", None)

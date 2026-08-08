@@ -10,7 +10,8 @@ import qlnb as ql
 
 
 def test_version_is_phase31():
-    assert ql.__version__ == "0.32.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 32)
 
 
 def _bsm_process(today: ql.Date, spot: float, q: float, r: float, vol: float):

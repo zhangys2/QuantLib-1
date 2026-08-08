@@ -19,7 +19,9 @@
 #include <ql/instruments/partialtimebarrieroption.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
+#include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/option.hpp>
+#include <ql/quotes/simplequote.hpp>
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
 #include <ql/pricingengines/asian/analytic_discr_geom_av_price.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
@@ -28,6 +30,7 @@
 #include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp>
 #include <ql/pricingengines/barrier/analyticsoftbarrierengine.hpp>
+#include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfloatinglookback.hpp>
@@ -348,6 +351,60 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "PartialTimeBarrierOption.set_pricing_engine.");
+
+    // --- Phase 32: two-asset barrier options (standalone; Option MI) --------
+    nb::class_<TwoAssetBarrierOption>(m, "TwoAssetBarrierOption")
+        .def(
+            "__init__",
+            [](TwoAssetBarrierOption* self,
+               Barrier::Type barrier_type,
+               Real barrier,
+               const PlainVanillaPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) TwoAssetBarrierOption(
+                    barrier_type,
+                    barrier,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("barrier_type"),
+            nb::arg("barrier"),
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def("NPV", [](TwoAssetBarrierOption& opt) { return opt.NPV(); })
+        .def("is_expired", &TwoAssetBarrierOption::isExpired)
+        .def(
+            "set_pricing_engine",
+            [](TwoAssetBarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               const Handle<Quote>& rho) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticTwoAssetBarrierEngine>(
+                        process1, process2, rho));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("rho"),
+            "Attach AnalyticTwoAssetBarrierEngine "
+            "(process1 = strike asset, process2 = barrier asset, "
+            "rho = correlation).")
+        .def(
+            "set_pricing_engine",
+            [](TwoAssetBarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real rho) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticTwoAssetBarrierEngine>(
+                        process1,
+                        process2,
+                        Handle<Quote>(ext::make_shared<SimpleQuote>(rho))));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("rho"),
+            "Attach AnalyticTwoAssetBarrierEngine from a scalar correlation.");
 
     // --- Phase 25/26: double-barrier options (standalone; OneAssetOption MI)
     nb::enum_<DoubleBarrier::Type>(m, "DoubleBarrierType")
