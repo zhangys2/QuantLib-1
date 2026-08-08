@@ -911,6 +911,29 @@ Barrier monitoring covers only part of the option life (`Start` until cover
 event, or `EndB1`/`EndB2` from cover event to expiry). Analytic knock-in
 partial-time end options are not covered by the QL engine.
 
+## Phase-31 binary barrier options
+
+```python
+opt = ql.BarrierOption(
+    ql.BarrierType.DownIn,
+    100.0, 0.0,
+    ql.CashOrNothingPayoff(ql.OptionType.Call, 102.0, 15.0),
+    ql.AmericanExercise(today, maturity, True),
+)
+opt.set_binary_pricing_engine(process)  # AnalyticBinaryBarrierEngine
+
+asset = ql.BarrierOption(
+    ql.BarrierType.DownIn,
+    100.0, 0.0,
+    ql.AssetOrNothingPayoff(ql.OptionType.Call, 102.0),
+    ql.AmericanExercise(today, maturity, True),
+)
+asset.set_binary_pricing_engine(process)
+```
+
+Vanilla barrier path is unchanged (`set_pricing_engine` → `AnalyticBarrierEngine`).
+Binary barriers use American exercise (Haug at-expiry / one-touch style).
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,
