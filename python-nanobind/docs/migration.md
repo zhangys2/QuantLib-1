@@ -970,6 +970,21 @@ print(opt.NPV())
 Pays the asset-2 vanilla payoff only when asset 1 finishes in the money;
 otherwise the payoff is zero (Zhang / Haug analytic engine).
 
+## Phase-34 cliquet / ratchet options
+
+```python
+opt = ql.CliquetOption(
+    ql.PercentageStrikePayoff(ql.OptionType.Call, 1.1),  # moneyness
+    ql.EuropeanExercise(maturity),
+    [today + 90],  # reset dates
+)
+opt.set_pricing_engine(process)  # AnalyticCliquetEngine
+print(opt.NPV(), opt.delta(), opt.gamma(), opt.vega())
+```
+
+Each reset sets the forward-start strike to `moneyness * spot` at that date.
+Standalone wrapper (no OneAssetOption MI in Python).
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,
