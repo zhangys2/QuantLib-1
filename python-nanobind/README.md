@@ -181,6 +181,10 @@ Experimental Python package that binds a focused QuantLib surface with
 ### Phase 29 (soft barrier options)
 - `SoftBarrierOption` + `AnalyticSoftBarrierEngine` (Hart/Ross / Haug p.165)
 
+### Phase 30 (partial-time barrier options)
+- `PartialBarrierRange` (`Start` / `EndB1` / `EndB2`)
+- `PartialTimeBarrierOption` + `AnalyticPartialTimeBarrierOptionEngine`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

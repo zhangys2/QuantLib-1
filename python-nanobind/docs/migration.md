@@ -893,6 +893,24 @@ print(opt.NPV())
 Knock-in/out is proportional across `[barrier_lo, barrier_hi]` rather than a
 hard barrier. Analytic engine only (Haug p.165); European payoff style.
 
+## Phase-30 partial-time barrier options
+
+```python
+opt = ql.PartialTimeBarrierOption(
+    ql.BarrierType.DownOut,
+    ql.PartialBarrierRange.EndB1,
+    100.0, 0.0, cover_event_date,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 90.0),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_pricing_engine(process)  # AnalyticPartialTimeBarrierOptionEngine
+print(opt.NPV())
+```
+
+Barrier monitoring covers only part of the option life (`Start` until cover
+event, or `EndB1`/`EndB2` from cover event to expiry). Analytic knock-in
+partial-time end options are not covered by the QL engine.
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,
