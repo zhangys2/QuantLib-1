@@ -17,7 +17,9 @@
 #include <ql/option.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
+#include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
@@ -187,7 +189,18 @@ void bind_instruments(nb::module_& m) {
             nb::arg("required_samples"),
             nb::arg("seed") = 42UL,
             nb::arg("antithetic") = true,
-            nb::arg("brownian_bridge") = false);
+            nb::arg("brownian_bridge") = false)
+        .def(
+            "set_heston_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(ext::make_shared<AnalyticHestonEngine>(
+                    model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach AnalyticHestonEngine (Laguerre / Gatheral).");
 
     m.def(
         "AnalyticEuropeanEngine",

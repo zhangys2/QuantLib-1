@@ -20,6 +20,8 @@
 #include <ql/methods/lattices/binomialtree.hpp>
 #include <ql/methods/montecarlo/pathgenerator.hpp>
 #include <ql/position.hpp>
+#include <ql/models/equity/hestonmodel.hpp>
+#include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
@@ -249,7 +251,18 @@ void bind_pricing(nb::module_& m) {
             nb::arg("t_grid") = 100,
             nb::arg("x_grid") = 100,
             nb::arg("damping_steps") = 0,
-            "Attach FdBlackScholesVanillaEngine (NPV-only for v1; no grid export).");
+            "Attach FdBlackScholesVanillaEngine (NPV-only for v1; no grid export).")
+        .def(
+            "set_heston_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(ext::make_shared<AnalyticHestonEngine>(
+                    model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach AnalyticHestonEngine (Laguerre / Gatheral).");
 
     m.def(
         "BaroneAdesiWhaleyEngine",

@@ -208,6 +208,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `ForwardVanillaOption` + `ForwardVanillaEngine<AnalyticEuropeanEngine>` (Haug p.37)
 - `set_performance_pricing_engine` → performance forward engine
 
+### Phase 36 (Heston stochastic volatility)
+- `HestonProcess` / `HestonModel` / `HestonDiscretization`
+- `VanillaOption` / `EuropeanOption.set_heston_pricing_engine` → `AnalyticHestonEngine`
+- New translation unit: `src/bind_heston.cpp`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 
