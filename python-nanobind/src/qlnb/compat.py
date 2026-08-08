@@ -434,6 +434,20 @@ def _install_aliases() -> None:
         )
         CliquetOption.isExpired = CliquetOption.is_expired  # type: ignore[attr-defined]
 
+    # Phase-35 forward vanilla aliases.
+    ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
+    if ForwardVanillaOption is not None:
+        ForwardVanillaOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ForwardVanillaOption.set_pricing_engine
+        )
+        if hasattr(ForwardVanillaOption, "set_performance_pricing_engine"):
+            ForwardVanillaOption.setPerformancePricingEngine = (  # type: ignore[attr-defined]
+                ForwardVanillaOption.set_performance_pricing_engine
+            )
+        ForwardVanillaOption.isExpired = (  # type: ignore[attr-defined]
+            ForwardVanillaOption.is_expired
+        )
+
     # Phase-25/26 double-barrier aliases.
     DoubleBarrierType = getattr(_ql, "DoubleBarrierType", None)
     DoubleBarrierOption = getattr(_ql, "DoubleBarrierOption", None)

@@ -14,6 +14,7 @@
 #include <ql/instruments/capfloor.hpp>
 #include <ql/instruments/cliquetoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
+#include <ql/instruments/forwardvanillaoption.hpp>
 #include <ql/instruments/doublebarriertype.hpp>
 #include <ql/instruments/lookbackoption.hpp>
 #include <ql/instruments/makecapfloor.hpp>
@@ -35,6 +36,9 @@
 #include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
+#include <ql/pricingengines/forward/forwardengine.hpp>
+#include <ql/pricingengines/forward/forwardperformanceengine.hpp>
+#include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfloatinglookback.hpp>
@@ -510,6 +514,72 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "CliquetOption.set_pricing_engine.");
+
+    // --- Phase 35: forward vanilla options (standalone; OneAssetOption MI) ---
+    nb::class_<ForwardVanillaOption>(m, "ForwardVanillaOption")
+        .def(
+            "__init__",
+            [](ForwardVanillaOption* self,
+               Real moneyness,
+               const Date& reset_date,
+               const PlainVanillaPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) ForwardVanillaOption(
+                    moneyness,
+                    reset_date,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("moneyness"),
+            nb::arg("reset_date"),
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Strike-resetting forward-start vanilla (Haug p.37). "
+            "Payoff strike is ignored; moneyness * spot at reset is used.")
+        .def("NPV", [](ForwardVanillaOption& opt) { return opt.NPV(); })
+        .def("delta", [](ForwardVanillaOption& opt) { return opt.delta(); })
+        .def("gamma", [](ForwardVanillaOption& opt) { return opt.gamma(); })
+        .def("vega", [](ForwardVanillaOption& opt) { return opt.vega(); })
+        .def("is_expired", &ForwardVanillaOption::isExpired)
+        .def(
+            "set_pricing_engine",
+            [](ForwardVanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<
+                        ForwardVanillaEngine<AnalyticEuropeanEngine>>(
+                        process));
+            },
+            nb::arg("process"),
+            "Attach ForwardVanillaEngine<AnalyticEuropeanEngine>.")
+        .def(
+            "set_performance_pricing_engine",
+            [](ForwardVanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<ForwardPerformanceVanillaEngine<
+                        AnalyticEuropeanEngine>>(process));
+            },
+            nb::arg("process"),
+            "Attach ForwardPerformanceVanillaEngine<AnalyticEuropeanEngine>.");
+
+    m.def(
+        "ForwardVanillaEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "ForwardVanillaOption.set_pricing_engine.");
+
+    m.def(
+        "ForwardPerformanceVanillaEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "ForwardVanillaOption.set_performance_pricing_engine.");
 
     // --- Phase 25/26: double-barrier options (standalone; OneAssetOption MI)
     nb::enum_<DoubleBarrier::Type>(m, "DoubleBarrierType")

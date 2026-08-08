@@ -204,6 +204,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `PercentageStrikePayoff` (moneyness strike)
 - `CliquetOption` + `AnalyticCliquetEngine` (Haug p.37)
 
+### Phase 35 (forward vanilla options)
+- `ForwardVanillaOption` + `ForwardVanillaEngine<AnalyticEuropeanEngine>` (Haug p.37)
+- `set_performance_pricing_engine` → performance forward engine
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

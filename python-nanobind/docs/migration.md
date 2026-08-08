@@ -985,6 +985,29 @@ print(opt.NPV(), opt.delta(), opt.gamma(), opt.vega())
 Each reset sets the forward-start strike to `moneyness * spot` at that date.
 Standalone wrapper (no OneAssetOption MI in Python).
 
+## Phase-35 forward vanilla options
+
+```python
+opt = ql.ForwardVanillaOption(
+    1.1,                # moneyness
+    today + 90,         # reset date
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 0.0),  # strike ignored
+    ql.EuropeanExercise(maturity),
+)
+opt.set_pricing_engine(process)  # ForwardVanillaEngine<AnalyticEuropeanEngine>
+print(opt.NPV())
+
+perf = ql.ForwardVanillaOption(
+    1.1, today + 90,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 0.0),
+    ql.EuropeanExercise(maturity),
+)
+perf.set_performance_pricing_engine(process)
+```
+
+Single reset-date forward-start vanilla (vs multi-reset `CliquetOption`).
+Standalone wrapper (no OneAssetOption MI in Python).
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,
