@@ -20,6 +20,7 @@
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
+#include <ql/instruments/twoassetcorrelationoption.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
@@ -31,6 +32,7 @@
 #include <ql/pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp>
 #include <ql/pricingengines/barrier/analyticsoftbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
+#include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfloatinglookback.hpp>
@@ -405,6 +407,65 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process2"),
             nb::arg("rho"),
             "Attach AnalyticTwoAssetBarrierEngine from a scalar correlation.");
+
+    // --- Phase 33: two-asset correlation options (standalone; MultiAssetOption MI)
+    nb::class_<TwoAssetCorrelationOption>(m, "TwoAssetCorrelationOption")
+        .def(
+            "__init__",
+            [](TwoAssetCorrelationOption* self,
+               Option::Type type,
+               Real strike1,
+               Real strike2,
+               const EuropeanExercise& exercise) {
+                new (self) TwoAssetCorrelationOption(
+                    type,
+                    strike1,
+                    strike2,
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("option_type"),
+            nb::arg("strike1"),
+            nb::arg("strike2"),
+            nb::arg("exercise"),
+            "Pays asset-2 payoff only if asset 1 finishes in the money "
+            "(Zhang / Haug analytic engine).")
+        .def("NPV", [](TwoAssetCorrelationOption& opt) { return opt.NPV(); })
+        .def("is_expired", &TwoAssetCorrelationOption::isExpired)
+        .def(
+            "set_pricing_engine",
+            [](TwoAssetCorrelationOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               const Handle<Quote>& correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticTwoAssetCorrelationEngine>(
+                        process1, process2, correlation));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach AnalyticTwoAssetCorrelationEngine "
+            "(process1 = conditioning asset / strike1, "
+            "process2 = payoff asset / strike2, "
+            "correlation = asset correlation).")
+        .def(
+            "set_pricing_engine",
+            [](TwoAssetCorrelationOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticTwoAssetCorrelationEngine>(
+                        process1,
+                        process2,
+                        Handle<Quote>(
+                            ext::make_shared<SimpleQuote>(correlation))));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach AnalyticTwoAssetCorrelationEngine from a scalar "
+            "correlation.");
 
     // --- Phase 25/26: double-barrier options (standalone; OneAssetOption MI)
     nb::enum_<DoubleBarrier::Type>(m, "DoubleBarrierType")

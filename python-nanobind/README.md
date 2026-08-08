@@ -195,6 +195,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - Asset 1 = strike/payoff; asset 2 = barrier monitor; `rho` = correlation
   (`QuoteHandle` or scalar)
 
+### Phase 33 (two-asset correlation options)
+- `TwoAssetCorrelationOption` + `AnalyticTwoAssetCorrelationEngine` (Zhang / Haug)
+- Pays asset-2 payoff only if asset 1 finishes ITM; correlation via
+  `QuoteHandle` or scalar
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

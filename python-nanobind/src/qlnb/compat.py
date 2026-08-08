@@ -410,6 +410,16 @@ def _install_aliases() -> None:
             TwoAssetBarrierOption.is_expired
         )
 
+    # Phase-33 two-asset correlation aliases.
+    TwoAssetCorrelationOption = getattr(_ql, "TwoAssetCorrelationOption", None)
+    if TwoAssetCorrelationOption is not None:
+        TwoAssetCorrelationOption.setPricingEngine = (  # type: ignore[attr-defined]
+            TwoAssetCorrelationOption.set_pricing_engine
+        )
+        TwoAssetCorrelationOption.isExpired = (  # type: ignore[attr-defined]
+            TwoAssetCorrelationOption.is_expired
+        )
+
     # Phase-25/26 double-barrier aliases.
     DoubleBarrierType = getattr(_ql, "DoubleBarrierType", None)
     DoubleBarrierOption = getattr(_ql, "DoubleBarrierOption", None)
