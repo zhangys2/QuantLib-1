@@ -414,6 +414,7 @@ class HestonModel:
     def process(self) -> HestonProcess: ...
 
 def AnalyticHestonEngine(model: HestonModel) -> HestonModel: ...
+def FdHestonVanillaEngine(model: HestonModel) -> HestonModel: ...
 
 class EuropeanOption:
     def __init__(
@@ -445,8 +446,24 @@ class EuropeanOption:
     def set_heston_pricing_engine(
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
+    def set_fd_heston_pricing_engine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
     def setHestonPricingEngine(
         self, model: HestonModel, integration_order: int = ...
+    ) -> None: ...
+    def setFdHestonPricingEngine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
     ) -> None: ...
 
 class VanillaOption:
@@ -474,8 +491,24 @@ class VanillaOption:
     def set_heston_pricing_engine(
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
+    def set_fd_heston_pricing_engine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
     def setHestonPricingEngine(
         self, model: HestonModel, integration_order: int = ...
+    ) -> None: ...
+    def setFdHestonPricingEngine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
     ) -> None: ...
 
 class OvernightIndexedSwap:

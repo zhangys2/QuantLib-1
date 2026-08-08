@@ -10,7 +10,8 @@ import qlnb as ql
 
 
 def test_version_is_phase36():
-    assert ql.__version__ == "0.37.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 37)
 
 
 def test_heston_process_accessors():

@@ -76,4 +76,11 @@ void bind_heston(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "VanillaOption/EuropeanOption.set_heston_pricing_engine.");
+
+    m.def(
+        "FdHestonVanillaEngine",
+        [](const ext::shared_ptr<HestonModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption.set_fd_heston_pricing_engine.");
 }

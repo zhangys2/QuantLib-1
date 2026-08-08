@@ -1033,6 +1033,23 @@ print(opt.NPV())
 `HestonProcess` / `HestonModel` are concrete wrappers (no StochasticProcess /
 CalibratedModel MI in Python). FD-Heston / calibration helpers deferred.
 
+## Phase-37 FD Heston engine
+
+```python
+opt = ql.VanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Put, 100.0),
+    ql.AmericanExercise(today, maturity),
+)
+opt.set_fd_heston_pricing_engine(
+    model, t_grid=200, x_grid=100, v_grid=50
+)
+print(opt.NPV(), opt.delta(), opt.gamma())
+```
+
+Uses `FdHestonVanillaEngine` with the default Hundsdorfer scheme. Analytic
+path remains `set_heston_pricing_engine`. Scheme enum / dividend / quanto
+overloads deferred.
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,
