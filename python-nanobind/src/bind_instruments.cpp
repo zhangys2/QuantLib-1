@@ -100,6 +100,19 @@ void bind_instruments(nb::module_& m) {
         .def("option_type",
              [](const FloatingTypePayoff& p) { return p.optionType(); });
 
+    // Percentage-of-spot strike (moneyness) for cliquets / forward-starting.
+    nb::class_<PercentageStrikePayoff>(m, "PercentageStrikePayoff")
+        .def(nb::init<Option::Type, Real>(),
+             nb::arg("type"),
+             nb::arg("moneyness"))
+        .def("strike",
+             [](const PercentageStrikePayoff& p) { return p.strike(); },
+             "Moneyness stored as the payoff strike.")
+        .def("moneyness",
+             [](const PercentageStrikePayoff& p) { return p.strike(); })
+        .def("option_type",
+             [](const PercentageStrikePayoff& p) { return p.optionType(); });
+
     nb::class_<EuropeanExercise>(m, "EuropeanExercise")
         .def(nb::init<const Date&>(), nb::arg("date"))
         .def("last_date",

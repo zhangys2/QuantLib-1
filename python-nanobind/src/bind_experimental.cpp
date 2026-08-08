@@ -12,6 +12,7 @@
 #include <ql/instruments/barrieroption.hpp>
 #include <ql/instruments/barriertype.hpp>
 #include <ql/instruments/capfloor.hpp>
+#include <ql/instruments/cliquetoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
 #include <ql/instruments/doublebarriertype.hpp>
 #include <ql/instruments/lookbackoption.hpp>
@@ -32,6 +33,7 @@
 #include <ql/pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp>
 #include <ql/pricingengines/barrier/analyticsoftbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
+#include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
@@ -466,6 +468,48 @@ void bind_experimental(nb::module_& m) {
             nb::arg("correlation"),
             "Attach AnalyticTwoAssetCorrelationEngine from a scalar "
             "correlation.");
+
+    // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
+    nb::class_<CliquetOption>(m, "CliquetOption")
+        .def(
+            "__init__",
+            [](CliquetOption* self,
+               const PercentageStrikePayoff& payoff,
+               const EuropeanExercise& exercise,
+               const std::vector<Date>& reset_dates) {
+                new (self) CliquetOption(
+                    ext::make_shared<PercentageStrikePayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise),
+                    reset_dates);
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            nb::arg("reset_dates"),
+            "Forward-starting (ratchet) option series; strike resets to a "
+            "percentage of spot at each reset date (Haug p.37).")
+        .def("NPV", [](CliquetOption& opt) { return opt.NPV(); })
+        .def("delta", [](CliquetOption& opt) { return opt.delta(); })
+        .def("gamma", [](CliquetOption& opt) { return opt.gamma(); })
+        .def("vega", [](CliquetOption& opt) { return opt.vega(); })
+        .def("is_expired", &CliquetOption::isExpired)
+        .def(
+            "set_pricing_engine",
+            [](CliquetOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticCliquetEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticCliquetEngine.");
+
+    m.def(
+        "AnalyticCliquetEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "CliquetOption.set_pricing_engine.");
 
     // --- Phase 25/26: double-barrier options (standalone; OneAssetOption MI)
     nb::enum_<DoubleBarrier::Type>(m, "DoubleBarrierType")

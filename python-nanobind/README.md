@@ -200,6 +200,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - Pays asset-2 payoff only if asset 1 finishes ITM; correlation via
   `QuoteHandle` or scalar
 
+### Phase 34 (cliquet / ratchet options)
+- `PercentageStrikePayoff` (moneyness strike)
+- `CliquetOption` + `AnalyticCliquetEngine` (Haug p.37)
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

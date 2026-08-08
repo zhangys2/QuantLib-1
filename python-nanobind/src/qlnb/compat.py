@@ -313,6 +313,12 @@ def _install_aliases() -> None:
             FloatingTypePayoff.option_type
         )
 
+    PercentageStrikePayoff = getattr(_ql, "PercentageStrikePayoff", None)
+    if PercentageStrikePayoff is not None:
+        PercentageStrikePayoff.optionType = (  # type: ignore[attr-defined]
+            PercentageStrikePayoff.option_type
+        )
+
     ContinuousFloatingLookbackOption = getattr(
         _ql, "ContinuousFloatingLookbackOption", None
     )
@@ -419,6 +425,14 @@ def _install_aliases() -> None:
         TwoAssetCorrelationOption.isExpired = (  # type: ignore[attr-defined]
             TwoAssetCorrelationOption.is_expired
         )
+
+    # Phase-34 cliquet aliases.
+    CliquetOption = getattr(_ql, "CliquetOption", None)
+    if CliquetOption is not None:
+        CliquetOption.setPricingEngine = (  # type: ignore[attr-defined]
+            CliquetOption.set_pricing_engine
+        )
+        CliquetOption.isExpired = CliquetOption.is_expired  # type: ignore[attr-defined]
 
     # Phase-25/26 double-barrier aliases.
     DoubleBarrierType = getattr(_ql, "DoubleBarrierType", None)
