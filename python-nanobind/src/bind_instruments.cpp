@@ -74,7 +74,7 @@ void bind_instruments(nb::module_& m) {
         .def("option_type",
              [](const PlainVanillaPayoff& p) { return p.optionType(); });
 
-    // Standalone binary payoff (no Payoff / StrikedTypePayoff MI hierarchy).
+    // Standalone binary payoffs (no Payoff / StrikedTypePayoff MI hierarchy).
     nb::class_<CashOrNothingPayoff>(m, "CashOrNothingPayoff")
         .def(nb::init<Option::Type, Real, Real>(),
              nb::arg("type"),
@@ -85,6 +85,14 @@ void bind_instruments(nb::module_& m) {
              [](const CashOrNothingPayoff& p) { return p.optionType(); })
         .def("cash_payoff",
              [](const CashOrNothingPayoff& p) { return p.cashPayoff(); });
+
+    nb::class_<AssetOrNothingPayoff>(m, "AssetOrNothingPayoff")
+        .def(nb::init<Option::Type, Real>(),
+             nb::arg("type"),
+             nb::arg("strike"))
+        .def("strike", [](const AssetOrNothingPayoff& p) { return p.strike(); })
+        .def("option_type",
+             [](const AssetOrNothingPayoff& p) { return p.optionType(); });
 
     // Floating-strike payoff for lookbacks (no TypePayoff MI hierarchy).
     nb::class_<FloatingTypePayoff>(m, "FloatingTypePayoff")

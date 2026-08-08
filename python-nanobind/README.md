@@ -185,6 +185,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `PartialBarrierRange` (`Start` / `EndB1` / `EndB2`)
 - `PartialTimeBarrierOption` + `AnalyticPartialTimeBarrierOptionEngine`
 
+### Phase 31 (binary barrier options)
+- `AssetOrNothingPayoff`
+- `BarrierOption` cash/asset-or-nothing + American exercise overloads
+- `set_binary_pricing_engine` → `AnalyticBinaryBarrierEngine` (Haug p.176)
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

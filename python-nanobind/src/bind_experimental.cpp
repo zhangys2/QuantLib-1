@@ -23,6 +23,7 @@
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
 #include <ql/pricingengines/asian/analytic_discr_geom_av_price.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
+#include <ql/pricingengines/barrier/analyticbinarybarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticdoublebarrierbinaryengine.hpp>
 #include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp>
@@ -163,6 +164,46 @@ void bind_experimental(nb::module_& m) {
             nb::arg("rebate"),
             nb::arg("payoff"),
             nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](BarrierOption* self,
+               Barrier::Type barrier_type,
+               Real barrier,
+               Real rebate,
+               const CashOrNothingPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) BarrierOption(
+                    barrier_type,
+                    barrier,
+                    rebate,
+                    ext::make_shared<CashOrNothingPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("barrier_type"),
+            nb::arg("barrier"),
+            nb::arg("rebate"),
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](BarrierOption* self,
+               Barrier::Type barrier_type,
+               Real barrier,
+               Real rebate,
+               const AssetOrNothingPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) BarrierOption(
+                    barrier_type,
+                    barrier,
+                    rebate,
+                    ext::make_shared<AssetOrNothingPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("barrier_type"),
+            nb::arg("barrier"),
+            nb::arg("rebate"),
+            nb::arg("payoff"),
+            nb::arg("exercise"))
         .def("NPV", [](BarrierOption& opt) { return opt.NPV(); })
         .def("delta", [](BarrierOption& opt) { return opt.delta(); })
         .def("gamma", [](BarrierOption& opt) { return opt.gamma(); })
@@ -174,7 +215,18 @@ void bind_experimental(nb::module_& m) {
                 opt.setPricingEngine(
                     ext::make_shared<AnalyticBarrierEngine>(process));
             },
-            nb::arg("process"));
+            nb::arg("process"),
+            "Attach AnalyticBarrierEngine (vanilla barrier).")
+        .def(
+            "set_binary_pricing_engine",
+            [](BarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticBinaryBarrierEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticBinaryBarrierEngine (cash/asset-or-nothing; "
+            "American exercise, Haug p.176).");
 
     m.def(
         "AnalyticBarrierEngine",
@@ -183,6 +235,15 @@ void bind_experimental(nb::module_& m) {
         },
         nb::arg("process"),
         "Factory alias: pass the returned process to BarrierOption.set_pricing_engine.");
+
+    m.def(
+        "AnalyticBinaryBarrierEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "BarrierOption.set_binary_pricing_engine.");
 
     // --- Phase 29: soft barrier options (standalone; OneAssetOption MI) -----
     nb::class_<SoftBarrierOption>(m, "SoftBarrierOption")

@@ -301,6 +301,12 @@ def _install_aliases() -> None:
             CashOrNothingPayoff.cash_payoff
         )
 
+    AssetOrNothingPayoff = getattr(_ql, "AssetOrNothingPayoff", None)
+    if AssetOrNothingPayoff is not None:
+        AssetOrNothingPayoff.optionType = (  # type: ignore[attr-defined]
+            AssetOrNothingPayoff.option_type
+        )
+
     FloatingTypePayoff = getattr(_ql, "FloatingTypePayoff", None)
     if FloatingTypePayoff is not None:
         FloatingTypePayoff.optionType = (  # type: ignore[attr-defined]
@@ -363,10 +369,17 @@ def _install_aliases() -> None:
     ForwardRateAgreement.forwardRate = ForwardRateAgreement.forward_rate  # type: ignore[attr-defined]
     ForwardRateAgreement.fixingDate = ForwardRateAgreement.fixing_date  # type: ignore[attr-defined]
 
-    # Phase-4 experimental instruments (present when bindings are built).
+    # Phase-4 / Phase-31 barrier instruments (present when bindings are built).
     BarrierOption = getattr(_ql, "BarrierOption", None)
+    AnalyticBinaryBarrierEngine = getattr(
+        _ql, "AnalyticBinaryBarrierEngine", None
+    )
     if BarrierOption is not None:
         BarrierOption.setPricingEngine = BarrierOption.set_pricing_engine  # type: ignore[attr-defined]
+        if hasattr(BarrierOption, "set_binary_pricing_engine"):
+            BarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_binary_pricing_engine
+            )
 
     # Phase-29 soft barrier aliases.
     SoftBarrierOption = getattr(_ql, "SoftBarrierOption", None)
