@@ -14,4 +14,5 @@ void bind_credit(nb::module_& m);
 void bind_cms(nb::module_& m);
 void bind_inflation(nb::module_& m);
 void bind_fx(nb::module_& m);
+void bind_heston(nb::module_& m);
 void bind_experimental(nb::module_& m);

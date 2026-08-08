@@ -30,8 +30,8 @@ void settings_set_evaluation_date(const Date& d) {
 } // namespace
 
 NB_MODULE(_qlnb, m) {
-    m.doc() = "Nanobind bindings for QuantLib (phase 35)";
-    m.attr("__version__") = "0.36.0";
+    m.doc() = "Nanobind bindings for QuantLib (phase 36)";
+    m.attr("__version__") = "0.37.0";
 
     nb::enum_<Month>(m, "Month")
         .value("January", January)
@@ -195,6 +195,7 @@ NB_MODULE(_qlnb, m) {
 
     bind_time(m);
     bind_curves(m);
+    bind_heston(m);  // before instruments/pricing (set_heston_pricing_engine)
     bind_instruments(m);
     bind_pricing(m);
     bind_rates_options(m);

@@ -1008,6 +1008,31 @@ perf.set_performance_pricing_engine(process)
 Single reset-date forward-start vanilla (vs multi-reset `CliquetOption`).
 Standalone wrapper (no OneAssetOption MI in Python).
 
+## Phase-36 Heston stochastic volatility
+
+```python
+process = ql.HestonProcess(
+    ql.FlatForward(today, 0.0225, dc),
+    ql.FlatForward(today, 0.02, dc),
+    ql.make_quote_handle(1.0),
+    0.1,   # v0
+    3.16,  # kappa
+    0.09,  # theta
+    0.4,   # sigma
+    -0.2,  # rho
+)
+model = ql.HestonModel(process)
+opt = ql.VanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 1.05),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_heston_pricing_engine(model, integration_order=64)
+print(opt.NPV())
+```
+
+`HestonProcess` / `HestonModel` are concrete wrappers (no StochasticProcess /
+CalibratedModel MI in Python). FD-Heston / calibration helpers deferred.
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,

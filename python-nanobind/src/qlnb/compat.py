@@ -254,6 +254,10 @@ def _install_aliases() -> None:
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
     EuropeanOption.impliedVolatility = EuropeanOption.implied_volatility  # type: ignore[attr-defined]
+    if hasattr(EuropeanOption, "set_heston_pricing_engine"):
+        EuropeanOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_heston_pricing_engine
+        )
 
     VanillaOption = _ql.VanillaOption
     VanillaOption.setPricingEngine = VanillaOption.set_pricing_engine  # type: ignore[attr-defined]
@@ -264,6 +268,10 @@ def _install_aliases() -> None:
     if hasattr(VanillaOption, "set_fd_pricing_engine"):
         VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_heston_pricing_engine"):
+        VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_heston_pricing_engine
         )
 
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)
