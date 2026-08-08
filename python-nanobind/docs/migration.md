@@ -952,6 +952,24 @@ print(opt.NPV())
 Standalone wrapper (no Option MI in Python). Engine attachment takes two
 processes plus correlation rather than a single process factory.
 
+## Phase-33 two-asset correlation options
+
+```python
+opt = ql.TwoAssetCorrelationOption(
+    ql.OptionType.Call,
+    50.0,   # strike1 — conditioning asset
+    70.0,   # strike2 — payoff asset
+    ql.EuropeanExercise(maturity),
+)
+# process1 = conditioning asset, process2 = payoff asset
+opt.set_pricing_engine(process1, process2, 0.75)
+# or: opt.set_pricing_engine(process1, process2, ql.make_quote_handle(0.75))
+print(opt.NPV())
+```
+
+Pays the asset-2 vanilla payoff only when asset 1 finishes in the money;
+otherwise the payoff is zero (Zhang / Haug analytic engine).
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,

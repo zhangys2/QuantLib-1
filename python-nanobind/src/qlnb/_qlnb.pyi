@@ -512,6 +512,30 @@ class TwoAssetBarrierOption:
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
+class TwoAssetCorrelationOption:
+    def __init__(
+        self,
+        option_type: OptionType,
+        strike1: float,
+        strike2: float,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    def set_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: QuoteHandle | float,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def setPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: QuoteHandle | float,
+    ) -> None: ...
+    def isExpired(self) -> bool: ...
+
 class SoftBarrierOption:
     def __init__(
         self,
