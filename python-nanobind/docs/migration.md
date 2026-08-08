@@ -1031,7 +1031,8 @@ print(opt.NPV())
 ```
 
 `HestonProcess` / `HestonModel` are concrete wrappers (no StochasticProcess /
-CalibratedModel MI in Python). FD-Heston / calibration helpers deferred.
+CalibratedModel MI in Python). See Phase 37 for FD-Heston; calibration helpers
+remain deferred.
 
 ## Phase-37 FD Heston engine
 
