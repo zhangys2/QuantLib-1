@@ -488,6 +488,30 @@ class BarrierOption:
         self, process: BlackScholesMertonProcess
     ) -> None: ...
 
+class TwoAssetBarrierOption:
+    def __init__(
+        self,
+        barrier_type: BarrierType,
+        barrier: float,
+        payoff: PlainVanillaPayoff,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    def set_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        rho: QuoteHandle | float,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def setPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        rho: QuoteHandle | float,
+    ) -> None: ...
+    def isExpired(self) -> bool: ...
+
 class SoftBarrierOption:
     def __init__(
         self,

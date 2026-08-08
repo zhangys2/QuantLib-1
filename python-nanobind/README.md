@@ -190,6 +190,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BarrierOption` cash/asset-or-nothing + American exercise overloads
 - `set_binary_pricing_engine` → `AnalyticBinaryBarrierEngine` (Haug p.176)
 
+### Phase 32 (two-asset barrier options)
+- `TwoAssetBarrierOption` + `AnalyticTwoAssetBarrierEngine` (Haug)
+- Asset 1 = strike/payoff; asset 2 = barrier monitor; `rho` = correlation
+  (`QuoteHandle` or scalar)
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

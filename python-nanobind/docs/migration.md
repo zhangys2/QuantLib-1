@@ -934,6 +934,24 @@ asset.set_binary_pricing_engine(process)
 Vanilla barrier path is unchanged (`set_pricing_engine` → `AnalyticBarrierEngine`).
 Binary barriers use American exercise (Haug at-expiry / one-touch style).
 
+## Phase-32 two-asset barrier options
+
+```python
+opt = ql.TwoAssetBarrierOption(
+    ql.BarrierType.DownOut,
+    95.0,  # barrier on asset 2
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 90.0),  # strike on asset 1
+    ql.EuropeanExercise(maturity),
+)
+# process1 = strike asset, process2 = barrier asset, rho = correlation
+opt.set_pricing_engine(process1, process2, 0.5)
+# or: opt.set_pricing_engine(process1, process2, ql.make_quote_handle(0.5))
+print(opt.NPV())
+```
+
+Standalone wrapper (no Option MI in Python). Engine attachment takes two
+processes plus correlation rather than a single process factory.
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,
