@@ -262,6 +262,10 @@ def _install_aliases() -> None:
         EuropeanOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_heston_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_bates_pricing_engine"):
+        EuropeanOption.setBatesPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_pricing_engine
+        )
 
     VanillaOption = _ql.VanillaOption
     VanillaOption.setPricingEngine = VanillaOption.set_pricing_engine  # type: ignore[attr-defined]
@@ -280,6 +284,10 @@ def _install_aliases() -> None:
     if hasattr(VanillaOption, "set_fd_heston_pricing_engine"):
         VanillaOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_bates_pricing_engine"):
+        VanillaOption.setBatesPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_pricing_engine
         )
 
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)

@@ -221,6 +221,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BarrierOption.set_fd_heston_pricing_engine` → `FdHestonBarrierEngine`
 - `DoubleBarrierOption.set_fd_heston_pricing_engine` → `FdHestonDoubleBarrierEngine`
 
+### Phase 39 (Bates jump-diffusion)
+- `BatesProcess` / `BatesModel` (Heston + log-normal jumps)
+- `VanillaOption` / `EuropeanOption.set_bates_pricing_engine` → `BatesEngine`
+- Jump intensity exposed as `jump_intensity` (Python keyword-safe)
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

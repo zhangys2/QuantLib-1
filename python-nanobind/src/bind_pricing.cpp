@@ -20,9 +20,11 @@
 #include <ql/methods/lattices/binomialtree.hpp>
 #include <ql/methods/montecarlo/pathgenerator.hpp>
 #include <ql/position.hpp>
+#include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
+#include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
@@ -280,7 +282,18 @@ void bind_pricing(nb::module_& m) {
             nb::arg("x_grid") = 100,
             nb::arg("v_grid") = 50,
             nb::arg("damping_steps") = 0,
-            "Attach FdHestonVanillaEngine (Hundsdorfer scheme).");
+            "Attach FdHestonVanillaEngine (Hundsdorfer scheme).")
+        .def(
+            "set_bates_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BatesModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(
+                    ext::make_shared<BatesEngine>(model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach BatesEngine (Heston + log-normal jumps).");
 
     m.def(
         "BaroneAdesiWhaleyEngine",

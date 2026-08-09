@@ -17,9 +17,11 @@
 #include <ql/option.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
+#include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
@@ -218,7 +220,18 @@ void bind_instruments(nb::module_& m) {
             nb::arg("x_grid") = 100,
             nb::arg("v_grid") = 50,
             nb::arg("damping_steps") = 0,
-            "Attach FdHestonVanillaEngine (Hundsdorfer scheme).");
+            "Attach FdHestonVanillaEngine (Hundsdorfer scheme).")
+        .def(
+            "set_bates_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BatesModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(
+                    ext::make_shared<BatesEngine>(model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach BatesEngine (Heston + log-normal jumps).");
 
     m.def(
         "AnalyticEuropeanEngine",
