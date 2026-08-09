@@ -242,6 +242,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `QuantoDoubleBarrierOption` + `QuantoEngine<DoubleBarrierOption, AnalyticDoubleBarrierEngine>`
 - Same quanto greeks; `barrier_lo` / `barrier_hi` / rebate like `DoubleBarrierOption`
 
+### Phase 44 (quanto-forward performance options)
+- `QuantoForwardVanillaOption.set_performance_pricing_engine` → quanto/`ForwardPerformanceVanillaEngine`
+- Same instrument as Phase 41; performance NPV ≈ 1/100 of non-performance
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

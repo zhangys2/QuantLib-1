@@ -2515,7 +2515,21 @@ class QuantoForwardVanillaOption:
         exchange_rate_volatility: object,
         correlation: QuoteHandle | float,
     ) -> None: ...
+    def set_performance_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        foreign_risk_free_rate: YieldTermStructureHandle,
+        exchange_rate_volatility: object,
+        correlation: QuoteHandle | float,
+    ) -> None: ...
     def setPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        foreign_risk_free_rate: YieldTermStructureHandle,
+        exchange_rate_volatility: object,
+        correlation: QuoteHandle | float,
+    ) -> None: ...
+    def setPerformancePricingEngine(
         self,
         process: BlackScholesMertonProcess,
         foreign_risk_free_rate: YieldTermStructureHandle,
@@ -2525,6 +2539,10 @@ class QuantoForwardVanillaOption:
     def isExpired(self) -> bool: ...
 
 def QuantoForwardEuropeanEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+
+def QuantoForwardPerformanceEuropeanEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 
