@@ -453,6 +453,7 @@ class BatesModel:
     def delta(self) -> float: ...
 
 def BatesEngine(model: BatesModel) -> BatesModel: ...
+def FdBatesVanillaEngine(model: BatesModel) -> BatesModel: ...
 
 class EuropeanOption:
     def __init__(
@@ -509,6 +510,22 @@ class EuropeanOption:
     def setBatesPricingEngine(
         self, model: BatesModel, integration_order: int = ...
     ) -> None: ...
+    def set_fd_bates_pricing_engine(
+        self,
+        model: BatesModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
+    def setFdBatesPricingEngine(
+        self,
+        model: BatesModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
 
 class VanillaOption:
     def __init__(
@@ -559,6 +576,22 @@ class VanillaOption:
     ) -> None: ...
     def setBatesPricingEngine(
         self, model: BatesModel, integration_order: int = ...
+    ) -> None: ...
+    def set_fd_bates_pricing_engine(
+        self,
+        model: BatesModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
+    def setFdBatesPricingEngine(
+        self,
+        model: BatesModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
     ) -> None: ...
 
 class OvernightIndexedSwap:

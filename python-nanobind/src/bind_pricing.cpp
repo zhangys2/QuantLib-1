@@ -27,6 +27,7 @@
 #include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
+#include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -293,7 +294,24 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("model"),
             nb::arg("integration_order") = 144,
-            "Attach BatesEngine (Heston + log-normal jumps).");
+            "Attach BatesEngine (Heston + log-normal jumps).")
+        .def(
+            "set_fd_bates_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BatesModel>& model,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps) {
+                opt.setPricingEngine(ext::make_shared<FdBatesVanillaEngine>(
+                    model, t_grid, x_grid, v_grid, damping_steps));
+            },
+            nb::arg("model"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            "Attach FdBatesVanillaEngine (Hundsdorfer / PIDE).");
 
     m.def(
         "BaroneAdesiWhaleyEngine",

@@ -1104,7 +1104,18 @@ print(opt.NPV())
 
 `BatesProcess` / `BatesModel` are concrete wrappers (no HestonProcess /
 HestonModel MI in Python). Use `jump_intensity` instead of C++ `lambda`.
-DetJump / DoubleExp Bates variants and FD-Bates deferred.
+See Phase 45 for FD-Bates; DetJump / DoubleExp Bates variants deferred.
+
+## Phase-45 FD Bates vanilla engine
+
+```python
+opt.set_fd_bates_pricing_engine(model, t_grid=50, x_grid=100, v_grid=30)
+print(opt.NPV())
+```
+
+Uses `FdBatesVanillaEngine` with the default Hundsdorfer scheme. Analytic
+`set_bates_pricing_engine` is unchanged. Scheme enum and dividend overloads
+deferred (same as FD Heston).
 
 ## Phase-40 quanto vanilla options
 

@@ -149,4 +149,12 @@ void bind_heston(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "VanillaOption/EuropeanOption.set_bates_pricing_engine.");
+
+    // --- Phase 45: FD Bates vanilla engine ----------------------------------
+    m.def(
+        "FdBatesVanillaEngine",
+        [](const ext::shared_ptr<BatesModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption.set_fd_bates_pricing_engine.");
 }
