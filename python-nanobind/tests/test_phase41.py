@@ -8,7 +8,8 @@ import qlnb as ql
 
 
 def test_version_is_phase41():
-    assert ql.__version__ == "0.42.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 42)
 
 
 def _bsm(today: ql.Date, spot: float, q: float, r: float, vol: float):
