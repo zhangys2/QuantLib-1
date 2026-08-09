@@ -25,6 +25,7 @@
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
+#include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
@@ -262,7 +263,24 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("model"),
             nb::arg("integration_order") = 144,
-            "Attach AnalyticHestonEngine (Laguerre / Gatheral).");
+            "Attach AnalyticHestonEngine (Laguerre / Gatheral).")
+        .def(
+            "set_fd_heston_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model, t_grid, x_grid, v_grid, damping_steps));
+            },
+            nb::arg("model"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            "Attach FdHestonVanillaEngine (Hundsdorfer scheme).");
 
     m.def(
         "BaroneAdesiWhaleyEngine",

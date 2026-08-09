@@ -213,6 +213,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption` / `EuropeanOption.set_heston_pricing_engine` → `AnalyticHestonEngine`
 - New translation unit: `src/bind_heston.cpp`
 
+### Phase 37 (FD Heston engine)
+- `VanillaOption` / `EuropeanOption.set_fd_heston_pricing_engine` → `FdHestonVanillaEngine`
+- Grid knobs: `t_grid`, `x_grid`, `v_grid`, `damping_steps` (Hundsdorfer)
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

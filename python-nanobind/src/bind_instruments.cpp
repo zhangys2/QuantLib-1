@@ -20,6 +20,7 @@
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
@@ -200,7 +201,24 @@ void bind_instruments(nb::module_& m) {
             },
             nb::arg("model"),
             nb::arg("integration_order") = 144,
-            "Attach AnalyticHestonEngine (Laguerre / Gatheral).");
+            "Attach AnalyticHestonEngine (Laguerre / Gatheral).")
+        .def(
+            "set_fd_heston_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model, t_grid, x_grid, v_grid, damping_steps));
+            },
+            nb::arg("model"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            "Attach FdHestonVanillaEngine (Hundsdorfer scheme).");
 
     m.def(
         "AnalyticEuropeanEngine",
