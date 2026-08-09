@@ -226,6 +226,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption` / `EuropeanOption.set_bates_pricing_engine` → `BatesEngine`
 - Jump intensity exposed as `jump_intensity` (Python keyword-safe)
 
+### Phase 40 (quanto vanilla options)
+- `QuantoVanillaOption` + `QuantoEngine<VanillaOption, AnalyticEuropeanEngine>` (Haug p.105)
+- Quanto greeks: `qvega`, `qrho`, `qlambda`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 
