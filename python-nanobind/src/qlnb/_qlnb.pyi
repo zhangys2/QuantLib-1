@@ -580,6 +580,24 @@ class BarrierOption:
     def set_binary_pricing_engine(
         self, process: BlackScholesMertonProcess
     ) -> None: ...
+    def set_fd_heston_pricing_engine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
+    def setFdHestonPricingEngine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
+
+def FdHestonBarrierEngine(model: HestonModel) -> HestonModel: ...
 
 class TwoAssetBarrierOption:
     def __init__(
@@ -755,6 +773,24 @@ class DoubleBarrierOption:
     def set_binary_pricing_engine(
         self, process: BlackScholesMertonProcess
     ) -> None: ...
+    def set_fd_heston_pricing_engine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
+    def setFdHestonPricingEngine(
+        self,
+        model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+    ) -> None: ...
+
+def FdHestonDoubleBarrierEngine(model: HestonModel) -> HestonModel: ...
 
 class CapFloor:
     def __init__(

@@ -1051,6 +1051,32 @@ Uses `FdHestonVanillaEngine` with the default Hundsdorfer scheme. Analytic
 path remains `set_heston_pricing_engine`. Scheme enum / dividend / quanto
 overloads deferred.
 
+## Phase-38 FD Heston barrier engines
+
+```python
+barrier = ql.BarrierOption(
+    ql.BarrierType.UpOut,
+    135.0,
+    0.0,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(maturity),
+)
+barrier.set_fd_heston_pricing_engine(model, t_grid=50, x_grid=400, v_grid=100)
+
+dbl = ql.DoubleBarrierOption(
+    ql.DoubleBarrierType.KnockOut,
+    80.0,
+    120.0,
+    0.0,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(maturity),
+)
+dbl.set_fd_heston_pricing_engine(model, t_grid=100, x_grid=100, v_grid=50)
+```
+
+Analytic barrier paths are unchanged (`set_pricing_engine` /
+`set_binary_pricing_engine`). Scheme enum and dividend overloads deferred.
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,

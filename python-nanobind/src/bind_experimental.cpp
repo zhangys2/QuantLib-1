@@ -23,6 +23,7 @@
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/instruments/twoassetcorrelationoption.hpp>
+#include <ql/models/equity/hestonmodel.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
@@ -34,6 +35,8 @@
 #include <ql/pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp>
 #include <ql/pricingengines/barrier/analyticsoftbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
+#include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
+#include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
@@ -237,7 +240,24 @@ void bind_experimental(nb::module_& m) {
             },
             nb::arg("process"),
             "Attach AnalyticBinaryBarrierEngine (cash/asset-or-nothing; "
-            "American exercise, Haug p.176).");
+            "American exercise, Haug p.176).")
+        .def(
+            "set_fd_heston_pricing_engine",
+            [](BarrierOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps) {
+                opt.setPricingEngine(ext::make_shared<FdHestonBarrierEngine>(
+                    model, t_grid, x_grid, v_grid, damping_steps));
+            },
+            nb::arg("model"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            "Attach FdHestonBarrierEngine (Hundsdorfer scheme).");
 
     m.def(
         "AnalyticBarrierEngine",
@@ -255,6 +275,13 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "BarrierOption.set_binary_pricing_engine.");
+
+    m.def(
+        "FdHestonBarrierEngine",
+        [](const ext::shared_ptr<HestonModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "BarrierOption.set_fd_heston_pricing_engine.");
 
     // --- Phase 29: soft barrier options (standalone; OneAssetOption MI) -----
     nb::class_<SoftBarrierOption>(m, "SoftBarrierOption")
@@ -682,7 +709,25 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process"),
             "Attach AnalyticDoubleBarrierBinaryEngine (Hui / Haug p.180). "
             "Use European exercise for KnockIn/KnockOut; American for "
-            "KIKO/KOKI.");
+            "KIKO/KOKI.")
+        .def(
+            "set_fd_heston_pricing_engine",
+            [](DoubleBarrierOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdHestonDoubleBarrierEngine>(
+                        model, t_grid, x_grid, v_grid, damping_steps));
+            },
+            nb::arg("model"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            "Attach FdHestonDoubleBarrierEngine (Hundsdorfer scheme).");
 
     m.def(
         "AnalyticDoubleBarrierEngine",
@@ -701,6 +746,13 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "DoubleBarrierOption.set_binary_pricing_engine.");
+
+    m.def(
+        "FdHestonDoubleBarrierEngine",
+        [](const ext::shared_ptr<HestonModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "DoubleBarrierOption.set_fd_heston_pricing_engine.");
 
     // --- Phase 27: continuous lookbacks (standalone; OneAssetOption MI) -----
     nb::class_<ContinuousFloatingLookbackOption>(
