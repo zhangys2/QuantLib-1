@@ -1183,6 +1183,16 @@ if QuantoBarrierOption is not None:
         QuantoBarrierOption.is_expired
     )
 
+# Phase-43 quanto double-barrier aliases.
+QuantoDoubleBarrierOption = getattr(_ql, "QuantoDoubleBarrierOption", None)
+if QuantoDoubleBarrierOption is not None:
+    QuantoDoubleBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+        QuantoDoubleBarrierOption.set_pricing_engine
+    )
+    QuantoDoubleBarrierOption.isExpired = (  # type: ignore[attr-defined]
+        QuantoDoubleBarrierOption.is_expired
+    )
+
 # SWIG-style CPI.Flat nested namespace.
 class CPI:
     """SWIG-style CPI.Flat / CPI.Linear namespace."""

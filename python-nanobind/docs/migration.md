@@ -1155,8 +1155,27 @@ opt.set_pricing_engine(process, foreign_risk_free, fx_vol, 0.3)
 print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
 ```
 
-Standalone wrapper (no BarrierOption MI). Double-barrier quanto and
-performance-forward quanto deferred.
+Standalone wrapper (no BarrierOption MI). See Phase 43 for double-barrier
+quanto; performance-forward quanto remains deferred.
+
+## Phase-43 quanto double-barrier options
+
+```python
+opt = ql.QuantoDoubleBarrierOption(
+    ql.DoubleBarrierType.KnockOut,
+    50.0,           # barrier_lo
+    150.0,          # barrier_hi
+    0.0,            # rebate
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_pricing_engine(process, foreign_risk_free, fx_vol, 0.3)
+print(opt.NPV())
+```
+
+Standalone wrapper (no DoubleBarrierOption MI). Analytic double-barrier
+engine does not populate slots for quanto greeks (NPV-only, like Phase 42).
+Performance-forward quanto remains deferred.
 
 ## When to stay on SWIG
 
