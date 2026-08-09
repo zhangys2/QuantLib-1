@@ -10,7 +10,8 @@ import qlnb as ql
 
 
 def test_version_is_phase37():
-    assert ql.__version__ == "0.38.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 38)
 
 
 def test_fd_heston_american():

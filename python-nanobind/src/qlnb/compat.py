@@ -402,6 +402,10 @@ def _install_aliases() -> None:
             BarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_binary_pricing_engine
             )
+        if hasattr(BarrierOption, "set_fd_heston_pricing_engine"):
+            BarrierOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_fd_heston_pricing_engine
+            )
 
     # Phase-29 soft barrier aliases.
     SoftBarrierOption = getattr(_ql, "SoftBarrierOption", None)
@@ -480,6 +484,10 @@ def _install_aliases() -> None:
         if hasattr(DoubleBarrierOption, "set_binary_pricing_engine"):
             DoubleBarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
                 DoubleBarrierOption.set_binary_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "set_fd_heston_pricing_engine"):
+            DoubleBarrierOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_fd_heston_pricing_engine
             )
 
     CapFloor = getattr(_ql, "CapFloor", None)
