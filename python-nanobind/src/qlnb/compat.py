@@ -1163,6 +1163,16 @@ if QuantoVanillaOption is not None:
         QuantoVanillaOption.is_expired
     )
 
+# Phase-41 quanto-forward vanilla aliases.
+QuantoForwardVanillaOption = getattr(_ql, "QuantoForwardVanillaOption", None)
+if QuantoForwardVanillaOption is not None:
+    QuantoForwardVanillaOption.setPricingEngine = (  # type: ignore[attr-defined]
+        QuantoForwardVanillaOption.set_pricing_engine
+    )
+    QuantoForwardVanillaOption.isExpired = (  # type: ignore[attr-defined]
+        QuantoForwardVanillaOption.is_expired
+    )
+
 # SWIG-style CPI.Flat nested namespace.
 class CPI:
     """SWIG-style CPI.Flat / CPI.Linear namespace."""

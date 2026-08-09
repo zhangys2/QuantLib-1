@@ -15,12 +15,15 @@
 #include <ql/exercise.hpp>
 #include <ql/exchangerate.hpp>
 #include <ql/handle.hpp>
+#include <ql/instruments/forwardvanillaoption.hpp>
 #include <ql/instruments/fxforward.hpp>
 #include <ql/instruments/payoffs.hpp>
+#include <ql/instruments/quantoforwardvanillaoption.hpp>
 #include <ql/instruments/quantovanillaoption.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/money.hpp>
 #include <ql/pricingengines/forward/discountingfxforwardengine.hpp>
+#include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
@@ -340,4 +343,90 @@ void bind_fx(nb::module_& m) {
         "Factory alias documentation token — prefer "
         "QuantoVanillaOption.set_pricing_engine(process, foreign_rfr, "
         "fx_vol, correlation).");
+
+    // --- Phase 41: quanto-forward vanilla options -------------------------
+    // ForwardVanillaOption / OneAssetOption MI — standalone concrete wrapper.
+    using QuantoForwardEngine =
+        QuantoEngine<ForwardVanillaOption,
+                     ForwardVanillaEngine<AnalyticEuropeanEngine>>;
+
+    nb::class_<QuantoForwardVanillaOption>(m, "QuantoForwardVanillaOption")
+        .def(
+            "__init__",
+            [](QuantoForwardVanillaOption* self,
+               Real moneyness,
+               const Date& reset_date,
+               const PlainVanillaPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) QuantoForwardVanillaOption(
+                    moneyness,
+                    reset_date,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("moneyness"),
+            nb::arg("reset_date"),
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Quanto forward-start vanilla; payoff strike ignored "
+            "(moneyness * spot at reset).")
+        .def("NPV",
+             [](QuantoForwardVanillaOption& opt) { return opt.NPV(); })
+        .def("delta",
+             [](QuantoForwardVanillaOption& opt) { return opt.delta(); })
+        .def("gamma",
+             [](QuantoForwardVanillaOption& opt) { return opt.gamma(); })
+        .def("vega",
+             [](QuantoForwardVanillaOption& opt) { return opt.vega(); })
+        .def("qvega", &QuantoForwardVanillaOption::qvega)
+        .def("qrho", &QuantoForwardVanillaOption::qrho)
+        .def("qlambda", &QuantoForwardVanillaOption::qlambda)
+        .def("is_expired", &QuantoForwardVanillaOption::isExpired)
+        .def(
+            "set_pricing_engine",
+            [](QuantoForwardVanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const Handle<YieldTermStructure>& foreign_risk_free_rate,
+               const Handle<BlackVolTermStructure>& exchange_rate_volatility,
+               const Handle<Quote>& correlation) {
+                opt.setPricingEngine(ext::make_shared<QuantoForwardEngine>(
+                    process,
+                    foreign_risk_free_rate,
+                    exchange_rate_volatility,
+                    correlation));
+            },
+            nb::arg("process"),
+            nb::arg("foreign_risk_free_rate"),
+            nb::arg("exchange_rate_volatility"),
+            nb::arg("correlation"),
+            "Attach QuantoEngine over ForwardVanillaEngine"
+            "<AnalyticEuropeanEngine>.")
+        .def(
+            "set_pricing_engine",
+            [](QuantoForwardVanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const Handle<YieldTermStructure>& foreign_risk_free_rate,
+               const Handle<BlackVolTermStructure>& exchange_rate_volatility,
+               Real correlation) {
+                opt.setPricingEngine(ext::make_shared<QuantoForwardEngine>(
+                    process,
+                    foreign_risk_free_rate,
+                    exchange_rate_volatility,
+                    Handle<Quote>(
+                        ext::make_shared<SimpleQuote>(correlation))));
+            },
+            nb::arg("process"),
+            nb::arg("foreign_risk_free_rate"),
+            nb::arg("exchange_rate_volatility"),
+            nb::arg("correlation"),
+            "Attach quanto-forward engine from a scalar correlation.");
+
+    m.def(
+        "QuantoForwardEuropeanEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias documentation token — prefer "
+        "QuantoForwardVanillaOption.set_pricing_engine(...).");
 }

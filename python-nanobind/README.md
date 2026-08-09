@@ -230,6 +230,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `QuantoVanillaOption` + `QuantoEngine<VanillaOption, AnalyticEuropeanEngine>` (Haug p.105)
 - Quanto greeks: `qvega`, `qrho`, `qlambda`
 
+### Phase 41 (quanto-forward vanilla options)
+- `QuantoForwardVanillaOption` + quanto/`ForwardVanillaEngine` (Haug + FinCAD checks)
+- Same quanto greeks; `moneyness` + `reset_date` like `ForwardVanillaOption`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 
