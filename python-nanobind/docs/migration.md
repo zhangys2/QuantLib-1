@@ -1122,7 +1122,8 @@ opt.set_pricing_engine(
 print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
 ```
 
-Standalone wrapper (no OneAssetOption MI). Forward/barrier quanto deferred.
+Standalone wrapper (no OneAssetOption MI). See Phase 41 for forward quanto;
+barrier quanto remains deferred.
 
 ## Phase-41 quanto-forward vanilla options
 
