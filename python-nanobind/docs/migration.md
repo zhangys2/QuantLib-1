@@ -1077,6 +1077,35 @@ dbl.set_fd_heston_pricing_engine(model, t_grid=100, x_grid=100, v_grid=50)
 Analytic barrier paths are unchanged (`set_pricing_engine` /
 `set_binary_pricing_engine`). Scheme enum and dividend overloads deferred.
 
+## Phase-39 Bates jump-diffusion
+
+```python
+process = ql.BatesProcess(
+    ql.FlatForward(today, 0.1, dc),
+    ql.FlatForward(today, 0.04, dc),
+    ql.make_quote_handle(32.0),
+    0.05,   # v0
+    5.0,    # kappa
+    0.05,   # theta
+    1e-4,   # sigma
+    0.0,    # rho
+    0.0001, # jump_intensity (λ)
+    0.0,    # nu
+    0.0001, # delta
+)
+model = ql.BatesModel(process)
+opt = ql.EuropeanOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Put, 30.0),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_bates_pricing_engine(model, integration_order=64)
+print(opt.NPV())
+```
+
+`BatesProcess` / `BatesModel` are concrete wrappers (no HestonProcess /
+HestonModel MI in Python). Use `jump_intensity` instead of C++ `lambda`.
+DetJump / DoubleExp Bates variants and FD-Bates deferred.
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,

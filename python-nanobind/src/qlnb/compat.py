@@ -262,6 +262,10 @@ def _install_aliases() -> None:
         EuropeanOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_heston_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_bates_pricing_engine"):
+        EuropeanOption.setBatesPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_pricing_engine
+        )
 
     VanillaOption = _ql.VanillaOption
     VanillaOption.setPricingEngine = VanillaOption.set_pricing_engine  # type: ignore[attr-defined]
@@ -281,6 +285,18 @@ def _install_aliases() -> None:
         VanillaOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_heston_pricing_engine
         )
+    if hasattr(VanillaOption, "set_bates_pricing_engine"):
+        VanillaOption.setBatesPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_pricing_engine
+        )
+
+    # Phase-39 Bates aliases.
+    BatesProcess = getattr(_ql, "BatesProcess", None)
+    if BatesProcess is not None and hasattr(BatesProcess, "jump_intensity"):
+        BatesProcess.jumpIntensity = BatesProcess.jump_intensity  # type: ignore[attr-defined]
+    BatesModel = getattr(_ql, "BatesModel", None)
+    if BatesModel is not None and hasattr(BatesModel, "jump_intensity"):
+        BatesModel.jumpIntensity = BatesModel.jump_intensity  # type: ignore[attr-defined]
 
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)
     if OvernightIndexedSwap is not None:

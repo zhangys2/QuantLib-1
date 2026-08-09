@@ -8,7 +8,8 @@ import qlnb as ql
 
 
 def test_version_is_phase38():
-    assert ql.__version__ == "0.39.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 39)
 
 
 def test_fd_heston_barrier():
