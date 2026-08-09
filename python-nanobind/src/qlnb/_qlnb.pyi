@@ -2476,14 +2476,14 @@ class QuantoVanillaOption:
         self,
         process: BlackScholesMertonProcess,
         foreign_risk_free_rate: YieldTermStructureHandle,
-        exchange_rate_volatility: BlackVolTermStructureHandle,
+        exchange_rate_volatility: object,
         correlation: QuoteHandle | float,
     ) -> None: ...
     def setPricingEngine(
         self,
         process: BlackScholesMertonProcess,
         foreign_risk_free_rate: YieldTermStructureHandle,
-        exchange_rate_volatility: BlackVolTermStructureHandle,
+        exchange_rate_volatility: object,
         correlation: QuoteHandle | float,
     ) -> None: ...
     def isExpired(self) -> bool: ...
