@@ -1106,6 +1106,24 @@ print(opt.NPV())
 HestonModel MI in Python). Use `jump_intensity` instead of C++ `lambda`.
 DetJump / DoubleExp Bates variants and FD-Bates deferred.
 
+## Phase-40 quanto vanilla options
+
+```python
+opt = ql.QuantoVanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 105.0),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_pricing_engine(
+    process,                 # domestic BSM process
+    foreign_risk_free,       # YieldTermStructureHandle
+    fx_vol,                  # BlackVolTermStructureHandle
+    0.3,                     # FX/asset correlation (or QuoteHandle)
+)
+print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
+```
+
+Standalone wrapper (no OneAssetOption MI). Forward/barrier quanto deferred.
+
 ## When to stay on SWIG
 
 Use the official `QuantLib` PyPI wheel if you need broad instrument coverage,
