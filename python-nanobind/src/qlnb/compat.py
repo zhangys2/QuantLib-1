@@ -290,6 +290,14 @@ def _install_aliases() -> None:
             VanillaOption.set_bates_pricing_engine
         )
 
+    # Phase-39 Bates aliases.
+    BatesProcess = getattr(_ql, "BatesProcess", None)
+    if BatesProcess is not None and hasattr(BatesProcess, "jump_intensity"):
+        BatesProcess.jumpIntensity = BatesProcess.jump_intensity  # type: ignore[attr-defined]
+    BatesModel = getattr(_ql, "BatesModel", None)
+    if BatesModel is not None and hasattr(BatesModel, "jump_intensity"):
+        BatesModel.jumpIntensity = BatesModel.jump_intensity  # type: ignore[attr-defined]
+
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)
     if OvernightIndexedSwap is not None:
         OvernightIndexedSwap.fairRate = OvernightIndexedSwap.fair_rate  # type: ignore[attr-defined]
