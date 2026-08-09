@@ -20,6 +20,7 @@
 #include <ql/instruments/makecapfloor.hpp>
 #include <ql/instruments/partialtimebarrieroption.hpp>
 #include <ql/instruments/payoffs.hpp>
+#include <ql/instruments/quantobarrieroption.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/instruments/twoassetcorrelationoption.hpp>
@@ -37,6 +38,8 @@
 #include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
+#include <ql/pricingengines/quanto/quantoengine.hpp>
+#include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
@@ -282,6 +285,87 @@ void bind_experimental(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "BarrierOption.set_fd_heston_pricing_engine.");
+
+    // --- Phase 42: quanto barrier options (standalone; BarrierOption MI) ----
+    using QuantoBarrierEngine =
+        QuantoEngine<BarrierOption, AnalyticBarrierEngine>;
+
+    nb::class_<QuantoBarrierOption>(m, "QuantoBarrierOption")
+        .def(
+            "__init__",
+            [](QuantoBarrierOption* self,
+               Barrier::Type barrier_type,
+               Real barrier,
+               Real rebate,
+               const PlainVanillaPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) QuantoBarrierOption(
+                    barrier_type,
+                    barrier,
+                    rebate,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("barrier_type"),
+            nb::arg("barrier"),
+            nb::arg("rebate"),
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Quanto barrier option; payoff currency ≠ asset currency.")
+        .def("NPV", [](QuantoBarrierOption& opt) { return opt.NPV(); })
+        .def("delta", [](QuantoBarrierOption& opt) { return opt.delta(); })
+        .def("gamma", [](QuantoBarrierOption& opt) { return opt.gamma(); })
+        .def("vega", [](QuantoBarrierOption& opt) { return opt.vega(); })
+        .def("qvega", &QuantoBarrierOption::qvega)
+        .def("qrho", &QuantoBarrierOption::qrho)
+        .def("qlambda", &QuantoBarrierOption::qlambda)
+        .def("is_expired", &QuantoBarrierOption::isExpired)
+        .def(
+            "set_pricing_engine",
+            [](QuantoBarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const Handle<YieldTermStructure>& foreign_risk_free_rate,
+               const Handle<BlackVolTermStructure>& exchange_rate_volatility,
+               const Handle<Quote>& correlation) {
+                opt.setPricingEngine(ext::make_shared<QuantoBarrierEngine>(
+                    process,
+                    foreign_risk_free_rate,
+                    exchange_rate_volatility,
+                    correlation));
+            },
+            nb::arg("process"),
+            nb::arg("foreign_risk_free_rate"),
+            nb::arg("exchange_rate_volatility"),
+            nb::arg("correlation"),
+            "Attach QuantoEngine<BarrierOption, AnalyticBarrierEngine>.")
+        .def(
+            "set_pricing_engine",
+            [](QuantoBarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const Handle<YieldTermStructure>& foreign_risk_free_rate,
+               const Handle<BlackVolTermStructure>& exchange_rate_volatility,
+               Real correlation) {
+                opt.setPricingEngine(ext::make_shared<QuantoBarrierEngine>(
+                    process,
+                    foreign_risk_free_rate,
+                    exchange_rate_volatility,
+                    Handle<Quote>(
+                        ext::make_shared<SimpleQuote>(correlation))));
+            },
+            nb::arg("process"),
+            nb::arg("foreign_risk_free_rate"),
+            nb::arg("exchange_rate_volatility"),
+            nb::arg("correlation"),
+            "Attach quanto-barrier engine from a scalar correlation.");
+
+    m.def(
+        "QuantoBarrierEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias documentation token — prefer "
+        "QuantoBarrierOption.set_pricing_engine(...).");
 
     // --- Phase 29: soft barrier options (standalone; OneAssetOption MI) -----
     nb::class_<SoftBarrierOption>(m, "SoftBarrierOption")

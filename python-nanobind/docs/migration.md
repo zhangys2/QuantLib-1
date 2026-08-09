@@ -1122,8 +1122,8 @@ opt.set_pricing_engine(
 print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
 ```
 
-Standalone wrapper (no OneAssetOption MI). See Phase 41 for forward quanto;
-barrier quanto remains deferred.
+Standalone wrapper (no OneAssetOption MI). See Phase 41 for forward quanto
+and Phase 42 for barrier quanto.
 
 ## Phase-41 quanto-forward vanilla options
 
@@ -1138,8 +1138,25 @@ opt.set_pricing_engine(process, foreign_risk_free, fx_vol, 0.3)
 print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
 ```
 
-Combines forward-start strike reset with quanto adjustment. Barrier quanto
-and performance-forward quanto deferred.
+Combines forward-start strike reset with quanto adjustment. See Phase 42 for
+barrier quanto; performance-forward quanto remains deferred.
+
+## Phase-42 quanto barrier options
+
+```python
+opt = ql.QuantoBarrierOption(
+    ql.BarrierType.DownOut,
+    95.0,           # barrier
+    3.0,            # rebate
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 90.0),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_pricing_engine(process, foreign_risk_free, fx_vol, 0.3)
+print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
+```
+
+Standalone wrapper (no BarrierOption MI). Double-barrier quanto and
+performance-forward quanto deferred.
 
 ## When to stay on SWIG
 
