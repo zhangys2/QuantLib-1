@@ -1139,7 +1139,7 @@ print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
 ```
 
 Combines forward-start strike reset with quanto adjustment. See Phase 42 for
-barrier quanto; performance-forward quanto remains deferred.
+barrier quanto and Phase 44 for performance-forward quanto.
 
 ## Phase-42 quanto barrier options
 
@@ -1156,7 +1156,7 @@ print(opt.NPV(), opt.qvega(), opt.qrho(), opt.qlambda())
 ```
 
 Standalone wrapper (no BarrierOption MI). See Phase 43 for double-barrier
-quanto; performance-forward quanto remains deferred.
+quanto and Phase 44 for performance-forward quanto.
 
 ## Phase-43 quanto double-barrier options
 
@@ -1175,7 +1175,23 @@ print(opt.NPV())
 
 Standalone wrapper (no DoubleBarrierOption MI). Analytic double-barrier
 engine does not populate slots for quanto greeks (NPV-only, like Phase 42).
-Performance-forward quanto remains deferred.
+See Phase 44 for performance-forward quanto.
+
+## Phase-44 quanto-forward performance options
+
+```python
+opt = ql.QuantoForwardVanillaOption(
+    1.05,           # moneyness
+    today + 90,     # reset date
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 0.0),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_performance_pricing_engine(process, foreign_risk_free, fx_vol, 0.3)
+print(opt.NPV())  # ~1/100 of non-performance quanto-forward NPV
+```
+
+Same `QuantoForwardVanillaOption` instrument as Phase 41; attaches
+`QuantoEngine` over `ForwardPerformanceVanillaEngine<AnalyticEuropeanEngine>`.
 
 ## When to stay on SWIG
 
