@@ -22,8 +22,15 @@
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
+#include <ql/pricingengines/vanilla/coshestonengine.hpp>
+#include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
+#include <ql/utilities/null.hpp>
+
+#include <nanobind/stl/optional.h>
+
+#include <optional>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
@@ -205,6 +212,39 @@ void bind_instruments(nb::module_& m) {
             nb::arg("model"),
             nb::arg("integration_order") = 144,
             "Attach AnalyticHestonEngine (Laguerre / Gatheral).")
+        .def(
+            "set_cos_heston_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Real L,
+               Size N) {
+                opt.setPricingEngine(
+                    ext::make_shared<COSHestonEngine>(model, L, N));
+            },
+            nb::arg("model"),
+            nb::arg("L") = 16.0,
+            nb::arg("N") = Size(200),
+            "Attach COSHestonEngine (Fourier-Cosine series).")
+        .def(
+            "set_exponential_fitting_heston_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               AnalyticHestonEngine::ComplexLogFormula control_variate,
+               std::optional<Real> scaling,
+               Real alpha) {
+                opt.setPricingEngine(
+                    ext::make_shared<ExponentialFittingHestonEngine>(
+                        model,
+                        control_variate,
+                        scaling.value_or(Null<Real>()),
+                        alpha));
+            },
+            nb::arg("model"),
+            nb::arg("control_variate") =
+                AnalyticHestonEngine::ComplexLogFormula::OptimalCV,
+            nb::arg("scaling") = nb::none(),
+            nb::arg("alpha") = -0.5,
+            "Attach ExponentialFittingHestonEngine.")
         .def(
             "set_fd_heston_pricing_engine",
             [](EuropeanOption& opt,

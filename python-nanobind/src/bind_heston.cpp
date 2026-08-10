@@ -1,7 +1,10 @@
 #include "bindings.hpp"
 
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
+
+#include <optional>
 
 #include <ql/handle.hpp>
 #include <ql/math/optimization/endcriteria.hpp>
@@ -12,12 +15,15 @@
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/models/equity/hestonmodelhelper.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/coshestonengine.hpp>
+#include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/processes/batesprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/quote.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/calendar.hpp>
 #include <ql/time/period.hpp>
+#include <ql/utilities/null.hpp>
 
 #include <vector>
 
@@ -101,6 +107,19 @@ void bind_heston(nb::module_& m) {
         .def("theta", &HestonProcess::theta)
         .def("sigma", &HestonProcess::sigma)
         .def("rho", &HestonProcess::rho);
+
+    // --- Phase 49: ComplexLogFormula (needed by exp-fitting engine args) ----
+    nb::enum_<AnalyticHestonEngine::ComplexLogFormula>(
+        m, "HestonComplexLogFormula")
+        .value("Gatheral", AnalyticHestonEngine::Gatheral)
+        .value("BranchCorrection", AnalyticHestonEngine::BranchCorrection)
+        .value("AndersenPiterbarg", AnalyticHestonEngine::AndersenPiterbarg)
+        .value("AndersenPiterbargOptCV",
+               AnalyticHestonEngine::AndersenPiterbargOptCV)
+        .value("AsymptoticChF", AnalyticHestonEngine::AsymptoticChF)
+        .value("AngledContour", AnalyticHestonEngine::AngledContour)
+        .value("AngledContourNoCV", AnalyticHestonEngine::AngledContourNoCV)
+        .value("OptimalCV", AnalyticHestonEngine::OptimalCV);
 
     // --- Phase 48: calibration support (before HestonModel.calibrate) -------
     nb::enum_<BlackCalibrationHelper::CalibrationErrorType>(
@@ -217,7 +236,40 @@ void bind_heston(nb::module_& m) {
             },
             nb::arg("model"),
             nb::arg("integration_order") = 144,
-            "Attach AnalyticHestonEngine for calibration.");
+            "Attach AnalyticHestonEngine for calibration.")
+        .def(
+            "set_cos_heston_pricing_engine",
+            [](HestonModelHelper& helper,
+               const ext::shared_ptr<HestonModel>& model,
+               Real L,
+               Size N) {
+                helper.setPricingEngine(
+                    ext::make_shared<COSHestonEngine>(model, L, N));
+            },
+            nb::arg("model"),
+            nb::arg("L") = 16.0,
+            nb::arg("N") = Size(200),
+            "Attach COSHestonEngine for calibration.")
+        .def(
+            "set_exponential_fitting_heston_pricing_engine",
+            [](HestonModelHelper& helper,
+               const ext::shared_ptr<HestonModel>& model,
+               AnalyticHestonEngine::ComplexLogFormula control_variate,
+               std::optional<Real> scaling,
+               Real alpha) {
+                helper.setPricingEngine(
+                    ext::make_shared<ExponentialFittingHestonEngine>(
+                        model,
+                        control_variate,
+                        scaling.value_or(Null<Real>()),
+                        alpha));
+            },
+            nb::arg("model"),
+            nb::arg("control_variate") =
+                AnalyticHestonEngine::ComplexLogFormula::OptimalCV,
+            nb::arg("scaling") = nb::none(),
+            nb::arg("alpha") = -0.5,
+            "Attach ExponentialFittingHestonEngine for calibration.");
 
     nb::class_<HestonModel>(m, "HestonModel")
         .def(
@@ -283,6 +335,22 @@ void bind_heston(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "VanillaOption/EuropeanOption.set_fd_heston_pricing_engine.");
+
+    // --- Phase 49: COS / exponential-fitting Heston engine factories --------
+    m.def(
+        "COSHestonEngine",
+        [](const ext::shared_ptr<HestonModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption.set_cos_heston_pricing_engine.");
+
+    m.def(
+        "ExponentialFittingHestonEngine",
+        [](const ext::shared_ptr<HestonModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption."
+        "set_exponential_fitting_heston_pricing_engine.");
 
     // --- Phase 39: Bates (Heston + jumps) -----------------------------------
     // BatesProcess / BatesModel inherit Heston types — bind as concrete

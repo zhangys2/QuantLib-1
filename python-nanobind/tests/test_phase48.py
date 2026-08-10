@@ -10,7 +10,8 @@ import qlnb as ql
 
 
 def test_version_is_phase48():
-    assert ql.__version__ == "0.49.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 49)
 
 
 def test_end_criteria_and_optimizer_ctors():
