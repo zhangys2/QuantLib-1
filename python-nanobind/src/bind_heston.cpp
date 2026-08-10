@@ -157,4 +157,172 @@ void bind_heston(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "VanillaOption/EuropeanOption.set_fd_bates_pricing_engine.");
+
+    // --- Phase 46: Bates DetJump / DoubleExp variants -----------------------
+    // Standalone concrete wrappers (BatesModel / HestonModel MI not exposed).
+    nb::class_<BatesDetJumpModel>(m, "BatesDetJumpModel")
+        .def(
+            "__init__",
+            [](BatesDetJumpModel* self,
+               const ext::shared_ptr<BatesProcess>& process,
+               Real kappa_lambda,
+               Real theta_lambda) {
+                new (self) BatesDetJumpModel(
+                    process, kappa_lambda, theta_lambda);
+            },
+            nb::arg("process"),
+            nb::arg("kappa_lambda") = 1.0,
+            nb::arg("theta_lambda") = 0.1)
+        .def("v0", &BatesDetJumpModel::v0)
+        .def("kappa", &BatesDetJumpModel::kappa)
+        .def("theta", &BatesDetJumpModel::theta)
+        .def("sigma", &BatesDetJumpModel::sigma)
+        .def("rho", &BatesDetJumpModel::rho)
+        .def("jump_intensity",
+             &BatesDetJumpModel::lambda,
+             "Jump intensity λ (C++ BatesDetJumpModel::lambda).")
+        .def("nu", &BatesDetJumpModel::nu)
+        .def("delta", &BatesDetJumpModel::delta)
+        .def("kappa_lambda", &BatesDetJumpModel::kappaLambda)
+        .def("theta_lambda", &BatesDetJumpModel::thetaLambda);
+
+    nb::class_<BatesDoubleExpModel>(m, "BatesDoubleExpModel")
+        .def(
+            "__init__",
+            [](BatesDoubleExpModel* self,
+               const ext::shared_ptr<HestonProcess>& process,
+               Real jump_intensity,
+               Real nu_up,
+               Real nu_down,
+               Real p) {
+                new (self) BatesDoubleExpModel(
+                    process, jump_intensity, nu_up, nu_down, p);
+            },
+            nb::arg("process"),
+            nb::arg("jump_intensity") = 0.1,
+            nb::arg("nu_up") = 0.1,
+            nb::arg("nu_down") = 0.1,
+            nb::arg("p") = 0.5)
+        .def(
+            "__init__",
+            [](BatesDoubleExpModel* self,
+               const ext::shared_ptr<BatesProcess>& process,
+               Real jump_intensity,
+               Real nu_up,
+               Real nu_down,
+               Real p) {
+                new (self) BatesDoubleExpModel(
+                    ext::static_pointer_cast<HestonProcess>(process),
+                    jump_intensity,
+                    nu_up,
+                    nu_down,
+                    p);
+            },
+            nb::arg("process"),
+            nb::arg("jump_intensity") = 0.1,
+            nb::arg("nu_up") = 0.1,
+            nb::arg("nu_down") = 0.1,
+            nb::arg("p") = 0.5)
+        .def("v0", &BatesDoubleExpModel::v0)
+        .def("kappa", &BatesDoubleExpModel::kappa)
+        .def("theta", &BatesDoubleExpModel::theta)
+        .def("sigma", &BatesDoubleExpModel::sigma)
+        .def("rho", &BatesDoubleExpModel::rho)
+        .def("jump_intensity",
+             &BatesDoubleExpModel::lambda,
+             "Jump intensity λ (C++ BatesDoubleExpModel::lambda).")
+        .def("nu_up", &BatesDoubleExpModel::nuUp)
+        .def("nu_down", &BatesDoubleExpModel::nuDown)
+        .def("p", &BatesDoubleExpModel::p);
+
+    nb::class_<BatesDoubleExpDetJumpModel>(m, "BatesDoubleExpDetJumpModel")
+        .def(
+            "__init__",
+            [](BatesDoubleExpDetJumpModel* self,
+               const ext::shared_ptr<HestonProcess>& process,
+               Real jump_intensity,
+               Real nu_up,
+               Real nu_down,
+               Real p,
+               Real kappa_lambda,
+               Real theta_lambda) {
+                new (self) BatesDoubleExpDetJumpModel(
+                    process,
+                    jump_intensity,
+                    nu_up,
+                    nu_down,
+                    p,
+                    kappa_lambda,
+                    theta_lambda);
+            },
+            nb::arg("process"),
+            nb::arg("jump_intensity") = 0.1,
+            nb::arg("nu_up") = 0.1,
+            nb::arg("nu_down") = 0.1,
+            nb::arg("p") = 0.5,
+            nb::arg("kappa_lambda") = 1.0,
+            nb::arg("theta_lambda") = 0.1)
+        .def(
+            "__init__",
+            [](BatesDoubleExpDetJumpModel* self,
+               const ext::shared_ptr<BatesProcess>& process,
+               Real jump_intensity,
+               Real nu_up,
+               Real nu_down,
+               Real p,
+               Real kappa_lambda,
+               Real theta_lambda) {
+                new (self) BatesDoubleExpDetJumpModel(
+                    ext::static_pointer_cast<HestonProcess>(process),
+                    jump_intensity,
+                    nu_up,
+                    nu_down,
+                    p,
+                    kappa_lambda,
+                    theta_lambda);
+            },
+            nb::arg("process"),
+            nb::arg("jump_intensity") = 0.1,
+            nb::arg("nu_up") = 0.1,
+            nb::arg("nu_down") = 0.1,
+            nb::arg("p") = 0.5,
+            nb::arg("kappa_lambda") = 1.0,
+            nb::arg("theta_lambda") = 0.1)
+        .def("v0", &BatesDoubleExpDetJumpModel::v0)
+        .def("kappa", &BatesDoubleExpDetJumpModel::kappa)
+        .def("theta", &BatesDoubleExpDetJumpModel::theta)
+        .def("sigma", &BatesDoubleExpDetJumpModel::sigma)
+        .def("rho", &BatesDoubleExpDetJumpModel::rho)
+        .def("jump_intensity",
+             &BatesDoubleExpDetJumpModel::lambda,
+             "Jump intensity λ (C++ BatesDoubleExpDetJumpModel::lambda).")
+        .def("nu_up", &BatesDoubleExpDetJumpModel::nuUp)
+        .def("nu_down", &BatesDoubleExpDetJumpModel::nuDown)
+        .def("p", &BatesDoubleExpDetJumpModel::p)
+        .def("kappa_lambda", &BatesDoubleExpDetJumpModel::kappaLambda)
+        .def("theta_lambda", &BatesDoubleExpDetJumpModel::thetaLambda);
+
+    m.def(
+        "BatesDetJumpEngine",
+        [](const ext::shared_ptr<BatesDetJumpModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption.set_bates_det_jump_pricing_engine.");
+
+    m.def(
+        "BatesDoubleExpEngine",
+        [](const ext::shared_ptr<BatesDoubleExpModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption.set_bates_double_exp_pricing_engine.");
+
+    m.def(
+        "BatesDoubleExpDetJumpEngine",
+        [](const ext::shared_ptr<BatesDoubleExpDetJumpModel>& model) {
+            return model;
+        },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption."
+        "set_bates_double_exp_det_jump_pricing_engine.");
 }

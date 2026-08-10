@@ -249,7 +249,41 @@ void bind_instruments(nb::module_& m) {
             nb::arg("x_grid") = 100,
             nb::arg("v_grid") = 50,
             nb::arg("damping_steps") = 0,
-            "Attach FdBatesVanillaEngine (Hundsdorfer / PIDE).");
+            "Attach FdBatesVanillaEngine (Hundsdorfer / PIDE).")
+        .def(
+            "set_bates_det_jump_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BatesDetJumpModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(ext::make_shared<BatesDetJumpEngine>(
+                    model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach BatesDetJumpEngine.")
+        .def(
+            "set_bates_double_exp_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BatesDoubleExpModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(ext::make_shared<BatesDoubleExpEngine>(
+                    model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach BatesDoubleExpEngine.")
+        .def(
+            "set_bates_double_exp_det_jump_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BatesDoubleExpDetJumpModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(
+                    ext::make_shared<BatesDoubleExpDetJumpEngine>(
+                        model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach BatesDoubleExpDetJumpEngine.");
 
     m.def(
         "AnalyticEuropeanEngine",
