@@ -247,15 +247,17 @@ void bind_pricing(nb::module_& m) {
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
                Size t_grid,
                Size x_grid,
-               Size damping_steps) {
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
                 opt.setPricingEngine(ext::make_shared<FdBlackScholesVanillaEngine>(
-                    process, t_grid, x_grid, damping_steps));
+                    process, t_grid, x_grid, damping_steps, scheme_desc));
             },
             nb::arg("process"),
             nb::arg("t_grid") = 100,
             nb::arg("x_grid") = 100,
             nb::arg("damping_steps") = 0,
-            "Attach FdBlackScholesVanillaEngine (NPV-only for v1; no grid export).")
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdBlackScholesVanillaEngine (default Douglas scheme).")
         .def(
             "set_heston_pricing_engine",
             [](VanillaOption& opt,
@@ -274,16 +276,18 @@ void bind_pricing(nb::module_& m) {
                Size t_grid,
                Size x_grid,
                Size v_grid,
-               Size damping_steps) {
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
                 opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
-                    model, t_grid, x_grid, v_grid, damping_steps));
+                    model, t_grid, x_grid, v_grid, damping_steps, scheme_desc));
             },
             nb::arg("model"),
             nb::arg("t_grid") = 100,
             nb::arg("x_grid") = 100,
             nb::arg("v_grid") = 50,
             nb::arg("damping_steps") = 0,
-            "Attach FdHestonVanillaEngine (Hundsdorfer scheme).")
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonVanillaEngine (default Hundsdorfer scheme).")
         .def(
             "set_bates_pricing_engine",
             [](VanillaOption& opt,
@@ -302,16 +306,18 @@ void bind_pricing(nb::module_& m) {
                Size t_grid,
                Size x_grid,
                Size v_grid,
-               Size damping_steps) {
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
                 opt.setPricingEngine(ext::make_shared<FdBatesVanillaEngine>(
-                    model, t_grid, x_grid, v_grid, damping_steps));
+                    model, t_grid, x_grid, v_grid, damping_steps, scheme_desc));
             },
             nb::arg("model"),
             nb::arg("t_grid") = 100,
             nb::arg("x_grid") = 100,
             nb::arg("v_grid") = 50,
             nb::arg("damping_steps") = 0,
-            "Attach FdBatesVanillaEngine (Hundsdorfer / PIDE).")
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdBatesVanillaEngine (default Hundsdorfer / PIDE).")
         .def(
             "set_bates_det_jump_pricing_engine",
             [](VanillaOption& opt,
