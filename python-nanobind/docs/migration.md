@@ -1048,8 +1048,8 @@ print(opt.NPV(), opt.delta(), opt.gamma())
 ```
 
 Uses `FdHestonVanillaEngine` with the default Hundsdorfer scheme. Analytic
-path remains `set_heston_pricing_engine`. Scheme enum / dividend / quanto
-overloads deferred.
+path remains `set_heston_pricing_engine`. See Phase 47 for `scheme_desc`;
+dividend / quanto overloads deferred.
 
 ## Phase-38 FD Heston barrier engines
 
@@ -1075,7 +1075,8 @@ dbl.set_fd_heston_pricing_engine(model, t_grid=100, x_grid=100, v_grid=50)
 ```
 
 Analytic barrier paths are unchanged (`set_pricing_engine` /
-`set_binary_pricing_engine`). Scheme enum and dividend overloads deferred.
+`set_binary_pricing_engine`). See Phase 47 for `scheme_desc`; dividend
+overloads deferred.
 
 ## Phase-39 Bates jump-diffusion
 
@@ -1114,8 +1115,8 @@ print(opt.NPV())
 ```
 
 Uses `FdBatesVanillaEngine` with the default Hundsdorfer scheme. Analytic
-`set_bates_pricing_engine` is unchanged. Scheme enum and dividend overloads
-deferred (same as FD Heston).
+`set_bates_pricing_engine` is unchanged. See Phase 47 for `scheme_desc`;
+dividend overloads deferred.
 
 ## Phase-46 Bates DetJump / DoubleExp variants
 
@@ -1143,6 +1144,20 @@ opt.set_bates_double_exp_det_jump_pricing_engine(dexp_dj, integration_order=64)
 Standalone wrappers (no BatesModel / HestonModel MI). DoubleExp models accept
 `HestonProcess` or `BatesProcess`. Use `jump_intensity` / `kappa_lambda` /
 `theta_lambda` / `nu_up` / `nu_down` (Python-safe names).
+
+## Phase-47 FdmSchemeDesc
+
+```python
+scheme = ql.FdmSchemeDesc.CraigSneyd()
+opt.set_fd_heston_pricing_engine(
+    model, t_grid=100, x_grid=100, v_grid=50, scheme_desc=scheme
+)
+# Defaults unchanged: Hundsdorfer for Heston/Bates/barrier FD; Douglas for BS FD.
+assert scheme.type == ql.FdmSchemeType.CraigSneyd
+```
+
+Value-semantic descriptor (`type`, `theta`, `mu`) with static factories matching
+C++ `FdmSchemeDesc::*()`. Dividend overloads remain deferred.
 
 ## Phase-40 quanto vanilla options
 

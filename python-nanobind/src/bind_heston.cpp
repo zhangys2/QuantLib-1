@@ -3,6 +3,7 @@
 #include <nanobind/stl/shared_ptr.h>
 
 #include <ql/handle.hpp>
+#include <ql/methods/finitedifferences/solvers/fdmbackwardsolver.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/processes/batesprocess.hpp>
@@ -13,6 +14,40 @@
 using namespace QuantLib;
 
 void bind_heston(nb::module_& m) {
+    // --- Phase 47: FD scheme descriptors (before FD engine setters) ---------
+    nb::enum_<FdmSchemeDesc::FdmSchemeType>(m, "FdmSchemeType")
+        .value("Hundsdorfer", FdmSchemeDesc::HundsdorferType)
+        .value("Douglas", FdmSchemeDesc::DouglasType)
+        .value("CraigSneyd", FdmSchemeDesc::CraigSneydType)
+        .value("ModifiedCraigSneyd", FdmSchemeDesc::ModifiedCraigSneydType)
+        .value("ImplicitEuler", FdmSchemeDesc::ImplicitEulerType)
+        .value("ExplicitEuler", FdmSchemeDesc::ExplicitEulerType)
+        .value("MethodOfLines", FdmSchemeDesc::MethodOfLinesType)
+        .value("TrBDF2", FdmSchemeDesc::TrBDF2Type)
+        .value("CrankNicolson", FdmSchemeDesc::CrankNicolsonType);
+
+    nb::class_<FdmSchemeDesc>(m, "FdmSchemeDesc")
+        .def(nb::init<FdmSchemeDesc::FdmSchemeType, Real, Real>(),
+             nb::arg("type"),
+             nb::arg("theta"),
+             nb::arg("mu"))
+        .def_ro("type", &FdmSchemeDesc::type)
+        .def_ro("theta", &FdmSchemeDesc::theta)
+        .def_ro("mu", &FdmSchemeDesc::mu)
+        .def_static("Douglas", &FdmSchemeDesc::Douglas)
+        .def_static("CrankNicolson", &FdmSchemeDesc::CrankNicolson)
+        .def_static("ImplicitEuler", &FdmSchemeDesc::ImplicitEuler)
+        .def_static("ExplicitEuler", &FdmSchemeDesc::ExplicitEuler)
+        .def_static("CraigSneyd", &FdmSchemeDesc::CraigSneyd)
+        .def_static("ModifiedCraigSneyd", &FdmSchemeDesc::ModifiedCraigSneyd)
+        .def_static("Hundsdorfer", &FdmSchemeDesc::Hundsdorfer)
+        .def_static("ModifiedHundsdorfer", &FdmSchemeDesc::ModifiedHundsdorfer)
+        .def_static("MethodOfLines",
+                    &FdmSchemeDesc::MethodOfLines,
+                    nb::arg("eps") = 0.001,
+                    nb::arg("rel_init_step_size") = 0.01)
+        .def_static("TrBDF2", &FdmSchemeDesc::TrBDF2);
+
     // HestonProcess / HestonModel are MI-heavy via StochasticProcess /
     // CalibratedModel — bind as concrete types without exposing C++ bases.
     nb::enum_<HestonProcess::Discretization>(m, "HestonDiscretization")

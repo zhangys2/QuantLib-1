@@ -416,6 +416,45 @@ class HestonModel:
 def AnalyticHestonEngine(model: HestonModel) -> HestonModel: ...
 def FdHestonVanillaEngine(model: HestonModel) -> HestonModel: ...
 
+class FdmSchemeType:
+    Hundsdorfer: FdmSchemeType
+    Douglas: FdmSchemeType
+    CraigSneyd: FdmSchemeType
+    ModifiedCraigSneyd: FdmSchemeType
+    ImplicitEuler: FdmSchemeType
+    ExplicitEuler: FdmSchemeType
+    MethodOfLines: FdmSchemeType
+    TrBDF2: FdmSchemeType
+    CrankNicolson: FdmSchemeType
+
+class FdmSchemeDesc:
+    def __init__(self, type: FdmSchemeType, theta: float, mu: float) -> None: ...
+    type: FdmSchemeType
+    theta: float
+    mu: float
+    @staticmethod
+    def Douglas() -> FdmSchemeDesc: ...
+    @staticmethod
+    def CrankNicolson() -> FdmSchemeDesc: ...
+    @staticmethod
+    def ImplicitEuler() -> FdmSchemeDesc: ...
+    @staticmethod
+    def ExplicitEuler() -> FdmSchemeDesc: ...
+    @staticmethod
+    def CraigSneyd() -> FdmSchemeDesc: ...
+    @staticmethod
+    def ModifiedCraigSneyd() -> FdmSchemeDesc: ...
+    @staticmethod
+    def Hundsdorfer() -> FdmSchemeDesc: ...
+    @staticmethod
+    def ModifiedHundsdorfer() -> FdmSchemeDesc: ...
+    @staticmethod
+    def MethodOfLines(
+        eps: float = ..., rel_init_step_size: float = ...
+    ) -> FdmSchemeDesc: ...
+    @staticmethod
+    def TrBDF2() -> FdmSchemeDesc: ...
+
 class BatesProcess:
     def __init__(
         self,
@@ -560,6 +599,7 @@ class EuropeanOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def setHestonPricingEngine(
         self, model: HestonModel, integration_order: int = ...
@@ -571,6 +611,7 @@ class EuropeanOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def set_bates_pricing_engine(
         self, model: BatesModel, integration_order: int = ...
@@ -585,6 +626,7 @@ class EuropeanOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def setFdBatesPricingEngine(
         self,
@@ -593,6 +635,7 @@ class EuropeanOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def set_bates_det_jump_pricing_engine(
         self, model: BatesDetJumpModel, integration_order: int = ...
@@ -634,6 +677,7 @@ class VanillaOption:
         t_grid: int = ...,
         x_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def set_heston_pricing_engine(
         self, model: HestonModel, integration_order: int = ...
@@ -645,6 +689,7 @@ class VanillaOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def setHestonPricingEngine(
         self, model: HestonModel, integration_order: int = ...
@@ -656,6 +701,7 @@ class VanillaOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def set_bates_pricing_engine(
         self, model: BatesModel, integration_order: int = ...
@@ -670,6 +716,7 @@ class VanillaOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def setFdBatesPricingEngine(
         self,
@@ -678,6 +725,7 @@ class VanillaOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def set_bates_det_jump_pricing_engine(
         self, model: BatesDetJumpModel, integration_order: int = ...
@@ -774,6 +822,7 @@ class BarrierOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def setFdHestonPricingEngine(
         self,
@@ -782,6 +831,7 @@ class BarrierOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
 
 def FdHestonBarrierEngine(model: HestonModel) -> HestonModel: ...
@@ -967,6 +1017,7 @@ class DoubleBarrierOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def setFdHestonPricingEngine(
         self,
@@ -975,6 +1026,7 @@ class DoubleBarrierOption:
         x_grid: int = ...,
         v_grid: int = ...,
         damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
 
 def FdHestonDoubleBarrierEngine(model: HestonModel) -> HestonModel: ...
