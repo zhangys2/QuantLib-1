@@ -1048,8 +1048,8 @@ print(opt.NPV(), opt.delta(), opt.gamma())
 ```
 
 Uses `FdHestonVanillaEngine` with the default Hundsdorfer scheme. Analytic
-path remains `set_heston_pricing_engine`. Scheme enum / dividend / quanto
-overloads deferred.
+path remains `set_heston_pricing_engine`. See Phase 47 for `scheme_desc`;
+dividend / quanto overloads deferred.
 
 ## Phase-38 FD Heston barrier engines
 
@@ -1075,7 +1075,8 @@ dbl.set_fd_heston_pricing_engine(model, t_grid=100, x_grid=100, v_grid=50)
 ```
 
 Analytic barrier paths are unchanged (`set_pricing_engine` /
-`set_binary_pricing_engine`). Scheme enum and dividend overloads deferred.
+`set_binary_pricing_engine`). See Phase 47 for `scheme_desc`; dividend
+overloads deferred.
 
 ## Phase-39 Bates jump-diffusion
 
