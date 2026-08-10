@@ -380,6 +380,31 @@ def _install_aliases() -> None:
     if BatesModel is not None and hasattr(BatesModel, "jump_intensity"):
         BatesModel.jumpIntensity = BatesModel.jump_intensity  # type: ignore[attr-defined]
 
+    # Phase-48 Heston calibration aliases.
+    HestonModelHelper = getattr(_ql, "HestonModelHelper", None)
+    if HestonModelHelper is not None:
+        HestonModelHelper.setPricingEngine = (  # type: ignore[attr-defined]
+            HestonModelHelper.set_pricing_engine
+        )
+        if hasattr(HestonModelHelper, "calibration_error"):
+            HestonModelHelper.calibrationError = (  # type: ignore[attr-defined]
+                HestonModelHelper.calibration_error
+            )
+        if hasattr(HestonModelHelper, "market_value"):
+            HestonModelHelper.marketValue = (  # type: ignore[attr-defined]
+                HestonModelHelper.market_value
+            )
+        if hasattr(HestonModelHelper, "model_value"):
+            HestonModelHelper.modelValue = (  # type: ignore[attr-defined]
+                HestonModelHelper.model_value
+            )
+    HestonModel = getattr(_ql, "HestonModel", None)
+    if HestonModel is not None:
+        if hasattr(HestonModel, "set_params"):
+            HestonModel.setParams = HestonModel.set_params  # type: ignore[attr-defined]
+        if hasattr(HestonModel, "end_criteria"):
+            HestonModel.endCriteria = HestonModel.end_criteria  # type: ignore[attr-defined]
+
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)
     if OvernightIndexedSwap is not None:
         OvernightIndexedSwap.fairRate = OvernightIndexedSwap.fair_rate  # type: ignore[attr-defined]

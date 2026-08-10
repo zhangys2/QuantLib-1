@@ -258,6 +258,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `FdmSchemeDesc` / `FdmSchemeType` with static factories (`Hundsdorfer`, `Douglas`, …)
 - Optional `scheme_desc=` on FD Heston / Bates / Black-Scholes / barrier engine setters
 
+### Phase 48 (Heston model calibration)
+- `HestonModelHelper`, `LevenbergMarquardt`, `EndCriteria`, `CalibrationErrorType`
+- `HestonModel.calibrate(helpers, method, end_criteria)` + `params` / `set_params`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 
