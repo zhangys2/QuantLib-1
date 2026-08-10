@@ -26,11 +26,6 @@
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
-#include <ql/utilities/null.hpp>
-
-#include <nanobind/stl/optional.h>
-
-#include <optional>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
@@ -39,6 +34,10 @@
 #include <ql/time/daycounter.hpp>
 #include <ql/time/schedule.hpp>
 #include <ql/utilities/null.hpp>
+
+#include <nanobind/stl/optional.h>
+
+#include <optional>
 
 using namespace QuantLib;
 
