@@ -1031,8 +1031,8 @@ print(opt.NPV())
 ```
 
 `HestonProcess` / `HestonModel` are concrete wrappers (no StochasticProcess /
-CalibratedModel MI in Python). See Phase 37 for FD-Heston; calibration helpers
-remain deferred.
+CalibratedModel MI in Python). See Phase 37 for FD-Heston and Phase 48 for
+calibration.
 
 ## Phase-37 FD Heston engine
 
@@ -1158,6 +1158,36 @@ assert scheme.type == ql.FdmSchemeType.CraigSneyd
 
 Value-semantic descriptor (`type`, `theta`, `mu`) with static factories matching
 C++ `FdmSchemeDesc::*()`. Dividend overloads remain deferred.
+
+## Phase-48 Heston model calibration
+
+```python
+helpers = []
+for maturity in maturities:
+    for strike in strikes:
+        h = ql.HestonModelHelper(
+            maturity,
+            ql.NullCalendar(),
+            ql.make_quote_handle(1.0),
+            strike,
+            ql.make_quote_handle(0.1),  # market vol
+            risk_free,
+            dividend,
+        )
+        h.set_pricing_engine(model, integration_order=96)
+        helpers.append(h)
+
+model.calibrate(
+    helpers,
+    ql.LevenbergMarquardt(1e-8, 1e-8, 1e-8),
+    ql.EndCriteria(400, 40, 1e-8, 1e-8, 1e-8),
+)
+print(model.v0(), model.kappa(), model.theta(), model.sigma(), model.rho())
+print(model.end_criteria())  # EndCriteriaType
+```
+
+Standalone helpers / optimizer (no CalibratedModel / OptimizationMethod MI).
+`EndCriteriaType.None_` maps to C++ `EndCriteria::None` (Python keyword-safe).
 
 ## Phase-40 quanto vanilla options
 

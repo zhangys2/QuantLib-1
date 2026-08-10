@@ -1,15 +1,25 @@
 #include "bindings.hpp"
 
 #include <nanobind/stl/shared_ptr.h>
+#include <nanobind/stl/vector.h>
 
 #include <ql/handle.hpp>
+#include <ql/math/optimization/endcriteria.hpp>
+#include <ql/math/optimization/levenbergmarquardt.hpp>
 #include <ql/methods/finitedifferences/solvers/fdmbackwardsolver.hpp>
+#include <ql/models/calibrationhelper.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
+#include <ql/models/equity/hestonmodelhelper.hpp>
+#include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/processes/batesprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/quote.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
+#include <ql/time/calendar.hpp>
+#include <ql/time/period.hpp>
+
+#include <vector>
 
 using namespace QuantLib;
 
@@ -92,6 +102,123 @@ void bind_heston(nb::module_& m) {
         .def("sigma", &HestonProcess::sigma)
         .def("rho", &HestonProcess::rho);
 
+    // --- Phase 48: calibration support (before HestonModel.calibrate) -------
+    nb::enum_<BlackCalibrationHelper::CalibrationErrorType>(
+        m, "CalibrationErrorType")
+        .value("RelativePriceError",
+               BlackCalibrationHelper::RelativePriceError)
+        .value("PriceError", BlackCalibrationHelper::PriceError)
+        .value("ImpliedVolError", BlackCalibrationHelper::ImpliedVolError);
+
+    nb::enum_<EndCriteria::Type>(m, "EndCriteriaType")
+        .value("None_", EndCriteria::None)  // C++ None; Python keyword-safe
+        .value("MaxIterations", EndCriteria::MaxIterations)
+        .value("StationaryPoint", EndCriteria::StationaryPoint)
+        .value("StationaryFunctionValue", EndCriteria::StationaryFunctionValue)
+        .value("StationaryFunctionAccuracy",
+               EndCriteria::StationaryFunctionAccuracy)
+        .value("ZeroGradientNorm", EndCriteria::ZeroGradientNorm)
+        .value("FunctionEpsilonTooSmall", EndCriteria::FunctionEpsilonTooSmall)
+        .value("Unknown", EndCriteria::Unknown);
+
+    nb::class_<EndCriteria>(m, "EndCriteria")
+        .def(nb::init<Size, Size, Real, Real, Real>(),
+             nb::arg("max_iterations"),
+             nb::arg("max_stationary_state_iterations"),
+             nb::arg("root_epsilon"),
+             nb::arg("function_epsilon"),
+             nb::arg("gradient_norm_epsilon"))
+        .def("max_iterations", &EndCriteria::maxIterations)
+        .def("max_stationary_state_iterations",
+             &EndCriteria::maxStationaryStateIterations)
+        .def("root_epsilon", &EndCriteria::rootEpsilon)
+        .def("function_epsilon", &EndCriteria::functionEpsilon)
+        .def("gradient_norm_epsilon", &EndCriteria::gradientNormEpsilon);
+
+    nb::class_<LevenbergMarquardt>(m, "LevenbergMarquardt")
+        .def(nb::init<Real, Real, Real, bool>(),
+             nb::arg("epsfcn") = 1.0e-8,
+             nb::arg("xtol") = 1.0e-8,
+             nb::arg("gtol") = 1.0e-8,
+             nb::arg("use_cost_functions_jacobian") = false);
+
+    nb::class_<HestonModelHelper>(m, "HestonModelHelper")
+        .def(
+            "__init__",
+            [](HestonModelHelper* self,
+               const Period& maturity,
+               const Calendar& calendar,
+               const Handle<Quote>& s0,
+               Real strike_price,
+               const Handle<Quote>& volatility,
+               const Handle<YieldTermStructure>& risk_free_rate,
+               const Handle<YieldTermStructure>& dividend_yield,
+               BlackCalibrationHelper::CalibrationErrorType error_type) {
+                new (self) HestonModelHelper(
+                    maturity,
+                    calendar,
+                    s0,
+                    strike_price,
+                    volatility,
+                    risk_free_rate,
+                    dividend_yield,
+                    error_type);
+            },
+            nb::arg("maturity"),
+            nb::arg("calendar"),
+            nb::arg("s0"),
+            nb::arg("strike_price"),
+            nb::arg("volatility"),
+            nb::arg("risk_free_rate"),
+            nb::arg("dividend_yield"),
+            nb::arg("error_type") =
+                BlackCalibrationHelper::RelativePriceError)
+        .def(
+            "__init__",
+            [](HestonModelHelper* self,
+               const Period& maturity,
+               const Calendar& calendar,
+               Real s0,
+               Real strike_price,
+               const Handle<Quote>& volatility,
+               const Handle<YieldTermStructure>& risk_free_rate,
+               const Handle<YieldTermStructure>& dividend_yield,
+               BlackCalibrationHelper::CalibrationErrorType error_type) {
+                new (self) HestonModelHelper(
+                    maturity,
+                    calendar,
+                    s0,
+                    strike_price,
+                    volatility,
+                    risk_free_rate,
+                    dividend_yield,
+                    error_type);
+            },
+            nb::arg("maturity"),
+            nb::arg("calendar"),
+            nb::arg("s0"),
+            nb::arg("strike_price"),
+            nb::arg("volatility"),
+            nb::arg("risk_free_rate"),
+            nb::arg("dividend_yield"),
+            nb::arg("error_type") =
+                BlackCalibrationHelper::RelativePriceError)
+        .def("calibration_error", &HestonModelHelper::calibrationError)
+        .def("market_value", &HestonModelHelper::marketValue)
+        .def("model_value", &HestonModelHelper::modelValue)
+        .def("maturity", &HestonModelHelper::maturity)
+        .def(
+            "set_pricing_engine",
+            [](HestonModelHelper& helper,
+               const ext::shared_ptr<HestonModel>& model,
+               Size integration_order) {
+                helper.setPricingEngine(ext::make_shared<AnalyticHestonEngine>(
+                    model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach AnalyticHestonEngine for calibration.");
+
     nb::class_<HestonModel>(m, "HestonModel")
         .def(
             "__init__",
@@ -105,7 +232,43 @@ void bind_heston(nb::module_& m) {
         .def("theta", &HestonModel::theta)
         .def("sigma", &HestonModel::sigma)
         .def("rho", &HestonModel::rho)
-        .def("process", &HestonModel::process);
+        .def("process", &HestonModel::process)
+        .def(
+            "params",
+            [](const HestonModel& model) {
+                const Array a = model.params();
+                return std::vector<Real>(a.begin(), a.end());
+            },
+            "Calibration parameter vector [theta, kappa, sigma, rho, v0].")
+        .def(
+            "set_params",
+            [](HestonModel& model, const std::vector<Real>& params) {
+                model.setParams(Array(params.begin(), params.end()));
+            },
+            nb::arg("params"))
+        .def(
+            "end_criteria",
+            [](const HestonModel& model) { return model.endCriteria(); },
+            "End-criteria result from the last calibrate() call.")
+        .def(
+            "calibrate",
+            [](HestonModel& model,
+               const std::vector<ext::shared_ptr<HestonModelHelper>>& helpers,
+               LevenbergMarquardt& method,
+               const EndCriteria& end_criteria) {
+                std::vector<ext::shared_ptr<CalibrationHelper>> calib;
+                calib.reserve(helpers.size());
+                for (const auto& h : helpers) {
+                    calib.push_back(
+                        ext::static_pointer_cast<CalibrationHelper>(h));
+                }
+                model.calibrate(calib, method, end_criteria);
+            },
+            nb::arg("helpers"),
+            nb::arg("method"),
+            nb::arg("end_criteria"),
+            "Calibrate to HestonModelHelper instruments (helpers must already "
+            "have a pricing engine).");
 
     m.def(
         "AnalyticHestonEngine",
