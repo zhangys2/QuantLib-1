@@ -1104,7 +1104,7 @@ print(opt.NPV())
 
 `BatesProcess` / `BatesModel` are concrete wrappers (no HestonProcess /
 HestonModel MI in Python). Use `jump_intensity` instead of C++ `lambda`.
-See Phase 45 for FD-Bates; DetJump / DoubleExp Bates variants deferred.
+See Phase 45 for FD-Bates and Phase 46 for DetJump / DoubleExp variants.
 
 ## Phase-45 FD Bates vanilla engine
 
@@ -1116,6 +1116,33 @@ print(opt.NPV())
 Uses `FdBatesVanillaEngine` with the default Hundsdorfer scheme. Analytic
 `set_bates_pricing_engine` is unchanged. Scheme enum and dividend overloads
 deferred (same as FD Heston).
+
+## Phase-46 Bates DetJump / DoubleExp variants
+
+```python
+det = ql.BatesDetJumpModel(bates_process, kappa_lambda=1.0, theta_lambda=1e-4)
+opt.set_bates_det_jump_pricing_engine(det, integration_order=64)
+
+dexp = ql.BatesDoubleExpModel(
+    bates_process, jump_intensity=1e-4, nu_up=1e-4, nu_down=1e-4
+)
+opt.set_bates_double_exp_pricing_engine(dexp, integration_order=64)
+
+dexp_dj = ql.BatesDoubleExpDetJumpModel(
+    bates_process,
+    jump_intensity=1e-4,
+    nu_up=1e-4,
+    nu_down=1e-4,
+    p=0.5,
+    kappa_lambda=1.0,
+    theta_lambda=1e-4,
+)
+opt.set_bates_double_exp_det_jump_pricing_engine(dexp_dj, integration_order=64)
+```
+
+Standalone wrappers (no BatesModel / HestonModel MI). DoubleExp models accept
+`HestonProcess` or `BatesProcess`. Use `jump_intensity` / `kappa_lambda` /
+`theta_lambda` / `nu_up` / `nu_down` (Python-safe names).
 
 ## Phase-40 quanto vanilla options
 

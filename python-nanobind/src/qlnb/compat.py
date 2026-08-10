@@ -270,6 +270,18 @@ def _install_aliases() -> None:
         EuropeanOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_bates_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_bates_det_jump_pricing_engine"):
+        EuropeanOption.setBatesDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_det_jump_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_bates_double_exp_pricing_engine"):
+        EuropeanOption.setBatesDoubleExpPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_double_exp_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_bates_double_exp_det_jump_pricing_engine"):
+        EuropeanOption.setBatesDoubleExpDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_double_exp_det_jump_pricing_engine
+        )
 
     VanillaOption = _ql.VanillaOption
     VanillaOption.setPricingEngine = VanillaOption.set_pricing_engine  # type: ignore[attr-defined]
@@ -297,6 +309,68 @@ def _install_aliases() -> None:
         VanillaOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_bates_pricing_engine
         )
+    if hasattr(VanillaOption, "set_bates_det_jump_pricing_engine"):
+        VanillaOption.setBatesDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_det_jump_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_bates_double_exp_pricing_engine"):
+        VanillaOption.setBatesDoubleExpPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_double_exp_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_bates_double_exp_det_jump_pricing_engine"):
+        VanillaOption.setBatesDoubleExpDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_double_exp_det_jump_pricing_engine
+        )
+
+    # Phase-39 / Phase-46 Bates aliases.
+    BatesDetJumpModel = getattr(_ql, "BatesDetJumpModel", None)
+    if BatesDetJumpModel is not None:
+        if hasattr(BatesDetJumpModel, "jump_intensity"):
+            BatesDetJumpModel.jumpIntensity = (  # type: ignore[attr-defined]
+                BatesDetJumpModel.jump_intensity
+            )
+        if hasattr(BatesDetJumpModel, "kappa_lambda"):
+            BatesDetJumpModel.kappaLambda = (  # type: ignore[attr-defined]
+                BatesDetJumpModel.kappa_lambda
+            )
+        if hasattr(BatesDetJumpModel, "theta_lambda"):
+            BatesDetJumpModel.thetaLambda = (  # type: ignore[attr-defined]
+                BatesDetJumpModel.theta_lambda
+            )
+    BatesDoubleExpModel = getattr(_ql, "BatesDoubleExpModel", None)
+    if BatesDoubleExpModel is not None:
+        if hasattr(BatesDoubleExpModel, "jump_intensity"):
+            BatesDoubleExpModel.jumpIntensity = (  # type: ignore[attr-defined]
+                BatesDoubleExpModel.jump_intensity
+            )
+        if hasattr(BatesDoubleExpModel, "nu_up"):
+            BatesDoubleExpModel.nuUp = BatesDoubleExpModel.nu_up  # type: ignore[attr-defined]
+        if hasattr(BatesDoubleExpModel, "nu_down"):
+            BatesDoubleExpModel.nuDown = (  # type: ignore[attr-defined]
+                BatesDoubleExpModel.nu_down
+            )
+    BatesDoubleExpDetJumpModel = getattr(_ql, "BatesDoubleExpDetJumpModel", None)
+    if BatesDoubleExpDetJumpModel is not None:
+        if hasattr(BatesDoubleExpDetJumpModel, "jump_intensity"):
+            BatesDoubleExpDetJumpModel.jumpIntensity = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.jump_intensity
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "nu_up"):
+            BatesDoubleExpDetJumpModel.nuUp = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.nu_up
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "nu_down"):
+            BatesDoubleExpDetJumpModel.nuDown = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.nu_down
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "kappa_lambda"):
+            BatesDoubleExpDetJumpModel.kappaLambda = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.kappa_lambda
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "theta_lambda"):
+            BatesDoubleExpDetJumpModel.thetaLambda = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.theta_lambda
+            )
 
     # Phase-39 Bates aliases.
     BatesProcess = getattr(_ql, "BatesProcess", None)

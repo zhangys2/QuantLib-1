@@ -250,6 +250,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption` / `EuropeanOption.set_fd_bates_pricing_engine` → `FdBatesVanillaEngine`
 - PIDE / Hundsdorfer scheme; grid args match FD Heston
 
+### Phase 46 (Bates DetJump / DoubleExp variants)
+- `BatesDetJumpModel` / `BatesDoubleExpModel` / `BatesDoubleExpDetJumpModel`
+- Matching engines via `set_bates_det_jump_pricing_engine`, `set_bates_double_exp_pricing_engine`, `set_bates_double_exp_det_jump_pricing_engine`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 
