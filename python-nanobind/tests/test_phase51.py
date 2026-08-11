@@ -13,7 +13,7 @@ def test_version_is_phase51():
 
 def test_fd_bs_escrowed_matches_analytic():
     # Mirrors DividendOptionTests escrowed PDE vs AnalyticDividendEuropeanEngine.
-    today = ql.Date(1, ql.Month.January, 2019)
+    today = ql.Date(12, ql.Month.October, 2019)
     ql.set_evaluation_date(today)
     dc = ql.Actual365Fixed()
     spot = 100.0
