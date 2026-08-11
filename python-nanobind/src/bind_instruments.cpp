@@ -27,6 +27,7 @@
 #include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
+#include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
@@ -61,6 +62,12 @@ void bind_instruments(nb::module_& m) {
     nb::class_<Handle<BlackVolTermStructure>>(m, "BlackVolTermStructureHandle")
         .def(nb::init<>())
         .def("empty", &Handle<BlackVolTermStructure>::empty);
+
+    // Phase 51: cash-dividend model for FdBlackScholesVanillaEngine.
+    nb::enum_<FdBlackScholesVanillaEngine::CashDividendModel>(
+        m, "CashDividendModel")
+        .value("Spot", FdBlackScholesVanillaEngine::Spot)
+        .value("Escrowed", FdBlackScholesVanillaEngine::Escrowed);
 
     m.def("BlackConstantVol",
           &make_black_constant_vol_handle,
@@ -223,6 +230,40 @@ void bind_instruments(nb::module_& m) {
             nb::arg("dividend_amounts"),
             "Attach AnalyticDividendEuropeanEngine (discrete cash dividends).")
         .def(
+            "set_fd_dividend_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc,
+               FdBlackScholesVanillaEngine::CashDividendModel
+                   cash_dividend_model) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdBlackScholesVanillaEngine>(
+                        process,
+                        DividendVector(dividend_dates, dividend_amounts),
+                        t_grid,
+                        x_grid,
+                        damping_steps,
+                        scheme_desc,
+                        false,
+                        -Null<Real>(),
+                        cash_dividend_model));
+            },
+            nb::arg("process"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            nb::arg("cash_dividend_model") =
+                FdBlackScholesVanillaEngine::Spot,
+            "Attach FdBlackScholesVanillaEngine with discrete cash dividends.")
+        .def(
             "set_mc_pricing_engine",
             [](EuropeanOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -310,6 +351,35 @@ void bind_instruments(nb::module_& m) {
             nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
             "Attach FdHestonVanillaEngine (default Hundsdorfer scheme).")
         .def(
+            "set_fd_heston_dividend_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model,
+                    DividendVector(dividend_dates, dividend_amounts),
+                    t_grid,
+                    x_grid,
+                    v_grid,
+                    damping_steps,
+                    scheme_desc));
+            },
+            nb::arg("model"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonVanillaEngine with discrete cash dividends.")
+        .def(
             "set_bates_pricing_engine",
             [](EuropeanOption& opt,
                const ext::shared_ptr<BatesModel>& model,
@@ -393,6 +463,16 @@ void bind_instruments(nb::module_& m) {
         nb::arg("dividend_amounts"),
         "Documentation alias — use EuropeanOption/VanillaOption."
         "set_dividend_pricing_engine instead.");
+
+    m.def(
+        "FdBlackScholesVanillaEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "VanillaOption.set_fd_pricing_engine or "
+        "set_fd_dividend_pricing_engine.");
 
     // Bonds (standalone; Bond/Instrument use MI via LazyObject).
     nb::class_<FixedRateBond>(m, "FixedRateBond")

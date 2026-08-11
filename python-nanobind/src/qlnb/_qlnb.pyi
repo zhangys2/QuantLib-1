@@ -558,6 +558,10 @@ class FdmSchemeDesc:
     @staticmethod
     def TrBDF2() -> FdmSchemeDesc: ...
 
+class CashDividendModel:
+    Spot: CashDividendModel
+    Escrowed: CashDividendModel
+
 class BatesProcess:
     def __init__(
         self,
@@ -695,6 +699,28 @@ class EuropeanOption:
         dividend_dates: Sequence[Date],
         dividend_amounts: Sequence[float],
     ) -> None: ...
+    def set_fd_dividend_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        cash_dividend_model: CashDividendModel = ...,
+    ) -> None: ...
+    def setFdDividendPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        cash_dividend_model: CashDividendModel = ...,
+    ) -> None: ...
     def set_mc_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -726,6 +752,17 @@ class EuropeanOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def set_fd_heston_dividend_pricing_engine(
+        self,
+        model: HestonModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def setHestonPricingEngine(
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
@@ -742,6 +779,17 @@ class EuropeanOption:
     def setFdHestonPricingEngine(
         self,
         model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+    def setFdHestonDividendPricingEngine(
+        self,
+        model: HestonModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -826,6 +874,28 @@ class VanillaOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def set_fd_dividend_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        cash_dividend_model: CashDividendModel = ...,
+    ) -> None: ...
+    def setFdDividendPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        cash_dividend_model: CashDividendModel = ...,
+    ) -> None: ...
     def set_heston_pricing_engine(
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
@@ -848,6 +918,17 @@ class VanillaOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def set_fd_heston_dividend_pricing_engine(
+        self,
+        model: HestonModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def setHestonPricingEngine(
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
@@ -864,6 +945,17 @@ class VanillaOption:
     def setFdHestonPricingEngine(
         self,
         model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+    def setFdHestonDividendPricingEngine(
+        self,
+        model: HestonModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -1440,6 +1532,9 @@ def AnalyticDividendEuropeanEngine(
     process: BlackScholesMertonProcess,
     dividend_dates: Sequence[Date],
     dividend_amounts: Sequence[float],
+) -> BlackScholesMertonProcess: ...
+def FdBlackScholesVanillaEngine(
+    process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 class FixedDividend:
     def __init__(self, amount: float, date: Date) -> None: ...

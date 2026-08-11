@@ -1157,7 +1157,7 @@ assert scheme.type == ql.FdmSchemeType.CraigSneyd
 ```
 
 Value-semantic descriptor (`type`, `theta`, `mu`) with static factories matching
-C++ `FdmSchemeDesc::*()`. Dividend overloads remain deferred.
+C++ `FdmSchemeDesc::*()`. See Phase 51 for FD dividend overloads.
 
 ## Phase-48 Heston model calibration
 
@@ -1228,7 +1228,36 @@ d = ql.FixedDividend(0.50, today + 60)
 ```
 
 `AnalyticDividendEuropeanEngine` via dates/amounts (no CashFlow / Dividend MI).
-FD dividend overloads remain deferred. Compat: `setDividendPricingEngine`.
+Compat: `setDividendPricingEngine`. See Phase 51 for FD dividend overloads.
+
+## Phase-51 FD discrete-dividend vanilla engines
+
+```python
+opt.set_fd_dividend_pricing_engine(
+    process,
+    [today + ql.Period(3, ql.TimeUnit.Months),
+     today + ql.Period(9, ql.TimeUnit.Months)],
+    [8.3, 6.8],
+    t_grid=50,
+    x_grid=200,
+    damping_steps=1,
+    cash_dividend_model=ql.CashDividendModel.Escrowed,
+)
+
+opt.set_fd_heston_dividend_pricing_engine(
+    model,
+    dividend_dates,
+    dividend_amounts,
+    t_grid=200,
+    x_grid=400,
+    v_grid=100,
+)
+```
+
+FD Black–Scholes / Heston engines with discrete cash dividends.
+`CashDividendModel.Spot` (default) or `.Escrowed`. Quanto FD overloads remain
+deferred. Compat: `setFdDividendPricingEngine` /
+`setFdHestonDividendPricingEngine`.
 
 ## Phase-40 quanto vanilla options
 
