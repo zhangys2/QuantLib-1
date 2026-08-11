@@ -258,6 +258,10 @@ def _install_aliases() -> None:
         EuropeanOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_dividend_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_cash_dividend_pricing_engine"):
+        EuropeanOption.setCashDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_cash_dividend_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_fd_dividend_pricing_engine"):
         EuropeanOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_dividend_pricing_engine
@@ -308,6 +312,10 @@ def _install_aliases() -> None:
     if hasattr(VanillaOption, "set_dividend_pricing_engine"):
         VanillaOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_cash_dividend_pricing_engine"):
+        VanillaOption.setCashDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_cash_dividend_pricing_engine
         )
     if hasattr(VanillaOption, "set_fd_dividend_pricing_engine"):
         VanillaOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]

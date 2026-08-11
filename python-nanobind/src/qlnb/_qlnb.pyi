@@ -699,6 +699,20 @@ class EuropeanOption:
         dividend_dates: Sequence[Date],
         dividend_amounts: Sequence[float],
     ) -> None: ...
+    def set_cash_dividend_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        cash_dividend_model: CashDividendModel = ...,
+    ) -> None: ...
+    def setCashDividendPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        cash_dividend_model: CashDividendModel = ...,
+    ) -> None: ...
     def set_fd_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -862,6 +876,20 @@ class VanillaOption:
         process: BlackScholesMertonProcess,
         dividend_dates: Sequence[Date],
         dividend_amounts: Sequence[float],
+    ) -> None: ...
+    def set_cash_dividend_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        cash_dividend_model: CashDividendModel = ...,
+    ) -> None: ...
+    def setCashDividendPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        cash_dividend_model: CashDividendModel = ...,
     ) -> None: ...
     def set_binomial_pricing_engine(
         self, process: BlackScholesMertonProcess, steps: int = ...
@@ -1532,6 +1560,12 @@ def AnalyticDividendEuropeanEngine(
     process: BlackScholesMertonProcess,
     dividend_dates: Sequence[Date],
     dividend_amounts: Sequence[float],
+) -> BlackScholesMertonProcess: ...
+def CashDividendEuropeanEngine(
+    process: BlackScholesMertonProcess,
+    dividend_dates: Sequence[Date],
+    dividend_amounts: Sequence[float],
+    cash_dividend_model: CashDividendModel = ...,
 ) -> BlackScholesMertonProcess: ...
 def FdBlackScholesVanillaEngine(
     process: BlackScholesMertonProcess,

@@ -7,8 +7,9 @@ import pytest
 import qlnb as ql
 
 
-def test_version_is_phase51():
-    assert ql.__version__ == "0.52.0"
+def test_version_is_at_least_phase51():
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 52)
 
 
 def test_fd_bs_escrowed_matches_analytic():

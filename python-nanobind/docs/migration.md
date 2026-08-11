@@ -1257,7 +1257,24 @@ opt.set_fd_heston_dividend_pricing_engine(
 FD Black–Scholes / Heston engines with discrete cash dividends.
 `CashDividendModel.Spot` (default) or `.Escrowed`. Quanto FD overloads remain
 deferred. Compat: `setFdDividendPricingEngine` /
-`setFdHestonDividendPricingEngine`.
+`setFdHestonDividendPricingEngine`. See Phase 52 for the semi-analytic
+`CashDividendEuropeanEngine`.
+
+## Phase-52 CashDividendEuropeanEngine
+
+```python
+opt.set_cash_dividend_pricing_engine(
+    process,
+    [today + ql.Period(6, ql.TimeUnit.Months)],
+    [5.0],
+    cash_dividend_model=ql.CashDividendModel.Escrowed,
+)
+print(opt.NPV())
+```
+
+Semi-analytic Spot / Escrowed cash-dividend European engine (Healy). Prefer
+this over FD when exercise is European; use Phase 51 FD setters for American.
+Compat: `setCashDividendPricingEngine`.
 
 ## Phase-40 quanto vanilla options
 
