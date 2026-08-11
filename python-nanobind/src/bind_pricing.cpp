@@ -29,6 +29,7 @@
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
+#include <ql/pricingengines/vanilla/cashdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
@@ -254,6 +255,27 @@ void bind_pricing(nb::module_& m) {
             nb::arg("dividend_dates"),
             nb::arg("dividend_amounts"),
             "Attach AnalyticDividendEuropeanEngine (discrete cash dividends).")
+        .def(
+            "set_cash_dividend_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               FdBlackScholesVanillaEngine::CashDividendModel
+                   cash_dividend_model) {
+                opt.setPricingEngine(
+                    ext::make_shared<CashDividendEuropeanEngine>(
+                        process,
+                        DividendVector(dividend_dates, dividend_amounts),
+                        static_cast<CashDividendEuropeanEngine::CashDividendModel>(
+                            cash_dividend_model)));
+            },
+            nb::arg("process"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("cash_dividend_model") =
+                FdBlackScholesVanillaEngine::Spot,
+            "Attach CashDividendEuropeanEngine (Spot / Escrowed).")
         .def(
             "set_binomial_pricing_engine",
             [](VanillaOption& opt,

@@ -276,6 +276,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_fd_dividend_pricing_engine` → `FdBlackScholesVanillaEngine` + dividends
 - `set_fd_heston_dividend_pricing_engine` → `FdHestonVanillaEngine` + dividends
 
+### Phase 52 (CashDividendEuropeanEngine)
+- `set_cash_dividend_pricing_engine` → `CashDividendEuropeanEngine` (Spot / Escrowed)
+- Semi-analytic alternative to analytic / FD discrete-dividend engines
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 
