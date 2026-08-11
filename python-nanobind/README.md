@@ -267,6 +267,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
 - `HestonComplexLogFormula` control-variate enum
 
+### Phase 50 (discrete-dividend European options)
+- `FixedDividend`, `DividendVector(dates, amounts)`
+- `EuropeanOption` / `VanillaOption.set_dividend_pricing_engine` → `AnalyticDividendEuropeanEngine`
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

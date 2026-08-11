@@ -254,6 +254,10 @@ def _install_aliases() -> None:
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
     EuropeanOption.impliedVolatility = EuropeanOption.implied_volatility  # type: ignore[attr-defined]
+    if hasattr(EuropeanOption, "set_dividend_pricing_engine"):
+        EuropeanOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_dividend_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_heston_pricing_engine"):
         EuropeanOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_heston_pricing_engine
@@ -293,6 +297,10 @@ def _install_aliases() -> None:
 
     VanillaOption = _ql.VanillaOption
     VanillaOption.setPricingEngine = VanillaOption.set_pricing_engine  # type: ignore[attr-defined]
+    if hasattr(VanillaOption, "set_dividend_pricing_engine"):
+        VanillaOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_dividend_pricing_engine
+        )
     if hasattr(VanillaOption, "set_binomial_pricing_engine"):
         VanillaOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_binomial_pricing_engine
