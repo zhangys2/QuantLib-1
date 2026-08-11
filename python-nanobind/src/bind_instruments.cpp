@@ -8,6 +8,7 @@
 #include <ql/exercise.hpp>
 #include <ql/handle.hpp>
 #include <ql/indexes/iborindex.hpp>
+#include <ql/methods/finitedifferences/utilities/fdmquantohelper.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
@@ -63,6 +64,40 @@ void bind_instruments(nb::module_& m) {
     nb::class_<Handle<BlackVolTermStructure>>(m, "BlackVolTermStructureHandle")
         .def(nb::init<>())
         .def("empty", &Handle<BlackVolTermStructure>::empty);
+
+    // Phase 53: quanto adjustment helper for FD engines (Observable — no base).
+    nb::class_<FdmQuantoHelper>(m, "FdmQuantoHelper")
+        .def(
+            "__init__",
+            [](FdmQuantoHelper* self,
+               const Handle<YieldTermStructure>& domestic_rate,
+               const Handle<YieldTermStructure>& foreign_rate,
+               const Handle<BlackVolTermStructure>& fx_volatility,
+               Real equity_fx_correlation,
+               Real exch_rate_atm_level) {
+                new (self) FdmQuantoHelper(domestic_rate.currentLink(),
+                                           foreign_rate.currentLink(),
+                                           fx_volatility.currentLink(),
+                                           equity_fx_correlation,
+                                           exch_rate_atm_level);
+            },
+            nb::arg("domestic_rate"),
+            nb::arg("foreign_rate"),
+            nb::arg("fx_volatility"),
+            nb::arg("equity_fx_correlation"),
+            nb::arg("exch_rate_atm_level") = 1.0)
+        .def(
+            "quanto_adjustment",
+            [](const FdmQuantoHelper& h,
+               Volatility equity_vol,
+               Time t1,
+               Time t2) {
+                return h.quantoAdjustment(equity_vol, t1, t2);
+            },
+            nb::arg("equity_vol"),
+            nb::arg("t1"),
+            nb::arg("t2"),
+            "Quanto drift adjustment over [t1, t2] for a given equity vol.");
 
     // Phase 51: cash-dividend model for FdBlackScholesVanillaEngine.
     nb::enum_<FdBlackScholesVanillaEngine::CashDividendModel>(
@@ -286,6 +321,58 @@ void bind_instruments(nb::module_& m) {
                 FdBlackScholesVanillaEngine::Spot,
             "Attach FdBlackScholesVanillaEngine with discrete cash dividends.")
         .def(
+            "set_fd_quanto_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdBlackScholesVanillaEngine>(
+                        process, quanto_helper, t_grid, x_grid, damping_steps,
+                        scheme_desc));
+            },
+            nb::arg("process"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdBlackScholesVanillaEngine with FdmQuantoHelper.")
+        .def(
+            "set_fd_quanto_dividend_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdBlackScholesVanillaEngine>(
+                        process,
+                        DividendVector(dividend_dates, dividend_amounts),
+                        quanto_helper,
+                        t_grid,
+                        x_grid,
+                        damping_steps,
+                        scheme_desc));
+            },
+            nb::arg("process"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdBlackScholesVanillaEngine with dividends + quanto "
+            "(Spot cash-dividend model only).")
+        .def(
             "set_mc_pricing_engine",
             [](EuropeanOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -401,6 +488,60 @@ void bind_instruments(nb::module_& m) {
             nb::arg("damping_steps") = 0,
             nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
             "Attach FdHestonVanillaEngine with discrete cash dividends.")
+        .def(
+            "set_fd_heston_quanto_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model, quanto_helper, t_grid, x_grid, v_grid,
+                    damping_steps, scheme_desc));
+            },
+            nb::arg("model"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonVanillaEngine with FdmQuantoHelper.")
+        .def(
+            "set_fd_heston_quanto_dividend_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model,
+                    DividendVector(dividend_dates, dividend_amounts),
+                    quanto_helper,
+                    t_grid,
+                    x_grid,
+                    v_grid,
+                    damping_steps,
+                    scheme_desc));
+            },
+            nb::arg("model"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonVanillaEngine with dividends + quanto.")
         .def(
             "set_bates_pricing_engine",
             [](EuropeanOption& opt,

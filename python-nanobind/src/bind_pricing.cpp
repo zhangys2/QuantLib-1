@@ -9,6 +9,7 @@
 #include <ql/handle.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/dividendschedule.hpp>
+#include <ql/methods/finitedifferences/utilities/fdmquantohelper.hpp>
 #include <ql/instruments/forwardrateagreement.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/vanillaoption.hpp>
@@ -340,6 +341,58 @@ void bind_pricing(nb::module_& m) {
                 FdBlackScholesVanillaEngine::Spot,
             "Attach FdBlackScholesVanillaEngine with discrete cash dividends.")
         .def(
+            "set_fd_quanto_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdBlackScholesVanillaEngine>(
+                        process, quanto_helper, t_grid, x_grid, damping_steps,
+                        scheme_desc));
+            },
+            nb::arg("process"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdBlackScholesVanillaEngine with FdmQuantoHelper.")
+        .def(
+            "set_fd_quanto_dividend_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdBlackScholesVanillaEngine>(
+                        process,
+                        DividendVector(dividend_dates, dividend_amounts),
+                        quanto_helper,
+                        t_grid,
+                        x_grid,
+                        damping_steps,
+                        scheme_desc));
+            },
+            nb::arg("process"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdBlackScholesVanillaEngine with dividends + quanto "
+            "(Spot cash-dividend model only).")
+        .def(
             "set_heston_pricing_engine",
             [](VanillaOption& opt,
                const ext::shared_ptr<HestonModel>& model,
@@ -431,6 +484,60 @@ void bind_pricing(nb::module_& m) {
             nb::arg("damping_steps") = 0,
             nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
             "Attach FdHestonVanillaEngine with discrete cash dividends.")
+        .def(
+            "set_fd_heston_quanto_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model, quanto_helper, t_grid, x_grid, v_grid,
+                    damping_steps, scheme_desc));
+            },
+            nb::arg("model"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonVanillaEngine with FdmQuantoHelper.")
+        .def(
+            "set_fd_heston_quanto_dividend_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               const ext::shared_ptr<FdmQuantoHelper>& quanto_helper,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model,
+                    DividendVector(dividend_dates, dividend_amounts),
+                    quanto_helper,
+                    t_grid,
+                    x_grid,
+                    v_grid,
+                    damping_steps,
+                    scheme_desc));
+            },
+            nb::arg("model"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("quanto_helper"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonVanillaEngine with dividends + quanto.")
         .def(
             "set_bates_pricing_engine",
             [](VanillaOption& opt,
