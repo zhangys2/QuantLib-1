@@ -1188,6 +1188,24 @@ print(model.end_criteria())  # EndCriteriaType
 
 Standalone helpers / optimizer (no CalibratedModel / OptimizationMethod MI).
 `EndCriteriaType.None_` maps to C++ `EndCriteria::None` (Python keyword-safe).
+See Phase 49 for COS / exponential-fitting engines on helpers.
+
+## Phase-49 COS / exponential-fitting Heston engines
+
+```python
+opt.set_cos_heston_pricing_engine(model, L=25, N=600)
+print(opt.NPV())
+
+opt.set_exponential_fitting_heston_pricing_engine(
+    model, control_variate=ql.HestonComplexLogFormula.OptimalCV
+)
+# Helpers:
+helper.set_cos_heston_pricing_engine(model, L=12, N=75)
+```
+
+Fourier-Cosine (`COSHestonEngine`) and exponentially fitted Gauss–Laguerre
+(`ExponentialFittingHestonEngine`) alternatives to Laguerre
+`set_heston_pricing_engine`. Both work for European vanillas and calibration helpers.
 
 ## Phase-40 quanto vanilla options
 

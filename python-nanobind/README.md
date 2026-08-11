@@ -262,6 +262,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `HestonModelHelper`, `LevenbergMarquardt`, `EndCriteria`, `CalibrationErrorType`
 - `HestonModel.calibrate(helpers, method, end_criteria)` + `params` / `set_params`
 
+### Phase 49 (COS / exp-fitting Heston engines)
+- `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
+- `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
+- `HestonComplexLogFormula` control-variate enum
+
 QuantLib is built from the parent source tree as a **static** library with
 `QL_USE_STD_SHARED_PTR=ON` and `CMAKE_POSITION_INDEPENDENT_CODE=ON`.
 

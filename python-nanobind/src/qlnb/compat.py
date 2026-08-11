@@ -258,6 +258,14 @@ def _install_aliases() -> None:
         EuropeanOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_heston_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_cos_heston_pricing_engine"):
+        EuropeanOption.setCosHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_cos_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_exponential_fitting_heston_pricing_engine"):
+        EuropeanOption.setExponentialFittingHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_exponential_fitting_heston_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_fd_heston_pricing_engine"):
         EuropeanOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_heston_pricing_engine
@@ -296,6 +304,14 @@ def _install_aliases() -> None:
     if hasattr(VanillaOption, "set_heston_pricing_engine"):
         VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_cos_heston_pricing_engine"):
+        VanillaOption.setCosHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_cos_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_exponential_fitting_heston_pricing_engine"):
+        VanillaOption.setExponentialFittingHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_exponential_fitting_heston_pricing_engine
         )
     if hasattr(VanillaOption, "set_fd_heston_pricing_engine"):
         VanillaOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
@@ -386,6 +402,16 @@ def _install_aliases() -> None:
         HestonModelHelper.setPricingEngine = (  # type: ignore[attr-defined]
             HestonModelHelper.set_pricing_engine
         )
+        if hasattr(HestonModelHelper, "set_cos_heston_pricing_engine"):
+            HestonModelHelper.setCosHestonPricingEngine = (  # type: ignore[attr-defined]
+                HestonModelHelper.set_cos_heston_pricing_engine
+            )
+        if hasattr(
+            HestonModelHelper, "set_exponential_fitting_heston_pricing_engine"
+        ):
+            HestonModelHelper.setExponentialFittingHestonPricingEngine = (  # type: ignore[attr-defined]
+                HestonModelHelper.set_exponential_fitting_heston_pricing_engine
+            )
         if hasattr(HestonModelHelper, "calibration_error"):
             HestonModelHelper.calibrationError = (  # type: ignore[attr-defined]
                 HestonModelHelper.calibration_error
