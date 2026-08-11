@@ -284,6 +284,40 @@ void bind_pricing(nb::module_& m) {
             nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
             "Attach FdBlackScholesVanillaEngine (default Douglas scheme).")
         .def(
+            "set_fd_dividend_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc,
+               FdBlackScholesVanillaEngine::CashDividendModel
+                   cash_dividend_model) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdBlackScholesVanillaEngine>(
+                        process,
+                        DividendVector(dividend_dates, dividend_amounts),
+                        t_grid,
+                        x_grid,
+                        damping_steps,
+                        scheme_desc,
+                        false,
+                        -Null<Real>(),
+                        cash_dividend_model));
+            },
+            nb::arg("process"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            nb::arg("cash_dividend_model") =
+                FdBlackScholesVanillaEngine::Spot,
+            "Attach FdBlackScholesVanillaEngine with discrete cash dividends.")
+        .def(
             "set_heston_pricing_engine",
             [](VanillaOption& opt,
                const ext::shared_ptr<HestonModel>& model,
@@ -346,6 +380,35 @@ void bind_pricing(nb::module_& m) {
             nb::arg("damping_steps") = 0,
             nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
             "Attach FdHestonVanillaEngine (default Hundsdorfer scheme).")
+        .def(
+            "set_fd_heston_dividend_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdHestonVanillaEngine>(
+                    model,
+                    DividendVector(dividend_dates, dividend_amounts),
+                    t_grid,
+                    x_grid,
+                    v_grid,
+                    damping_steps,
+                    scheme_desc));
+            },
+            nb::arg("model"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonVanillaEngine with discrete cash dividends.")
         .def(
             "set_bates_pricing_engine",
             [](VanillaOption& opt,
