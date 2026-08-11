@@ -4,9 +4,11 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
 
+#include <ql/cashflows/dividend.hpp>
 #include <ql/exercise.hpp>
 #include <ql/handle.hpp>
 #include <ql/indexes/iborindex.hpp>
+#include <ql/instruments/dividendschedule.hpp>
 #include <ql/instruments/forwardrateagreement.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/vanillaoption.hpp>
@@ -22,6 +24,7 @@
 #include <ql/position.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
+#include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
@@ -236,6 +239,21 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("process"),
             "Attach Barone-Adesi-Whaley approximation engine (American).")
+        .def(
+            "set_dividend_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticDividendEuropeanEngine>(
+                        process,
+                        DividendVector(dividend_dates, dividend_amounts)));
+            },
+            nb::arg("process"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            "Attach AnalyticDividendEuropeanEngine (discrete cash dividends).")
         .def(
             "set_binomial_pricing_engine",
             [](VanillaOption& opt,

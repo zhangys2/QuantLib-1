@@ -1207,6 +1207,29 @@ Fourier-Cosine (`COSHestonEngine`) and exponentially fitted Gauss–Laguerre
 (`ExponentialFittingHestonEngine`) alternatives to Laguerre
 `set_heston_pricing_engine`. Both work for European vanillas and calibration helpers.
 
+## Phase-50 discrete-dividend European options
+
+```python
+opt = ql.EuropeanOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 40.0),
+    ql.EuropeanExercise(today + 180),
+)
+opt.set_dividend_pricing_engine(
+    process,
+    [today + 60, today + 150],
+    [0.50, 0.50],
+)
+print(opt.NPV())
+
+# Inspect cash dividends:
+divs = ql.DividendVector([today + 60], [0.50])
+assert divs[0].amount() == 0.50
+d = ql.FixedDividend(0.50, today + 60)
+```
+
+`AnalyticDividendEuropeanEngine` via dates/amounts (no CashFlow / Dividend MI).
+FD dividend overloads remain deferred. Compat: `setDividendPricingEngine`.
+
 ## Phase-40 quanto vanilla options
 
 ```python

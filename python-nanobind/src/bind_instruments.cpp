@@ -4,12 +4,14 @@
 #include <nanobind/stl/vector.h>
 
 #include <ql/cashflows/couponpricer.hpp>
+#include <ql/cashflows/dividend.hpp>
 #include <ql/exercise.hpp>
 #include <ql/handle.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
+#include <ql/instruments/dividendschedule.hpp>
 #include <ql/instruments/europeanoption.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/swap.hpp>
@@ -19,6 +21,7 @@
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
+#include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
@@ -130,6 +133,34 @@ void bind_instruments(nb::module_& m) {
         .def("last_date",
              [](const EuropeanExercise& e) { return e.lastDate(); });
 
+    // FixedDividend inherits Dividend/CashFlow (MI) — concrete wrapper, no bases.
+    nb::class_<FixedDividend>(m, "FixedDividend")
+        .def(
+            "__init__",
+            [](FixedDividend* self, Real amount, const Date& date) {
+                new (self) FixedDividend(amount, date);
+            },
+            nb::arg("amount"),
+            nb::arg("date"))
+        .def("amount", [](const FixedDividend& d) { return d.amount(); })
+        .def("date", [](const FixedDividend& d) { return d.date(); });
+
+    m.def(
+        "DividendVector",
+        [](const std::vector<Date>& dividend_dates,
+           const std::vector<Real>& dividends) {
+            auto schedule = DividendVector(dividend_dates, dividends);
+            std::vector<ext::shared_ptr<FixedDividend>> out;
+            out.reserve(schedule.size());
+            for (const auto& d : schedule) {
+                out.push_back(ext::dynamic_pointer_cast<FixedDividend>(d));
+            }
+            return out;
+        },
+        nb::arg("dividend_dates"),
+        nb::arg("dividends"),
+        "Build fixed cash dividends (DividendSchedule helper).");
+
     nb::class_<EuropeanOption>(m, "EuropeanOption")
         .def(
             "__init__",
@@ -176,6 +207,21 @@ void bind_instruments(nb::module_& m) {
                     ext::make_shared<AnalyticEuropeanEngine>(process));
             },
             nb::arg("process"))
+        .def(
+            "set_dividend_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticDividendEuropeanEngine>(
+                        process,
+                        DividendVector(dividend_dates, dividend_amounts)));
+            },
+            nb::arg("process"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            "Attach AnalyticDividendEuropeanEngine (discrete cash dividends).")
         .def(
             "set_mc_pricing_engine",
             [](EuropeanOption& opt,
@@ -334,6 +380,19 @@ void bind_instruments(nb::module_& m) {
             return process;
         },
         nb::arg("process"));
+
+    m.def(
+        "AnalyticDividendEuropeanEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process,
+           const std::vector<Date>& dividend_dates,
+           const std::vector<Real>& dividend_amounts) {
+            return process;
+        },
+        nb::arg("process"),
+        nb::arg("dividend_dates"),
+        nb::arg("dividend_amounts"),
+        "Documentation alias — use EuropeanOption/VanillaOption."
+        "set_dividend_pricing_engine instead.");
 
     // Bonds (standalone; Bond/Instrument use MI via LazyObject).
     nb::class_<FixedRateBond>(m, "FixedRateBond")
