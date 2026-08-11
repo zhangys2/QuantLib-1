@@ -1281,9 +1281,8 @@ Compat: `setCashDividendPricingEngine`.
 helper = ql.FdmQuantoHelper(
     domestic_rfr, foreign_rfr, fx_vol, equity_fx_correlation=-0.75
 )
-assert helper.quanto_adjustment(0.3, 0.0, 1.0) == pytest.approx(
-    domestic_r - foreign_r + (-0.75) * 0.3 * fx_vol
-)
+print(helper.quanto_adjustment(0.3, 0.0, 1.0))
+# ≈ domestic_r - foreign_r + corr * equity_vol * fx_vol
 
 # European FD quanto ≈ analytic QuantoVanillaOption
 opt.set_fd_quanto_pricing_engine(process, helper, t_grid=100, x_grid=500)
