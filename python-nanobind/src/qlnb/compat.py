@@ -1278,6 +1278,17 @@ if CallableFixedRateBond is not None:
         CallableFixedRateBond.impliedVolatility = (  # type: ignore[attr-defined]
             CallableFixedRateBond.implied_volatility
         )
+    if hasattr(CallableFixedRateBond, "oas"):
+        CallableFixedRateBond.OAS = CallableFixedRateBond.oas  # type: ignore[attr-defined]
+        CallableFixedRateBond.cleanPriceOAS = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.clean_price_oas
+        )
+        CallableFixedRateBond.effectiveDuration = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.effective_duration
+        )
+        CallableFixedRateBond.effectiveConvexity = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.effective_convexity
+        )
 CallableZeroCouponBond = getattr(_ql, "CallableZeroCouponBond", None)
 if CallableZeroCouponBond is not None:
     CallableZeroCouponBond.cleanPrice = (  # type: ignore[attr-defined]
@@ -1302,6 +1313,17 @@ if CallableZeroCouponBond is not None:
     if hasattr(CallableZeroCouponBond, "implied_volatility"):
         CallableZeroCouponBond.impliedVolatility = (  # type: ignore[attr-defined]
             CallableZeroCouponBond.implied_volatility
+        )
+    if hasattr(CallableZeroCouponBond, "oas"):
+        CallableZeroCouponBond.OAS = CallableZeroCouponBond.oas  # type: ignore[attr-defined]
+        CallableZeroCouponBond.cleanPriceOAS = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.clean_price_oas
+        )
+        CallableZeroCouponBond.effectiveDuration = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.effective_duration
+        )
+        CallableZeroCouponBond.effectiveConvexity = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.effective_convexity
         )
 
 # Phase-24 currency / FX aliases.

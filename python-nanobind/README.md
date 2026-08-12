@@ -163,6 +163,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `CallableFixedRateBond` / `CallableZeroCouponBond.implied_volatility(BondPrice, curve, …)`
 - Round-trips target clean/dirty prices via Black fwd-yield vol
 
+### Phase 56 (callable bond OAS)
+- `oas` / `clean_price_oas` on callable bonds (tree engines; Black ignores spread)
+- `effective_duration` / `effective_convexity` at a given OAS
+
 ### Phase 24 (currencies / FX forward)
 - `Currency` factories: `USDCurrency` / `EURCurrency` / `GBPCurrency` / `SGDCurrency`
 - `Money`, `ExchangeRate` (+ `chain` / `exchange`), `ExchangeRateManager` helpers

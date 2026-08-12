@@ -815,6 +815,29 @@ Black fwd-yield implied vol matching a target `BondPrice` (Clean or Dirty).
 Works for European callables (same Black engines as Phase 54). Compat:
 `impliedVolatility`.
 
+## Phase-56 callable bond OAS
+
+```python
+bond.set_tree_pricing_engine(model, 240, discount_curve)
+oas = bond.oas(
+    96.0, discount_curve, dc,
+    ql.Compounding.Compounded, ql.Frequency.Semiannual,
+)
+price = bond.clean_price_oas(
+    oas, discount_curve, dc,
+    ql.Compounding.Compounded, ql.Frequency.Semiannual,
+)
+dur = bond.effective_duration(
+    oas, discount_curve, dc,
+    ql.Compounding.Compounded, ql.Frequency.Semiannual,
+)
+```
+
+Option-adjusted spread and clean price at OAS require a **tree** pricing
+engine (`set_tree_pricing_engine`); Black engines ignore the OAS spread.
+Also: `effective_duration` / `effective_convexity` (default bump `2e-4`).
+Compat: `OAS`, `cleanPriceOAS`, `effectiveDuration`, `effectiveConvexity`.
+
 ## Phase-24 currencies / FX forward
 
 ```python
