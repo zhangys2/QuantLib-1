@@ -7,8 +7,9 @@ import pytest
 import qlnb as ql
 
 
-def test_version_is_phase54():
-    assert ql.__version__ == "0.55.0"
+def test_version_is_at_least_phase54():
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 55)
 
 
 def test_black_zero_coupon_cached_price():

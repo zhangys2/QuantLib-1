@@ -159,6 +159,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_black_pricing_engine(fwd_yield_vol, discount_curve)` on callable bonds
 - `BlackCallableFixedRateBondEngine` / `BlackCallableZeroCouponBondEngine` aliases
 
+### Phase 55 (callable bond implied volatility)
+- `CallableFixedRateBond` / `CallableZeroCouponBond.implied_volatility(BondPrice, curve, …)`
+- Round-trips target clean/dirty prices via Black fwd-yield vol
+
 ### Phase 24 (currencies / FX forward)
 - `Currency` factories: `USDCurrency` / `EURCurrency` / `GBPCurrency` / `SGDCurrency`
 - `Money`, `ExchangeRate` (+ `chain` / `exchange`), `ExchangeRateManager` helpers

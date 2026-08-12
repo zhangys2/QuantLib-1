@@ -2978,6 +2978,24 @@ class CallableFixedRateBond:
     def dirty_price(self) -> float: ...
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
+    def implied_volatility(
+        self,
+        target_price: BondPrice,
+        discount_curve: YieldTermStructureHandle,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+    ) -> float: ...
+    def impliedVolatility(
+        self,
+        target_price: BondPrice,
+        discount_curve: YieldTermStructureHandle,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+    ) -> float: ...
     def set_tree_pricing_engine(
         self,
         model: HullWhite,
@@ -3013,6 +3031,24 @@ class CallableZeroCouponBond:
     def dirty_price(self) -> float: ...
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
+    def implied_volatility(
+        self,
+        target_price: BondPrice,
+        discount_curve: YieldTermStructureHandle,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+    ) -> float: ...
+    def impliedVolatility(
+        self,
+        target_price: BondPrice,
+        discount_curve: YieldTermStructureHandle,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+    ) -> float: ...
     def set_tree_pricing_engine(
         self,
         model: HullWhite,
