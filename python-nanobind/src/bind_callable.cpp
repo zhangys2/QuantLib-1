@@ -119,6 +119,29 @@ void bind_callable(nb::module_& m) {
         .def("maturity_date",
              [](const CallableFixedRateBond& b) { return b.maturityDate(); })
         .def(
+            "implied_volatility",
+            [](const CallableFixedRateBond& b,
+               const Bond::Price& target_price,
+               const Handle<YieldTermStructure>& discount_curve,
+               Real accuracy,
+               Size max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol) {
+                return b.impliedVolatility(target_price,
+                                           discount_curve,
+                                           accuracy,
+                                           max_evaluations,
+                                           min_vol,
+                                           max_vol);
+            },
+            nb::arg("target_price"),
+            nb::arg("discount_curve"),
+            nb::arg("accuracy") = 1.0e-8,
+            nb::arg("max_evaluations") = 200,
+            nb::arg("min_vol") = 1.0e-4,
+            nb::arg("max_vol") = 1.0,
+            "Black fwd-yield implied volatility matching a target BondPrice.")
+        .def(
             "set_tree_pricing_engine",
             [](CallableFixedRateBond& b,
                const ext::shared_ptr<HullWhite>& model,
@@ -203,6 +226,29 @@ void bind_callable(nb::module_& m) {
              })
         .def("maturity_date",
              [](const CallableZeroCouponBond& b) { return b.maturityDate(); })
+        .def(
+            "implied_volatility",
+            [](const CallableZeroCouponBond& b,
+               const Bond::Price& target_price,
+               const Handle<YieldTermStructure>& discount_curve,
+               Real accuracy,
+               Size max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol) {
+                return b.impliedVolatility(target_price,
+                                           discount_curve,
+                                           accuracy,
+                                           max_evaluations,
+                                           min_vol,
+                                           max_vol);
+            },
+            nb::arg("target_price"),
+            nb::arg("discount_curve"),
+            nb::arg("accuracy") = 1.0e-8,
+            nb::arg("max_evaluations") = 200,
+            nb::arg("min_vol") = 1.0e-4,
+            nb::arg("max_vol") = 1.0,
+            "Black fwd-yield implied volatility matching a target BondPrice.")
         .def(
             "set_tree_pricing_engine",
             [](CallableZeroCouponBond& b,

@@ -1274,6 +1274,10 @@ if CallableFixedRateBond is not None:
         CallableFixedRateBond.setBlackPricingEngine = (  # type: ignore[attr-defined]
             CallableFixedRateBond.set_black_pricing_engine
         )
+    if hasattr(CallableFixedRateBond, "implied_volatility"):
+        CallableFixedRateBond.impliedVolatility = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.implied_volatility
+        )
 CallableZeroCouponBond = getattr(_ql, "CallableZeroCouponBond", None)
 if CallableZeroCouponBond is not None:
     CallableZeroCouponBond.cleanPrice = (  # type: ignore[attr-defined]
@@ -1294,6 +1298,10 @@ if CallableZeroCouponBond is not None:
     if hasattr(CallableZeroCouponBond, "set_black_pricing_engine"):
         CallableZeroCouponBond.setBlackPricingEngine = (  # type: ignore[attr-defined]
             CallableZeroCouponBond.set_black_pricing_engine
+        )
+    if hasattr(CallableZeroCouponBond, "implied_volatility"):
+        CallableZeroCouponBond.impliedVolatility = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.implied_volatility
         )
 
 # Phase-24 currency / FX aliases.

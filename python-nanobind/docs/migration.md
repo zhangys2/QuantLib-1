@@ -796,6 +796,24 @@ print(bond.clean_price())  # ≈ 74.54521578 (cached European call)
 
 `BlackCallableFixedRateBondEngine` / `BlackCallableZeroCouponBondEngine` for
 European embedded options (Hull Ch.20). Compat: `setBlackPricingEngine`.
+See Phase 55 for Black implied volatility.
+
+## Phase-55 callable bond implied volatility
+
+```python
+vol = bond.implied_volatility(
+    ql.BondPrice(78.50, ql.BondPriceType.Dirty),
+    discount_curve,
+    accuracy=1e-8,
+    max_evaluations=200,
+)
+bond.set_black_pricing_engine(vol, discount_curve)
+assert abs(bond.dirty_price() - 78.50) < 1e-4
+```
+
+Black fwd-yield implied vol matching a target `BondPrice` (Clean or Dirty).
+Works for European callables (same Black engines as Phase 54). Compat:
+`impliedVolatility`.
 
 ## Phase-24 currencies / FX forward
 
