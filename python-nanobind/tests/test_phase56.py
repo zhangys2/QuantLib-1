@@ -180,7 +180,9 @@ def test_effective_duration_and_convexity():
     ref = calendar.advance(settlement_date, 2, ql.TimeUnit.Days)
     curve = ql.FlatForward(ref, 0.05, day_count)
     model = ql.HullWhite(curve, 0.03, 0.012)
-    grid_steps = (maturity - settlement_date) // 30
+    grid_steps = (
+        maturity.serial_number() - settlement_date.serial_number()
+    ) // 30
     bond.set_tree_pricing_engine(model, grid_steps, curve)
 
     compounding = ql.Compounding.Compounded
