@@ -773,8 +773,29 @@ bond.set_tree_pricing_engine(model, 240, discount_curve)
 print(bond.clean_price())
 ```
 
-Tree engine only (Black callable engine deferred). Compat alias:
-`import qlnb.compat as ql` → `ql.Callability(...)` maps to `make_callability`.
+Tree engine via `set_tree_pricing_engine`. See Phase 54 for Black European
+callable engines. Compat alias: `import qlnb.compat as ql` →
+`ql.Callability(...)` maps to `make_callability`.
+
+## Phase-54 Black callable bond engines
+
+```python
+bond = ql.CallableZeroCouponBond(
+    3, 10000.0, calendar, maturity,
+    ql.Thirty360(ql.Thirty360Convention.BondBasis),
+    ql.BusinessDayConvention.ModifiedFollowing,
+    100.0, issue,
+    [ql.make_callability(
+        100.0, ql.BondPriceType.Clean, ql.CallabilityType.Call, call_date
+    )],
+)
+bond.set_black_pricing_engine(0.3, discount_curve)  # fwd yield vol
+# or: bond.set_black_pricing_engine(ql.make_quote_handle(0.3), discount_curve)
+print(bond.clean_price())  # ≈ 74.54521578 (cached European call)
+```
+
+`BlackCallableFixedRateBondEngine` / `BlackCallableZeroCouponBondEngine` for
+European embedded options (Hull Ch.20). Compat: `setBlackPricingEngine`.
 
 ## Phase-24 currencies / FX forward
 
@@ -1301,6 +1322,10 @@ opt.set_fd_heston_quanto_dividend_pricing_engine(
 overloads. Escrowed cash-dividend model is unsupported with quanto (QL).
 Compat: `setFdQuantoPricingEngine`, `setFdQuantoDividendPricingEngine`,
 `setFdHestonQuantoPricingEngine`, `setFdHestonQuantoDividendPricingEngine`.
+
+## Phase-54 Black callable bond engines
+
+See the Phase-54 section above (after Phase-23).
 
 ## Phase-40 quanto vanilla options
 

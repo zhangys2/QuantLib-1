@@ -2984,6 +2984,16 @@ class CallableFixedRateBond:
         time_steps: int = ...,
         discount_curve: YieldTermStructureHandle = ...,
     ) -> None: ...
+    def set_black_pricing_engine(
+        self,
+        fwd_yield_vol: QuoteHandle | float,
+        discount_curve: YieldTermStructureHandle,
+    ) -> None: ...
+    def setBlackPricingEngine(
+        self,
+        fwd_yield_vol: QuoteHandle | float,
+        discount_curve: YieldTermStructureHandle,
+    ) -> None: ...
 
 class CallableZeroCouponBond:
     def __init__(
@@ -3009,6 +3019,25 @@ class CallableZeroCouponBond:
         time_steps: int = ...,
         discount_curve: YieldTermStructureHandle = ...,
     ) -> None: ...
+    def set_black_pricing_engine(
+        self,
+        fwd_yield_vol: QuoteHandle | float,
+        discount_curve: YieldTermStructureHandle,
+    ) -> None: ...
+    def setBlackPricingEngine(
+        self,
+        fwd_yield_vol: QuoteHandle | float,
+        discount_curve: YieldTermStructureHandle,
+    ) -> None: ...
+
+def BlackCallableFixedRateBondEngine(
+    fwd_yield_vol: QuoteHandle,
+    discount_curve: YieldTermStructureHandle,
+) -> YieldTermStructureHandle: ...
+def BlackCallableZeroCouponBondEngine(
+    fwd_yield_vol: QuoteHandle,
+    discount_curve: YieldTermStructureHandle,
+) -> YieldTermStructureHandle: ...
 
 # --- Phase 24: currencies / money / FX forward ---
 
