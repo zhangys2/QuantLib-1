@@ -155,6 +155,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `CallableFixedRateBond` / `CallableZeroCouponBond`
 - `set_tree_pricing_engine(HullWhite, time_steps, discount_curve)`
 
+### Phase 54 (Black callable bond engines)
+- `set_black_pricing_engine(fwd_yield_vol, discount_curve)` on callable bonds
+- `BlackCallableFixedRateBondEngine` / `BlackCallableZeroCouponBondEngine` aliases
+
 ### Phase 24 (currencies / FX forward)
 - `Currency` factories: `USDCurrency` / `EURCurrency` / `GBPCurrency` / `SGDCurrency`
 - `Money`, `ExchangeRate` (+ `chain` / `exchange`), `ExchangeRateManager` helpers

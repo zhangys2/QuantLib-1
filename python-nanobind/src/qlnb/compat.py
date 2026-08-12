@@ -1270,6 +1270,10 @@ if CallableFixedRateBond is not None:
     CallableFixedRateBond.setTreePricingEngine = (  # type: ignore[attr-defined]
         CallableFixedRateBond.set_tree_pricing_engine
     )
+    if hasattr(CallableFixedRateBond, "set_black_pricing_engine"):
+        CallableFixedRateBond.setBlackPricingEngine = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.set_black_pricing_engine
+        )
 CallableZeroCouponBond = getattr(_ql, "CallableZeroCouponBond", None)
 if CallableZeroCouponBond is not None:
     CallableZeroCouponBond.cleanPrice = (  # type: ignore[attr-defined]
@@ -1287,6 +1291,10 @@ if CallableZeroCouponBond is not None:
     CallableZeroCouponBond.setTreePricingEngine = (  # type: ignore[attr-defined]
         CallableZeroCouponBond.set_tree_pricing_engine
     )
+    if hasattr(CallableZeroCouponBond, "set_black_pricing_engine"):
+        CallableZeroCouponBond.setBlackPricingEngine = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.set_black_pricing_engine
+        )
 
 # Phase-24 currency / FX aliases.
 Currency = getattr(_ql, "Currency", None)

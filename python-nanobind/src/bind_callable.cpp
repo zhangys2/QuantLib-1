@@ -3,12 +3,15 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
 
+#include <ql/experimental/callablebonds/blackcallablebondengine.hpp>
 #include <ql/experimental/callablebonds/callablebond.hpp>
 #include <ql/experimental/callablebonds/treecallablebondengine.hpp>
 #include <ql/handle.hpp>
 #include <ql/instruments/bond.hpp>
 #include <ql/instruments/callabilityschedule.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
+#include <ql/quote.hpp>
+#include <ql/quotes/simplequote.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/businessdayconvention.hpp>
 #include <ql/time/calendar.hpp>
@@ -128,7 +131,34 @@ void bind_callable(nb::module_& m) {
             nb::arg("model"),
             nb::arg("time_steps") = 240,
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
-            "Attach TreeCallableFixedRateBondEngine on a HullWhite model.");
+            "Attach TreeCallableFixedRateBondEngine on a HullWhite model.")
+        .def(
+            "set_black_pricing_engine",
+            [](CallableFixedRateBond& b,
+               const Handle<Quote>& fwd_yield_vol,
+               const Handle<YieldTermStructure>& discount_curve) {
+                b.setPricingEngine(
+                    ext::make_shared<BlackCallableFixedRateBondEngine>(
+                        fwd_yield_vol, discount_curve));
+            },
+            nb::arg("fwd_yield_vol"),
+            nb::arg("discount_curve"),
+            "Attach BlackCallableFixedRateBondEngine (fwd yield vol).")
+        .def(
+            "set_black_pricing_engine",
+            [](CallableFixedRateBond& b,
+               Real fwd_yield_vol,
+               const Handle<YieldTermStructure>& discount_curve) {
+                b.setPricingEngine(
+                    ext::make_shared<BlackCallableFixedRateBondEngine>(
+                        Handle<Quote>(
+                            ext::make_shared<SimpleQuote>(fwd_yield_vol)),
+                        discount_curve));
+            },
+            nb::arg("fwd_yield_vol"),
+            nb::arg("discount_curve"),
+            "Attach BlackCallableFixedRateBondEngine from a scalar fwd yield "
+            "vol.");
 
     nb::class_<CallableZeroCouponBond>(m, "CallableZeroCouponBond")
         .def(
@@ -186,5 +216,55 @@ void bind_callable(nb::module_& m) {
             nb::arg("model"),
             nb::arg("time_steps") = 240,
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
-            "Attach TreeCallableZeroCouponBondEngine on a HullWhite model.");
+            "Attach TreeCallableZeroCouponBondEngine on a HullWhite model.")
+        .def(
+            "set_black_pricing_engine",
+            [](CallableZeroCouponBond& b,
+               const Handle<Quote>& fwd_yield_vol,
+               const Handle<YieldTermStructure>& discount_curve) {
+                b.setPricingEngine(
+                    ext::make_shared<BlackCallableZeroCouponBondEngine>(
+                        fwd_yield_vol, discount_curve));
+            },
+            nb::arg("fwd_yield_vol"),
+            nb::arg("discount_curve"),
+            "Attach BlackCallableZeroCouponBondEngine (fwd yield vol).")
+        .def(
+            "set_black_pricing_engine",
+            [](CallableZeroCouponBond& b,
+               Real fwd_yield_vol,
+               const Handle<YieldTermStructure>& discount_curve) {
+                b.setPricingEngine(
+                    ext::make_shared<BlackCallableZeroCouponBondEngine>(
+                        Handle<Quote>(
+                            ext::make_shared<SimpleQuote>(fwd_yield_vol)),
+                        discount_curve));
+            },
+            nb::arg("fwd_yield_vol"),
+            nb::arg("discount_curve"),
+            "Attach BlackCallableZeroCouponBondEngine from a scalar fwd yield "
+            "vol.");
+
+    // Phase 54: documentation aliases for Black callable engines.
+    m.def(
+        "BlackCallableFixedRateBondEngine",
+        [](const Handle<Quote>& fwd_yield_vol,
+           const Handle<YieldTermStructure>& discount_curve) {
+            return discount_curve;
+        },
+        nb::arg("fwd_yield_vol"),
+        nb::arg("discount_curve"),
+        "Documentation alias — use "
+        "CallableFixedRateBond.set_black_pricing_engine instead.");
+
+    m.def(
+        "BlackCallableZeroCouponBondEngine",
+        [](const Handle<Quote>& fwd_yield_vol,
+           const Handle<YieldTermStructure>& discount_curve) {
+            return discount_curve;
+        },
+        nb::arg("fwd_yield_vol"),
+        nb::arg("discount_curve"),
+        "Documentation alias — use "
+        "CallableZeroCouponBond.set_black_pricing_engine instead.");
 }
