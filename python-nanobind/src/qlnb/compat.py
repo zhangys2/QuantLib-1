@@ -266,9 +266,25 @@ def _install_aliases() -> None:
         EuropeanOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_dividend_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_fd_quanto_pricing_engine"):
+        EuropeanOption.setFdQuantoPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_quanto_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_quanto_dividend_pricing_engine"):
+        EuropeanOption.setFdQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_quanto_dividend_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_fd_heston_dividend_pricing_engine"):
         EuropeanOption.setFdHestonDividendPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_heston_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_heston_quanto_pricing_engine"):
+        EuropeanOption.setFdHestonQuantoPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_heston_quanto_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_heston_quanto_dividend_pricing_engine"):
+        EuropeanOption.setFdHestonQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_heston_quanto_dividend_pricing_engine
         )
     if hasattr(EuropeanOption, "set_heston_pricing_engine"):
         EuropeanOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
@@ -321,9 +337,25 @@ def _install_aliases() -> None:
         VanillaOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_dividend_pricing_engine
         )
+    if hasattr(VanillaOption, "set_fd_quanto_pricing_engine"):
+        VanillaOption.setFdQuantoPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_quanto_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_quanto_dividend_pricing_engine"):
+        VanillaOption.setFdQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_quanto_dividend_pricing_engine
+        )
     if hasattr(VanillaOption, "set_fd_heston_dividend_pricing_engine"):
         VanillaOption.setFdHestonDividendPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_heston_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_heston_quanto_pricing_engine"):
+        VanillaOption.setFdHestonQuantoPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_heston_quanto_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_heston_quanto_dividend_pricing_engine"):
+        VanillaOption.setFdHestonQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_heston_quanto_dividend_pricing_engine
         )
     if hasattr(VanillaOption, "set_binomial_pricing_engine"):
         VanillaOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]

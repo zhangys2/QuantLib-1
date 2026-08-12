@@ -1255,10 +1255,9 @@ opt.set_fd_heston_dividend_pricing_engine(
 ```
 
 FD Black–Scholes / Heston engines with discrete cash dividends.
-`CashDividendModel.Spot` (default) or `.Escrowed`. Quanto FD overloads remain
-deferred. Compat: `setFdDividendPricingEngine` /
-`setFdHestonDividendPricingEngine`. See Phase 52 for the semi-analytic
-`CashDividendEuropeanEngine`.
+`CashDividendModel.Spot` (default) or `.Escrowed`. Compat:
+`setFdDividendPricingEngine` / `setFdHestonDividendPricingEngine`. See Phase 52
+for `CashDividendEuropeanEngine` and Phase 53 for FD quanto overloads.
 
 ## Phase-52 CashDividendEuropeanEngine
 
@@ -1275,6 +1274,33 @@ print(opt.NPV())
 Semi-analytic Spot / Escrowed cash-dividend European engine (Healy). Prefer
 this over FD when exercise is European; use Phase 51 FD setters for American.
 Compat: `setCashDividendPricingEngine`.
+
+## Phase-53 FD quanto vanilla engines
+
+```python
+helper = ql.FdmQuantoHelper(
+    domestic_rfr, foreign_rfr, fx_vol, equity_fx_correlation=-0.75
+)
+print(helper.quanto_adjustment(0.3, 0.0, 1.0))
+# ≈ domestic_r - foreign_r + corr * equity_vol * fx_vol
+
+# European FD quanto ≈ analytic QuantoVanillaOption
+opt.set_fd_quanto_pricing_engine(process, helper, t_grid=100, x_grid=500)
+
+# American + discrete dividends + quanto (cached NPV ≈ 8.90611734)
+opt.set_fd_quanto_dividend_pricing_engine(
+    process, [today + ql.Period(6, ql.TimeUnit.Months)], [8.0], helper,
+    t_grid=100, x_grid=400, damping_steps=1,
+)
+opt.set_fd_heston_quanto_dividend_pricing_engine(
+    model, div_dates, div_amounts, helper, t_grid=100, x_grid=400, v_grid=3,
+)
+```
+
+`FdmQuantoHelper` for FD Black–Scholes / Heston quanto (and dividend+quanto)
+overloads. Escrowed cash-dividend model is unsupported with quanto (QL).
+Compat: `setFdQuantoPricingEngine`, `setFdQuantoDividendPricingEngine`,
+`setFdHestonQuantoPricingEngine`, `setFdHestonQuantoDividendPricingEngine`.
 
 ## Phase-40 quanto vanilla options
 
