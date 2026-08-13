@@ -8,6 +8,7 @@
 #include <ql/experimental/callablebonds/callablebond.hpp>
 #include <ql/experimental/callablebonds/treecallablebondengine.hpp>
 #include <ql/handle.hpp>
+#include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/bond.hpp>
 #include <ql/instruments/bonds/convertiblebonds.hpp>
 #include <ql/instruments/callabilityschedule.hpp>
@@ -764,6 +765,133 @@ void bind_callable(nb::module_& m) {
             nb::arg("credit_spread"),
             "Attach BinomialConvertibleEngine from a scalar credit spread.");
 
+    nb::class_<ConvertibleFloatingRateBond>(m, "ConvertibleFloatingRateBond")
+        .def(
+            "__init__",
+            [](ConvertibleFloatingRateBond* self,
+               const EuropeanExercise& exercise,
+               Real conversion_ratio,
+               const CallabilitySchedule& callability,
+               const Date& issue_date,
+               Natural settlement_days,
+               const ext::shared_ptr<IborIndex>& index,
+               Natural fixing_days,
+               const std::vector<Spread>& spreads,
+               const DayCounter& day_counter,
+               const Schedule& schedule,
+               Real redemption) {
+                const std::vector<Spread> ql_spreads =
+                    spreads.empty() ? std::vector<Spread>{0.0} : spreads;
+                new (self) ConvertibleFloatingRateBond(
+                    ext::make_shared<EuropeanExercise>(exercise),
+                    conversion_ratio,
+                    callability,
+                    issue_date,
+                    settlement_days,
+                    index,
+                    fixing_days,
+                    ql_spreads,
+                    day_counter,
+                    schedule,
+                    redemption);
+            },
+            nb::arg("exercise"),
+            nb::arg("conversion_ratio"),
+            nb::arg("callability"),
+            nb::arg("issue_date"),
+            nb::arg("settlement_days"),
+            nb::arg("index"),
+            nb::arg("fixing_days"),
+            nb::arg("spreads"),
+            nb::arg("day_counter"),
+            nb::arg("schedule"),
+            nb::arg("redemption") = 100.0)
+        .def(
+            "__init__",
+            [](ConvertibleFloatingRateBond* self,
+               const AmericanExercise& exercise,
+               Real conversion_ratio,
+               const CallabilitySchedule& callability,
+               const Date& issue_date,
+               Natural settlement_days,
+               const ext::shared_ptr<IborIndex>& index,
+               Natural fixing_days,
+               const std::vector<Spread>& spreads,
+               const DayCounter& day_counter,
+               const Schedule& schedule,
+               Real redemption) {
+                const std::vector<Spread> ql_spreads =
+                    spreads.empty() ? std::vector<Spread>{0.0} : spreads;
+                new (self) ConvertibleFloatingRateBond(
+                    ext::make_shared<AmericanExercise>(exercise),
+                    conversion_ratio,
+                    callability,
+                    issue_date,
+                    settlement_days,
+                    index,
+                    fixing_days,
+                    ql_spreads,
+                    day_counter,
+                    schedule,
+                    redemption);
+            },
+            nb::arg("exercise"),
+            nb::arg("conversion_ratio"),
+            nb::arg("callability"),
+            nb::arg("issue_date"),
+            nb::arg("settlement_days"),
+            nb::arg("index"),
+            nb::arg("fixing_days"),
+            nb::arg("spreads"),
+            nb::arg("day_counter"),
+            nb::arg("schedule"),
+            nb::arg("redemption") = 100.0)
+        .def("NPV", [](ConvertibleFloatingRateBond& b) { return b.NPV(); })
+        .def("clean_price",
+             [](ConvertibleFloatingRateBond& b) { return b.cleanPrice(); })
+        .def("dirty_price",
+             [](ConvertibleFloatingRateBond& b) { return b.dirtyPrice(); })
+        .def("conversion_ratio",
+             [](const ConvertibleFloatingRateBond& b) {
+                 return b.conversionRatio();
+             })
+        .def("settlement_date",
+             [](const ConvertibleFloatingRateBond& b) {
+                 return b.settlementDate();
+             })
+        .def("maturity_date",
+             [](const ConvertibleFloatingRateBond& b) { return b.maturityDate(); })
+        .def(
+            "set_binomial_pricing_engine",
+            [](ConvertibleFloatingRateBond& b,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size time_steps,
+               const Handle<Quote>& credit_spread) {
+                b.setPricingEngine(
+                    ext::make_shared<BinomialConvertibleEngine<CoxRossRubinstein>>(
+                        process, time_steps, credit_spread));
+            },
+            nb::arg("process"),
+            nb::arg("time_steps"),
+            nb::arg("credit_spread"),
+            "Attach BinomialConvertibleEngine<CoxRossRubinstein>.")
+        .def(
+            "set_binomial_pricing_engine",
+            [](ConvertibleFloatingRateBond& b,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size time_steps,
+               Real credit_spread) {
+                b.setPricingEngine(
+                    ext::make_shared<BinomialConvertibleEngine<CoxRossRubinstein>>(
+                        process,
+                        time_steps,
+                        Handle<Quote>(ext::make_shared<SimpleQuote>(credit_spread))));
+            },
+            nb::arg("process"),
+            nb::arg("time_steps"),
+            nb::arg("credit_spread"),
+            "Attach BinomialConvertibleEngine from a scalar credit spread.");
+
     m.def(
         "BinomialConvertibleEngine",
         [](const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -775,6 +903,6 @@ void bind_callable(nb::module_& m) {
         nb::arg("time_steps"),
         nb::arg("credit_spread"),
         "Documentation alias — use "
-        "ConvertibleZeroCouponBond.set_binomial_pricing_engine / "
-        "ConvertibleFixedCouponBond.set_binomial_pricing_engine instead.");
+        "ConvertibleZeroCouponBond / ConvertibleFixedCouponBond / "
+        "ConvertibleFloatingRateBond.set_binomial_pricing_engine instead.");
 }

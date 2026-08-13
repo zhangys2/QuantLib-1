@@ -398,6 +398,15 @@ void bind_curves(nb::module_& m) {
             return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor6M>(h));
         },
         nb::arg("handle"));
+    m.def("Euribor1Y", []() {
+        return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor1Y>());
+    });
+    m.def(
+        "Euribor1Y",
+        [](const Handle<YieldTermStructure>& h) {
+            return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor1Y>(h));
+        },
+        nb::arg("handle"));
 
     m.def(
         "GBPLibor",

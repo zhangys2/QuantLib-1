@@ -175,6 +175,10 @@ def _install_aliases() -> None:
         FloatingRateBond.dirtyPrice = FloatingRateBond.dirty_price  # type: ignore[attr-defined]
         FloatingRateBond.settlementDate = FloatingRateBond.settlement_date  # type: ignore[attr-defined]
         FloatingRateBond.maturityDate = FloatingRateBond.maturity_date  # type: ignore[attr-defined]
+        if hasattr(FloatingRateBond, "settlement_value"):
+            FloatingRateBond.settlementValue = (  # type: ignore[attr-defined]
+                FloatingRateBond.settlement_value
+            )
         FloatingRateBond.setPricingEngine = (  # type: ignore[attr-defined]
             FloatingRateBond.set_pricing_engine
         )
@@ -1378,6 +1382,26 @@ if ConvertibleFixedCouponBond is not None:
     )
     ConvertibleFixedCouponBond.setBinomialPricingEngine = (  # type: ignore[attr-defined]
         ConvertibleFixedCouponBond.set_binomial_pricing_engine
+    )
+ConvertibleFloatingRateBond = getattr(_ql, "ConvertibleFloatingRateBond", None)
+if ConvertibleFloatingRateBond is not None:
+    ConvertibleFloatingRateBond.cleanPrice = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.clean_price
+    )
+    ConvertibleFloatingRateBond.dirtyPrice = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.dirty_price
+    )
+    ConvertibleFloatingRateBond.conversionRatio = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.conversion_ratio
+    )
+    ConvertibleFloatingRateBond.settlementDate = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.settlement_date
+    )
+    ConvertibleFloatingRateBond.maturityDate = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.maturity_date
+    )
+    ConvertibleFloatingRateBond.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.set_binomial_pricing_engine
     )
 
 # Phase-24 currency / FX aliases.
