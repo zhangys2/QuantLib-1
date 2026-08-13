@@ -239,6 +239,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_mc_heston_pricing_engine(process, steps_per_year=11, …)` → `MakeMCEuropeanHestonEngine`
 - `error_estimate` on `EuropeanOption` / `VanillaOption`
 
+### Phase 60 (MC lookback engines)
+- `Continuous*LookbackOption.set_mc_pricing_engine` → `MakeMCLookbackEngine<Option, PseudoRandom>`
+- `error_estimate` on all four lookback wrappers (Phases 27–28)
+
 ### Phase 37 (FD Heston engine)
 - `VanillaOption` / `EuropeanOption.set_fd_heston_pricing_engine` → `FdHestonVanillaEngine`
 - Grid knobs: `t_grid`, `x_grid`, `v_grid`, `damping_steps` (Hundsdorfer)

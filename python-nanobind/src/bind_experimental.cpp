@@ -1,7 +1,10 @@
 #include "bindings.hpp"
 
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
+
+#include <optional>
 
 #include <ql/cashflows/iborcoupon.hpp>
 #include <ql/exercise.hpp>
@@ -51,6 +54,7 @@
 #include <ql/pricingengines/lookback/analyticcontinuousfloatinglookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuouspartialfixedlookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuouspartialfloatinglookback.hpp>
+#include <ql/pricingengines/lookback/mclookbackengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
@@ -60,6 +64,45 @@
 #include <ql/time/schedule.hpp>
 
 using namespace QuantLib;
+
+namespace {
+
+template <class Option>
+void attach_mc_lookback_engine(
+    Option& opt,
+    const ext::shared_ptr<BlackScholesMertonProcess>& process,
+    std::optional<Size> time_steps,
+    std::optional<Size> steps_per_year,
+    std::optional<Size> required_samples,
+    std::optional<Real> required_tolerance,
+    unsigned long seed,
+    bool antithetic,
+    bool brownian_bridge) {
+    QL_REQUIRE(!(time_steps.has_value() && steps_per_year.has_value()),
+               "set only one of time_steps or steps_per_year");
+    QL_REQUIRE(
+        !(required_samples.has_value() && required_tolerance.has_value()),
+        "set only one of required_samples or required_tolerance");
+    auto maker = MakeMCLookbackEngine<Option, PseudoRandom>(process)
+                     .withSeed(seed)
+                     .withAntitheticVariate(antithetic)
+                     .withBrownianBridge(brownian_bridge);
+    if (time_steps.has_value())
+        maker.withSteps(*time_steps);
+    else if (steps_per_year.has_value())
+        maker.withStepsPerYear(*steps_per_year);
+    else
+        maker.withSteps(Size(200));
+    if (required_samples.has_value())
+        maker.withSamples(*required_samples);
+    else if (required_tolerance.has_value())
+        maker.withAbsoluteTolerance(*required_tolerance);
+    else
+        maker.withSamples(Size(8192));
+    opt.setPricingEngine(maker);
+}
+
+} // namespace
 
 void bind_experimental(nb::module_& m) {
     // --- Barrier options (standalone; OneAssetOption uses MI) ---------------
@@ -971,7 +1014,35 @@ void bind_experimental(nb::module_& m) {
                         process));
             },
             nb::arg("process"),
-            "Attach AnalyticContinuousFloatingLookbackEngine.");
+            "Attach AnalyticContinuousFloatingLookbackEngine.")
+        .def("error_estimate",
+             [](ContinuousFloatingLookbackOption& opt) {
+                 return opt.errorEstimate();
+             })
+        .def(
+            "set_mc_pricing_engine",
+            [](ContinuousFloatingLookbackOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_lookback_engine(opt, process, time_steps, steps_per_year,
+                                          required_samples, required_tolerance,
+                                          seed, antithetic, brownian_bridge);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 1UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCLookbackEngine<ContinuousFloatingLookbackOption>.");
 
     nb::class_<ContinuousFixedLookbackOption>(m, "ContinuousFixedLookbackOption")
         .def(
@@ -1003,7 +1074,35 @@ void bind_experimental(nb::module_& m) {
                         process));
             },
             nb::arg("process"),
-            "Attach AnalyticContinuousFixedLookbackEngine.");
+            "Attach AnalyticContinuousFixedLookbackEngine.")
+        .def("error_estimate",
+             [](ContinuousFixedLookbackOption& opt) {
+                 return opt.errorEstimate();
+             })
+        .def(
+            "set_mc_pricing_engine",
+            [](ContinuousFixedLookbackOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_lookback_engine(opt, process, time_steps, steps_per_year,
+                                          required_samples, required_tolerance,
+                                          seed, antithetic, brownian_bridge);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 1UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCLookbackEngine<ContinuousFixedLookbackOption>.");
 
     m.def(
         "AnalyticContinuousFloatingLookbackEngine",
@@ -1064,7 +1163,36 @@ void bind_experimental(nb::module_& m) {
                     AnalyticContinuousPartialFloatingLookbackEngine>(process));
             },
             nb::arg("process"),
-            "Attach AnalyticContinuousPartialFloatingLookbackEngine.");
+            "Attach AnalyticContinuousPartialFloatingLookbackEngine.")
+        .def("error_estimate",
+             [](ContinuousPartialFloatingLookbackOption& opt) {
+                 return opt.errorEstimate();
+             })
+        .def(
+            "set_mc_pricing_engine",
+            [](ContinuousPartialFloatingLookbackOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_lookback_engine(opt, process, time_steps, steps_per_year,
+                                          required_samples, required_tolerance,
+                                          seed, antithetic, brownian_bridge);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 1UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCLookbackEngine<"
+            "ContinuousPartialFloatingLookbackOption>.");
 
     nb::class_<ContinuousPartialFixedLookbackOption>(
         m, "ContinuousPartialFixedLookbackOption")
@@ -1102,7 +1230,36 @@ void bind_experimental(nb::module_& m) {
                     AnalyticContinuousPartialFixedLookbackEngine>(process));
             },
             nb::arg("process"),
-            "Attach AnalyticContinuousPartialFixedLookbackEngine.");
+            "Attach AnalyticContinuousPartialFixedLookbackEngine.")
+        .def("error_estimate",
+             [](ContinuousPartialFixedLookbackOption& opt) {
+                 return opt.errorEstimate();
+             })
+        .def(
+            "set_mc_pricing_engine",
+            [](ContinuousPartialFixedLookbackOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_lookback_engine(opt, process, time_steps, steps_per_year,
+                                          required_samples, required_tolerance,
+                                          seed, antithetic, brownian_bridge);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 1UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCLookbackEngine<"
+            "ContinuousPartialFixedLookbackOption>.");
 
     m.def(
         "AnalyticContinuousPartialFloatingLookbackEngine",
@@ -1121,6 +1278,15 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias for "
         "ContinuousPartialFixedLookbackOption.set_pricing_engine.");
+
+    m.def(
+        "MCLookbackEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Documentation alias — use "
+        "Continuous*LookbackOption.set_mc_pricing_engine instead.");
 
     // --- Cap / Floor + Black engine (standalone; CapFloor uses MI) ----------
     nb::enum_<CapFloor::Type>(m, "CapFloorType")

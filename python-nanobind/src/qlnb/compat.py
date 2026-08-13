@@ -583,6 +583,14 @@ def _install_aliases() -> None:
         ContinuousFloatingLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
             ContinuousFloatingLookbackOption.set_pricing_engine
         )
+        if hasattr(ContinuousFloatingLookbackOption, "set_mc_pricing_engine"):
+            ContinuousFloatingLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousFloatingLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousFloatingLookbackOption, "error_estimate"):
+            ContinuousFloatingLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousFloatingLookbackOption.error_estimate
+            )
 
     ContinuousFixedLookbackOption = getattr(
         _ql, "ContinuousFixedLookbackOption", None
@@ -591,6 +599,14 @@ def _install_aliases() -> None:
         ContinuousFixedLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
             ContinuousFixedLookbackOption.set_pricing_engine
         )
+        if hasattr(ContinuousFixedLookbackOption, "set_mc_pricing_engine"):
+            ContinuousFixedLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousFixedLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousFixedLookbackOption, "error_estimate"):
+            ContinuousFixedLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousFixedLookbackOption.error_estimate
+            )
 
     AnalyticContinuousFloatingLookbackEngine = getattr(
         _ql, "AnalyticContinuousFloatingLookbackEngine", None
@@ -606,6 +622,14 @@ def _install_aliases() -> None:
         ContinuousPartialFloatingLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
             ContinuousPartialFloatingLookbackOption.set_pricing_engine
         )
+        if hasattr(ContinuousPartialFloatingLookbackOption, "set_mc_pricing_engine"):
+            ContinuousPartialFloatingLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousPartialFloatingLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousPartialFloatingLookbackOption, "error_estimate"):
+            ContinuousPartialFloatingLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousPartialFloatingLookbackOption.error_estimate
+            )
 
     ContinuousPartialFixedLookbackOption = getattr(
         _ql, "ContinuousPartialFixedLookbackOption", None
@@ -614,6 +638,14 @@ def _install_aliases() -> None:
         ContinuousPartialFixedLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
             ContinuousPartialFixedLookbackOption.set_pricing_engine
         )
+        if hasattr(ContinuousPartialFixedLookbackOption, "set_mc_pricing_engine"):
+            ContinuousPartialFixedLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousPartialFixedLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousPartialFixedLookbackOption, "error_estimate"):
+            ContinuousPartialFixedLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousPartialFixedLookbackOption.error_estimate
+            )
 
     AnalyticContinuousPartialFloatingLookbackEngine = getattr(
         _ql, "AnalyticContinuousPartialFloatingLookbackEngine", None

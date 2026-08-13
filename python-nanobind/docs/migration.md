@@ -971,7 +971,24 @@ partial_fixed.set_pricing_engine(process)
 ```
 
 Standalone wrappers. The Python kwarg is `lambda_` (avoids the Python keyword).
-MC lookback engines remain deferred.
+See Phase 60 for Monte Carlo engines.
+
+## Phase-60 Monte Carlo lookback engines
+
+```python
+opt.set_pricing_engine(process)          # analytic
+analytic = opt.NPV()
+opt.set_mc_pricing_engine(
+    process, time_steps=200, required_samples=8192, seed=1, antithetic=True,
+)
+print(opt.NPV(), opt.error_estimate())
+```
+
+`MakeMCLookbackEngine<Option, PseudoRandom>` on all four lookback wrappers
+from Phases 27–28. Set exactly one of `time_steps` / `steps_per_year`
+(default `time_steps=200`) and one of `required_samples` /
+`required_tolerance` (default `required_samples=8192`). Compat:
+`setMcPricingEngine`, `errorEstimate`.
 
 ## Phase-29 soft barrier options
 
