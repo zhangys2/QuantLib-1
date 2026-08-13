@@ -92,9 +92,15 @@ class ActualActualConvention:
     Bond: ActualActualConvention
 
 class Thirty360Convention:
-    BondBasis: Thirty360Convention
     USA: Thirty360Convention
+    BondBasis: Thirty360Convention
     European: Thirty360Convention
+    EurobondBasis: Thirty360Convention
+    Italian: Thirty360Convention
+    German: Thirty360Convention
+    ISMA: Thirty360Convention
+    ISDA: Thirty360Convention
+    NASD: Thirty360Convention
 
 class UnitedStatesMarket:
     Settlement: UnitedStatesMarket
@@ -2996,6 +3002,84 @@ class CallableFixedRateBond:
         min_vol: float = ...,
         max_vol: float = ...,
     ) -> float: ...
+    def oas(
+        self,
+        clean_price: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_iterations: int = ...,
+        guess: float = ...,
+    ) -> float: ...
+    def OAS(
+        self,
+        clean_price: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_iterations: int = ...,
+        guess: float = ...,
+    ) -> float: ...
+    def clean_price_oas(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def cleanPriceOAS(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def effective_duration(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
+    ) -> float: ...
+    def effectiveDuration(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
+    ) -> float: ...
+    def effective_convexity(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
+    ) -> float: ...
+    def effectiveConvexity(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
+    ) -> float: ...
     def set_tree_pricing_engine(
         self,
         model: HullWhite,
@@ -3048,6 +3132,84 @@ class CallableZeroCouponBond:
         max_evaluations: int = ...,
         min_vol: float = ...,
         max_vol: float = ...,
+    ) -> float: ...
+    def oas(
+        self,
+        clean_price: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_iterations: int = ...,
+        guess: float = ...,
+    ) -> float: ...
+    def OAS(
+        self,
+        clean_price: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_iterations: int = ...,
+        guess: float = ...,
+    ) -> float: ...
+    def clean_price_oas(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def cleanPriceOAS(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def effective_duration(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
+    ) -> float: ...
+    def effectiveDuration(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
+    ) -> float: ...
+    def effective_convexity(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
+    ) -> float: ...
+    def effectiveConvexity(
+        self,
+        oas: float,
+        engine_ts: YieldTermStructureHandle,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        bump: float = ...,
     ) -> float: ...
     def set_tree_pricing_engine(
         self,

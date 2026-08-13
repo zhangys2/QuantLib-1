@@ -141,6 +141,112 @@ void bind_callable(nb::module_& m) {
             nb::arg("min_vol") = 1.0e-4,
             nb::arg("max_vol") = 1.0,
             "Black fwd-yield implied volatility matching a target BondPrice.")
+        // Phase 56: OAS / cleanPriceOAS / effective duration & convexity
+        // (non-const; require a tree engine — Black engines ignore the spread).
+        .def(
+            "oas",
+            [](CallableFixedRateBond& b,
+               Real clean_price,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Date settlement_date,
+               Real accuracy,
+               Size max_iterations,
+               Real guess) {
+                return b.OAS(clean_price,
+                             engine_ts,
+                             day_counter,
+                             compounding,
+                             frequency,
+                             settlement_date,
+                             accuracy,
+                             max_iterations,
+                             guess);
+            },
+            nb::arg("clean_price"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            nb::arg("accuracy") = 1.0e-10,
+            nb::arg("max_iterations") = 100,
+            nb::arg("guess") = 0.0,
+            "Option-adjusted spread matching clean_price (non-const; requires "
+            "a tree pricing engine — Black engines ignore the OAS spread).")
+        .def(
+            "clean_price_oas",
+            [](CallableFixedRateBond& b,
+               Real oas,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Date settlement_date) {
+                return b.cleanPriceOAS(oas,
+                                       engine_ts,
+                                       day_counter,
+                                       compounding,
+                                       frequency,
+                                       settlement_date);
+            },
+            nb::arg("oas"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            "Clean price at a given OAS (non-const; requires a tree pricing "
+            "engine).")
+        .def(
+            "effective_duration",
+            [](CallableFixedRateBond& b,
+               Real oas,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Real bump) {
+                return b.effectiveDuration(oas,
+                                           engine_ts,
+                                           day_counter,
+                                           compounding,
+                                           frequency,
+                                           bump);
+            },
+            nb::arg("oas"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("bump") = 2.0e-4,
+            "Effective duration at OAS via ±bump parallel shifts of engine_ts.")
+        .def(
+            "effective_convexity",
+            [](CallableFixedRateBond& b,
+               Real oas,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Real bump) {
+                return b.effectiveConvexity(oas,
+                                            engine_ts,
+                                            day_counter,
+                                            compounding,
+                                            frequency,
+                                            bump);
+            },
+            nb::arg("oas"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("bump") = 2.0e-4,
+            "Effective convexity at OAS via ±bump parallel shifts of "
+            "engine_ts.")
         .def(
             "set_tree_pricing_engine",
             [](CallableFixedRateBond& b,
@@ -249,6 +355,111 @@ void bind_callable(nb::module_& m) {
             nb::arg("min_vol") = 1.0e-4,
             nb::arg("max_vol") = 1.0,
             "Black fwd-yield implied volatility matching a target BondPrice.")
+        // Phase 56: OAS / cleanPriceOAS / effective duration & convexity.
+        .def(
+            "oas",
+            [](CallableZeroCouponBond& b,
+               Real clean_price,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Date settlement_date,
+               Real accuracy,
+               Size max_iterations,
+               Real guess) {
+                return b.OAS(clean_price,
+                             engine_ts,
+                             day_counter,
+                             compounding,
+                             frequency,
+                             settlement_date,
+                             accuracy,
+                             max_iterations,
+                             guess);
+            },
+            nb::arg("clean_price"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            nb::arg("accuracy") = 1.0e-10,
+            nb::arg("max_iterations") = 100,
+            nb::arg("guess") = 0.0,
+            "Option-adjusted spread matching clean_price (non-const; requires "
+            "a tree pricing engine — Black engines ignore the OAS spread).")
+        .def(
+            "clean_price_oas",
+            [](CallableZeroCouponBond& b,
+               Real oas,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Date settlement_date) {
+                return b.cleanPriceOAS(oas,
+                                       engine_ts,
+                                       day_counter,
+                                       compounding,
+                                       frequency,
+                                       settlement_date);
+            },
+            nb::arg("oas"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            "Clean price at a given OAS (non-const; requires a tree pricing "
+            "engine).")
+        .def(
+            "effective_duration",
+            [](CallableZeroCouponBond& b,
+               Real oas,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Real bump) {
+                return b.effectiveDuration(oas,
+                                           engine_ts,
+                                           day_counter,
+                                           compounding,
+                                           frequency,
+                                           bump);
+            },
+            nb::arg("oas"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("bump") = 2.0e-4,
+            "Effective duration at OAS via ±bump parallel shifts of engine_ts.")
+        .def(
+            "effective_convexity",
+            [](CallableZeroCouponBond& b,
+               Real oas,
+               const Handle<YieldTermStructure>& engine_ts,
+               const DayCounter& day_counter,
+               Compounding compounding,
+               Frequency frequency,
+               Real bump) {
+                return b.effectiveConvexity(oas,
+                                            engine_ts,
+                                            day_counter,
+                                            compounding,
+                                            frequency,
+                                            bump);
+            },
+            nb::arg("oas"),
+            nb::arg("engine_ts"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("bump") = 2.0e-4,
+            "Effective convexity at OAS via ±bump parallel shifts of "
+            "engine_ts.")
         .def(
             "set_tree_pricing_engine",
             [](CallableZeroCouponBond& b,
