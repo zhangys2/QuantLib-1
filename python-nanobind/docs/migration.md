@@ -1128,8 +1128,30 @@ print(opt.NPV())
 ```
 
 `HestonProcess` / `HestonModel` are concrete wrappers (no StochasticProcess /
-CalibratedModel MI in Python). See Phase 37 for FD-Heston and Phase 48 for
-calibration.
+CalibratedModel MI in Python). See Phase 37 for FD-Heston, Phase 48 for
+calibration, and Phase 59 for Monte Carlo.
+
+## Phase-59 MC European Heston
+
+```python
+process = ql.HestonProcess(
+    r, q, ql.make_quote_handle(1.05),
+    0.3, 1.16, 0.2, 0.8, 0.8,
+    ql.HestonDiscretization.QuadraticExponentialMartingale,
+)
+opt = ql.VanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Put, 1.05),
+    ql.EuropeanExercise(exercise_date),
+)
+opt.set_mc_heston_pricing_engine(
+    process, steps_per_year=11, required_samples=50000, seed=1234,
+)
+print(opt.NPV(), opt.error_estimate())  # NPV ≈ 0.0632851308977151
+```
+
+`MakeMCEuropeanHestonEngine<PseudoRandom>`. Set exactly one of `time_steps`
+or `steps_per_year` (default `steps_per_year=11`). Compat:
+`setMcHestonPricingEngine`, `errorEstimate`.
 
 ## Phase-37 FD Heston engine
 
