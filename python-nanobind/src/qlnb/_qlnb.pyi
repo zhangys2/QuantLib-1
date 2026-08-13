@@ -21,6 +21,8 @@ class TimeUnit:
     Years: TimeUnit
 
 class Frequency:
+    NoFrequency: Frequency
+    Once: Frequency
     Annual: Frequency
     Semiannual: Frequency
     Quarterly: Frequency
@@ -265,6 +267,9 @@ class FixedRateBond:
     def NPV(self) -> float: ...
     def clean_price(self) -> float: ...
     def dirty_price(self) -> float: ...
+    def settlement_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def settlement_value(self) -> float: ...
     def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
 
 class ZeroCouponBond:
@@ -283,6 +288,7 @@ class ZeroCouponBond:
     def dirty_price(self) -> float: ...
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
+    def settlement_value(self) -> float: ...
     def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
 
 class FloatingRateBond:
@@ -3236,6 +3242,82 @@ def BlackCallableZeroCouponBondEngine(
     fwd_yield_vol: QuoteHandle,
     discount_curve: YieldTermStructureHandle,
 ) -> YieldTermStructureHandle: ...
+
+def make_soft_callability(
+    amount: float,
+    price_type: BondPriceType,
+    date: Date,
+    trigger: float,
+) -> Callability: ...
+
+class ConvertibleZeroCouponBond:
+    def __init__(
+        self,
+        exercise: EuropeanExercise | AmericanExercise,
+        conversion_ratio: float,
+        callability: Sequence[Callability],
+        issue_date: Date,
+        settlement_days: int,
+        day_counter: DayCounter,
+        schedule: Schedule,
+        redemption: float = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def clean_price(self) -> float: ...
+    def dirty_price(self) -> float: ...
+    def conversion_ratio(self) -> float: ...
+    def settlement_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def set_binomial_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int,
+        credit_spread: QuoteHandle | float,
+    ) -> None: ...
+    def setBinomialPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int,
+        credit_spread: QuoteHandle | float,
+    ) -> None: ...
+
+class ConvertibleFixedCouponBond:
+    def __init__(
+        self,
+        exercise: EuropeanExercise | AmericanExercise,
+        conversion_ratio: float,
+        callability: Sequence[Callability],
+        issue_date: Date,
+        settlement_days: int,
+        coupons: Sequence[float],
+        day_counter: DayCounter,
+        schedule: Schedule,
+        redemption: float = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def clean_price(self) -> float: ...
+    def dirty_price(self) -> float: ...
+    def conversion_ratio(self) -> float: ...
+    def settlement_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def set_binomial_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int,
+        credit_spread: QuoteHandle | float,
+    ) -> None: ...
+    def setBinomialPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int,
+        credit_spread: QuoteHandle | float,
+    ) -> None: ...
+
+def BinomialConvertibleEngine(
+    process: BlackScholesMertonProcess,
+    time_steps: int,
+    credit_spread: QuoteHandle,
+) -> BlackScholesMertonProcess: ...
 
 # --- Phase 24: currencies / money / FX forward ---
 

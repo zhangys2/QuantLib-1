@@ -167,6 +167,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `oas` / `clean_price_oas` on callable bonds (tree engines; Black ignores spread)
 - `effective_duration` / `effective_convexity` at a given OAS
 
+### Phase 57 (convertible bonds)
+- `ConvertibleZeroCouponBond` / `ConvertibleFixedCouponBond`
+- `set_binomial_pricing_engine(process, time_steps, credit_spread)` → CRR Tsiveriotis–Fernandes
+- `make_soft_callability` (call with conversion trigger)
+- `settlement_value` on vanilla `FixedRateBond` / `ZeroCouponBond`
+
 ### Phase 24 (currencies / FX forward)
 - `Currency` factories: `USDCurrency` / `EURCurrency` / `GBPCurrency` / `SGDCurrency`
 - `Money`, `ExchangeRate` (+ `chain` / `exchange`), `ExchangeRateManager` helpers

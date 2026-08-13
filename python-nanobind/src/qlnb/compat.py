@@ -151,6 +151,10 @@ def _install_aliases() -> None:
     FixedRateBond.dirtyPrice = FixedRateBond.dirty_price  # type: ignore[attr-defined]
     FixedRateBond.settlementDate = FixedRateBond.settlement_date  # type: ignore[attr-defined]
     FixedRateBond.maturityDate = FixedRateBond.maturity_date  # type: ignore[attr-defined]
+    if hasattr(FixedRateBond, "settlement_value"):
+        FixedRateBond.settlementValue = (  # type: ignore[attr-defined]
+            FixedRateBond.settlement_value
+        )
     FixedRateBond.setPricingEngine = FixedRateBond.set_pricing_engine  # type: ignore[attr-defined]
 
     ZeroCouponBond = getattr(_ql, "ZeroCouponBond", None)
@@ -159,6 +163,10 @@ def _install_aliases() -> None:
         ZeroCouponBond.dirtyPrice = ZeroCouponBond.dirty_price  # type: ignore[attr-defined]
         ZeroCouponBond.settlementDate = ZeroCouponBond.settlement_date  # type: ignore[attr-defined]
         ZeroCouponBond.maturityDate = ZeroCouponBond.maturity_date  # type: ignore[attr-defined]
+        if hasattr(ZeroCouponBond, "settlement_value"):
+            ZeroCouponBond.settlementValue = (  # type: ignore[attr-defined]
+                ZeroCouponBond.settlement_value
+            )
         ZeroCouponBond.setPricingEngine = ZeroCouponBond.set_pricing_engine  # type: ignore[attr-defined]
 
     FloatingRateBond = getattr(_ql, "FloatingRateBond", None)
@@ -1325,6 +1333,52 @@ if CallableZeroCouponBond is not None:
         CallableZeroCouponBond.effectiveConvexity = (  # type: ignore[attr-defined]
             CallableZeroCouponBond.effective_convexity
         )
+
+def make_soft_callability(*args: Any, **kwargs: Any) -> Any:
+    return _ql.make_soft_callability(*args, **kwargs)
+
+
+SoftCallability = make_soft_callability
+ConvertibleZeroCouponBond = getattr(_ql, "ConvertibleZeroCouponBond", None)
+ConvertibleFixedCouponBond = getattr(_ql, "ConvertibleFixedCouponBond", None)
+if ConvertibleZeroCouponBond is not None:
+    ConvertibleZeroCouponBond.cleanPrice = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.clean_price
+    )
+    ConvertibleZeroCouponBond.dirtyPrice = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.dirty_price
+    )
+    ConvertibleZeroCouponBond.conversionRatio = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.conversion_ratio
+    )
+    ConvertibleZeroCouponBond.settlementDate = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.settlement_date
+    )
+    ConvertibleZeroCouponBond.maturityDate = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.maturity_date
+    )
+    ConvertibleZeroCouponBond.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.set_binomial_pricing_engine
+    )
+if ConvertibleFixedCouponBond is not None:
+    ConvertibleFixedCouponBond.cleanPrice = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.clean_price
+    )
+    ConvertibleFixedCouponBond.dirtyPrice = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.dirty_price
+    )
+    ConvertibleFixedCouponBond.conversionRatio = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.conversion_ratio
+    )
+    ConvertibleFixedCouponBond.settlementDate = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.settlement_date
+    )
+    ConvertibleFixedCouponBond.maturityDate = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.maturity_date
+    )
+    ConvertibleFixedCouponBond.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.set_binomial_pricing_engine
+    )
 
 # Phase-24 currency / FX aliases.
 Currency = getattr(_ql, "Currency", None)

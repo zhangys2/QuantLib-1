@@ -838,6 +838,25 @@ engine (`set_tree_pricing_engine`); Black engines ignore the OAS spread.
 Also: `effective_duration` / `effective_convexity` (default bump `2e-4`).
 Compat: `OAS`, `cleanPriceOAS`, `effectiveDuration`, `effectiveConvexity`.
 
+## Phase-57 convertible bonds
+
+```python
+process = ql.BlackScholesMertonProcess(spot, q, r, vol)
+exercise = ql.EuropeanExercise(maturity)
+bond = ql.ConvertibleZeroCouponBond(
+    exercise, conversion_ratio, [], issue, 3, dc, schedule, 100.0,
+)
+bond.set_binomial_pricing_engine(process, 401, 0.005)  # credit spread
+print(bond.NPV())
+```
+
+Standalone wrappers (Bond/Instrument MI). Engine is
+`BinomialConvertibleEngine<CoxRossRubinstein>` (Tsiveriotis–Fernandes).
+Credit spread is a `QuoteHandle` or scalar. Soft calls via
+`make_soft_callability(amount, BondPriceType, date, trigger)`.
+Floating convertibles remain deferred. Compat: `setBinomialPricingEngine`,
+`SoftCallability`.
+
 ## Phase-24 currencies / FX forward
 
 ```python

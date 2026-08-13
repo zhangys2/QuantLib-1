@@ -689,6 +689,8 @@ void bind_instruments(nb::module_& m) {
              [](const FixedRateBond& b) { return b.settlementDate(); })
         .def("maturity_date",
              [](const FixedRateBond& b) { return b.maturityDate(); })
+        .def("settlement_value",
+             [](const FixedRateBond& b) { return b.settlementValue(); })
         .def(
             "set_pricing_engine",
             [](FixedRateBond& b, const Handle<YieldTermStructure>& discount_curve) {
@@ -731,6 +733,8 @@ void bind_instruments(nb::module_& m) {
              [](const ZeroCouponBond& b) { return b.settlementDate(); })
         .def("maturity_date",
              [](const ZeroCouponBond& b) { return b.maturityDate(); })
+        .def("settlement_value",
+             [](const ZeroCouponBond& b) { return b.settlementValue(); })
         .def(
             "set_pricing_engine",
             [](ZeroCouponBond& b, const Handle<YieldTermStructure>& discount_curve) {

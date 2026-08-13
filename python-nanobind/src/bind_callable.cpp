@@ -3,13 +3,18 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
 
+#include <ql/exercise.hpp>
 #include <ql/experimental/callablebonds/blackcallablebondengine.hpp>
 #include <ql/experimental/callablebonds/callablebond.hpp>
 #include <ql/experimental/callablebonds/treecallablebondengine.hpp>
 #include <ql/handle.hpp>
 #include <ql/instruments/bond.hpp>
+#include <ql/instruments/bonds/convertiblebonds.hpp>
 #include <ql/instruments/callabilityschedule.hpp>
+#include <ql/methods/lattices/binomialtree.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
+#include <ql/pricingengines/bond/binomialconvertibleengine.hpp>
+#include <ql/processes/blackscholesprocess.hpp>
 #include <ql/quote.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -524,4 +529,252 @@ void bind_callable(nb::module_& m) {
         nb::arg("discount_curve"),
         "Documentation alias — use "
         "CallableZeroCouponBond.set_black_pricing_engine instead.");
+
+    // --- Phase 57: convertible bonds (Tsiveriotis–Fernandes binomial) ---
+
+    m.def(
+        "make_soft_callability",
+        [](Real amount,
+           Bond::Price::Type price_type,
+           const Date& date,
+           Real trigger) {
+            return ext::shared_ptr<Callability>(ext::make_shared<SoftCallability>(
+                Bond::Price(amount, price_type), date, trigger));
+        },
+        nb::arg("amount"),
+        nb::arg("price_type"),
+        nb::arg("date"),
+        nb::arg("trigger"),
+        "Factory: SoftCallability (call with conversion trigger) → "
+        "Callability.");
+
+    nb::class_<ConvertibleZeroCouponBond>(m, "ConvertibleZeroCouponBond")
+        .def(
+            "__init__",
+            [](ConvertibleZeroCouponBond* self,
+               const EuropeanExercise& exercise,
+               Real conversion_ratio,
+               const CallabilitySchedule& callability,
+               const Date& issue_date,
+               Natural settlement_days,
+               const DayCounter& day_counter,
+               const Schedule& schedule,
+               Real redemption) {
+                new (self) ConvertibleZeroCouponBond(
+                    ext::make_shared<EuropeanExercise>(exercise),
+                    conversion_ratio,
+                    callability,
+                    issue_date,
+                    settlement_days,
+                    day_counter,
+                    schedule,
+                    redemption);
+            },
+            nb::arg("exercise"),
+            nb::arg("conversion_ratio"),
+            nb::arg("callability"),
+            nb::arg("issue_date"),
+            nb::arg("settlement_days"),
+            nb::arg("day_counter"),
+            nb::arg("schedule"),
+            nb::arg("redemption") = 100.0)
+        .def(
+            "__init__",
+            [](ConvertibleZeroCouponBond* self,
+               const AmericanExercise& exercise,
+               Real conversion_ratio,
+               const CallabilitySchedule& callability,
+               const Date& issue_date,
+               Natural settlement_days,
+               const DayCounter& day_counter,
+               const Schedule& schedule,
+               Real redemption) {
+                new (self) ConvertibleZeroCouponBond(
+                    ext::make_shared<AmericanExercise>(exercise),
+                    conversion_ratio,
+                    callability,
+                    issue_date,
+                    settlement_days,
+                    day_counter,
+                    schedule,
+                    redemption);
+            },
+            nb::arg("exercise"),
+            nb::arg("conversion_ratio"),
+            nb::arg("callability"),
+            nb::arg("issue_date"),
+            nb::arg("settlement_days"),
+            nb::arg("day_counter"),
+            nb::arg("schedule"),
+            nb::arg("redemption") = 100.0)
+        .def("NPV", [](ConvertibleZeroCouponBond& b) { return b.NPV(); })
+        .def("clean_price",
+             [](ConvertibleZeroCouponBond& b) { return b.cleanPrice(); })
+        .def("dirty_price",
+             [](ConvertibleZeroCouponBond& b) { return b.dirtyPrice(); })
+        .def("conversion_ratio",
+             [](const ConvertibleZeroCouponBond& b) {
+                 return b.conversionRatio();
+             })
+        .def("settlement_date",
+             [](const ConvertibleZeroCouponBond& b) {
+                 return b.settlementDate();
+             })
+        .def("maturity_date",
+             [](const ConvertibleZeroCouponBond& b) { return b.maturityDate(); })
+        .def(
+            "set_binomial_pricing_engine",
+            [](ConvertibleZeroCouponBond& b,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size time_steps,
+               const Handle<Quote>& credit_spread) {
+                b.setPricingEngine(
+                    ext::make_shared<BinomialConvertibleEngine<CoxRossRubinstein>>(
+                        process, time_steps, credit_spread));
+            },
+            nb::arg("process"),
+            nb::arg("time_steps"),
+            nb::arg("credit_spread"),
+            "Attach BinomialConvertibleEngine<CoxRossRubinstein>.")
+        .def(
+            "set_binomial_pricing_engine",
+            [](ConvertibleZeroCouponBond& b,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size time_steps,
+               Real credit_spread) {
+                b.setPricingEngine(
+                    ext::make_shared<BinomialConvertibleEngine<CoxRossRubinstein>>(
+                        process,
+                        time_steps,
+                        Handle<Quote>(ext::make_shared<SimpleQuote>(credit_spread))));
+            },
+            nb::arg("process"),
+            nb::arg("time_steps"),
+            nb::arg("credit_spread"),
+            "Attach BinomialConvertibleEngine from a scalar credit spread.");
+
+    nb::class_<ConvertibleFixedCouponBond>(m, "ConvertibleFixedCouponBond")
+        .def(
+            "__init__",
+            [](ConvertibleFixedCouponBond* self,
+               const EuropeanExercise& exercise,
+               Real conversion_ratio,
+               const CallabilitySchedule& callability,
+               const Date& issue_date,
+               Natural settlement_days,
+               const std::vector<Rate>& coupons,
+               const DayCounter& day_counter,
+               const Schedule& schedule,
+               Real redemption) {
+                new (self) ConvertibleFixedCouponBond(
+                    ext::make_shared<EuropeanExercise>(exercise),
+                    conversion_ratio,
+                    callability,
+                    issue_date,
+                    settlement_days,
+                    coupons,
+                    day_counter,
+                    schedule,
+                    redemption);
+            },
+            nb::arg("exercise"),
+            nb::arg("conversion_ratio"),
+            nb::arg("callability"),
+            nb::arg("issue_date"),
+            nb::arg("settlement_days"),
+            nb::arg("coupons"),
+            nb::arg("day_counter"),
+            nb::arg("schedule"),
+            nb::arg("redemption") = 100.0)
+        .def(
+            "__init__",
+            [](ConvertibleFixedCouponBond* self,
+               const AmericanExercise& exercise,
+               Real conversion_ratio,
+               const CallabilitySchedule& callability,
+               const Date& issue_date,
+               Natural settlement_days,
+               const std::vector<Rate>& coupons,
+               const DayCounter& day_counter,
+               const Schedule& schedule,
+               Real redemption) {
+                new (self) ConvertibleFixedCouponBond(
+                    ext::make_shared<AmericanExercise>(exercise),
+                    conversion_ratio,
+                    callability,
+                    issue_date,
+                    settlement_days,
+                    coupons,
+                    day_counter,
+                    schedule,
+                    redemption);
+            },
+            nb::arg("exercise"),
+            nb::arg("conversion_ratio"),
+            nb::arg("callability"),
+            nb::arg("issue_date"),
+            nb::arg("settlement_days"),
+            nb::arg("coupons"),
+            nb::arg("day_counter"),
+            nb::arg("schedule"),
+            nb::arg("redemption") = 100.0)
+        .def("NPV", [](ConvertibleFixedCouponBond& b) { return b.NPV(); })
+        .def("clean_price",
+             [](ConvertibleFixedCouponBond& b) { return b.cleanPrice(); })
+        .def("dirty_price",
+             [](ConvertibleFixedCouponBond& b) { return b.dirtyPrice(); })
+        .def("conversion_ratio",
+             [](const ConvertibleFixedCouponBond& b) {
+                 return b.conversionRatio();
+             })
+        .def("settlement_date",
+             [](const ConvertibleFixedCouponBond& b) {
+                 return b.settlementDate();
+             })
+        .def("maturity_date",
+             [](const ConvertibleFixedCouponBond& b) { return b.maturityDate(); })
+        .def(
+            "set_binomial_pricing_engine",
+            [](ConvertibleFixedCouponBond& b,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size time_steps,
+               const Handle<Quote>& credit_spread) {
+                b.setPricingEngine(
+                    ext::make_shared<BinomialConvertibleEngine<CoxRossRubinstein>>(
+                        process, time_steps, credit_spread));
+            },
+            nb::arg("process"),
+            nb::arg("time_steps"),
+            nb::arg("credit_spread"),
+            "Attach BinomialConvertibleEngine<CoxRossRubinstein>.")
+        .def(
+            "set_binomial_pricing_engine",
+            [](ConvertibleFixedCouponBond& b,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size time_steps,
+               Real credit_spread) {
+                b.setPricingEngine(
+                    ext::make_shared<BinomialConvertibleEngine<CoxRossRubinstein>>(
+                        process,
+                        time_steps,
+                        Handle<Quote>(ext::make_shared<SimpleQuote>(credit_spread))));
+            },
+            nb::arg("process"),
+            nb::arg("time_steps"),
+            nb::arg("credit_spread"),
+            "Attach BinomialConvertibleEngine from a scalar credit spread.");
+
+    m.def(
+        "BinomialConvertibleEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process,
+           Size time_steps,
+           const Handle<Quote>& credit_spread) {
+            return process;
+        },
+        nb::arg("process"),
+        nb::arg("time_steps"),
+        nb::arg("credit_spread"),
+        "Documentation alias — use "
+        "ConvertibleZeroCouponBond.set_binomial_pricing_engine / "
+        "ConvertibleFixedCouponBond.set_binomial_pricing_engine instead.");
 }
