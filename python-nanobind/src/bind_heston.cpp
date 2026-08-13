@@ -330,6 +330,13 @@ void bind_heston(nb::module_& m) {
         "VanillaOption/EuropeanOption.set_heston_pricing_engine.");
 
     m.def(
+        "MCEuropeanHestonEngine",
+        [](const ext::shared_ptr<HestonProcess>& process) { return process; },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "VanillaOption/EuropeanOption.set_mc_heston_pricing_engine.");
+
+    m.def(
         "FdHestonVanillaEngine",
         [](const ext::shared_ptr<HestonModel>& model) { return model; },
         nb::arg("model"),

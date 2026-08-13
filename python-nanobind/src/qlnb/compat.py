@@ -302,6 +302,14 @@ def _install_aliases() -> None:
         EuropeanOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_heston_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_mc_heston_pricing_engine"):
+        EuropeanOption.setMcHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_mc_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "error_estimate"):
+        EuropeanOption.errorEstimate = (  # type: ignore[attr-defined]
+            EuropeanOption.error_estimate
+        )
     if hasattr(EuropeanOption, "set_cos_heston_pricing_engine"):
         EuropeanOption.setCosHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_cos_heston_pricing_engine
@@ -380,6 +388,14 @@ def _install_aliases() -> None:
     if hasattr(VanillaOption, "set_heston_pricing_engine"):
         VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_mc_heston_pricing_engine"):
+        VanillaOption.setMcHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_mc_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "error_estimate"):
+        VanillaOption.errorEstimate = (  # type: ignore[attr-defined]
+            VanillaOption.error_estimate
         )
     if hasattr(VanillaOption, "set_cos_heston_pricing_engine"):
         VanillaOption.setCosHestonPricingEngine = (  # type: ignore[attr-defined]

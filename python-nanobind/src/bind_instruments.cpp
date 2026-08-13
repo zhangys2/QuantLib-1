@@ -33,7 +33,9 @@
 #include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/mceuropeanhestonengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include <ql/processes/hestonprocess.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -217,6 +219,8 @@ void bind_instruments(nb::module_& m) {
             nb::arg("payoff"),
             nb::arg("exercise"))
         .def("NPV", [](EuropeanOption& opt) { return opt.NPV(); })
+        .def("error_estimate",
+             [](EuropeanOption& opt) { return opt.errorEstimate(); })
         .def("delta", [](EuropeanOption& opt) { return opt.delta(); })
         .def("gamma", [](EuropeanOption& opt) { return opt.gamma(); })
         .def("vega", [](EuropeanOption& opt) { return opt.vega(); })
@@ -396,6 +400,35 @@ void bind_instruments(nb::module_& m) {
             nb::arg("seed") = 42UL,
             nb::arg("antithetic") = true,
             nb::arg("brownian_bridge") = false)
+        .def(
+            "set_mc_heston_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               Size required_samples,
+               unsigned long seed,
+               bool antithetic) {
+                QL_REQUIRE(!(time_steps.has_value() && steps_per_year.has_value()),
+                           "set only one of time_steps or steps_per_year");
+                auto maker = MakeMCEuropeanHestonEngine<PseudoRandom>(process)
+                                 .withSamples(required_samples)
+                                 .withSeed(seed)
+                                 .withAntitheticVariate(antithetic);
+                if (time_steps.has_value())
+                    maker.withSteps(*time_steps);
+                else
+                    maker.withStepsPerYear(steps_per_year.value_or(Size(11)));
+                opt.setPricingEngine(maker);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = Size(50000),
+            nb::arg("seed") = 1234UL,
+            nb::arg("antithetic") = true,
+            "Attach MakeMCEuropeanHestonEngine<PseudoRandom> "
+            "(default steps_per_year=11).")
         .def(
             "set_heston_pricing_engine",
             [](EuropeanOption& opt,
