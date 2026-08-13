@@ -48,7 +48,7 @@ def test_otm_zero_convertible_matches_vanilla():
     bond = ql.ConvertibleZeroCouponBond(
         exercise, conversion_ratio, [], issue, 3, dc, schedule, 100.0
     )
-    bond.set_binomial_pricing_engine(process, 401, credit)
+    bond.set_binomial_pricing_engine(process, 1001, credit)
     vanilla = ql.ZeroCouponBond(
         3, calendar, 100.0, maturity, ql.BusinessDayConvention.Following, 100.0, issue
     )
