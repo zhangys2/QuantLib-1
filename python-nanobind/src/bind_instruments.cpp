@@ -805,6 +805,8 @@ void bind_instruments(nb::module_& m) {
              [](const FloatingRateBond& b) { return b.settlementDate(); })
         .def("maturity_date",
              [](const FloatingRateBond& b) { return b.maturityDate(); })
+        .def("settlement_value",
+             [](const FloatingRateBond& b) { return b.settlementValue(); })
         .def(
             "set_pricing_engine",
             [](FloatingRateBond& b,

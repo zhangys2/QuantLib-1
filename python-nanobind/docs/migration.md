@@ -854,8 +854,24 @@ Standalone wrappers (Bond/Instrument MI). Engine is
 `BinomialConvertibleEngine<CoxRossRubinstein>` (Tsiveriotis–Fernandes).
 Credit spread is a `QuoteHandle` or scalar. Soft calls via
 `make_soft_callability(amount, BondPriceType, date, trigger)`.
-Floating convertibles remain deferred. Compat: `setBinomialPricingEngine`,
+See Phase 58 for floating convertibles. Compat: `setBinomialPricingEngine`,
 `SoftCallability`.
+
+## Phase-58 floating convertible bonds
+
+```python
+index = ql.Euribor1Y(discount_curve)
+bond = ql.ConvertibleFloatingRateBond(
+    exercise, conversion_ratio, [], issue, 3,
+    index, 2, [], dc, schedule, 100.0,
+)
+bond.set_binomial_pricing_engine(process, 401, 0.005)
+print(bond.NPV())
+```
+
+Same CRR Tsiveriotis–Fernandes engine as Phase 57. Index is an `IborIndex`
+(`Euribor1Y` / `Euribor3M` / `Euribor6M`). Empty `spreads` means `{0.0}`.
+Compat: `setBinomialPricingEngine`.
 
 ## Phase-24 currencies / FX forward
 

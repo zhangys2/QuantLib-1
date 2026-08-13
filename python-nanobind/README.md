@@ -173,6 +173,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `make_soft_callability` (call with conversion trigger)
 - `settlement_value` on vanilla `FixedRateBond` / `ZeroCouponBond`
 
+### Phase 58 (floating convertibles)
+- `ConvertibleFloatingRateBond` + `Euribor1Y`
+- `settlement_value` on vanilla `FloatingRateBond`
+
 ### Phase 24 (currencies / FX forward)
 - `Currency` factories: `USDCurrency` / `EURCurrency` / `GBPCurrency` / `SGDCurrency`
 - `Money`, `ExchangeRate` (+ `chain` / `exchange`), `ExchangeRateManager` helpers
