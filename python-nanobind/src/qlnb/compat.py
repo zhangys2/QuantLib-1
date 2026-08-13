@@ -762,6 +762,14 @@ def _install_aliases() -> None:
             DoubleBarrierOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
                 DoubleBarrierOption.set_fd_heston_pricing_engine
             )
+        if hasattr(DoubleBarrierOption, "set_mc_pricing_engine"):
+            DoubleBarrierOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_mc_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "error_estimate"):
+            DoubleBarrierOption.errorEstimate = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.error_estimate
+            )
 
     CapFloor = getattr(_ql, "CapFloor", None)
     if CapFloor is not None:

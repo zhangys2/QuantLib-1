@@ -909,7 +909,8 @@ print(opt.NPV())
 ```
 
 Standalone wrapper (no `OneAssetOption` MI hierarchy). Analytic engine covers
-KnockIn/KnockOut European vanilla payoffs; binary / FD-Heston / MC deferred.
+KnockIn/KnockOut European vanilla payoffs. See Phase 26 for binaries, Phase 38
+for FD-Heston, and Phase 61 for Monte Carlo.
 
 ## Phase-26 double-barrier binary options
 
@@ -926,7 +927,26 @@ print(opt.NPV())
 
 Vanilla double-barrier path is unchanged (`set_pricing_engine` →
 `AnalyticDoubleBarrierEngine`). Use the binary engine attach for cash-or-nothing
-payoffs. FD-Heston / MC remain deferred.
+payoffs. See Phase 61 for FD-Heston (binary) and Monte Carlo.
+
+## Phase-61 double-barrier binary FD-Heston / MC
+
+```python
+# Binary cash-or-nothing: FdHestonDoubleBarrierEngine in the BS limit
+opt.set_fd_heston_pricing_engine(model, t_grid=201, x_grid=101, v_grid=3)
+
+# Vanilla double-barrier Monte Carlo
+opt.set_mc_pricing_engine(
+    process, time_steps=200, required_samples=8192, seed=1, antithetic=True,
+)
+print(opt.NPV(), opt.error_estimate())
+```
+
+`MakeMCDoubleBarrierEngine<PseudoRandom>` on `DoubleBarrierOption`. Set exactly
+one of `time_steps` / `steps_per_year` (default `time_steps=200`) and one of
+`required_samples` / `required_tolerance` (default `required_samples=8192`).
+Compat: `setMcPricingEngine`, `errorEstimate`. Binary FD-Heston reuses
+`set_fd_heston_pricing_engine` (Phase 38) with `CashOrNothingPayoff`.
 
 ## Phase-27 continuous lookback options
 
