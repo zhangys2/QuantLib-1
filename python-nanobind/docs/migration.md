@@ -1067,6 +1067,33 @@ asset.set_binary_pricing_engine(process)
 
 Vanilla barrier path is unchanged (`set_pricing_engine` → `AnalyticBarrierEngine`).
 Binary barriers use American exercise (Haug at-expiry / one-touch style).
+See Phase 62 for FD-Heston (European cash-or-nothing) and Monte Carlo.
+
+## Phase-62 binary-barrier FD-Heston / MC
+
+```python
+# European cash-or-nothing + FdHestonBarrierEngine in the BS limit
+fd = ql.BarrierOption(
+    ql.BarrierType.DownOut, 100.0, 0.0,
+    ql.CashOrNothingPayoff(ql.OptionType.Call, 102.0, 15.0),
+    ql.EuropeanExercise(maturity),
+)
+fd.set_fd_heston_pricing_engine(model, t_grid=100, x_grid=200, v_grid=3)
+
+# Vanilla barrier Monte Carlo
+opt.set_mc_pricing_engine(
+    process, time_steps=200, required_samples=8192, seed=1, antithetic=True,
+    brownian_bridge=True,
+)
+print(opt.NPV(), opt.error_estimate())
+```
+
+`MakeMCBarrierEngine<PseudoRandom>` on `BarrierOption`. Set exactly one of
+`time_steps` / `steps_per_year` (default `time_steps=200`) and one of
+`required_samples` / `required_tolerance` (default `required_samples=8192`).
+Optional `biased` (default false). Compat: `setMcPricingEngine`,
+`errorEstimate`. Binary FD-Heston reuses `set_fd_heston_pricing_engine`
+(Phase 38) with `CashOrNothingPayoff` and European exercise.
 
 ## Phase-32 two-asset barrier options
 
