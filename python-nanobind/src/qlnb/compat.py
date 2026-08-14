@@ -330,6 +330,10 @@ def _install_aliases() -> None:
         EuropeanOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_bates_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_fd_bates_dividend_pricing_engine"):
+        EuropeanOption.setFdBatesDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_bates_dividend_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_bates_det_jump_pricing_engine"):
         EuropeanOption.setBatesDetJumpPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_bates_det_jump_pricing_engine
@@ -416,6 +420,10 @@ def _install_aliases() -> None:
     if hasattr(VanillaOption, "set_fd_bates_pricing_engine"):
         VanillaOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_bates_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_bates_dividend_pricing_engine"):
+        VanillaOption.setFdBatesDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_bates_dividend_pricing_engine
         )
     if hasattr(VanillaOption, "set_bates_det_jump_pricing_engine"):
         VanillaOption.setBatesDetJumpPricingEngine = (  # type: ignore[attr-defined]
