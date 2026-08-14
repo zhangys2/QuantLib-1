@@ -305,6 +305,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `HestonModelHelper`, `LevenbergMarquardt`, `EndCriteria`, `CalibrationErrorType`
 - `HestonModel.calibrate(helpers, method, end_criteria)` + `params` / `set_params`
 
+### Phase 64 (DAX Heston calibration golden)
+- Sepp DAX vol surface → SSE ≈ 177.2 (`CalibrationErrorType.ImpliedVolError`)
+- `ZeroCurve` alias for `InterpolatedZeroCurve` (linear)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

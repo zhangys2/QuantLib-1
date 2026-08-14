@@ -6,7 +6,8 @@ import qlnb as ql
 
 
 def test_version_is_phase63():
-    assert ql.__version__ == "0.64.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 64)
 
 
 def _bates_market():
