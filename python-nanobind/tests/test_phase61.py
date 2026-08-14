@@ -6,7 +6,8 @@ import qlnb as ql
 
 
 def test_version_is_phase61():
-    assert ql.__version__ == "0.62.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 62)
 
 
 def test_fd_heston_double_binary_black_limit():

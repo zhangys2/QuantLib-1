@@ -1319,6 +1319,15 @@ class BarrierOption:
         barrier: float,
         rebate: float,
         payoff: CashOrNothingPayoff,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        barrier_type: BarrierType,
+        barrier: float,
+        rebate: float,
+        payoff: CashOrNothingPayoff,
         exercise: AmericanExercise,
     ) -> None: ...
     @overload
@@ -1347,6 +1356,19 @@ class BarrierOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def error_estimate(self) -> float: ...
+    def set_mc_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+        biased: bool = ...,
+    ) -> None: ...
     def setFdHestonPricingEngine(
         self,
         model: HestonModel,
@@ -1358,6 +1380,9 @@ class BarrierOption:
     ) -> None: ...
 
 def FdHestonBarrierEngine(model: HestonModel) -> HestonModel: ...
+def MCBarrierEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
 
 class TwoAssetBarrierOption:
     def __init__(

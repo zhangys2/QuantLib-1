@@ -248,6 +248,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_mc_pricing_engine` → `MakeMCDoubleBarrierEngine<PseudoRandom>`
 - `error_estimate` on `DoubleBarrierOption`
 
+### Phase 62 (binary-barrier FD-Heston / MC)
+- Binary `BarrierOption.set_fd_heston_pricing_engine` vs analytic (Heston σ→0, European cash-or-nothing)
+- `set_mc_pricing_engine` → `MakeMCBarrierEngine<PseudoRandom>`
+- `error_estimate` on `BarrierOption`
+
 ### Phase 37 (FD Heston engine)
 - `VanillaOption` / `EuropeanOption.set_fd_heston_pricing_engine` → `FdHestonVanillaEngine`
 - Grid knobs: `t_grid`, `x_grid`, `v_grid`, `damping_steps` (Hundsdorfer)

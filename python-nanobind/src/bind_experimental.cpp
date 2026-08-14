@@ -43,6 +43,7 @@
 #include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
+#include <ql/pricingengines/barrier/mcbarrierengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
@@ -122,6 +123,42 @@ void attach_mc_double_barrier_engine(
                      .withSeed(seed)
                      .withAntitheticVariate(antithetic)
                      .withBrownianBridge(brownian_bridge);
+    if (time_steps.has_value())
+        maker.withSteps(*time_steps);
+    else if (steps_per_year.has_value())
+        maker.withStepsPerYear(*steps_per_year);
+    else
+        maker.withSteps(Size(200));
+    if (required_samples.has_value())
+        maker.withSamples(*required_samples);
+    else if (required_tolerance.has_value())
+        maker.withAbsoluteTolerance(*required_tolerance);
+    else
+        maker.withSamples(Size(8192));
+    opt.setPricingEngine(maker);
+}
+
+void attach_mc_barrier_engine(
+    BarrierOption& opt,
+    const ext::shared_ptr<BlackScholesMertonProcess>& process,
+    std::optional<Size> time_steps,
+    std::optional<Size> steps_per_year,
+    std::optional<Size> required_samples,
+    std::optional<Real> required_tolerance,
+    unsigned long seed,
+    bool antithetic,
+    bool brownian_bridge,
+    bool biased) {
+    QL_REQUIRE(!(time_steps.has_value() && steps_per_year.has_value()),
+               "set only one of time_steps or steps_per_year");
+    QL_REQUIRE(
+        !(required_samples.has_value() && required_tolerance.has_value()),
+        "set only one of required_samples or required_tolerance");
+    auto maker = MakeMCBarrierEngine<PseudoRandom>(process)
+                     .withSeed(seed)
+                     .withAntitheticVariate(antithetic)
+                     .withBrownianBridge(brownian_bridge)
+                     .withBias(biased);
     if (time_steps.has_value())
         maker.withSteps(*time_steps);
     else if (steps_per_year.has_value())
@@ -267,6 +304,26 @@ void bind_experimental(nb::module_& m) {
                Real barrier,
                Real rebate,
                const CashOrNothingPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) BarrierOption(
+                    barrier_type,
+                    barrier,
+                    rebate,
+                    ext::make_shared<CashOrNothingPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("barrier_type"),
+            nb::arg("barrier"),
+            nb::arg("rebate"),
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](BarrierOption* self,
+               Barrier::Type barrier_type,
+               Real barrier,
+               Real rebate,
+               const CashOrNothingPayoff& payoff,
                const AmericanExercise& exercise) {
                 new (self) BarrierOption(
                     barrier_type,
@@ -341,7 +398,36 @@ void bind_experimental(nb::module_& m) {
             nb::arg("v_grid") = 50,
             nb::arg("damping_steps") = 0,
             nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
-            "Attach FdHestonBarrierEngine (default Hundsdorfer scheme).");
+            "Attach FdHestonBarrierEngine (default Hundsdorfer scheme).")
+        .def("error_estimate",
+             [](BarrierOption& opt) { return opt.errorEstimate(); })
+        .def(
+            "set_mc_pricing_engine",
+            [](BarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge,
+               bool biased) {
+                attach_mc_barrier_engine(
+                    opt, process, time_steps, steps_per_year, required_samples,
+                    required_tolerance, seed, antithetic, brownian_bridge,
+                    biased);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 1UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            nb::arg("biased") = false,
+            "Attach MakeMCBarrierEngine<PseudoRandom>.");
 
     m.def(
         "AnalyticBarrierEngine",
@@ -366,6 +452,15 @@ void bind_experimental(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "BarrierOption.set_fd_heston_pricing_engine.");
+
+    m.def(
+        "MCBarrierEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Documentation alias — use "
+        "BarrierOption.set_mc_pricing_engine instead.");
 
     // --- Phase 42: quanto barrier options (standalone; BarrierOption MI) ----
     using QuantoBarrierEngine =
