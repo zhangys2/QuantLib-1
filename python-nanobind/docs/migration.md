@@ -1299,7 +1299,20 @@ print(opt.NPV())
 
 Uses `FdBatesVanillaEngine` with the default Hundsdorfer scheme. Analytic
 `set_bates_pricing_engine` is unchanged. See Phase 47 for `scheme_desc`;
-dividend overloads deferred.
+Phase 63 for dividend overloads.
+
+## Phase-63 FD Bates dividend overloads
+
+```python
+opt.set_fd_bates_dividend_pricing_engine(
+    model, dividend_dates, dividend_amounts,
+    t_grid=50, x_grid=100, v_grid=30,
+)
+print(opt.NPV())
+```
+
+`FdBatesVanillaEngine` with a `DividendSchedule`. Empty dividends match
+`set_fd_bates_pricing_engine`. Compat: `setFdBatesDividendPricingEngine`.
 
 ## Phase-46 Bates DetJump / DoubleExp variants
 

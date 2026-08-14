@@ -967,6 +967,17 @@ class EuropeanOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def set_fd_bates_dividend_pricing_engine(
+        self,
+        model: BatesModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def set_bates_det_jump_pricing_engine(
         self, model: BatesDetJumpModel, integration_order: int = ...
     ) -> None: ...
@@ -1244,6 +1255,17 @@ class VanillaOption:
     def setFdBatesPricingEngine(
         self,
         model: BatesModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+    def set_fd_bates_dividend_pricing_engine(
+        self,
+        model: BatesModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,

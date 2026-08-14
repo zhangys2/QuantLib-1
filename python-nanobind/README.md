@@ -290,6 +290,9 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption` / `EuropeanOption.set_fd_bates_pricing_engine` → `FdBatesVanillaEngine`
 - PIDE / Hundsdorfer scheme; grid args match FD Heston
 
+### Phase 63 (FD Bates dividend overloads)
+- `set_fd_bates_dividend_pricing_engine` → `FdBatesVanillaEngine` + discrete cash dividends
+
 ### Phase 46 (Bates DetJump / DoubleExp variants)
 - `BatesDetJumpModel` / `BatesDoubleExpModel` / `BatesDoubleExpDetJumpModel`
 - Matching engines via `set_bates_det_jump_pricing_engine`, `set_bates_double_exp_pricing_engine`, `set_bates_double_exp_det_jump_pricing_engine`
