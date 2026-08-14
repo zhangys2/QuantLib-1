@@ -671,6 +671,9 @@ print(cpn.rate(), cpn.index_fixing() / cpn.base_CPI() * cpn.fixed_rate())
 `CPILeg` already attaches a default `CPICouponPricer`; `set_cpi_coupon_pricer`
 is optional when you need a nominal curve on the pricer.
 
+Vol-dependent CPI optionlets need a Black/Bachelier pricer (QuantLib's base
+`CPICouponPricer::optionletPriceImp` always fails). See Phase 65.
+
 ## Phase-19 YoY coupons / yoyInflationLeg
 
 ```python
@@ -1416,6 +1419,28 @@ sse = sum((h.calibration_error() * 100.0) ** 2 for h in helpers)
 `ZeroCurve` is an alias for linear `InterpolatedZeroCurve`. Calibrate with
 `CalibrationErrorType.ImpliedVolError` (the Phase-48 default is
 `RelativePriceError`).
+
+## Phase-65 CPI vol-dependent optionlets
+
+QuantLib's `CPICouponPricer` prices swaplets but `optionletPriceImp` is a
+stub (`QL_FAIL`). Unlike YoY, there are no Black/Bachelier descendents in
+`ql/`. qlnb fills them at the binding layer.
+
+```python
+vol = ql.ConstantCPIVolatility(
+    0.10, 0, calendar, ql.BusinessDayConvention.ModifiedFollowing,
+    dc, observation_lag, ql.Frequency.Monthly, False,
+)
+pricer = ql.BlackCPICouponPricer(nominal, caplet_vol=vol)
+cpn.set_pricer(pricer)
+fwd = cpn.adjusted_index_growth()   # index ratio, not a YoY rate
+print(cpn.caplet_price(fwd), cpn.floorlet_price(fwd))
+```
+
+Strikes are in **index-ratio** space (same units as `adjusted_index_growth`).
+`BachelierCPICouponPricer` is the normal-vol alternative. Swaplets are
+unchanged versus plain `CPICouponPricer`. YoY optionlet strippers remain
+deferred (`\bug` in QL).
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

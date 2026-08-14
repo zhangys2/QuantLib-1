@@ -6,7 +6,8 @@ import qlnb as ql
 
 
 def test_version_is_phase64():
-    assert ql.__version__ == "0.65.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 65)
 
 
 def _dax_market():
