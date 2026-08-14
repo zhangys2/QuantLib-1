@@ -243,6 +243,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `Continuous*LookbackOption.set_mc_pricing_engine` → `MakeMCLookbackEngine<Option, PseudoRandom>`
 - `error_estimate` on all four lookback wrappers (Phases 27–28)
 
+### Phase 61 (double-barrier binary FD-Heston / MC)
+- Binary `DoubleBarrierOption.set_fd_heston_pricing_engine` vs analytic BS (Heston σ→0)
+- `set_mc_pricing_engine` → `MakeMCDoubleBarrierEngine<PseudoRandom>`
+- `error_estimate` on `DoubleBarrierOption`
+
 ### Phase 37 (FD Heston engine)
 - `VanillaOption` / `EuropeanOption.set_fd_heston_pricing_engine` → `FdHestonVanillaEngine`
 - Grid knobs: `t_grid`, `x_grid`, `v_grid`, `damping_steps` (Hundsdorfer)

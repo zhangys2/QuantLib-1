@@ -1542,6 +1542,18 @@ class DoubleBarrierOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def error_estimate(self) -> float: ...
+    def set_mc_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+    ) -> None: ...
     def setFdHestonPricingEngine(
         self,
         model: HestonModel,
@@ -1553,6 +1565,9 @@ class DoubleBarrierOption:
     ) -> None: ...
 
 def FdHestonDoubleBarrierEngine(model: HestonModel) -> HestonModel: ...
+def MCDoubleBarrierEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
 
 class CapFloor:
     def __init__(
