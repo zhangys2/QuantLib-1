@@ -221,6 +221,14 @@ void bind_curves(nb::module_& m) {
           "Factory: InterpolatedZeroCurve<Linear|Cubic> → "
           "YieldTermStructureHandle.");
 
+    m.def("ZeroCurve",
+          &make_zero_curve,
+          nb::arg("dates"),
+          nb::arg("yields"),
+          nb::arg("day_counter"),
+          nb::arg("interpolation") = std::string("linear"),
+          "C++ ZeroCurve alias — InterpolatedZeroCurve<Linear> by default.");
+
     // Rate helpers are opaque shared_ptrs (MI-heavy).
     nb::class_<RateHelper>(m, "RateHelper");
 

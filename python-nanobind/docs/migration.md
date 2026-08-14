@@ -1385,6 +1385,37 @@ print(model.end_criteria())  # EndCriteriaType
 Standalone helpers / optimizer (no CalibratedModel / OptimizationMethod MI).
 `EndCriteriaType.None_` maps to C++ `EndCriteria::None` (Python keyword-safe).
 See Phase 49 for COS / exponential-fitting engines on helpers.
+See Phase 64 for the Sepp DAX calibration golden (SSE ≈ 177.2).
+
+## Phase-64 DAX Heston calibration golden
+
+```python
+# HestonModelTests::testDAXCalibration (Sepp DAX vol surface)
+today = ql.Date(5, ql.Month.July, 2002)
+ql.set_evaluation_date(today)
+risk_free = ql.ZeroCurve(dates, rates, ql.Actual365Fixed())
+helpers = [
+    ql.HestonModelHelper(
+        ql.Period((t + 3) // 7, ql.TimeUnit.Weeks),
+        ql.TARGET(), s0, strike, vol, risk_free, dividend,
+        error_type=ql.CalibrationErrorType.ImpliedVolError,
+    )
+    for ...
+]
+for h in helpers:
+    h.set_pricing_engine(model, integration_order=64)
+model.calibrate(
+    helpers,
+    ql.LevenbergMarquardt(1e-8, 1e-8, 1e-8),
+    ql.EndCriteria(400, 40, 1e-8, 1e-8, 1e-8),
+)
+sse = sum((h.calibration_error() * 100.0) ** 2 for h in helpers)
+# sse ≈ 177.2
+```
+
+`ZeroCurve` is an alias for linear `InterpolatedZeroCurve`. Calibrate with
+`CalibrationErrorType.ImpliedVolError` (the Phase-48 default is
+`RelativePriceError`).
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

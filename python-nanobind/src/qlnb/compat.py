@@ -1106,6 +1106,7 @@ YoYOptionletVolatilitySurfaceHandle = getattr(
 # Phase-15 CPISwap / CPIBond aliases.
 GBPLibor = getattr(_ql, "GBPLibor", None)
 InterpolatedZeroCurve = getattr(_ql, "InterpolatedZeroCurve", None)
+ZeroCurve = getattr(_ql, "ZeroCurve", InterpolatedZeroCurve)
 CPISwap = getattr(_ql, "CPISwap", None)
 if CPISwap is not None:
     CPISwap.setPricingEngine = CPISwap.set_pricing_engine  # type: ignore[attr-defined]
