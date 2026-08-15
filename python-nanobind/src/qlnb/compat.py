@@ -1200,6 +1200,47 @@ if CPICoupon is not None:
         CPICoupon.adjusted_index_growth
     )
     CPICoupon.fixingDate = CPICoupon.fixing_date  # type: ignore[attr-defined]
+    CPICoupon.indexRatio = CPICoupon.index_ratio  # type: ignore[attr-defined]
+    CPICoupon.capletPrice = CPICoupon.caplet_price  # type: ignore[attr-defined]
+    CPICoupon.floorletPrice = CPICoupon.floorlet_price  # type: ignore[attr-defined]
+    CPICoupon.capletRate = CPICoupon.caplet_rate  # type: ignore[attr-defined]
+    CPICoupon.floorletRate = CPICoupon.floorlet_rate  # type: ignore[attr-defined]
+
+if CPICouponPricer is not None:
+    CPICouponPricer.setCapletVolatility = (  # type: ignore[attr-defined]
+        CPICouponPricer.set_caplet_volatility
+    )
+    CPICouponPricer.capletVolatility = (  # type: ignore[attr-defined]
+        CPICouponPricer.caplet_volatility
+    )
+    CPICouponPricer.capletPrice = (  # type: ignore[attr-defined]
+        CPICouponPricer.caplet_price
+    )
+    CPICouponPricer.floorletPrice = (  # type: ignore[attr-defined]
+        CPICouponPricer.floorlet_price
+    )
+    CPICouponPricer.capletRate = CPICouponPricer.caplet_rate  # type: ignore[attr-defined]
+    CPICouponPricer.floorletRate = (  # type: ignore[attr-defined]
+        CPICouponPricer.floorlet_rate
+    )
+
+# Phase-65 CPI vol-dependent optionlet aliases.
+ConstantCPIVolatility = getattr(_ql, "ConstantCPIVolatility", None)
+CPIVolatilitySurfaceHandle = getattr(
+    _ql, "CPIVolatilitySurfaceHandle", None
+)
+if CPIVolatilitySurfaceHandle is not None:
+    CPIVolatilitySurfaceHandle.totalVariance = (  # type: ignore[attr-defined]
+        CPIVolatilitySurfaceHandle.total_variance
+    )
+    CPIVolatilitySurfaceHandle.observationLag = (  # type: ignore[attr-defined]
+        CPIVolatilitySurfaceHandle.observation_lag
+    )
+    CPIVolatilitySurfaceHandle.indexIsInterpolated = (  # type: ignore[attr-defined]
+        CPIVolatilitySurfaceHandle.index_is_interpolated
+    )
+BlackCPICouponPricer = getattr(_ql, "BlackCPICouponPricer", None)
+BachelierCPICouponPricer = getattr(_ql, "BachelierCPICouponPricer", None)
 
 CPILeg = getattr(_ql, "make_cpi_leg", None)
 setCouponPricer = getattr(_ql, "set_cpi_coupon_pricer", None)

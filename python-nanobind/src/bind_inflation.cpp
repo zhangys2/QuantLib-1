@@ -36,6 +36,7 @@
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/matrix.hpp>
 #include <ql/option.hpp>
+#include <ql/pricingengines/blackformula.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/pricingengines/inflation/inflationcapfloorengines.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
@@ -48,6 +49,8 @@
 #include <ql/termstructures/inflation/piecewisezeroinflationcurve.hpp>
 #include <ql/termstructures/inflation/seasonality.hpp>
 #include <ql/termstructures/inflationtermstructure.hpp>
+#include <ql/termstructures/volatility/inflation/constantcpivolatility.hpp>
+#include <ql/termstructures/volatility/inflation/cpivolatilitystructure.hpp>
 #include <ql/termstructures/volatility/inflation/yoyinflationoptionletvolatilitystructure.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -153,6 +156,41 @@ Handle<YoYInflationTermStructure> make_piecewise_yoy_inflation_curve(
         ext::make_shared<PiecewiseYoYInflationLinear>(
             reference_date, base_date, base_yoy_rate, frequency, day_counter,
             helpers));
+}
+
+// QuantLib's CPICouponPricer::optionletPriceImp always QL_FAIL()s; unlike YoY
+// there are no Black/Bachelier descendents in ql/. Fill them in at the binding
+// layer so vol-dependent CPI optionlets can be priced without editing ql/.
+class BlackCPICouponPricer : public CPICouponPricer {
+  public:
+    using CPICouponPricer::CPICouponPricer;
+
+  protected:
+    Real optionletPriceImp(Option::Type type,
+                           Real strike,
+                           Real forward,
+                           Real stdDev) const override {
+        return blackFormula(type, strike, forward, stdDev);
+    }
+};
+
+class BachelierCPICouponPricer : public CPICouponPricer {
+  public:
+    using CPICouponPricer::CPICouponPricer;
+
+  protected:
+    Real optionletPriceImp(Option::Type type,
+                           Real strike,
+                           Real forward,
+                           Real stdDev) const override {
+        return bachelierBlackFormula(type, strike, forward, stdDev);
+    }
+};
+
+ext::shared_ptr<CPICouponPricer> require_cpi_pricer(const CPICoupon& c) {
+    auto p = ext::dynamic_pointer_cast<CPICouponPricer>(c.pricer());
+    QL_REQUIRE(p, "CPI coupon has no CPICouponPricer attached");
+    return p;
 }
 
 } // namespace
@@ -1403,15 +1441,166 @@ void bind_inflation(nb::module_& m) {
 
     nb::class_<InflationCouponPricer>(m, "InflationCouponPricer");
 
+    // --- Phase 65: CPI vol-dependent optionlets ---
+
+    nb::class_<Handle<CPIVolatilitySurface>>(m, "CPIVolatilitySurfaceHandle")
+        .def(nb::init<>())
+        .def("empty", &Handle<CPIVolatilitySurface>::empty)
+        .def(
+            "volatility",
+            [](const Handle<CPIVolatilitySurface>& h,
+               const Date& d,
+               Rate strike,
+               const Period& observation_lag,
+               bool extrapolate) {
+                return h->volatility(d, strike, observation_lag, extrapolate);
+            },
+            nb::arg("date"),
+            nb::arg("strike"),
+            nb::arg("observation_lag") = Period(-1, Days),
+            nb::arg("extrapolate") = false)
+        .def(
+            "total_variance",
+            [](const Handle<CPIVolatilitySurface>& h,
+               const Date& d,
+               Rate strike,
+               const Period& observation_lag,
+               bool extrapolate) {
+                return h->totalVariance(
+                    d, strike, observation_lag, extrapolate);
+            },
+            nb::arg("date"),
+            nb::arg("strike"),
+            nb::arg("observation_lag") = Period(-1, Days),
+            nb::arg("extrapolate") = false)
+        .def(
+            "observation_lag",
+            [](const Handle<CPIVolatilitySurface>& h) {
+                return h->observationLag();
+            })
+        .def(
+            "frequency",
+            [](const Handle<CPIVolatilitySurface>& h) {
+                return h->frequency();
+            })
+        .def(
+            "index_is_interpolated",
+            [](const Handle<CPIVolatilitySurface>& h) {
+                return h->indexIsInterpolated();
+            });
+
+    m.def(
+        "ConstantCPIVolatility",
+        [](Volatility volatility,
+           Natural settlement_days,
+           const Calendar& calendar,
+           BusinessDayConvention bdc,
+           const DayCounter& day_counter,
+           const Period& observation_lag,
+           Frequency frequency,
+           bool index_is_interpolated) {
+            return Handle<CPIVolatilitySurface>(
+                ext::make_shared<ConstantCPIVolatility>(
+                    volatility,
+                    settlement_days,
+                    calendar,
+                    bdc,
+                    day_counter,
+                    observation_lag,
+                    frequency,
+                    index_is_interpolated));
+        },
+        nb::arg("volatility"),
+        nb::arg("settlement_days"),
+        nb::arg("calendar"),
+        nb::arg("bdc"),
+        nb::arg("day_counter"),
+        nb::arg("observation_lag"),
+        nb::arg("frequency"),
+        nb::arg("index_is_interpolated") = false,
+        "Factory: ConstantCPIVolatility → CPIVolatilitySurfaceHandle.");
+
     nb::class_<CPICouponPricer, InflationCouponPricer>(m, "CPICouponPricer")
         .def(
             "__init__",
             [](CPICouponPricer* self,
-               const Handle<YieldTermStructure>& nominal) {
-                new (self) CPICouponPricer(nominal);
+               const Handle<YieldTermStructure>& nominal,
+               const Handle<CPIVolatilitySurface>& vol) {
+                if (vol.empty())
+                    new (self) CPICouponPricer(nominal);
+                else
+                    new (self) CPICouponPricer(vol, nominal);
             },
             nb::arg("nominal") = Handle<YieldTermStructure>(),
-            "CPI coupon pricer (swaplets; vol-dependent optionlets are TODO).");
+            nb::arg("caplet_vol") = Handle<CPIVolatilitySurface>(),
+            "CPI coupon pricer (swaplets; pass Black/Bachelier + caplet_vol "
+            "for optionlets).")
+        .def(
+            "set_caplet_volatility",
+            [](CPICouponPricer& p,
+               const Handle<CPIVolatilitySurface>& vol) {
+                p.setCapletVolatility(vol);
+            },
+            nb::arg("caplet_vol"))
+        .def(
+            "caplet_volatility",
+            [](const CPICouponPricer& p) { return p.capletVolatility(); })
+        .def(
+            "caplet_price",
+            [](const CPICouponPricer& p, Rate effective_cap) {
+                return p.capletPrice(effective_cap);
+            },
+            nb::arg("effective_cap"))
+        .def(
+            "floorlet_price",
+            [](const CPICouponPricer& p, Rate effective_floor) {
+                return p.floorletPrice(effective_floor);
+            },
+            nb::arg("effective_floor"))
+        .def(
+            "caplet_rate",
+            [](const CPICouponPricer& p, Rate effective_cap) {
+                return p.capletRate(effective_cap);
+            },
+            nb::arg("effective_cap"))
+        .def(
+            "floorlet_rate",
+            [](const CPICouponPricer& p, Rate effective_floor) {
+                return p.floorletRate(effective_floor);
+            },
+            nb::arg("effective_floor"));
+
+    nb::class_<BlackCPICouponPricer, CPICouponPricer>(
+        m, "BlackCPICouponPricer")
+        .def(
+            "__init__",
+            [](BlackCPICouponPricer* self,
+               const Handle<YieldTermStructure>& nominal,
+               const Handle<CPIVolatilitySurface>& vol) {
+                if (vol.empty())
+                    new (self) BlackCPICouponPricer(nominal);
+                else
+                    new (self) BlackCPICouponPricer(vol, nominal);
+            },
+            nb::arg("nominal") = Handle<YieldTermStructure>(),
+            nb::arg("caplet_vol") = Handle<CPIVolatilitySurface>(),
+            "Black CPI coupon pricer (binding-layer; QL has no descendent).");
+
+    nb::class_<BachelierCPICouponPricer, CPICouponPricer>(
+        m, "BachelierCPICouponPricer")
+        .def(
+            "__init__",
+            [](BachelierCPICouponPricer* self,
+               const Handle<YieldTermStructure>& nominal,
+               const Handle<CPIVolatilitySurface>& vol) {
+                if (vol.empty())
+                    new (self) BachelierCPICouponPricer(nominal);
+                else
+                    new (self) BachelierCPICouponPricer(vol, nominal);
+            },
+            nb::arg("nominal") = Handle<YieldTermStructure>(),
+            nb::arg("caplet_vol") = Handle<CPIVolatilitySurface>(),
+            "Bachelier CPI coupon pricer (binding-layer; QL has no descendent).");
 
     // Single-inheritance view (C++ path is CPICoupon → … → CashFlow; MI on
     // CashFlow itself is not exposed). Needed so Leg→list round-trips keep
@@ -1458,6 +1647,9 @@ void bind_inflation(nb::module_& m) {
              [](const CPICoupon& c) { return c.indexFixing(); })
         .def("adjusted_index_growth",
              [](const CPICoupon& c) { return c.adjustedIndexGrowth(); })
+        .def("index_ratio",
+             [](const CPICoupon& c, const Date& d) { return c.indexRatio(d); },
+             nb::arg("date"))
         .def("fixing_date",
              [](const CPICoupon& c) { return c.fixingDate(); })
         .def("nominal", [](const CPICoupon& c) { return c.nominal(); })
@@ -1467,7 +1659,31 @@ void bind_inflation(nb::module_& m) {
                const ext::shared_ptr<InflationCouponPricer>& pricer) {
                 c.setPricer(pricer);
             },
-            nb::arg("pricer"));
+            nb::arg("pricer"))
+        .def(
+            "caplet_price",
+            [](const CPICoupon& c, Rate effective_cap) {
+                return require_cpi_pricer(c)->capletPrice(effective_cap);
+            },
+            nb::arg("effective_cap"))
+        .def(
+            "floorlet_price",
+            [](const CPICoupon& c, Rate effective_floor) {
+                return require_cpi_pricer(c)->floorletPrice(effective_floor);
+            },
+            nb::arg("effective_floor"))
+        .def(
+            "caplet_rate",
+            [](const CPICoupon& c, Rate effective_cap) {
+                return require_cpi_pricer(c)->capletRate(effective_cap);
+            },
+            nb::arg("effective_cap"))
+        .def(
+            "floorlet_rate",
+            [](const CPICoupon& c, Rate effective_floor) {
+                return require_cpi_pricer(c)->floorletRate(effective_floor);
+            },
+            nb::arg("effective_floor"));
 
     m.def(
         "make_cpi_leg",

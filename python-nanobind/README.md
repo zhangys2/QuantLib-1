@@ -131,6 +131,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_cpi_coupon_pricer`, `cashflows_npv`, `cashflows_accrued_amount`
 - `clear_fixings` on zero / YoY inflation indexes (IndexManager isolation)
 
+### Phase 65 (CPI vol-dependent optionlets)
+- `ConstantCPIVolatility` → `CPIVolatilitySurfaceHandle`
+- `BlackCPICouponPricer` / `BachelierCPICouponPricer` (binding-layer; QL has no descendents)
+- `CPICoupon.caplet_price` / `floorlet_price` / `caplet_rate` / `floorlet_rate`
+
 ### Phase 19 (YoY coupons / yoyInflationLeg)
 - `YoYInflationCoupon` + `YoYInflationCouponPricer` / `set_pricer`
 - Black / unit-displaced Black / Bachelier YoY coupon pricers
@@ -308,6 +313,11 @@ Experimental Python package that binds a focused QuantLib surface with
 ### Phase 64 (DAX Heston calibration golden)
 - Sepp DAX vol surface → SSE ≈ 177.2 (`CalibrationErrorType.ImpliedVolError`)
 - `ZeroCurve` alias for `InterpolatedZeroCurve` (linear)
+
+### Phase 65 (CPI vol-dependent optionlets)
+- `ConstantCPIVolatility` → `CPIVolatilitySurfaceHandle`
+- `BlackCPICouponPricer` / `BachelierCPICouponPricer` fill QL's missing `optionletPriceImp`
+- `CPICoupon.caplet_price` / `floorlet_price` after `set_pricer`
 
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)

@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "0.65.0"
-description = "Nanobind Python bindings for QuantLib (phase 64: DAX Heston calibration golden)"
+version = "0.66.0"
+description = "Nanobind Python bindings for QuantLib (phase 65: CPI vol-dependent optionlets)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
