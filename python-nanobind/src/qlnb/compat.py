@@ -691,6 +691,14 @@ def _install_aliases() -> None:
             BarrierOption.setFdHestonDividendPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_fd_heston_dividend_pricing_engine
             )
+        if hasattr(BarrierOption, "set_fd_pricing_engine"):
+            BarrierOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_fd_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_fd_dividend_pricing_engine"):
+            BarrierOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_fd_dividend_pricing_engine
+            )
         if hasattr(BarrierOption, "set_mc_pricing_engine"):
             BarrierOption.setMcPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_mc_pricing_engine

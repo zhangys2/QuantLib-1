@@ -1461,6 +1461,20 @@ print(barrier.NPV())
 empty schedule matches `set_fd_heston_pricing_engine`. Double-barrier FD
 Heston has no dividend overload in QuantLib.
 
+## Phase-67 FD Black-Scholes barrier
+
+```python
+barrier.set_fd_pricing_engine(process, t_grid=200, x_grid=400)
+barrier.set_fd_dividend_pricing_engine(
+    process, [today + 180], [30.0], t_grid=100, x_grid=100
+)
+```
+
+`FdBlackScholesBarrierEngine` (default Douglas scheme). Matches analytic
+Haug barriers within the suite FD tolerance (5e-3). Dividend goldens from
+`BarrierOptionTest::testDividendBarrier`. See Phase 66 for the Heston FD
+dividend path.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

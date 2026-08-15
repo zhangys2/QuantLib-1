@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "0.67.0"
-description = "Nanobind Python bindings for QuantLib (phase 66: FD Heston barrier dividends)"
+version = "0.68.0"
+description = "Nanobind Python bindings for QuantLib (phase 67: FD Black-Scholes barrier)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
