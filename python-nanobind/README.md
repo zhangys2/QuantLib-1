@@ -265,6 +265,7 @@ Experimental Python package that binds a focused QuantLib surface with
 ### Phase 38 (FD Heston barrier engines)
 - `BarrierOption.set_fd_heston_pricing_engine` → `FdHestonBarrierEngine`
 - `DoubleBarrierOption.set_fd_heston_pricing_engine` → `FdHestonDoubleBarrierEngine`
+- See Phase 66 for discrete-dividend overload on the single-barrier engine
 
 ### Phase 39 (Bates jump-diffusion)
 - `BatesProcess` / `BatesModel` (Heston + log-normal jumps)
@@ -318,6 +319,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `ConstantCPIVolatility` → `CPIVolatilitySurfaceHandle`
 - `BlackCPICouponPricer` / `BachelierCPICouponPricer` fill QL's missing `optionletPriceImp`
 - `CPICoupon.caplet_price` / `floorlet_price` after `set_pricer`
+
+### Phase 66 (FD Heston barrier dividends)
+- `BarrierOption.set_fd_heston_dividend_pricing_engine` → `FdHestonBarrierEngine` + cash dividends
+- Empty schedule matches the plain Phase-38 engine; far barrier ≈ vanilla FD+div
 
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)

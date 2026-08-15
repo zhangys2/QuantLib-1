@@ -6,6 +6,7 @@
 
 #include <optional>
 
+#include <ql/cashflows/dividend.hpp>
 #include <ql/cashflows/iborcoupon.hpp>
 #include <ql/exercise.hpp>
 #include <ql/handle.hpp>
@@ -399,6 +400,35 @@ void bind_experimental(nb::module_& m) {
             nb::arg("damping_steps") = 0,
             nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
             "Attach FdHestonBarrierEngine (default Hundsdorfer scheme).")
+        .def(
+            "set_fd_heston_dividend_pricing_engine",
+            [](BarrierOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdHestonBarrierEngine>(
+                    model,
+                    DividendVector(dividend_dates, dividend_amounts),
+                    t_grid,
+                    x_grid,
+                    v_grid,
+                    damping_steps,
+                    scheme_desc));
+            },
+            nb::arg("model"),
+            nb::arg("dividend_dates"),
+            nb::arg("dividend_amounts"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonBarrierEngine with discrete cash dividends.")
         .def("error_estimate",
              [](BarrierOption& opt) { return opt.errorEstimate(); })
         .def(

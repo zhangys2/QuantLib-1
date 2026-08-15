@@ -1261,8 +1261,9 @@ dbl.set_fd_heston_pricing_engine(model, t_grid=100, x_grid=100, v_grid=50)
 ```
 
 Analytic barrier paths are unchanged (`set_pricing_engine` /
-`set_binary_pricing_engine`). See Phase 47 for `scheme_desc`; dividend
-overloads deferred.
+`set_binary_pricing_engine`). See Phase 47 for `scheme_desc`; see Phase 66
+for discrete-dividend overloads. `FdHestonDoubleBarrierEngine` has no
+dividend constructor in QuantLib.
 
 ## Phase-39 Bates jump-diffusion
 
@@ -1441,6 +1442,24 @@ Strikes are in **index-ratio** space (same units as `adjusted_index_growth`).
 `BachelierCPICouponPricer` is the normal-vol alternative. Swaplets are
 unchanged versus plain `CPICouponPricer`. YoY optionlet strippers remain
 deferred (`\bug` in QL).
+
+## Phase-66 FD Heston barrier dividends
+
+```python
+barrier = ql.BarrierOption(
+    ql.BarrierType.UpOut, 135.0, 0.0,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(maturity),
+)
+barrier.set_fd_heston_dividend_pricing_engine(
+    model, [today + 180], [5.0], t_grid=50, x_grid=200, v_grid=50
+)
+print(barrier.NPV())
+```
+
+`FdHestonBarrierEngine` dividend constructor (Phase 38 deferred this). An
+empty schedule matches `set_fd_heston_pricing_engine`. Double-barrier FD
+Heston has no dividend overload in QuantLib.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 
