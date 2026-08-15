@@ -1369,6 +1369,24 @@ class BarrierOption:
     def set_binary_pricing_engine(
         self, process: BlackScholesMertonProcess
     ) -> None: ...
+    def set_fd_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+    def set_fd_dividend_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def set_fd_heston_pricing_engine(
         self,
         model: HestonModel,
@@ -1422,7 +1440,28 @@ class BarrierOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def setFdPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+    def setFdDividendPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
 
+def FdBlackScholesBarrierEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
 def FdHestonBarrierEngine(model: HestonModel) -> HestonModel: ...
 def MCBarrierEngine(
     process: BlackScholesMertonProcess,
