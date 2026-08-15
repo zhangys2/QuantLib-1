@@ -10,7 +10,8 @@ from test_phase18 import _uk_cpi_coupon_market
 
 
 def test_version_is_phase65():
-    assert ql.__version__ == "0.66.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 66)
 
 
 def _future_cpi_coupon(index, calendar, bdc, interp, fixed_rate=0.1):

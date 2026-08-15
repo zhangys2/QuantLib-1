@@ -1378,6 +1378,17 @@ class BarrierOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def set_fd_heston_dividend_pricing_engine(
+        self,
+        model: HestonModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def error_estimate(self) -> float: ...
     def set_mc_pricing_engine(
         self,
@@ -1394,6 +1405,17 @@ class BarrierOption:
     def setFdHestonPricingEngine(
         self,
         model: HestonModel,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+    def setFdHestonDividendPricingEngine(
+        self,
+        model: HestonModel,
+        dividend_dates: Sequence[Date],
+        dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
