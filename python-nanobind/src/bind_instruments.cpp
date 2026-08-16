@@ -9,9 +9,12 @@
 #include <ql/handle.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/methods/finitedifferences/utilities/fdmquantohelper.hpp>
+#include <ql/cashflows/duration.hpp>
+#include <ql/instruments/bond.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
+#include <ql/pricingengines/bond/bondfunctions.hpp>
 #include <ql/instruments/dividendschedule.hpp>
 #include <ql/instruments/europeanoption.hpp>
 #include <ql/instruments/payoffs.hpp>
@@ -58,6 +61,162 @@ Handle<BlackVolTermStructure> make_black_constant_vol_handle(
     const DayCounter& day_counter) {
     return Handle<BlackVolTermStructure>(ext::make_shared<BlackConstantVol>(
         reference_date, calendar, volatility, day_counter));
+}
+
+template <class BondT>
+void add_bond_analytics(nb::class_<BondT>& cls) {
+    cls.def(
+           "bond_yield",
+           [](const BondT& b,
+              Real price,
+              const DayCounter& dc,
+              Compounding compounding,
+              Frequency frequency,
+              const Date& settlement_date,
+              Real accuracy,
+              Size max_evaluations,
+              Real guess,
+              Bond::Price::Type price_type) {
+               return b.yield(Bond::Price(price, price_type),
+                              dc,
+                              compounding,
+                              frequency,
+                              settlement_date,
+                              accuracy,
+                              max_evaluations,
+                              guess);
+           },
+           nb::arg("price"),
+           nb::arg("day_counter"),
+           nb::arg("compounding"),
+           nb::arg("frequency"),
+           nb::arg("settlement_date") = Date(),
+           nb::arg("accuracy") = 1.0e-8,
+           nb::arg("max_evaluations") = 100,
+           nb::arg("guess") = 0.05,
+           nb::arg("price_type") = Bond::Price::Clean,
+           "Yield given a quoted price (default Clean). Named bond_yield "
+           "because yield is a Python keyword.")
+        .def(
+            "clean_price",
+            [](const BondT& b,
+               Rate yield_rate,
+               const DayCounter& dc,
+               Compounding compounding,
+               Frequency frequency,
+               const Date& settlement_date) {
+                return b.cleanPrice(
+                    yield_rate, dc, compounding, frequency, settlement_date);
+            },
+            nb::arg("yield_rate"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            "Clean price from a yield (Bond::cleanPrice).")
+        .def(
+            "duration",
+            [](const BondT& b,
+               Rate yield_rate,
+               const DayCounter& dc,
+               Compounding compounding,
+               Frequency frequency,
+               Duration::Type type,
+               const Date& settlement_date) {
+                return BondFunctions::duration(b,
+                                               yield_rate,
+                                               dc,
+                                               compounding,
+                                               frequency,
+                                               type,
+                                               settlement_date);
+            },
+            nb::arg("yield_rate"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("type") = Duration::Modified,
+            nb::arg("settlement_date") = Date(),
+            "Macaulay / modified / simple duration (BondFunctions).")
+        .def(
+            "convexity",
+            [](const BondT& b,
+               Rate yield_rate,
+               const DayCounter& dc,
+               Compounding compounding,
+               Frequency frequency,
+               const Date& settlement_date) {
+                return BondFunctions::convexity(b,
+                                                yield_rate,
+                                                dc,
+                                                compounding,
+                                                frequency,
+                                                settlement_date);
+            },
+            nb::arg("yield_rate"),
+            nb::arg("day_counter"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            "Convexity (BondFunctions; not divided by 100).")
+        .def(
+            "z_spread",
+            [](const BondT& b,
+               Real price,
+               const Handle<YieldTermStructure>& discount_curve,
+               Compounding compounding,
+               Frequency frequency,
+               const Date& settlement_date,
+               Real accuracy,
+               Size max_evaluations,
+               Rate guess,
+               Bond::Price::Type price_type) {
+                return BondFunctions::zSpread(b,
+                                              Bond::Price(price, price_type),
+                                              discount_curve.currentLink(),
+                                              compounding,
+                                              frequency,
+                                              settlement_date,
+                                              accuracy,
+                                              max_evaluations,
+                                              guess);
+            },
+            nb::arg("price"),
+            nb::arg("discount_curve"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            nb::arg("accuracy") = 1.0e-10,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("guess") = 0.0,
+            nb::arg("price_type") = Bond::Price::Clean,
+            "Z-spread matching a quoted price vs a discount curve.")
+        .def(
+            "clean_price_from_z_spread",
+            [](const BondT& b,
+               const Handle<YieldTermStructure>& discount_curve,
+               Spread z_spread,
+               Compounding compounding,
+               Frequency frequency,
+               const Date& settlement_date) {
+                return BondFunctions::cleanPrice(b,
+                                                 discount_curve.currentLink(),
+                                                 z_spread,
+                                                 compounding,
+                                                 frequency,
+                                                 settlement_date);
+            },
+            nb::arg("discount_curve"),
+            nb::arg("z_spread"),
+            nb::arg("compounding"),
+            nb::arg("frequency"),
+            nb::arg("settlement_date") = Date(),
+            "Clean price from a z-spread over a discount curve.")
+        .def(
+            "accrued_amount",
+            [](const BondT& b, const Date& d) { return b.accruedAmount(d); },
+            nb::arg("date") = Date(),
+            "Accrued amount at a date (default: bond settlement).");
 }
 
 } // namespace
@@ -715,7 +874,26 @@ void bind_instruments(nb::module_& m) {
         "set_fd_dividend_pricing_engine.");
 
     // Bonds (standalone; Bond/Instrument use MI via LazyObject).
-    nb::class_<FixedRateBond>(m, "FixedRateBond")
+    // BondPrice lives here so yield / z-spread can take it before bind_callable.
+    nb::enum_<Bond::Price::Type>(m, "BondPriceType")
+        .value("Clean", Bond::Price::Clean)
+        .value("Dirty", Bond::Price::Dirty);
+
+    nb::class_<Bond::Price>(m, "BondPrice")
+        .def(nb::init<Real, Bond::Price::Type>(),
+             nb::arg("amount"),
+             nb::arg("type") = Bond::Price::Clean)
+        .def("amount", &Bond::Price::amount)
+        .def("type", &Bond::Price::type)
+        .def("is_valid", &Bond::Price::isValid);
+
+    nb::enum_<Duration::Type>(m, "DurationType")
+        .value("Simple", Duration::Simple)
+        .value("Macaulay", Duration::Macaulay)
+        .value("Modified", Duration::Modified);
+
+    nb::class_<FixedRateBond> fixed_rate_bond(m, "FixedRateBond");
+    fixed_rate_bond
         .def(
             "__init__",
             [](FixedRateBond* self,
@@ -760,9 +938,11 @@ void bind_instruments(nb::module_& m) {
                     ext::make_shared<DiscountingBondEngine>(discount_curve));
             },
             nb::arg("discount_curve"));
+    add_bond_analytics(fixed_rate_bond);
 
     // Zero-coupon bond (standalone; Bond/Instrument use MI via LazyObject).
-    nb::class_<ZeroCouponBond>(m, "ZeroCouponBond")
+    nb::class_<ZeroCouponBond> zero_coupon_bond(m, "ZeroCouponBond");
+    zero_coupon_bond
         .def(
             "__init__",
             [](ZeroCouponBond* self,
@@ -804,10 +984,12 @@ void bind_instruments(nb::module_& m) {
                     ext::make_shared<DiscountingBondEngine>(discount_curve));
             },
             nb::arg("discount_curve"));
+    add_bond_analytics(zero_coupon_bond);
 
     // Floating-rate bond (standalone; Bond/Instrument use MI via LazyObject).
     // set_pricing_engine attaches DiscountingBondEngine and a BlackIborCouponPricer.
-    nb::class_<FloatingRateBond>(m, "FloatingRateBond")
+    nb::class_<FloatingRateBond> floating_rate_bond(m, "FloatingRateBond");
+    floating_rate_bond
         .def(
             "__init__",
             [](FloatingRateBond* self,
@@ -880,6 +1062,7 @@ void bind_instruments(nb::module_& m) {
             },
             nb::arg("discount_curve"),
             "Attach DiscountingBondEngine and BlackIborCouponPricer on cashflows.");
+    add_bond_analytics(floating_rate_bond);
 
     nb::enum_<Swap::Type>(m, "SwapType")
         .value("Receiver", Swap::Receiver)

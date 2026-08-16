@@ -265,12 +265,72 @@ class FixedRateBond:
         issue_date: Date = ...,
     ) -> None: ...
     def NPV(self) -> float: ...
+    @overload
     def clean_price(self) -> float: ...
+    @overload
+    def clean_price(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
     def dirty_price(self) -> float: ...
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
     def settlement_value(self) -> float: ...
     def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def bond_yield(
+        self,
+        price: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def duration(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        type: DurationType = ...,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def convexity(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def z_spread(
+        self,
+        price: float,
+        discount_curve: YieldTermStructureHandle,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def clean_price_from_z_spread(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        z_spread: float,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def accrued_amount(self, date: Date = ...) -> float: ...
 
 class ZeroCouponBond:
     def __init__(
@@ -284,12 +344,72 @@ class ZeroCouponBond:
         issue_date: Date = ...,
     ) -> None: ...
     def NPV(self) -> float: ...
+    @overload
     def clean_price(self) -> float: ...
+    @overload
+    def clean_price(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
     def dirty_price(self) -> float: ...
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
     def settlement_value(self) -> float: ...
     def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def bond_yield(
+        self,
+        price: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def duration(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        type: DurationType = ...,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def convexity(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def z_spread(
+        self,
+        price: float,
+        discount_curve: YieldTermStructureHandle,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def clean_price_from_z_spread(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        z_spread: float,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def accrued_amount(self, date: Date = ...) -> float: ...
 
 class FloatingRateBond:
     def __init__(
@@ -310,12 +430,72 @@ class FloatingRateBond:
         issue_date: Date = ...,
     ) -> None: ...
     def NPV(self) -> float: ...
+    @overload
     def clean_price(self) -> float: ...
+    @overload
+    def clean_price(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
     def dirty_price(self) -> float: ...
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
     def settlement_value(self) -> float: ...
     def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def bond_yield(
+        self,
+        price: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def duration(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        type: DurationType = ...,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def convexity(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def z_spread(
+        self,
+        price: float,
+        discount_curve: YieldTermStructureHandle,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def clean_price_from_z_spread(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        z_spread: float,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def accrued_amount(self, date: Date = ...) -> float: ...
 
 class VanillaSwap:
     def __init__(
@@ -3295,6 +3475,11 @@ def InterpolatedYoYCapFloorTermPriceSurface(
 class BondPriceType:
     Clean: BondPriceType
     Dirty: BondPriceType
+
+class DurationType:
+    Simple: DurationType
+    Macaulay: DurationType
+    Modified: DurationType
 
 class BondPrice:
     def __init__(

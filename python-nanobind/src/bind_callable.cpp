@@ -29,18 +29,7 @@ using namespace QuantLib;
 
 void bind_callable(nb::module_& m) {
     // --- Phase 23: callable / puttable bonds ---
-
-    nb::enum_<Bond::Price::Type>(m, "BondPriceType")
-        .value("Clean", Bond::Price::Clean)
-        .value("Dirty", Bond::Price::Dirty);
-
-    nb::class_<Bond::Price>(m, "BondPrice")
-        .def(nb::init<Real, Bond::Price::Type>(),
-             nb::arg("amount"),
-             nb::arg("type") = Bond::Price::Clean)
-        .def("amount", &Bond::Price::amount)
-        .def("type", &Bond::Price::type)
-        .def("is_valid", &Bond::Price::isValid);
+    // BondPrice / BondPriceType are registered in bind_instruments (Phase 72).
 
     nb::enum_<Callability::Type>(m, "CallabilityType")
         .value("Call", Callability::Call)

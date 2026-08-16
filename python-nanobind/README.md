@@ -347,6 +347,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `SoftBarrierOption.implied_volatility(target, process, …)` — analytic European
 - Recovers Haug vols from Phase-25 / Phase-29 NPVs
 
+### Phase 72 (bond yield / duration / z-spread)
+- `bond_yield` / `clean_price(yield_rate, …)` on fixed / zero / floating bonds
+- `duration` / `convexity` / `accrued_amount` via `BondFunctions`
+- `z_spread` / `clean_price_from_z_spread` vs a discount curve
+- Recovers `BondsTests::testCached` and `testThirty360BondWithSettlementOn31st`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
