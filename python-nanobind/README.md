@@ -337,6 +337,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `CapFloor.implied_volatility(target, discount_curve, guess=0.10, …)`
 - Recovers Black term vol from `CapFloorTest::testCachedValue` NPVs
 
+### Phase 70 (swaption implied volatility)
+- `Swaption.implied_volatility(target, discount_curve, guess=0.10, …)`
+- Recovers Black term vol from `SwaptionTest::testCachedValue` / Phase-5 NPV
+- `SwaptionPriceType` (`Spot` / `Forward`) matches C++ `Swaption::PriceType`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

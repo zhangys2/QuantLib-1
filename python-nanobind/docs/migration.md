@@ -301,7 +301,8 @@ dfs2 = ql.discount_dates(curve, [d1, d2, d3])
 
 `FraRateHelper` / `SwapRateHelper` extend the deposit-only bootstrap surface.
 `qlnb.compat` adds `Settlement.Physical`, `VanillaSwap.Payer`, and camelCase
-aliases on `Swaption` / `ZeroCouponBond`.
+aliases on `Swaption` / `ZeroCouponBond`. See Phase 70 for
+`Swaption.implied_volatility`.
 
 ## Phase-6 floating bonds, tree/FD, overnight indexes
 
@@ -1504,7 +1505,20 @@ vol = cap.implied_volatility(price, curve, guess=0.10, accuracy=1e-8)
 
 Black (or normal) term vol matching a target NPV. Defaults match C++
 (`guess=0.10`, `vol_type=ShiftedLognormal`). Compat: `impliedVolatility`.
-Swaption implied vol remains deferred.
+See Phase 70 for `Swaption.implied_volatility`.
+
+## Phase-70 swaption implied volatility
+
+```python
+swaption.set_pricing_engine(curve, 0.20)
+price = swaption.NPV()
+vol = swaption.implied_volatility(price, curve, guess=0.10, accuracy=1e-8)
+# vol ≈ 0.20
+```
+
+Black (or normal) term vol matching a target spot or forward price.
+Defaults match C++ (`guess=0.10`, `vol_type=ShiftedLognormal`,
+`price_type=SwaptionPriceType.Spot`). Compat: `impliedVolatility`.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

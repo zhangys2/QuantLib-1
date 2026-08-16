@@ -194,6 +194,10 @@ def _install_aliases() -> None:
         Swaption.settlementType = Swaption.settlement_type  # type: ignore[attr-defined]
         Swaption.settlementMethod = Swaption.settlement_method  # type: ignore[attr-defined]
         Swaption.isExpired = Swaption.is_expired  # type: ignore[attr-defined]
+        if hasattr(Swaption, "implied_volatility"):
+            Swaption.impliedVolatility = (  # type: ignore[attr-defined]
+                Swaption.implied_volatility
+            )
         if hasattr(Swaption, "set_tree_pricing_engine"):
             Swaption.setTreePricingEngine = (  # type: ignore[attr-defined]
                 Swaption.set_tree_pricing_engine
