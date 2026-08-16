@@ -1473,7 +1473,23 @@ barrier.set_fd_dividend_pricing_engine(
 `FdBlackScholesBarrierEngine` (default Douglas scheme). Matches analytic
 Haug barriers within the suite FD tolerance (5e-3). Dividend goldens from
 `BarrierOptionTest::testDividendBarrier`. See Phase 66 for the Heston FD
-dividend path.
+dividend path. See Phase 68 for implied volatility.
+
+## Phase-68 barrier implied volatility
+
+```python
+vol = barrier.implied_volatility(1.0, dummy_process, accuracy=1e-6)
+barrier.set_pricing_engine(process_at(vol))
+
+vol_div = barrier.implied_volatility(
+    8.0, dummy_process, [today + 180], [10.0], accuracy=1e-6
+)
+barrier.set_fd_dividend_pricing_engine(process_at(vol_div), dates, amounts)
+```
+
+No-dividend path uses `AnalyticBarrierEngine`; cash dividends use
+`FdBlackScholesBarrierEngine` (same as C++). Dummy process vol is unused
+(the solver clones and replaces it). Compat: `impliedVolatility`.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

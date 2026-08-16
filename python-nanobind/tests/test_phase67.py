@@ -8,7 +8,8 @@ import qlnb as ql
 
 
 def test_version_is_phase67():
-    assert ql.__version__ == "0.68.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 68)
 
 
 def _haug_down_in_call():

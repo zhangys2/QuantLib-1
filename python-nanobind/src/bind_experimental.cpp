@@ -364,6 +364,43 @@ void bind_experimental(nb::module_& m) {
         .def("gamma", [](BarrierOption& opt) { return opt.gamma(); })
         .def("vega", [](BarrierOption& opt) { return opt.vega(); })
         .def(
+            "implied_volatility",
+            [](BarrierOption& opt,
+               Real target_price,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Date>& dividend_dates,
+               const std::vector<Real>& dividend_amounts,
+               Real accuracy,
+               Size max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol) {
+                if (dividend_dates.empty())
+                    return opt.impliedVolatility(target_price,
+                                                 process,
+                                                 accuracy,
+                                                 max_evaluations,
+                                                 min_vol,
+                                                 max_vol);
+                return opt.impliedVolatility(
+                    target_price,
+                    process,
+                    DividendVector(dividend_dates, dividend_amounts),
+                    accuracy,
+                    max_evaluations,
+                    min_vol,
+                    max_vol);
+            },
+            nb::arg("target_price"),
+            nb::arg("process"),
+            nb::arg("dividend_dates") = std::vector<Date>(),
+            nb::arg("dividend_amounts") = std::vector<Real>(),
+            nb::arg("accuracy") = 1.0e-4,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("min_vol") = 1.0e-7,
+            nb::arg("max_vol") = 4.0,
+            "Barrier implied vol (analytic if no dividends; FD BS if cash "
+            "dividends).")
+        .def(
             "set_pricing_engine",
             [](BarrierOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process) {

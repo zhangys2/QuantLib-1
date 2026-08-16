@@ -699,6 +699,10 @@ def _install_aliases() -> None:
             BarrierOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_fd_dividend_pricing_engine
             )
+        if hasattr(BarrierOption, "implied_volatility"):
+            BarrierOption.impliedVolatility = (  # type: ignore[attr-defined]
+                BarrierOption.implied_volatility
+            )
         if hasattr(BarrierOption, "set_mc_pricing_engine"):
             BarrierOption.setMcPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_mc_pricing_engine
