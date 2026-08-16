@@ -19,6 +19,7 @@
 #include <ql/pricingengines/swaption/gaussian1dswaptionengine.hpp>
 #include <ql/pricingengines/swaption/jamshidianswaptionengine.hpp>
 #include <ql/pricingengines/swaption/treeswaptionengine.hpp>
+#include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/daycounter.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
@@ -36,6 +37,16 @@ void bind_rates_options(nb::module_& m) {
         .value("PhysicalCleared", Settlement::PhysicalCleared)
         .value("CollateralizedCashPrice", Settlement::CollateralizedCashPrice)
         .value("ParYieldCurve", Settlement::ParYieldCurve);
+
+    // Register before CMS / inflation / CapFloor so those TUs can take
+    // VolatilityType arguments (nanobind requires the enum first).
+    nb::enum_<VolatilityType>(m, "VolatilityType")
+        .value("ShiftedLognormal", ShiftedLognormal)
+        .value("Normal", Normal);
+
+    nb::enum_<Swaption::PriceType>(m, "SwaptionPriceType")
+        .value("Spot", Swaption::Spot)
+        .value("Forward", Swaption::Forward);
 
     m.def(
         "make_vanilla_swap",
@@ -175,6 +186,42 @@ void bind_rates_options(nb::module_& m) {
         .def("settlement_method",
              [](const Swaption& s) { return s.settlementMethod(); })
         .def("is_expired", [](const Swaption& s) { return s.isExpired(); })
+        .def(
+            "implied_volatility",
+            [](const Swaption& s,
+               Real target_price,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility guess,
+               Real accuracy,
+               Natural max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol,
+               VolatilityType vol_type,
+               Real displacement,
+               Swaption::PriceType price_type) {
+                return s.impliedVolatility(target_price,
+                                           discount_curve,
+                                           guess,
+                                           accuracy,
+                                           max_evaluations,
+                                           min_vol,
+                                           max_vol,
+                                           vol_type,
+                                           displacement,
+                                           price_type);
+            },
+            nb::arg("target_price"),
+            nb::arg("discount_curve"),
+            nb::arg("guess") = 0.10,
+            nb::arg("accuracy") = 1.0e-4,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("min_vol") = 1.0e-7,
+            nb::arg("max_vol") = 4.0,
+            nb::arg("vol_type") = ShiftedLognormal,
+            nb::arg("displacement") = 0.0,
+            nb::arg("price_type") = Swaption::Spot,
+            "Implied Black/normal volatility matching a target spot/forward "
+            "price.")
         .def(
             "set_pricing_engine",
             [](Swaption& s,

@@ -1856,6 +1856,19 @@ class Swaption:
     def settlement_type(self) -> SettlementType: ...
     def settlement_method(self) -> SettlementMethod: ...
     def is_expired(self) -> bool: ...
+    def implied_volatility(
+        self,
+        target_price: float,
+        discount_curve: YieldTermStructureHandle,
+        guess: float = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+        vol_type: VolatilityType = ...,
+        displacement: float = ...,
+        price_type: SwaptionPriceType = ...,
+    ) -> float: ...
     def set_pricing_engine(
         self,
         discount_curve: YieldTermStructureHandle,
@@ -2297,6 +2310,10 @@ class YieldCurveModel:
 class VolatilityType:
     ShiftedLognormal: VolatilityType
     Normal: VolatilityType
+
+class SwaptionPriceType:
+    Spot: SwaptionPriceType
+    Forward: SwaptionPriceType
 
 class SwapIndex:
     def name(self) -> str: ...

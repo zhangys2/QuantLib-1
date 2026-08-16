@@ -41,9 +41,7 @@ void bind_cms(nb::module_& m) {
         .value("ParallelShifts", GFunctionFactory::ParallelShifts)
         .value("NonParallelShifts", GFunctionFactory::NonParallelShifts);
 
-    nb::enum_<VolatilityType>(m, "VolatilityType")
-        .value("ShiftedLognormal", ShiftedLognormal)
-        .value("Normal", Normal);
+    // VolatilityType is registered in bind_rates_options (needed before CMS).
 
     // SwapIndex is MI-heavy (InterestRateIndex) — opaque shared_ptr holder.
     nb::class_<SwapIndex>(m, "SwapIndex")
