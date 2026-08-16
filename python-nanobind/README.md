@@ -342,6 +342,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - Recovers Black term vol from `SwaptionTest::testCachedValue` / Phase-5 NPV
 - `SwaptionPriceType` (`Spot` / `Forward`) matches C++ `Swaption::PriceType`
 
+### Phase 71 (double / soft barrier implied volatility)
+- `DoubleBarrierOption.implied_volatility(target, process, …)` — analytic European
+- `SoftBarrierOption.implied_volatility(target, process, …)` — analytic European
+- Recovers Haug vols from Phase-25 / Phase-29 NPVs
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

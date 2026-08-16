@@ -916,7 +916,8 @@ print(opt.NPV())
 
 Standalone wrapper (no `OneAssetOption` MI hierarchy). Analytic engine covers
 KnockIn/KnockOut European vanilla payoffs. See Phase 26 for binaries, Phase 38
-for FD-Heston, and Phase 61 for Monte Carlo.
+for FD-Heston, Phase 61 for Monte Carlo, and Phase 71 for
+`implied_volatility`.
 
 ## Phase-26 double-barrier binary options
 
@@ -1032,6 +1033,7 @@ print(opt.NPV())
 
 Knock-in/out is proportional across `[barrier_lo, barrier_hi]` rather than a
 hard barrier. Analytic engine only (Haug p.165); European payoff style.
+See Phase 71 for `implied_volatility`.
 
 ## Phase-30 partial-time barrier options
 
@@ -1519,6 +1521,21 @@ vol = swaption.implied_volatility(price, curve, guess=0.10, accuracy=1e-8)
 Black (or normal) term vol matching a target spot or forward price.
 Defaults match C++ (`guess=0.10`, `vol_type=ShiftedLognormal`,
 `price_type=SwaptionPriceType.Spot`). Compat: `impliedVolatility`.
+
+## Phase-71 double / soft barrier implied volatility
+
+```python
+vol = double_barrier.implied_volatility(4.3515, dummy_process, accuracy=1e-6)
+# vol ≈ 0.15  (Haug KO call 50/150, t=0.25)
+
+vol = soft_barrier.implied_volatility(3.8075, dummy_process, accuracy=1e-6)
+# vol ≈ 0.10  (Haug DownOut L=U=95, t=0.5)
+```
+
+Analytic engines only (`AnalyticDoubleBarrierEngine` /
+`AnalyticSoftBarrierEngine`). Dummy process vol is unused (the solver
+clones and replaces it). Soft-barrier `min_vol` defaults to `1e-6`
+(zero vol can NaN the formula). Compat: `impliedVolatility`.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 
