@@ -333,6 +333,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - Cash-dividend overload uses `FdBlackScholesBarrierEngine` internally
 - Round-trips `BarrierOptionTest::testImpliedVolatility` targets
 
+### Phase 69 (cap/floor implied volatility)
+- `CapFloor.implied_volatility(target, discount_curve, guess=0.10, …)`
+- Recovers Black term vol from `CapFloorTest::testCachedValue` NPVs
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

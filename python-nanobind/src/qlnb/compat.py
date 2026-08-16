@@ -809,6 +809,10 @@ def _install_aliases() -> None:
         CapFloor.atmRate = CapFloor.atm_rate  # type: ignore[attr-defined]
         CapFloor.startDate = CapFloor.start_date  # type: ignore[attr-defined]
         CapFloor.maturityDate = CapFloor.maturity_date  # type: ignore[attr-defined]
+        if hasattr(CapFloor, "implied_volatility"):
+            CapFloor.impliedVolatility = (  # type: ignore[attr-defined]
+                CapFloor.implied_volatility
+            )
 
 
 _install_aliases()

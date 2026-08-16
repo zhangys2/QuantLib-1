@@ -268,6 +268,8 @@ cap = ql.make_cap(ql.Period(5, ql.TimeUnit.Years), ql.Euribor6M(curve), 0.07)
 cap.set_pricing_engine(curve, volatility=0.20)
 ```
 
+See Phase 69 for `CapFloor.implied_volatility`.
+
 ## Phase-5 rates options and curve helpers
 
 European swaptions and zero-coupon bonds use the same standalone-wrapper
@@ -1490,6 +1492,19 @@ barrier.set_fd_dividend_pricing_engine(process_at(vol_div), dates, amounts)
 No-dividend path uses `AnalyticBarrierEngine`; cash dividends use
 `FdBlackScholesBarrierEngine` (same as C++). Dummy process vol is unused
 (the solver clones and replaces it). Compat: `impliedVolatility`.
+
+## Phase-69 cap/floor implied volatility
+
+```python
+cap.set_pricing_engine(curve, 0.20)
+price = cap.NPV()
+vol = cap.implied_volatility(price, curve, guess=0.10, accuracy=1e-8)
+# vol ≈ 0.20
+```
+
+Black (or normal) term vol matching a target NPV. Defaults match C++
+(`guess=0.10`, `vol_type=ShiftedLognormal`). Compat: `impliedVolatility`.
+Swaption implied vol remains deferred.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 
