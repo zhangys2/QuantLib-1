@@ -1535,7 +1535,9 @@ vol = soft_barrier.implied_volatility(3.8075, dummy_process, accuracy=1e-6)
 Analytic engines only (`AnalyticDoubleBarrierEngine` /
 `AnalyticSoftBarrierEngine`). Dummy process vol is unused (the solver
 clones and replaces it). Soft-barrier `min_vol` defaults to `1e-6`
-(zero vol can NaN the formula). Compat: `impliedVolatility`.
+(zero vol can NaN the formula). Knock-out double-barrier price is not
+monotonic in vol — tighten `min_vol` / `max_vol` if the default
+bracket fails. Compat: `impliedVolatility`.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

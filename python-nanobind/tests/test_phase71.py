@@ -27,13 +27,15 @@ def _bsm_process(today: ql.Date, spot: float, q: float, r: float, vol: float):
     )
 
 
-def test_double_barrier_implied_vol_recovers_input():
+def test_double_barrier_implied_vol_knock_out_needs_tight_bracket():
     # Phase-25 Haug KO call (50/150, t=0.25, vol=0.15, NPV=4.3515).
+    # Ikeda/Kunitomo KO price is not monotonic in vol (peaks then falls
+    # to ~0 at both extremes), so C++ defaults [1e-7, 4] fail to bracket.
     today = ql.Date(15, ql.Month.May, 1998)
     ql.set_evaluation_date(today)
     maturity = today + _time_to_days(0.25)
     process = _bsm_process(today, 100.0, 0.0, 0.1, 0.15)
-    dummy = _bsm_process(today, 100.0, 0.0, 0.1, 0.0)
+    dummy = _bsm_process(today, 100.0, 0.0, 0.1, 0.20)
     opt = ql.DoubleBarrierOption(
         ql.DoubleBarrierType.KnockOut,
         50.0,
@@ -45,35 +47,14 @@ def test_double_barrier_implied_vol_recovers_input():
     opt.set_pricing_engine(process)
     price = opt.NPV()
     assert price == pytest.approx(4.3515, abs=1.0e-4)
-    impl = opt.implied_volatility(price, dummy, accuracy=1.0e-6)
+    impl = opt.implied_volatility(
+        price, dummy, accuracy=1.0e-6, min_vol=0.05, max_vol=0.50
+    )
     assert impl == pytest.approx(0.15, abs=1.0e-6)
-    priced = ql.DoubleBarrierOption(
-        ql.DoubleBarrierType.KnockOut,
-        50.0,
-        150.0,
-        0.0,
-        ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
-        ql.EuropeanExercise(maturity),
+    impl_haug = opt.implied_volatility(
+        4.3515, dummy, accuracy=1.0e-6, min_vol=0.05, max_vol=0.50
     )
-    priced.set_pricing_engine(_bsm_process(today, 100.0, 0.0, 0.1, impl))
-    assert priced.NPV() == pytest.approx(price, abs=1.0e-5)
-
-
-def test_double_barrier_implied_vol_inverts_haug_target():
-    today = ql.Date(15, ql.Month.May, 1998)
-    ql.set_evaluation_date(today)
-    maturity = today + _time_to_days(0.25)
-    dummy = _bsm_process(today, 100.0, 0.0, 0.1, 0.0)
-    opt = ql.DoubleBarrierOption(
-        ql.DoubleBarrierType.KnockOut,
-        50.0,
-        150.0,
-        0.0,
-        ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
-        ql.EuropeanExercise(maturity),
-    )
-    impl = opt.implied_volatility(4.3515, dummy, accuracy=1.0e-6)
-    assert impl == pytest.approx(0.15, abs=5.0e-4)
+    assert impl_haug == pytest.approx(0.15, abs=5.0e-4)
 
 
 def test_double_barrier_implied_vol_knock_in_round_trip():
