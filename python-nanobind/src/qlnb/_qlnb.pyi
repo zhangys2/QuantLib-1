@@ -1365,6 +1365,17 @@ class BarrierOption:
     def delta(self) -> float: ...
     def gamma(self) -> float: ...
     def vega(self) -> float: ...
+    def implied_volatility(
+        self,
+        target_price: float,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date] = ...,
+        dividend_amounts: Sequence[float] = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+    ) -> float: ...
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
     def set_binary_pricing_engine(
         self, process: BlackScholesMertonProcess
@@ -1458,6 +1469,17 @@ class BarrierOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def impliedVolatility(
+        self,
+        target_price: float,
+        process: BlackScholesMertonProcess,
+        dividend_dates: Sequence[Date] = ...,
+        dividend_amounts: Sequence[float] = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+    ) -> float: ...
 
 def FdBlackScholesBarrierEngine(
     process: BlackScholesMertonProcess,

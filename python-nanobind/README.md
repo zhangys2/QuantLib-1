@@ -328,6 +328,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BarrierOption.set_fd_pricing_engine` → `FdBlackScholesBarrierEngine` (Douglas)
 - `set_fd_dividend_pricing_engine` + `BarrierOptionTest::testDividendBarrier` goldens
 
+### Phase 68 (barrier implied volatility)
+- `BarrierOption.implied_volatility(target, process, …)` — analytic if no dividends
+- Cash-dividend overload uses `FdBlackScholesBarrierEngine` internally
+- Round-trips `BarrierOptionTest::testImpliedVolatility` targets
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
