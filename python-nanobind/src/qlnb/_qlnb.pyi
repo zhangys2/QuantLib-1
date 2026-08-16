@@ -1721,6 +1721,18 @@ class CapFloor:
         day_counter: DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
+    def implied_volatility(
+        self,
+        target_price: float,
+        discount_curve: YieldTermStructureHandle,
+        guess: float = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+        vol_type: VolatilityType = ...,
+        displacement: float = ...,
+    ) -> float: ...
 
 class BermudanExercise:
     def __init__(

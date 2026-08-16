@@ -1633,7 +1633,39 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve"),
             nb::arg("volatility"),
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
-            nb::arg("displacement") = 0.0);
+            nb::arg("displacement") = 0.0)
+        .def(
+            "implied_volatility",
+            [](const CapFloor& cf,
+               Real target_price,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility guess,
+               Real accuracy,
+               Natural max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol,
+               VolatilityType vol_type,
+               Real displacement) {
+                return cf.impliedVolatility(target_price,
+                                            discount_curve,
+                                            guess,
+                                            accuracy,
+                                            max_evaluations,
+                                            min_vol,
+                                            max_vol,
+                                            vol_type,
+                                            displacement);
+            },
+            nb::arg("target_price"),
+            nb::arg("discount_curve"),
+            nb::arg("guess") = 0.10,
+            nb::arg("accuracy") = 1.0e-4,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("min_vol") = 1.0e-7,
+            nb::arg("max_vol") = 4.0,
+            nb::arg("vol_type") = ShiftedLognormal,
+            nb::arg("displacement") = 0.0,
+            "Implied Black/normal term volatility matching a target NPV.");
 
     m.def(
         "make_cap",
