@@ -723,6 +723,10 @@ def _install_aliases() -> None:
         SoftBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
             SoftBarrierOption.set_pricing_engine
         )
+        if hasattr(SoftBarrierOption, "implied_volatility"):
+            SoftBarrierOption.impliedVolatility = (  # type: ignore[attr-defined]
+                SoftBarrierOption.implied_volatility
+            )
 
     # Phase-30 partial-time barrier aliases.
     PartialBarrierRange = getattr(_ql, "PartialBarrierRange", None)
@@ -790,6 +794,10 @@ def _install_aliases() -> None:
         DoubleBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
             DoubleBarrierOption.set_pricing_engine
         )
+        if hasattr(DoubleBarrierOption, "implied_volatility"):
+            DoubleBarrierOption.impliedVolatility = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.implied_volatility
+            )
         if hasattr(DoubleBarrierOption, "set_binary_pricing_engine"):
             DoubleBarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
                 DoubleBarrierOption.set_binary_pricing_engine

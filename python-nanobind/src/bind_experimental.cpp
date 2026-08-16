@@ -692,6 +692,31 @@ void bind_experimental(nb::module_& m) {
         .def("gamma", [](SoftBarrierOption& opt) { return opt.gamma(); })
         .def("vega", [](SoftBarrierOption& opt) { return opt.vega(); })
         .def(
+            "implied_volatility",
+            [](SoftBarrierOption& opt,
+               Real target_price,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Real accuracy,
+               Size max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol) {
+                return opt.impliedVolatility(target_price,
+                                             process,
+                                             accuracy,
+                                             max_evaluations,
+                                             min_vol,
+                                             max_vol);
+            },
+            nb::arg("target_price"),
+            nb::arg("process"),
+            nb::arg("accuracy") = 1.0e-4,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("min_vol") = 1.0e-6,
+            nb::arg("max_vol") = 4.0,
+            "Implied Black vol matching a target NPV "
+            "(AnalyticSoftBarrierEngine). min_vol defaults to 1e-6 "
+            "(zero vol can NaN the soft-barrier formula).")
+        .def(
             "set_pricing_engine",
             [](SoftBarrierOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process) {
@@ -1071,6 +1096,30 @@ void bind_experimental(nb::module_& m) {
         .def("delta", [](DoubleBarrierOption& opt) { return opt.delta(); })
         .def("gamma", [](DoubleBarrierOption& opt) { return opt.gamma(); })
         .def("vega", [](DoubleBarrierOption& opt) { return opt.vega(); })
+        .def(
+            "implied_volatility",
+            [](DoubleBarrierOption& opt,
+               Real target_price,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Real accuracy,
+               Size max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol) {
+                return opt.impliedVolatility(target_price,
+                                             process,
+                                             accuracy,
+                                             max_evaluations,
+                                             min_vol,
+                                             max_vol);
+            },
+            nb::arg("target_price"),
+            nb::arg("process"),
+            nb::arg("accuracy") = 1.0e-4,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("min_vol") = 1.0e-7,
+            nb::arg("max_vol") = 4.0,
+            "Implied Black vol matching a target NPV "
+            "(AnalyticDoubleBarrierEngine; European vanilla only).")
         .def(
             "set_pricing_engine",
             [](DoubleBarrierOption& opt,
