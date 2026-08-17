@@ -361,6 +361,7 @@ cds = ql.CreditDefaultSwap(
 )
 cds.set_pricing_engine(prob, recovery_rate=0.4, discount_curve=curve)
 print(cds.NPV(), cds.fair_spread())
+# See Phase 73 for CdsOption / BlackCdsOptionEngine.
 ```
 
 Bermudan swaptions attach a Hull–White tree engine (no Gaussian1d/LGM stack):
@@ -1556,6 +1557,24 @@ zs = bond.z_spread(px, curve, ql.Compounding.Compounded, ql.Frequency.Semiannual
 the raw C++ value (Bloomberg quotes `convexity/100`). `BondPrice` /
 `BondPriceType` now register in `bind_instruments` so yield helpers can
 take them before callable bonds load.
+
+## Phase-73 CDS option
+
+```python
+swap = ql.CreditDefaultSwap(
+    ql.ProtectionSide.Seller, notional, strike, schedule, convention, dc
+)
+swap.set_pricing_engine(prob, 0.4, curve)
+opt = ql.CdsOption(swap, ql.EuropeanExercise(expiry))
+opt.set_pricing_engine(prob, 0.4, curve, volatility=0.20)
+print(opt.NPV(), opt.risky_annuity())
+vol = opt.implied_volatility(opt.NPV(), curve, prob, 0.4)
+```
+
+Standalone wrapper (no `Option` MI hierarchy). The side of the option is
+the side of the underlying CDS. Engine assumes the exercise date equals
+the CDS start date (as in C++). Compat: `setPricingEngine`,
+`impliedVolatility`, `riskyAnnuity`.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

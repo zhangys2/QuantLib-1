@@ -268,6 +268,17 @@ def _install_aliases() -> None:
                 CreditDefaultSwap.set_isda_pricing_engine
             )
 
+    CdsOption = getattr(_ql, "CdsOption", None)
+    if CdsOption is not None:
+        CdsOption.setPricingEngine = CdsOption.set_pricing_engine  # type: ignore[attr-defined]
+        CdsOption.isExpired = CdsOption.is_expired  # type: ignore[attr-defined]
+        CdsOption.atmRate = CdsOption.atm_rate  # type: ignore[attr-defined]
+        CdsOption.riskyAnnuity = CdsOption.risky_annuity  # type: ignore[attr-defined]
+        if hasattr(CdsOption, "implied_volatility"):
+            CdsOption.impliedVolatility = (  # type: ignore[attr-defined]
+                CdsOption.implied_volatility
+            )
+
     BermudanExercise = getattr(_ql, "BermudanExercise", None)
     if BermudanExercise is not None:
         BermudanExercise.lastDate = BermudanExercise.last_date  # type: ignore[attr-defined]
