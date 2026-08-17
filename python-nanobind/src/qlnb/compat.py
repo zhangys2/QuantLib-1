@@ -809,6 +809,13 @@ def _install_aliases() -> None:
         )
         CliquetOption.isExpired = CliquetOption.is_expired  # type: ignore[attr-defined]
 
+    CompoundOption = getattr(_ql, "CompoundOption", None)
+    if CompoundOption is not None:
+        CompoundOption.setPricingEngine = (  # type: ignore[attr-defined]
+            CompoundOption.set_pricing_engine
+        )
+        CompoundOption.isExpired = CompoundOption.is_expired  # type: ignore[attr-defined]
+
     # Phase-35 forward vanilla aliases.
     ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
     if ForwardVanillaOption is not None:

@@ -358,6 +358,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `atm_rate` / `risky_annuity` / `implied_volatility`
 - Recovers `CdsOptionTests::testCached` NPV 270.976348
 
+### Phase 74 (compound option)
+- `CompoundOption` + `AnalyticCompoundOptionEngine` (Wystup / Haug)
+- Mother/daughter European vanillas; NPV, delta, gamma, vega, theta
+- Recovers Haug 2007 / sitmo goldens and put-call parity
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
