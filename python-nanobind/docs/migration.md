@@ -1576,6 +1576,22 @@ the side of the underlying CDS. Engine assumes the exercise date equals
 the CDS start date (as in C++). Compat: `setPricingEngine`,
 `impliedVolatility`, `riskyAnnuity`.
 
+## Phase-74 compound option
+
+```python
+opt = ql.CompoundOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 50.0),   # mother
+    ql.EuropeanExercise(mat_mother),
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 520.0),  # daughter
+    ql.EuropeanExercise(mat_daughter),
+)
+opt.set_pricing_engine(process)  # AnalyticCompoundOptionEngine
+print(opt.NPV(), opt.delta(), opt.theta())
+```
+
+Standalone wrapper (no `OneAssetOption` MI hierarchy). Wystup closed form
+(Haug 2007 values; greeks from sitmo). Compat: `setPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -17,6 +17,7 @@
 #include <ql/instruments/barriertype.hpp>
 #include <ql/instruments/capfloor.hpp>
 #include <ql/instruments/cliquetoption.hpp>
+#include <ql/instruments/compoundoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
 #include <ql/instruments/forwardvanillaoption.hpp>
 #include <ql/instruments/doublebarriertype.hpp>
@@ -49,6 +50,7 @@
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
+#include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
@@ -1014,6 +1016,54 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "ForwardVanillaOption.set_performance_pricing_engine.");
+
+    // --- Phase 74: compound options (standalone; OneAssetOption MI) ---------
+    nb::class_<CompoundOption>(m, "CompoundOption")
+        .def(
+            "__init__",
+            [](CompoundOption* self,
+               const PlainVanillaPayoff& mother_payoff,
+               const EuropeanExercise& mother_exercise,
+               const PlainVanillaPayoff& daughter_payoff,
+               const EuropeanExercise& daughter_exercise) {
+                new (self) CompoundOption(
+                    ext::make_shared<PlainVanillaPayoff>(mother_payoff),
+                    ext::make_shared<EuropeanExercise>(mother_exercise),
+                    ext::make_shared<PlainVanillaPayoff>(daughter_payoff),
+                    ext::make_shared<EuropeanExercise>(daughter_exercise));
+            },
+            nb::arg("mother_payoff"),
+            nb::arg("mother_exercise"),
+            nb::arg("daughter_payoff"),
+            nb::arg("daughter_exercise"),
+            "Option on option (Wystup / Haug). Mother is the compound "
+            "option; daughter is the underlying vanilla.")
+        .def("NPV", [](CompoundOption& opt) { return opt.NPV(); })
+        .def("delta", [](CompoundOption& opt) { return opt.delta(); })
+        .def("gamma", [](CompoundOption& opt) { return opt.gamma(); })
+        .def("vega", [](CompoundOption& opt) { return opt.vega(); })
+        .def("theta", [](CompoundOption& opt) { return opt.theta(); })
+        .def("is_expired", [](const CompoundOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_pricing_engine",
+            [](CompoundOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticCompoundOptionEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticCompoundOptionEngine (Wystup closed form).");
+
+    m.def(
+        "AnalyticCompoundOptionEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "CompoundOption.set_pricing_engine.");
 
     // --- Phase 25/26: double-barrier options (standalone; OneAssetOption MI)
     nb::enum_<DoubleBarrier::Type>(m, "DoubleBarrierType")
