@@ -23,6 +23,7 @@
 #include <ql/instruments/doublebarriertype.hpp>
 #include <ql/instruments/lookbackoption.hpp>
 #include <ql/instruments/makecapfloor.hpp>
+#include <ql/instruments/margrabeoption.hpp>
 #include <ql/instruments/partialtimebarrieroption.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/quantobarrieroption.hpp>
@@ -50,7 +51,9 @@
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
+#include <ql/pricingengines/exotic/analyticamericanmargrabeengine.hpp>
 #include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
+#include <ql/pricingengines/exotic/analyticeuropeanmargrabeengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
@@ -908,6 +911,103 @@ void bind_experimental(nb::module_& m) {
             nb::arg("correlation"),
             "Attach AnalyticTwoAssetCorrelationEngine from a scalar "
             "correlation.");
+
+    // --- Phase 75: Margrabe exchange options (standalone; MultiAssetOption MI)
+    nb::class_<MargrabeOption>(m, "MargrabeOption")
+        .def(
+            "__init__",
+            [](MargrabeOption* self,
+               Integer quantity1,
+               Integer quantity2,
+               const EuropeanExercise& exercise) {
+                new (self) MargrabeOption(
+                    quantity1,
+                    quantity2,
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("quantity1"),
+            nb::arg("quantity2"),
+            nb::arg("exercise"),
+            "Right to exchange quantity2 of asset 2 for quantity1 of asset 1 "
+            "(European Margrabe 1978).")
+        .def(
+            "__init__",
+            [](MargrabeOption* self,
+               Integer quantity1,
+               Integer quantity2,
+               const AmericanExercise& exercise) {
+                new (self) MargrabeOption(
+                    quantity1,
+                    quantity2,
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("quantity1"),
+            nb::arg("quantity2"),
+            nb::arg("exercise"),
+            "Right to exchange quantity2 of asset 2 for quantity1 of asset 1 "
+            "(American Margrabe / Bjerksund-Stensland reduction).")
+        .def("NPV", [](MargrabeOption& opt) { return opt.NPV(); })
+        .def("delta1", [](MargrabeOption& opt) { return opt.delta1(); })
+        .def("delta2", [](MargrabeOption& opt) { return opt.delta2(); })
+        .def("gamma1", [](MargrabeOption& opt) { return opt.gamma1(); })
+        .def("gamma2", [](MargrabeOption& opt) { return opt.gamma2(); })
+        .def("theta", [](MargrabeOption& opt) { return opt.theta(); })
+        .def("is_expired", [](const MargrabeOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_pricing_engine",
+            [](MargrabeOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticEuropeanMargrabeEngine>(
+                        process1, process2, correlation));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach AnalyticEuropeanMargrabeEngine (scalar asset correlation).")
+        .def(
+            "set_american_pricing_engine",
+            [](MargrabeOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticAmericanMargrabeEngine>(
+                        process1, process2, correlation));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach AnalyticAmericanMargrabeEngine (scalar asset correlation).");
+
+    m.def(
+        "AnalyticEuropeanMargrabeEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        "Factory alias: pass process1, process2, correlation to "
+        "MargrabeOption.set_pricing_engine.");
+    m.def(
+        "AnalyticAmericanMargrabeEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        "Factory alias: pass process1, process2, correlation to "
+        "MargrabeOption.set_american_pricing_engine.");
 
     // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
     nb::class_<CliquetOption>(m, "CliquetOption")

@@ -1717,6 +1717,66 @@ class TwoAssetCorrelationOption:
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
+class MargrabeOption:
+    @overload
+    def __init__(
+        self,
+        quantity1: int,
+        quantity2: int,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        quantity1: int,
+        quantity2: int,
+        exercise: AmericanExercise,
+    ) -> None: ...
+    def set_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def set_american_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def delta1(self) -> float: ...
+    def delta2(self) -> float: ...
+    def gamma1(self) -> float: ...
+    def gamma2(self) -> float: ...
+    def theta(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def setPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def setAmericanPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def isExpired(self) -> bool: ...
+
+def AnalyticEuropeanMargrabeEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+) -> BlackScholesMertonProcess: ...
+
+def AnalyticAmericanMargrabeEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+) -> BlackScholesMertonProcess: ...
+
 class CliquetOption:
     def __init__(
         self,
