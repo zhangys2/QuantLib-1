@@ -4,8 +4,12 @@
 #include <nanobind/stl/vector.h>
 
 #include <ql/default.hpp>
+#include <ql/exercise.hpp>
+#include <ql/experimental/credit/blackcdsoptionengine.hpp>
+#include <ql/experimental/credit/cdsoption.hpp>
 #include <ql/handle.hpp>
 #include <ql/instruments/creditdefaultswap.hpp>
+#include <ql/quotes/simplequote.hpp>
 #include <ql/math/interpolations/backwardflatinterpolation.hpp>
 #include <ql/pricingengines/credit/isdacdsengine.hpp>
 #include <ql/pricingengines/credit/midpointcdsengine.hpp>
@@ -327,4 +331,84 @@ void bind_credit(nb::module_& m) {
         nb::arg("probability"),
         "Factory alias: pass probability / recovery / discount to "
         "CreditDefaultSwap.set_isda_pricing_engine(...).");
+
+    // Phase 73: CDS option (standalone; Option is MI via Instrument).
+    nb::class_<CdsOption>(m, "CdsOption")
+        .def(
+            "__init__",
+            [](CdsOption* self,
+               const CreditDefaultSwap& swap,
+               const EuropeanExercise& exercise,
+               bool knocks_out) {
+                new (self) CdsOption(
+                    ext::make_shared<CreditDefaultSwap>(swap),
+                    ext::make_shared<EuropeanExercise>(exercise),
+                    knocks_out);
+            },
+            nb::arg("swap"),
+            nb::arg("exercise"),
+            nb::arg("knocks_out") = true)
+        .def("NPV", [](CdsOption& o) { return o.NPV(); })
+        .def("is_expired", [](const CdsOption& o) { return o.isExpired(); })
+        .def("atm_rate", [](const CdsOption& o) { return o.atmRate(); })
+        .def("risky_annuity",
+             [](const CdsOption& o) { return o.riskyAnnuity(); })
+        .def("underlying",
+             [](const CdsOption& o) { return *o.underlyingSwap(); })
+        .def(
+            "implied_volatility",
+            [](const CdsOption& o,
+               Real target_price,
+               const Handle<YieldTermStructure>& discount_curve,
+               const Handle<DefaultProbabilityTermStructure>& probability,
+               Real recovery_rate,
+               Real accuracy,
+               Size max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol) {
+                return o.impliedVolatility(target_price,
+                                           discount_curve,
+                                           probability,
+                                           recovery_rate,
+                                           accuracy,
+                                           max_evaluations,
+                                           min_vol,
+                                           max_vol);
+            },
+            nb::arg("target_price"),
+            nb::arg("discount_curve"),
+            nb::arg("probability"),
+            nb::arg("recovery_rate"),
+            nb::arg("accuracy") = 1.0e-4,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("min_vol") = 1.0e-7,
+            nb::arg("max_vol") = 4.0,
+            "Implied Black CDS-option vol matching a target NPV.")
+        .def(
+            "set_pricing_engine",
+            [](CdsOption& o,
+               const Handle<DefaultProbabilityTermStructure>& probability,
+               Real recovery_rate,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility volatility) {
+                o.setPricingEngine(ext::make_shared<BlackCdsOptionEngine>(
+                    probability,
+                    recovery_rate,
+                    discount_curve,
+                    Handle<Quote>(ext::make_shared<SimpleQuote>(volatility))));
+            },
+            nb::arg("probability"),
+            nb::arg("recovery_rate"),
+            nb::arg("discount_curve"),
+            nb::arg("volatility"),
+            "Attach BlackCdsOptionEngine.");
+
+    m.def(
+        "BlackCdsOptionEngine",
+        [](const Handle<DefaultProbabilityTermStructure>& probability) {
+            return probability;
+        },
+        nb::arg("probability"),
+        "Factory alias: pass probability / recovery / discount / vol to "
+        "CdsOption.set_pricing_engine(...).");
 }

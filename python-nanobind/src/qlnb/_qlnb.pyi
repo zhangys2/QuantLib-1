@@ -2032,6 +2032,37 @@ class CreditDefaultSwap:
         forwards_in_coupon_period: IsdaCdsForwardsInCouponPeriod = ...,
     ) -> None: ...
 
+class CdsOption:
+    def __init__(
+        self,
+        swap: CreditDefaultSwap,
+        exercise: EuropeanExercise,
+        knocks_out: bool = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def atm_rate(self) -> float: ...
+    def risky_annuity(self) -> float: ...
+    def underlying(self) -> CreditDefaultSwap: ...
+    def implied_volatility(
+        self,
+        target_price: float,
+        discount_curve: YieldTermStructureHandle,
+        probability: DefaultProbabilityTermStructureHandle,
+        recovery_rate: float,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+    ) -> float: ...
+    def set_pricing_engine(
+        self,
+        probability: DefaultProbabilityTermStructureHandle,
+        recovery_rate: float,
+        discount_curve: YieldTermStructureHandle,
+        volatility: float,
+    ) -> None: ...
+
 class Swaption:
     @overload
     def __init__(
@@ -2406,6 +2437,9 @@ def MidPointCdsEngine(
     probability: DefaultProbabilityTermStructureHandle,
 ) -> DefaultProbabilityTermStructureHandle: ...
 def IsdaCdsEngine(
+    probability: DefaultProbabilityTermStructureHandle,
+) -> DefaultProbabilityTermStructureHandle: ...
+def BlackCdsOptionEngine(
     probability: DefaultProbabilityTermStructureHandle,
 ) -> DefaultProbabilityTermStructureHandle: ...
 def TreeSwaptionEngine(model: HullWhite) -> HullWhite: ...

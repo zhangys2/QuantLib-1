@@ -353,6 +353,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `z_spread` / `clean_price_from_z_spread` vs a discount curve
 - Recovers `BondsTests::testCached` and `testThirty360BondWithSettlementOn31st`
 
+### Phase 73 (CDS option)
+- `CdsOption` + `BlackCdsOptionEngine` on a running-spread `CreditDefaultSwap`
+- `atm_rate` / `risky_annuity` / `implied_volatility`
+- Recovers `CdsOptionTests::testCached` NPV 270.976348
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
