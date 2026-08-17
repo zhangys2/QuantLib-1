@@ -113,6 +113,7 @@ bond = ql.FixedRateBond(
 )
 bond.set_pricing_engine(discount_curve)  # YieldTermStructureHandle
 npv = bond.NPV()
+# See Phase 72 for bond_yield / duration / convexity / z_spread.
 
 swap = ql.VanillaSwap(
     ql.SwapType.Payer,
@@ -1538,6 +1539,23 @@ clones and replaces it). Soft-barrier `min_vol` defaults to `1e-6`
 (zero vol can NaN the formula). Knock-out double-barrier price is not
 monotonic in vol — tighten `min_vol` / `max_vol` if the default
 bracket fails. Compat: `impliedVolatility`.
+
+## Phase-72 bond yield / duration / z-spread
+
+```python
+y = bond.bond_yield(99.203125, dc, ql.Compounding.Compounded, ql.Frequency.Semiannual)
+px = bond.clean_price(0.02925, dc, ql.Compounding.Compounded, ql.Frequency.Semiannual)
+mac = bond.duration(y, dc, ql.Compounding.Compounded, ql.Frequency.Semiannual,
+                    ql.DurationType.Macaulay, settlement)
+zs = bond.z_spread(px, curve, ql.Compounding.Compounded, ql.Frequency.Semiannual)
+```
+
+`bond_yield` is named that way because `yield` is a Python keyword
+(compat: `bondYield`). Duration / convexity / z-spread wrap
+`BondFunctions` on the existing standalone bond wrappers. Convexity is
+the raw C++ value (Bloomberg quotes `convexity/100`). `BondPrice` /
+`BondPriceType` now register in `bind_instruments` so yield helpers can
+take them before callable bonds load.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

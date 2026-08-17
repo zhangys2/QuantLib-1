@@ -156,6 +156,15 @@ def _install_aliases() -> None:
             FixedRateBond.settlement_value
         )
     FixedRateBond.setPricingEngine = FixedRateBond.set_pricing_engine  # type: ignore[attr-defined]
+    if hasattr(FixedRateBond, "bond_yield"):
+        FixedRateBond.bondYield = FixedRateBond.bond_yield  # type: ignore[attr-defined]
+        FixedRateBond.zSpread = FixedRateBond.z_spread  # type: ignore[attr-defined]
+        FixedRateBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+            FixedRateBond.clean_price_from_z_spread
+        )
+        FixedRateBond.accruedAmount = (  # type: ignore[attr-defined]
+            FixedRateBond.accrued_amount
+        )
 
     ZeroCouponBond = getattr(_ql, "ZeroCouponBond", None)
     if ZeroCouponBond is not None:
@@ -168,6 +177,15 @@ def _install_aliases() -> None:
                 ZeroCouponBond.settlement_value
             )
         ZeroCouponBond.setPricingEngine = ZeroCouponBond.set_pricing_engine  # type: ignore[attr-defined]
+        if hasattr(ZeroCouponBond, "bond_yield"):
+            ZeroCouponBond.bondYield = ZeroCouponBond.bond_yield  # type: ignore[attr-defined]
+            ZeroCouponBond.zSpread = ZeroCouponBond.z_spread  # type: ignore[attr-defined]
+            ZeroCouponBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+                ZeroCouponBond.clean_price_from_z_spread
+            )
+            ZeroCouponBond.accruedAmount = (  # type: ignore[attr-defined]
+                ZeroCouponBond.accrued_amount
+            )
 
     FloatingRateBond = getattr(_ql, "FloatingRateBond", None)
     if FloatingRateBond is not None:
@@ -182,6 +200,19 @@ def _install_aliases() -> None:
         FloatingRateBond.setPricingEngine = (  # type: ignore[attr-defined]
             FloatingRateBond.set_pricing_engine
         )
+        if hasattr(FloatingRateBond, "bond_yield"):
+            FloatingRateBond.bondYield = (  # type: ignore[attr-defined]
+                FloatingRateBond.bond_yield
+            )
+            FloatingRateBond.zSpread = (  # type: ignore[attr-defined]
+                FloatingRateBond.z_spread
+            )
+            FloatingRateBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+                FloatingRateBond.clean_price_from_z_spread
+            )
+            FloatingRateBond.accruedAmount = (  # type: ignore[attr-defined]
+                FloatingRateBond.accrued_amount
+            )
 
     VanillaSwap = _ql.VanillaSwap
     VanillaSwap.fairRate = VanillaSwap.fair_rate  # type: ignore[attr-defined]
