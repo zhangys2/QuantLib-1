@@ -363,6 +363,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - Mother/daughter European vanillas; NPV, delta, gamma, vega, theta
 - Recovers Haug 2007 / sitmo goldens and put-call parity
 
+### Phase 75 (Margrabe exchange option)
+- `MargrabeOption` + `AnalyticEuropeanMargrabeEngine` / `AnalyticAmericanMargrabeEngine`
+- Exchange Q2 of asset 2 for Q1 of asset 1; `delta1` / `delta2` / `gamma1` / `gamma2` / `theta`
+- Recovers `MargrabeOptionTests` Haug European 2.125 and American 2.1357
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

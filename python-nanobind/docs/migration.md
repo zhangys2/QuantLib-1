@@ -1592,6 +1592,23 @@ print(opt.NPV(), opt.delta(), opt.theta())
 Standalone wrapper (no `OneAssetOption` MI hierarchy). Wystup closed form
 (Haug 2007 values; greeks from sitmo). Compat: `setPricingEngine`.
 
+## Phase-75 Margrabe exchange option
+
+```python
+opt = ql.MargrabeOption(1, 1, ql.EuropeanExercise(maturity))
+opt.set_pricing_engine(process1, process2, rho=-0.50)
+print(opt.NPV(), opt.delta1(), opt.delta2())
+
+am = ql.MargrabeOption(1, 1, ql.AmericanExercise(today, maturity))
+am.set_american_pricing_engine(process1, process2, rho=-0.50)
+print(am.NPV())
+```
+
+Standalone wrapper (no `MultiAssetOption` MI hierarchy). European engine is
+Margrabe 1978; American engine reduces to Bjerksund-Stensland. Correlation is
+a scalar `Real` (not a `Handle<Quote>`). Compat: `setPricingEngine`,
+`setAmericanPricingEngine`, `isExpired`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

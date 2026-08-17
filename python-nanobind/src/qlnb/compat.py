@@ -816,6 +816,17 @@ def _install_aliases() -> None:
         )
         CompoundOption.isExpired = CompoundOption.is_expired  # type: ignore[attr-defined]
 
+    # Phase-75 Margrabe exchange-option aliases.
+    MargrabeOption = getattr(_ql, "MargrabeOption", None)
+    if MargrabeOption is not None:
+        MargrabeOption.setPricingEngine = (  # type: ignore[attr-defined]
+            MargrabeOption.set_pricing_engine
+        )
+        MargrabeOption.setAmericanPricingEngine = (  # type: ignore[attr-defined]
+            MargrabeOption.set_american_pricing_engine
+        )
+        MargrabeOption.isExpired = MargrabeOption.is_expired  # type: ignore[attr-defined]
+
     # Phase-35 forward vanilla aliases.
     ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
     if ForwardVanillaOption is not None:
