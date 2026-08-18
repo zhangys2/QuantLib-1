@@ -1632,6 +1632,20 @@ or put at `choosing_date`. Simple chooser shares strike and expiry; complex
 chooser has distinct call/put strikes and expiries. Haug goldens 6.1071 /
 6.0508. Compat: `setPricingEngine`, `isExpired`.
 
+## Phase-77 Turnbull-Wakeman arithmetic Asian
+
+```python
+opt = ql.DiscreteAveragingAsianOption(
+    ql.AverageType.Arithmetic, 0.0, 0, fixing_dates, payoff, exercise
+)
+opt.set_turnbull_wakeman_pricing_engine(process)
+print(opt.NPV(), opt.delta(), opt.gamma())
+```
+
+Moment-matching arithmetic average-price engine (Haug Table 4-28 / Clark).
+Requires `AverageType.Arithmetic`. Geometric Asians still use
+`set_pricing_engine`. Compat: `setTurnbullWakemanPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

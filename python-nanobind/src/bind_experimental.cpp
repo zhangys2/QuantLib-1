@@ -39,6 +39,7 @@
 #include <ql/quotes/simplequote.hpp>
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
 #include <ql/pricingengines/asian/analytic_discr_geom_av_price.hpp>
+#include <ql/pricingengines/asian/turnbullwakemanasianengine.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticbinarybarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticdoublebarrierbinaryengine.hpp>
@@ -259,6 +260,14 @@ void bind_experimental(nb::module_& m) {
             nb::arg("exercise"))
         .def("NPV",
              [](DiscreteAveragingAsianOption& opt) { return opt.NPV(); })
+        .def("delta",
+             [](DiscreteAveragingAsianOption& opt) { return opt.delta(); })
+        .def("gamma",
+             [](DiscreteAveragingAsianOption& opt) { return opt.gamma(); })
+        .def("is_expired",
+             [](const DiscreteAveragingAsianOption& opt) {
+                 return opt.isExpired();
+             })
         .def(
             "set_pricing_engine",
             [](DiscreteAveragingAsianOption& opt,
@@ -269,7 +278,16 @@ void bind_experimental(nb::module_& m) {
                         process));
             },
             nb::arg("process"),
-            "Attach AnalyticDiscreteGeometricAveragePriceAsianEngine.");
+            "Attach AnalyticDiscreteGeometricAveragePriceAsianEngine.")
+        .def(
+            "set_turnbull_wakeman_pricing_engine",
+            [](DiscreteAveragingAsianOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<TurnbullWakemanAsianEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach TurnbullWakemanAsianEngine (arithmetic average-price).");
 
     m.def(
         "AnalyticContinuousGeometricAveragePriceAsianEngine",
@@ -286,6 +304,15 @@ void bind_experimental(nb::module_& m) {
         },
         nb::arg("process"),
         "Factory alias for DiscreteAveragingAsianOption.set_pricing_engine.");
+
+    m.def(
+        "TurnbullWakemanAsianEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias for "
+        "DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine.");
 
     nb::class_<BarrierOption>(m, "BarrierOption")
         .def(
