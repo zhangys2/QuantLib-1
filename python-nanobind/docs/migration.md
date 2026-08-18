@@ -1646,6 +1646,22 @@ Moment-matching arithmetic average-price engine (Haug Table 4-28 / Clark).
 Requires `AverageType.Arithmetic`. Geometric Asians still use
 `set_pricing_engine`. Compat: `setTurnbullWakemanPricingEngine`.
 
+## Phase-78 Kirk spread basket
+
+```python
+opt = ql.BasketOption(
+    ql.SpreadBasketPayoff(ql.PlainVanillaPayoff(ql.OptionType.Call, 3.0)),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_kirk_pricing_engine(process1, process2, rho=-0.50)
+print(opt.NPV())
+```
+
+Standalone wrapper (no `MultiAssetOption` MI hierarchy). Kirk 1995
+approximation for a European spread on two futures. Pass processes with
+`q = r` (QuantLib `BlackProcess` cost-of-carry). Compat:
+`setKirkPricingEngine`, `isExpired`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

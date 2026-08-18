@@ -378,6 +378,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - Arithmetic average-price (Haug Table 4-28); `delta` / `gamma`
 - Recovers ATM call/put 3.2700 and ITM call 19.5152 (tol 2.5e-3)
 
+### Phase 78 (Kirk spread basket)
+- `BasketOption` + `SpreadBasketPayoff` + `KirkEngine` (Haug pp.59-60)
+- Two futures-style underlyings (`q = r`); recovers 4.7530 / 3.7970 / 2.5537
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

@@ -15,6 +15,7 @@
 #include <ql/instruments/averagetype.hpp>
 #include <ql/instruments/barrieroption.hpp>
 #include <ql/instruments/barriertype.hpp>
+#include <ql/instruments/basketoption.hpp>
 #include <ql/instruments/capfloor.hpp>
 #include <ql/instruments/cliquetoption.hpp>
 #include <ql/instruments/complexchooseroption.hpp>
@@ -51,6 +52,7 @@
 #include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
+#include <ql/pricingengines/basket/kirkengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
@@ -1126,6 +1128,62 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "ComplexChooserOption.set_pricing_engine.");
+
+    // --- Phase 78: Kirk two-asset spread basket (standalone; MultiAssetOption MI)
+    nb::class_<SpreadBasketPayoff>(m, "SpreadBasketPayoff")
+        .def(
+            "__init__",
+            [](SpreadBasketPayoff* self, const PlainVanillaPayoff& payoff) {
+                new (self) SpreadBasketPayoff(
+                    ext::make_shared<PlainVanillaPayoff>(payoff));
+            },
+            nb::arg("payoff"),
+            "Basket payoff on S1 - S2 wrapped around a vanilla call/put.");
+
+    nb::class_<BasketOption>(m, "BasketOption")
+        .def(
+            "__init__",
+            [](BasketOption* self,
+               const SpreadBasketPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<SpreadBasketPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Two-asset European spread basket (Kirk 1995).")
+        .def("NPV", [](BasketOption& opt) { return opt.NPV(); })
+        .def("is_expired", [](const BasketOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_kirk_pricing_engine",
+            [](BasketOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<KirkEngine>(
+                        process1, process2, correlation));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach KirkEngine (futures-style spread; use q = r).");
+
+    m.def(
+        "KirkEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        "Factory alias: pass process1, process2, correlation to "
+        "BasketOption.set_kirk_pricing_engine.");
 
     // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
     nb::class_<CliquetOption>(m, "CliquetOption")
