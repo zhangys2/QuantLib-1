@@ -373,6 +373,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `ComplexChooserOption` + `AnalyticComplexChooserEngine` (Haug 6.0508)
 - Choose call vs put at a future date; simple shares strike/expiry, complex does not
 
+### Phase 77 (Turnbull-Wakeman arithmetic Asian)
+- `DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine`
+- Arithmetic average-price (Haug Table 4-28); `delta` / `gamma`
+- Recovers ATM call/put 3.2700 and ITM call 19.5152 (tol 2.5e-3)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

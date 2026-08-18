@@ -958,6 +958,14 @@ if DiscreteAveragingAsianOption is not None:
     DiscreteAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
         DiscreteAveragingAsianOption.set_pricing_engine
     )
+    if hasattr(DiscreteAveragingAsianOption, "set_turnbull_wakeman_pricing_engine"):
+        DiscreteAveragingAsianOption.setTurnbullWakemanPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine
+        )
+    if hasattr(DiscreteAveragingAsianOption, "is_expired"):
+        DiscreteAveragingAsianOption.isExpired = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.is_expired
+        )
 
 # Phase-10 CMS / SwapIndex aliases.
 EuriborSwapIsdaFixA = getattr(_ql, "EuriborSwapIsdaFixA", None)
