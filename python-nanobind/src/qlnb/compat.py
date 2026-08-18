@@ -827,6 +827,20 @@ def _install_aliases() -> None:
         )
         MargrabeOption.isExpired = MargrabeOption.is_expired  # type: ignore[attr-defined]
 
+    # Phase-76 simple / complex chooser aliases.
+    SimpleChooserOption = getattr(_ql, "SimpleChooserOption", None)
+    if SimpleChooserOption is not None:
+        SimpleChooserOption.setPricingEngine = (  # type: ignore[attr-defined]
+            SimpleChooserOption.set_pricing_engine
+        )
+        SimpleChooserOption.isExpired = SimpleChooserOption.is_expired  # type: ignore[attr-defined]
+    ComplexChooserOption = getattr(_ql, "ComplexChooserOption", None)
+    if ComplexChooserOption is not None:
+        ComplexChooserOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ComplexChooserOption.set_pricing_engine
+        )
+        ComplexChooserOption.isExpired = ComplexChooserOption.is_expired  # type: ignore[attr-defined]
+
     # Phase-35 forward vanilla aliases.
     ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
     if ForwardVanillaOption is not None:

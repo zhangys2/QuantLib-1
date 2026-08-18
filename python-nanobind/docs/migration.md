@@ -1609,6 +1609,29 @@ Margrabe 1978; American engine reduces to Bjerksund-Stensland. Correlation is
 a scalar `Real` (not a `Handle<Quote>`). Compat: `setPricingEngine`,
 `setAmericanPricingEngine`, `isExpired`.
 
+## Phase-76 chooser options
+
+```python
+simple = ql.SimpleChooserOption(
+    choosing_date, 50.0, ql.EuropeanExercise(maturity)
+)
+simple.set_pricing_engine(process)  # AnalyticSimpleChooserEngine
+
+complex_opt = ql.ComplexChooserOption(
+    choosing_date,
+    55.0,
+    48.0,
+    ql.EuropeanExercise(call_maturity),
+    ql.EuropeanExercise(put_maturity),
+)
+complex_opt.set_pricing_engine(process)  # AnalyticComplexChooserEngine
+```
+
+Standalone wrappers (no `OneAssetOption` MI hierarchy). Holder chooses call
+or put at `choosing_date`. Simple chooser shares strike and expiry; complex
+chooser has distinct call/put strikes and expiries. Haug goldens 6.1071 /
+6.0508. Compat: `setPricingEngine`, `isExpired`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -17,6 +17,7 @@
 #include <ql/instruments/barriertype.hpp>
 #include <ql/instruments/capfloor.hpp>
 #include <ql/instruments/cliquetoption.hpp>
+#include <ql/instruments/complexchooseroption.hpp>
 #include <ql/instruments/compoundoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
 #include <ql/instruments/forwardvanillaoption.hpp>
@@ -25,6 +26,7 @@
 #include <ql/instruments/makecapfloor.hpp>
 #include <ql/instruments/margrabeoption.hpp>
 #include <ql/instruments/partialtimebarrieroption.hpp>
+#include <ql/instruments/simplechooseroption.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/quantobarrieroption.hpp>
 #include <ql/experimental/barrieroption/mcdoublebarrierengine.hpp>
@@ -52,8 +54,10 @@
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/exotic/analyticamericanmargrabeengine.hpp>
+#include <ql/pricingengines/exotic/analyticcomplexchooserengine.hpp>
 #include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
 #include <ql/pricingengines/exotic/analyticeuropeanmargrabeengine.hpp>
+#include <ql/pricingengines/exotic/analyticsimplechooserengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
@@ -1008,6 +1012,93 @@ void bind_experimental(nb::module_& m) {
         nb::arg("correlation"),
         "Factory alias: pass process1, process2, correlation to "
         "MargrabeOption.set_american_pricing_engine.");
+
+    // --- Phase 76: simple / complex chooser options (standalone; OneAssetOption MI)
+    nb::class_<SimpleChooserOption>(m, "SimpleChooserOption")
+        .def(
+            "__init__",
+            [](SimpleChooserOption* self,
+               const Date& choosing_date,
+               Real strike,
+               const EuropeanExercise& exercise) {
+                new (self) SimpleChooserOption(
+                    choosing_date,
+                    strike,
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("choosing_date"),
+            nb::arg("strike"),
+            nb::arg("exercise"),
+            "At choosing_date the holder picks call or put; same strike and "
+            "European expiry for both (Haug pp.39-40).")
+        .def("NPV", [](SimpleChooserOption& opt) { return opt.NPV(); })
+        .def("is_expired", [](const SimpleChooserOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_pricing_engine",
+            [](SimpleChooserOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticSimpleChooserEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticSimpleChooserEngine.");
+
+    m.def(
+        "AnalyticSimpleChooserEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "SimpleChooserOption.set_pricing_engine.");
+
+    nb::class_<ComplexChooserOption>(m, "ComplexChooserOption")
+        .def(
+            "__init__",
+            [](ComplexChooserOption* self,
+               const Date& choosing_date,
+               Real strike_call,
+               Real strike_put,
+               const EuropeanExercise& call_exercise,
+               const EuropeanExercise& put_exercise) {
+                new (self) ComplexChooserOption(
+                    choosing_date,
+                    strike_call,
+                    strike_put,
+                    ext::make_shared<EuropeanExercise>(call_exercise),
+                    ext::make_shared<EuropeanExercise>(put_exercise));
+            },
+            nb::arg("choosing_date"),
+            nb::arg("strike_call"),
+            nb::arg("strike_put"),
+            nb::arg("call_exercise"),
+            nb::arg("put_exercise"),
+            "At choosing_date the holder picks a call or put with distinct "
+            "strikes and European expiries (Haug).")
+        .def("NPV", [](ComplexChooserOption& opt) { return opt.NPV(); })
+        .def("is_expired", [](const ComplexChooserOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_pricing_engine",
+            [](ComplexChooserOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticComplexChooserEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticComplexChooserEngine.");
+
+    m.def(
+        "AnalyticComplexChooserEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "ComplexChooserOption.set_pricing_engine.");
 
     // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
     nb::class_<CliquetOption>(m, "CliquetOption")
