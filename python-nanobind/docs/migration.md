@@ -1681,6 +1681,23 @@ mx.set_stulz_pricing_engine(process1, process2, rho=0.90)
 Stulz 1982 closed form for a European option on the min or max of two
 assets. Compat: `setStulzPricingEngine`.
 
+## Phase-80 variance swap
+
+```python
+vs = ql.VarianceSwap(
+    ql.Position.Long, 0.04, 50000.0, today, maturity
+)
+vs.set_replicating_pricing_engine(
+    process, call_strikes, put_strikes, dk=5.0
+)
+print(vs.variance(), vs.NPV())
+```
+
+Unseasoned forward variance swap. Replicating engine uses a strip of
+vanillas on a `BlackVarianceSurface` smile (Derman, Kamal & Zou 1999).
+Compat: `setReplicatingPricingEngine`, `isExpired`, `startDate`,
+`maturityDate`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

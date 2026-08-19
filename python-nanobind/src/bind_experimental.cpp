@@ -35,6 +35,7 @@
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/instruments/twoassetcorrelationoption.hpp>
+#include <ql/instruments/varianceswap.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -56,6 +57,7 @@
 #include <ql/pricingengines/basket/stulzengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
+#include <ql/termstructures/volatility/equityfx/blackvariancesurface.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/exotic/analyticamericanmargrabeengine.hpp>
 #include <ql/pricingengines/exotic/analyticcomplexchooserengine.hpp>
@@ -63,6 +65,7 @@
 #include <ql/pricingengines/exotic/analyticeuropeanmargrabeengine.hpp>
 #include <ql/pricingengines/exotic/analyticsimplechooserengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
+#include <ql/pricingengines/forward/replicatingvarianceswapengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
@@ -75,6 +78,7 @@
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
+#include <ql/time/calendar.hpp>
 #include <ql/time/daycounter.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
 #include <ql/time/period.hpp>
@@ -1255,6 +1259,100 @@ void bind_experimental(nb::module_& m) {
         nb::arg("correlation"),
         "Factory alias: pass process1, process2, correlation to "
         "BasketOption.set_stulz_pricing_engine.");
+
+    // --- Phase 80: variance swap (standalone Instrument; replicating engine)
+    m.def(
+        "BlackVarianceSurface",
+        [](const Date& reference_date,
+           const Calendar& calendar,
+           const std::vector<Date>& dates,
+           const std::vector<Real>& strikes,
+           const Matrix& black_vol_matrix,
+           const DayCounter& day_counter) {
+            return Handle<BlackVolTermStructure>(
+                ext::make_shared<BlackVarianceSurface>(
+                    reference_date,
+                    calendar,
+                    dates,
+                    strikes,
+                    black_vol_matrix,
+                    day_counter));
+        },
+        nb::arg("reference_date"),
+        nb::arg("calendar"),
+        nb::arg("dates"),
+        nb::arg("strikes"),
+        nb::arg("black_vol_matrix"),
+        nb::arg("day_counter"),
+        "Black variance surface handle (strike/expiry interpolated).");
+
+    nb::class_<VarianceSwap>(m, "VarianceSwap")
+        .def(
+            "__init__",
+            [](VarianceSwap* self,
+               Position::Type position,
+               Real strike,
+               Real notional,
+               const Date& start_date,
+               const Date& maturity_date) {
+                new (self) VarianceSwap(
+                    position, strike, notional, start_date, maturity_date);
+            },
+            nb::arg("position"),
+            nb::arg("strike"),
+            nb::arg("notional"),
+            nb::arg("start_date"),
+            nb::arg("maturity_date"),
+            "Forward variance swap (unseasoned). Strike is a variance level.")
+        .def("NPV", [](VarianceSwap& swap) { return swap.NPV(); })
+        .def("variance", [](VarianceSwap& swap) { return swap.variance(); })
+        .def("is_expired", [](const VarianceSwap& swap) {
+            return swap.isExpired();
+        })
+        .def("strike", [](const VarianceSwap& swap) { return swap.strike(); })
+        .def("notional", [](const VarianceSwap& swap) {
+            return swap.notional();
+        })
+        .def("position", [](const VarianceSwap& swap) {
+            return swap.position();
+        })
+        .def("start_date", [](const VarianceSwap& swap) {
+            return swap.startDate();
+        })
+        .def("maturity_date", [](const VarianceSwap& swap) {
+            return swap.maturityDate();
+        })
+        .def(
+            "set_replicating_pricing_engine",
+            [](VarianceSwap& swap,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const std::vector<Real>& call_strikes,
+               const std::vector<Real>& put_strikes,
+               Real dk) {
+                swap.setPricingEngine(
+                    ext::make_shared<ReplicatingVarianceSwapEngine>(
+                        process, dk, call_strikes, put_strikes));
+            },
+            nb::arg("process"),
+            nb::arg("call_strikes"),
+            nb::arg("put_strikes"),
+            nb::arg("dk") = 5.0,
+            "Attach ReplicatingVarianceSwapEngine (Demeterfi–Derman–Kamal–Zou).");
+
+    m.def(
+        "ReplicatingVarianceSwapEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process,
+           const std::vector<Real>& /*call_strikes*/,
+           const std::vector<Real>& /*put_strikes*/,
+           Real /*dk*/) {
+            return process;
+        },
+        nb::arg("process"),
+        nb::arg("call_strikes"),
+        nb::arg("put_strikes"),
+        nb::arg("dk") = 5.0,
+        "Factory alias: pass args to "
+        "VarianceSwap.set_replicating_pricing_engine.");
 
     // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
     nb::class_<CliquetOption>(m, "CliquetOption")

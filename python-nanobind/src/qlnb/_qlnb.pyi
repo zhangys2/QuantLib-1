@@ -1875,6 +1875,57 @@ def StulzEngine(
     correlation: float,
 ) -> BlackScholesMertonProcess: ...
 
+def BlackVarianceSurface(
+    reference_date: Date,
+    calendar: Calendar,
+    dates: Sequence[Date],
+    strikes: Sequence[float],
+    black_vol_matrix: Matrix,
+    day_counter: DayCounter,
+) -> BlackVolTermStructureHandle: ...
+
+class VarianceSwap:
+    def __init__(
+        self,
+        position: Position,
+        strike: float,
+        notional: float,
+        start_date: Date,
+        maturity_date: Date,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def variance(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def strike(self) -> float: ...
+    def notional(self) -> float: ...
+    def position(self) -> Position: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def set_replicating_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        call_strikes: Sequence[float],
+        put_strikes: Sequence[float],
+        dk: float = ...,
+    ) -> None: ...
+    def setReplicatingPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        call_strikes: Sequence[float],
+        put_strikes: Sequence[float],
+        dk: float = ...,
+    ) -> None: ...
+    def isExpired(self) -> bool: ...
+    def startDate(self) -> Date: ...
+    def maturityDate(self) -> Date: ...
+
+def ReplicatingVarianceSwapEngine(
+    process: BlackScholesMertonProcess,
+    call_strikes: Sequence[float],
+    put_strikes: Sequence[float],
+    dk: float = ...,
+) -> BlackScholesMertonProcess: ...
+
 class CliquetOption:
     def __init__(
         self,
