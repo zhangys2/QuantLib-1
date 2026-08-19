@@ -841,6 +841,17 @@ def _install_aliases() -> None:
         )
         ComplexChooserOption.isExpired = ComplexChooserOption.is_expired  # type: ignore[attr-defined]
 
+    # Phase-78 Kirk spread-basket aliases.
+    SpreadBasketPayoff = getattr(_ql, "SpreadBasketPayoff", None)
+    BasketOption = getattr(_ql, "BasketOption", None)
+    if BasketOption is not None:
+        if hasattr(BasketOption, "set_kirk_pricing_engine"):
+            BasketOption.setKirkPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_kirk_pricing_engine
+            )
+        if hasattr(BasketOption, "is_expired"):
+            BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
+
     # Phase-35 forward vanilla aliases.
     ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
     if ForwardVanillaOption is not None:

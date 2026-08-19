@@ -1813,6 +1813,35 @@ def AnalyticComplexChooserEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 
+class SpreadBasketPayoff:
+    def __init__(self, payoff: PlainVanillaPayoff) -> None: ...
+
+class BasketOption:
+    def __init__(
+        self, payoff: SpreadBasketPayoff, exercise: EuropeanExercise
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def set_kirk_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def setKirkPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def isExpired(self) -> bool: ...
+
+def KirkEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+) -> BlackScholesMertonProcess: ...
+
 class CliquetOption:
     def __init__(
         self,
