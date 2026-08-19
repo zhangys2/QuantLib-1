@@ -382,6 +382,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BasketOption` + `SpreadBasketPayoff` + `KirkEngine` (Haug pp.59-60)
 - Two futures-style underlyings (`q = r`); recovers 4.7530 / 3.7970 / 2.5537
 
+### Phase 79 (Stulz min/max basket)
+- `MinBasketPayoff` / `MaxBasketPayoff` + `StulzEngine` (Stulz 1982)
+- Recovers Firth/Haug two-asset min call 10.898 and max call 17.565
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

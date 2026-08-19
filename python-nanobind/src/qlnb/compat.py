@@ -841,13 +841,19 @@ def _install_aliases() -> None:
         )
         ComplexChooserOption.isExpired = ComplexChooserOption.is_expired  # type: ignore[attr-defined]
 
-    # Phase-78 Kirk spread-basket aliases.
+    # Phase-78 Kirk / Phase-79 Stulz basket aliases.
     SpreadBasketPayoff = getattr(_ql, "SpreadBasketPayoff", None)
+    MinBasketPayoff = getattr(_ql, "MinBasketPayoff", None)
+    MaxBasketPayoff = getattr(_ql, "MaxBasketPayoff", None)
     BasketOption = getattr(_ql, "BasketOption", None)
     if BasketOption is not None:
         if hasattr(BasketOption, "set_kirk_pricing_engine"):
             BasketOption.setKirkPricingEngine = (  # type: ignore[attr-defined]
                 BasketOption.set_kirk_pricing_engine
+            )
+        if hasattr(BasketOption, "set_stulz_pricing_engine"):
+            BasketOption.setStulzPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_stulz_pricing_engine
             )
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]

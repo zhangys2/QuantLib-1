@@ -53,6 +53,7 @@
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
 #include <ql/pricingengines/basket/kirkengine.hpp>
+#include <ql/pricingengines/basket/stulzengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
@@ -1140,6 +1141,26 @@ void bind_experimental(nb::module_& m) {
             nb::arg("payoff"),
             "Basket payoff on S1 - S2 wrapped around a vanilla call/put.");
 
+    nb::class_<MinBasketPayoff>(m, "MinBasketPayoff")
+        .def(
+            "__init__",
+            [](MinBasketPayoff* self, const PlainVanillaPayoff& payoff) {
+                new (self) MinBasketPayoff(
+                    ext::make_shared<PlainVanillaPayoff>(payoff));
+            },
+            nb::arg("payoff"),
+            "Basket payoff on min(S1, S2) wrapped around a vanilla call/put.");
+
+    nb::class_<MaxBasketPayoff>(m, "MaxBasketPayoff")
+        .def(
+            "__init__",
+            [](MaxBasketPayoff* self, const PlainVanillaPayoff& payoff) {
+                new (self) MaxBasketPayoff(
+                    ext::make_shared<PlainVanillaPayoff>(payoff));
+            },
+            nb::arg("payoff"),
+            "Basket payoff on max(S1, S2) wrapped around a vanilla call/put.");
+
     nb::class_<BasketOption>(m, "BasketOption")
         .def(
             "__init__",
@@ -1153,6 +1174,30 @@ void bind_experimental(nb::module_& m) {
             nb::arg("payoff"),
             nb::arg("exercise"),
             "Two-asset European spread basket (Kirk 1995).")
+        .def(
+            "__init__",
+            [](BasketOption* self,
+               const MinBasketPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<MinBasketPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Two-asset European min basket (Stulz 1982).")
+        .def(
+            "__init__",
+            [](BasketOption* self,
+               const MaxBasketPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<MaxBasketPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Two-asset European max basket (Stulz 1982).")
         .def("NPV", [](BasketOption& opt) { return opt.NPV(); })
         .def("is_expired", [](const BasketOption& opt) {
             return opt.isExpired();
@@ -1170,7 +1215,21 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process1"),
             nb::arg("process2"),
             nb::arg("correlation"),
-            "Attach KirkEngine (futures-style spread; use q = r).");
+            "Attach KirkEngine (futures-style spread; use q = r).")
+        .def(
+            "set_stulz_pricing_engine",
+            [](BasketOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<StulzEngine>(
+                        process1, process2, correlation));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach StulzEngine (min/max of two assets).");
 
     m.def(
         "KirkEngine",
@@ -1184,6 +1243,18 @@ void bind_experimental(nb::module_& m) {
         nb::arg("correlation"),
         "Factory alias: pass process1, process2, correlation to "
         "BasketOption.set_kirk_pricing_engine.");
+    m.def(
+        "StulzEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        "Factory alias: pass process1, process2, correlation to "
+        "BasketOption.set_stulz_pricing_engine.");
 
     // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
     nb::class_<CliquetOption>(m, "CliquetOption")
