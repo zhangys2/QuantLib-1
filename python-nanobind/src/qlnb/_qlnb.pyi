@@ -1816,13 +1816,34 @@ def AnalyticComplexChooserEngine(
 class SpreadBasketPayoff:
     def __init__(self, payoff: PlainVanillaPayoff) -> None: ...
 
+class MinBasketPayoff:
+    def __init__(self, payoff: PlainVanillaPayoff) -> None: ...
+
+class MaxBasketPayoff:
+    def __init__(self, payoff: PlainVanillaPayoff) -> None: ...
+
 class BasketOption:
+    @overload
     def __init__(
         self, payoff: SpreadBasketPayoff, exercise: EuropeanExercise
+    ) -> None: ...
+    @overload
+    def __init__(
+        self, payoff: MinBasketPayoff, exercise: EuropeanExercise
+    ) -> None: ...
+    @overload
+    def __init__(
+        self, payoff: MaxBasketPayoff, exercise: EuropeanExercise
     ) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
     def set_kirk_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def set_stulz_pricing_engine(
         self,
         process1: BlackScholesMertonProcess,
         process2: BlackScholesMertonProcess,
@@ -1834,9 +1855,21 @@ class BasketOption:
         process2: BlackScholesMertonProcess,
         correlation: float,
     ) -> None: ...
+    def setStulzPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
     def isExpired(self) -> bool: ...
 
 def KirkEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+) -> BlackScholesMertonProcess: ...
+
+def StulzEngine(
     process1: BlackScholesMertonProcess,
     process2: BlackScholesMertonProcess,
     correlation: float,

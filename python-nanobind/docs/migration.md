@@ -1662,6 +1662,25 @@ approximation for a European spread on two futures. Pass processes with
 `q = r` (QuantLib `BlackProcess` cost-of-carry). Compat:
 `setKirkPricingEngine`, `isExpired`.
 
+## Phase-79 Stulz min/max basket
+
+```python
+mn = ql.BasketOption(
+    ql.MinBasketPayoff(ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0)),
+    ql.EuropeanExercise(maturity),
+)
+mn.set_stulz_pricing_engine(process1, process2, rho=0.90)
+
+mx = ql.BasketOption(
+    ql.MaxBasketPayoff(ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0)),
+    ql.EuropeanExercise(maturity),
+)
+mx.set_stulz_pricing_engine(process1, process2, rho=0.90)
+```
+
+Stulz 1982 closed form for a European option on the min or max of two
+assets. Compat: `setStulzPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
