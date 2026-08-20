@@ -1715,6 +1715,27 @@ Monte Carlo fair variance on a `BlackVarianceCurve` (the C++ suite notes
 `BlackVarianceSurface` is unreliable for this check). Defaults match the
 suite: 250 steps/year, 1023 samples, seed 42. Compat: `setMcPricingEngine`.
 
+## Phase-82 Choi average basket
+
+```python
+opt = ql.BasketOption(
+    ql.AverageBasketPayoff(
+        ql.PlainVanillaPayoff(ql.OptionType.Put, 20.0),
+        [1.0, -2.0, -1.0, 4.0],
+    ),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_choi_pricing_engine(
+    processes, rho, integration_lambda=7.0,
+    max_nr_integration_steps=10000,
+    calc_fwd_delta=True, control_variate=True,
+)
+print(opt.NPV())
+```
+
+Weighted-sum basket (weights may be negative). Choi 2018 closed-form /
+quadrature engine. `rho` is a `Matrix`. Compat: `setChoiPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

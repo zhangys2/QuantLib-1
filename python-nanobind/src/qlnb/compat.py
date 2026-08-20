@@ -855,6 +855,10 @@ def _install_aliases() -> None:
             BasketOption.setStulzPricingEngine = (  # type: ignore[attr-defined]
                 BasketOption.set_stulz_pricing_engine
             )
+        if hasattr(BasketOption, "set_choi_pricing_engine"):
+            BasketOption.setChoiPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_choi_pricing_engine
+            )
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
 

@@ -1822,6 +1822,11 @@ class MinBasketPayoff:
 class MaxBasketPayoff:
     def __init__(self, payoff: PlainVanillaPayoff) -> None: ...
 
+class AverageBasketPayoff:
+    def __init__(
+        self, payoff: PlainVanillaPayoff, weights: Sequence[float]
+    ) -> None: ...
+
 class BasketOption:
     @overload
     def __init__(
@@ -1834,6 +1839,10 @@ class BasketOption:
     @overload
     def __init__(
         self, payoff: MaxBasketPayoff, exercise: EuropeanExercise
+    ) -> None: ...
+    @overload
+    def __init__(
+        self, payoff: AverageBasketPayoff, exercise: EuropeanExercise
     ) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
@@ -1849,6 +1858,15 @@ class BasketOption:
         process2: BlackScholesMertonProcess,
         correlation: float,
     ) -> None: ...
+    def set_choi_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        integration_lambda: float = ...,
+        max_nr_integration_steps: int | None = ...,
+        calc_fwd_delta: bool = ...,
+        control_variate: bool = ...,
+    ) -> None: ...
     def setKirkPricingEngine(
         self,
         process1: BlackScholesMertonProcess,
@@ -1860,6 +1878,15 @@ class BasketOption:
         process1: BlackScholesMertonProcess,
         process2: BlackScholesMertonProcess,
         correlation: float,
+    ) -> None: ...
+    def setChoiPricingEngine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        integration_lambda: float = ...,
+        max_nr_integration_steps: int | None = ...,
+        calc_fwd_delta: bool = ...,
+        control_variate: bool = ...,
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
@@ -1873,6 +1900,15 @@ def StulzEngine(
     process1: BlackScholesMertonProcess,
     process2: BlackScholesMertonProcess,
     correlation: float,
+) -> BlackScholesMertonProcess: ...
+
+def ChoiBasketEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+    rho: Matrix,
+    integration_lambda: float = ...,
+    max_nr_integration_steps: int | None = ...,
+    calc_fwd_delta: bool = ...,
+    control_variate: bool = ...,
 ) -> BlackScholesMertonProcess: ...
 
 def BlackVarianceSurface(

@@ -4,6 +4,7 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
 
+#include <limits>
 #include <optional>
 
 #include <ql/cashflows/dividend.hpp>
@@ -53,6 +54,7 @@
 #include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
+#include <ql/pricingengines/basket/choibasketengine.hpp>
 #include <ql/pricingengines/basket/kirkengine.hpp>
 #include <ql/pricingengines/basket/stulzengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
@@ -89,6 +91,15 @@
 using namespace QuantLib;
 
 namespace {
+
+std::vector<ext::shared_ptr<GeneralizedBlackScholesProcess>> to_gbs_processes(
+    const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>& processes) {
+    std::vector<ext::shared_ptr<GeneralizedBlackScholesProcess>> out;
+    out.reserve(processes.size());
+    for (const auto& p : processes)
+        out.push_back(p);
+    return out;
+}
 
 template <class Option>
 void attach_mc_lookback_engine(
@@ -1136,7 +1147,7 @@ void bind_experimental(nb::module_& m) {
         "Factory alias: pass the returned process to "
         "ComplexChooserOption.set_pricing_engine.");
 
-    // --- Phase 78: Kirk two-asset spread basket (standalone; MultiAssetOption MI)
+    // --- Phase 78/79/82: basket options (standalone; MultiAssetOption MI)
     nb::class_<SpreadBasketPayoff>(m, "SpreadBasketPayoff")
         .def(
             "__init__",
@@ -1166,6 +1177,20 @@ void bind_experimental(nb::module_& m) {
             },
             nb::arg("payoff"),
             "Basket payoff on max(S1, S2) wrapped around a vanilla call/put.");
+
+    nb::class_<AverageBasketPayoff>(m, "AverageBasketPayoff")
+        .def(
+            "__init__",
+            [](AverageBasketPayoff* self,
+               const PlainVanillaPayoff& payoff,
+               const std::vector<Real>& weights) {
+                new (self) AverageBasketPayoff(
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    Array(weights.begin(), weights.end()));
+            },
+            nb::arg("payoff"),
+            nb::arg("weights"),
+            "Weighted-sum basket payoff (weights may be negative).");
 
     nb::class_<BasketOption>(m, "BasketOption")
         .def(
@@ -1204,6 +1229,18 @@ void bind_experimental(nb::module_& m) {
             nb::arg("payoff"),
             nb::arg("exercise"),
             "Two-asset European max basket (Stulz 1982).")
+        .def(
+            "__init__",
+            [](BasketOption* self,
+               const AverageBasketPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<AverageBasketPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "European weighted-sum basket (Choi 2018).")
         .def("NPV", [](BasketOption& opt) { return opt.NPV(); })
         .def("is_expired", [](const BasketOption& opt) {
             return opt.isExpired();
@@ -1235,7 +1272,36 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process1"),
             nb::arg("process2"),
             nb::arg("correlation"),
-            "Attach StulzEngine (min/max of two assets).");
+            "Attach StulzEngine (min/max of two assets).")
+        .def(
+            "set_choi_pricing_engine",
+            [](BasketOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho,
+               Real integration_lambda,
+               std::optional<Size> max_nr_integration_steps,
+               bool calc_fwd_delta,
+               bool control_variate) {
+                const Size max_steps =
+                    max_nr_integration_steps.value_or(
+                        std::numeric_limits<Size>::max());
+                opt.setPricingEngine(
+                    ext::make_shared<ChoiBasketEngine>(
+                        to_gbs_processes(processes),
+                        rho,
+                        integration_lambda,
+                        max_steps,
+                        calc_fwd_delta,
+                        control_variate));
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            nb::arg("integration_lambda") = 10.0,
+            nb::arg("max_nr_integration_steps") = nb::none(),
+            nb::arg("calc_fwd_delta") = false,
+            nb::arg("control_variate") = false,
+            "Attach ChoiBasketEngine (weighted-sum basket, Choi 2018).");
 
     m.def(
         "KirkEngine",
@@ -1261,6 +1327,26 @@ void bind_experimental(nb::module_& m) {
         nb::arg("correlation"),
         "Factory alias: pass process1, process2, correlation to "
         "BasketOption.set_stulz_pricing_engine.");
+    m.def(
+        "ChoiBasketEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/,
+           Real /*integration_lambda*/,
+           std::optional<Size> /*max_nr_integration_steps*/,
+           bool /*calc_fwd_delta*/,
+           bool /*control_variate*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        nb::arg("integration_lambda") = 10.0,
+        nb::arg("max_nr_integration_steps") = nb::none(),
+        nb::arg("calc_fwd_delta") = false,
+        nb::arg("control_variate") = false,
+        "Factory alias: pass args to "
+        "BasketOption.set_choi_pricing_engine.");
 
     // --- Phase 80/81: variance swap (standalone Instrument; replicating + MC)
     m.def(
