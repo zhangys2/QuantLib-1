@@ -57,7 +57,9 @@
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
 #include <ql/pricingengines/basket/choibasketengine.hpp>
+#include <ql/pricingengines/basket/denglizhoubasketengine.hpp>
 #include <ql/pricingengines/basket/kirkengine.hpp>
+#include <ql/pricingengines/basket/singlefactorbsmbasketengine.hpp>
 #include <ql/pricingengines/basket/stulzengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
@@ -1246,7 +1248,7 @@ void bind_experimental(nb::module_& m) {
         "Factory alias: pass the returned process to "
         "WriterExtensibleOption.set_pricing_engine.");
 
-    // --- Phase 78/79/82: basket options (standalone; MultiAssetOption MI)
+    // --- Phase 78/79/82/84: basket options (standalone; MultiAssetOption MI)
     nb::class_<SpreadBasketPayoff>(m, "SpreadBasketPayoff")
         .def(
             "__init__",
@@ -1400,7 +1402,31 @@ void bind_experimental(nb::module_& m) {
             nb::arg("max_nr_integration_steps") = nb::none(),
             nb::arg("calc_fwd_delta") = false,
             nb::arg("control_variate") = false,
-            "Attach ChoiBasketEngine (weighted-sum basket, Choi 2018).");
+            "Attach ChoiBasketEngine (weighted-sum basket, Choi 2018).")
+        .def(
+            "set_single_factor_pricing_engine",
+            [](BasketOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes) {
+                opt.setPricingEngine(
+                    ext::make_shared<SingleFactorBsmBasketEngine>(
+                        to_gbs_processes(processes)));
+            },
+            nb::arg("processes"),
+            "Attach SingleFactorBsmBasketEngine (one stochastic factor).")
+        .def(
+            "set_deng_li_zhou_pricing_engine",
+            [](BasketOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho) {
+                opt.setPricingEngine(
+                    ext::make_shared<DengLiZhouBasketEngine>(
+                        to_gbs_processes(processes), rho));
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            "Attach DengLiZhouBasketEngine (spread/basket closed form).");
 
     m.def(
         "KirkEngine",
@@ -1446,6 +1472,28 @@ void bind_experimental(nb::module_& m) {
         nb::arg("control_variate") = false,
         "Factory alias: pass args to "
         "BasketOption.set_choi_pricing_engine.");
+    m.def(
+        "SingleFactorBsmBasketEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        "Factory alias: pass args to "
+        "BasketOption.set_single_factor_pricing_engine.");
+    m.def(
+        "DengLiZhouBasketEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        "Factory alias: pass args to "
+        "BasketOption.set_deng_li_zhou_pricing_engine.");
 
     // --- Phase 80/81: variance swap (standalone Instrument; replicating + MC)
     m.def(
