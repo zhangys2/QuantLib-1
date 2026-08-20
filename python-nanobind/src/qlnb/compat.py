@@ -867,6 +867,10 @@ def _install_aliases() -> None:
         VarianceSwap.isExpired = VarianceSwap.is_expired  # type: ignore[attr-defined]
         VarianceSwap.startDate = VarianceSwap.start_date  # type: ignore[attr-defined]
         VarianceSwap.maturityDate = VarianceSwap.maturity_date  # type: ignore[attr-defined]
+        if hasattr(VarianceSwap, "set_mc_pricing_engine"):
+            VarianceSwap.setMcPricingEngine = (  # type: ignore[attr-defined]
+                VarianceSwap.set_mc_pricing_engine
+            )
 
     # Phase-35 forward vanilla aliases.
     ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)

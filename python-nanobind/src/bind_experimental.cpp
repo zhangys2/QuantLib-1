@@ -57,6 +57,7 @@
 #include <ql/pricingengines/basket/stulzengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
+#include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancesurface.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/exotic/analyticamericanmargrabeengine.hpp>
@@ -65,6 +66,7 @@
 #include <ql/pricingengines/exotic/analyticeuropeanmargrabeengine.hpp>
 #include <ql/pricingengines/exotic/analyticsimplechooserengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
+#include <ql/pricingengines/forward/mcvarianceswapengine.hpp>
 #include <ql/pricingengines/forward/replicatingvarianceswapengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
@@ -1260,7 +1262,7 @@ void bind_experimental(nb::module_& m) {
         "Factory alias: pass process1, process2, correlation to "
         "BasketOption.set_stulz_pricing_engine.");
 
-    // --- Phase 80: variance swap (standalone Instrument; replicating engine)
+    // --- Phase 80/81: variance swap (standalone Instrument; replicating + MC)
     m.def(
         "BlackVarianceSurface",
         [](const Date& reference_date,
@@ -1285,6 +1287,28 @@ void bind_experimental(nb::module_& m) {
         nb::arg("black_vol_matrix"),
         nb::arg("day_counter"),
         "Black variance surface handle (strike/expiry interpolated).");
+
+    m.def(
+        "BlackVarianceCurve",
+        [](const Date& reference_date,
+           const std::vector<Date>& dates,
+           const std::vector<Volatility>& black_vol_curve,
+           const DayCounter& day_counter,
+           bool force_monotone_variance) {
+            return Handle<BlackVolTermStructure>(
+                ext::make_shared<BlackVarianceCurve>(
+                    reference_date,
+                    dates,
+                    black_vol_curve,
+                    day_counter,
+                    force_monotone_variance));
+        },
+        nb::arg("reference_date"),
+        nb::arg("dates"),
+        nb::arg("black_vol_curve"),
+        nb::arg("day_counter"),
+        nb::arg("force_monotone_variance") = true,
+        "Black variance curve handle (ATM vol vs expiry).");
 
     nb::class_<VarianceSwap>(m, "VarianceSwap")
         .def(
@@ -1337,7 +1361,53 @@ void bind_experimental(nb::module_& m) {
             nb::arg("call_strikes"),
             nb::arg("put_strikes"),
             nb::arg("dk") = 5.0,
-            "Attach ReplicatingVarianceSwapEngine (Demeterfi–Derman–Kamal–Zou).");
+            "Attach ReplicatingVarianceSwapEngine (Demeterfi–Derman–Kamal–Zou).")
+        .def(
+            "set_mc_pricing_engine",
+            [](VarianceSwap& swap,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                QL_REQUIRE(
+                    !(time_steps.has_value() && steps_per_year.has_value()),
+                    "set only one of time_steps or steps_per_year");
+                QL_REQUIRE(
+                    !(required_samples.has_value() &&
+                      required_tolerance.has_value()),
+                    "set only one of required_samples or required_tolerance");
+                auto maker = MakeMCVarianceSwapEngine<PseudoRandom>(process)
+                                 .withSeed(seed)
+                                 .withAntitheticVariate(antithetic)
+                                 .withBrownianBridge(brownian_bridge);
+                if (time_steps.has_value())
+                    maker.withSteps(*time_steps);
+                else if (steps_per_year.has_value())
+                    maker.withStepsPerYear(*steps_per_year);
+                else
+                    maker.withStepsPerYear(Size(250));
+                if (required_samples.has_value())
+                    maker.withSamples(*required_samples);
+                else if (required_tolerance.has_value())
+                    maker.withAbsoluteTolerance(*required_tolerance);
+                else
+                    maker.withSamples(Size(1023));
+                swap.setPricingEngine(maker);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 42UL,
+            nb::arg("antithetic") = false,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCVarianceSwapEngine<PseudoRandom> "
+            "(defaults match the Derman MC suite: 250 steps/year, 1023 samples).");
 
     m.def(
         "ReplicatingVarianceSwapEngine",
@@ -1353,6 +1423,15 @@ void bind_experimental(nb::module_& m) {
         nb::arg("dk") = 5.0,
         "Factory alias: pass args to "
         "VarianceSwap.set_replicating_pricing_engine.");
+
+    m.def(
+        "MCVarianceSwapEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Documentation alias — use "
+        "VarianceSwap.set_mc_pricing_engine instead.");
 
     // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
     nb::class_<CliquetOption>(m, "CliquetOption")
