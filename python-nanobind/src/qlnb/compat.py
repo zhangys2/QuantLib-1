@@ -858,6 +858,16 @@ def _install_aliases() -> None:
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
 
+    # Phase-80 variance-swap aliases.
+    VarianceSwap = getattr(_ql, "VarianceSwap", None)
+    if VarianceSwap is not None:
+        VarianceSwap.setReplicatingPricingEngine = (  # type: ignore[attr-defined]
+            VarianceSwap.set_replicating_pricing_engine
+        )
+        VarianceSwap.isExpired = VarianceSwap.is_expired  # type: ignore[attr-defined]
+        VarianceSwap.startDate = VarianceSwap.start_date  # type: ignore[attr-defined]
+        VarianceSwap.maturityDate = VarianceSwap.maturity_date  # type: ignore[attr-defined]
+
     # Phase-35 forward vanilla aliases.
     ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
     if ForwardVanillaOption is not None:

@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "0.80.0"
-description = "Nanobind Python bindings for QuantLib (phase 79: Stulz min/max basket)"
+version = "0.81.0"
+description = "Nanobind Python bindings for QuantLib (phase 80: variance swap)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
