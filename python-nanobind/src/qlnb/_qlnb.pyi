@@ -1851,6 +1851,10 @@ def AnalyticWriterExtensibleOptionEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 
+class OperatorSplittingOrder:
+    First: OperatorSplittingOrder
+    Second: OperatorSplittingOrder
+
 class SpreadBasketPayoff:
     def __init__(self, payoff: PlainVanillaPayoff) -> None: ...
 
@@ -1889,6 +1893,25 @@ class BasketOption:
         process1: BlackScholesMertonProcess,
         process2: BlackScholesMertonProcess,
         correlation: float,
+    ) -> None: ...
+    def set_bjerksund_stensland_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def set_pearson_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def set_operator_splitting_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+        order: OperatorSplittingOrder = ...,
     ) -> None: ...
     def set_stulz_pricing_engine(
         self,
@@ -1944,6 +1967,25 @@ class BasketOption:
         processes: Sequence[BlackScholesMertonProcess],
         rho: Matrix,
     ) -> None: ...
+    def setBjerksundStenslandPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def setPearsonPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+    ) -> None: ...
+    def setOperatorSplittingPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+        order: OperatorSplittingOrder = ...,
+    ) -> None: ...
     def isExpired(self) -> bool: ...
 
 def KirkEngine(
@@ -1974,6 +2016,25 @@ def SingleFactorBsmBasketEngine(
 def DengLiZhouBasketEngine(
     processes: Sequence[BlackScholesMertonProcess],
     rho: Matrix,
+) -> BlackScholesMertonProcess: ...
+
+def BjerksundStenslandSpreadEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+) -> BlackScholesMertonProcess: ...
+
+def PearsonSpreadEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+) -> BlackScholesMertonProcess: ...
+
+def OperatorSplittingSpreadEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+    order: OperatorSplittingOrder = ...,
 ) -> BlackScholesMertonProcess: ...
 
 def BlackVarianceSurface(

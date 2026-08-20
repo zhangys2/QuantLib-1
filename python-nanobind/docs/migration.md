@@ -1773,6 +1773,27 @@ factor (1-asset case matches European Black–Scholes). `DengLiZhouBasketEngine`
 is the Deng–Li–Zhou 2008 spread/basket closed form (`rho` is a `Matrix`).
 Compat: `setSingleFactorPricingEngine`, `setDengLiZhouPricingEngine`.
 
+## Phase-85 Bjerksund / Pearson / operator-splitting spreads
+
+```python
+opt = ql.BasketOption(
+    ql.SpreadBasketPayoff(ql.PlainVanillaPayoff(ql.OptionType.Put, 5.0)),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_bjerksund_stensland_pricing_engine(p1, p2, rho=0.75)
+opt.set_pearson_pricing_engine(p1, p2, rho=0.75)
+opt.set_operator_splitting_pricing_engine(
+    p1, p2, rho=0.0, order=ql.OperatorSplittingOrder.Second
+)
+print(opt.NPV())
+```
+
+Remaining two-asset spread engines on `BasketOption` + `SpreadBasketPayoff`
+(Kirk is Phase 78). Processes are futures-style: pass `BlackScholesMertonProcess`
+with `q = r`. `OperatorSplittingOrder` is `First` or `Second` (default Second).
+Compat: `setBjerksundStenslandPricingEngine`, `setPearsonPricingEngine`,
+`setOperatorSplittingPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

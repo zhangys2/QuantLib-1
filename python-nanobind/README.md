@@ -407,6 +407,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BasketOption.set_deng_li_zhou_pricing_engine` → `DengLiZhouBasketEngine`
 - Recovers Deng-Li-Zhou negative-strike golden 3.34412 (tol 1e-5)
 
+### Phase 85 (spread basket engines)
+- `BasketOption.set_bjerksund_stensland_pricing_engine` → `BjerksundStenslandSpreadEngine`
+- `BasketOption.set_pearson_pricing_engine` → `PearsonSpreadEngine`
+- `BasketOption.set_operator_splitting_pricing_engine` → `OperatorSplittingSpreadEngine`
+- Recovers PyFENG put 17.850835947276213 and Lo 2015 rho=0 Second 14.2843
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

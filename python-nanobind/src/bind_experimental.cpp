@@ -56,9 +56,12 @@
 #include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
+#include <ql/pricingengines/basket/bjerksundstenslandspreadengine.hpp>
 #include <ql/pricingengines/basket/choibasketengine.hpp>
 #include <ql/pricingengines/basket/denglizhoubasketengine.hpp>
 #include <ql/pricingengines/basket/kirkengine.hpp>
+#include <ql/pricingengines/basket/operatorsplittingspreadengine.hpp>
+#include <ql/pricingengines/basket/pearsonspreadengine.hpp>
 #include <ql/pricingengines/basket/singlefactorbsmbasketengine.hpp>
 #include <ql/pricingengines/basket/stulzengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
@@ -1248,7 +1251,11 @@ void bind_experimental(nb::module_& m) {
         "Factory alias: pass the returned process to "
         "WriterExtensibleOption.set_pricing_engine.");
 
-    // --- Phase 78/79/82/84: basket options (standalone; MultiAssetOption MI)
+    // --- Phase 78/79/82/84/85: basket options (standalone; MultiAssetOption MI)
+    nb::enum_<OperatorSplittingSpreadEngine::Order>(m, "OperatorSplittingOrder")
+        .value("First", OperatorSplittingSpreadEngine::First)
+        .value("Second", OperatorSplittingSpreadEngine::Second);
+
     nb::class_<SpreadBasketPayoff>(m, "SpreadBasketPayoff")
         .def(
             "__init__",
@@ -1361,6 +1368,50 @@ void bind_experimental(nb::module_& m) {
             nb::arg("correlation"),
             "Attach KirkEngine (futures-style spread; use q = r).")
         .def(
+            "set_bjerksund_stensland_pricing_engine",
+            [](BasketOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<BjerksundStenslandSpreadEngine>(
+                        process1, process2, correlation));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach BjerksundStenslandSpreadEngine (futures-style; use q = r).")
+        .def(
+            "set_pearson_pricing_engine",
+            [](BasketOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation) {
+                opt.setPricingEngine(
+                    ext::make_shared<PearsonSpreadEngine>(
+                        process1, process2, correlation));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            "Attach PearsonSpreadEngine (1-D integration; use q = r).")
+        .def(
+            "set_operator_splitting_pricing_engine",
+            [](BasketOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation,
+               OperatorSplittingSpreadEngine::Order order) {
+                opt.setPricingEngine(
+                    ext::make_shared<OperatorSplittingSpreadEngine>(
+                        process1, process2, correlation, order));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            nb::arg("order") = OperatorSplittingSpreadEngine::Second,
+            "Attach OperatorSplittingSpreadEngine (Lo 2015; use q = r).")
+        .def(
             "set_stulz_pricing_engine",
             [](BasketOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process1,
@@ -1440,6 +1491,44 @@ void bind_experimental(nb::module_& m) {
         nb::arg("correlation"),
         "Factory alias: pass process1, process2, correlation to "
         "BasketOption.set_kirk_pricing_engine.");
+    m.def(
+        "BjerksundStenslandSpreadEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        "Factory alias: pass args to "
+        "BasketOption.set_bjerksund_stensland_pricing_engine.");
+    m.def(
+        "PearsonSpreadEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        "Factory alias: pass args to "
+        "BasketOption.set_pearson_pricing_engine.");
+    m.def(
+        "OperatorSplittingSpreadEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/,
+           OperatorSplittingSpreadEngine::Order /*order*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        nb::arg("order") = OperatorSplittingSpreadEngine::Second,
+        "Factory alias: pass args to "
+        "BasketOption.set_operator_splitting_pricing_engine.");
     m.def(
         "StulzEngine",
         [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
