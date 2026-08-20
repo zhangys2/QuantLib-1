@@ -394,6 +394,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VarianceSwap.set_mc_pricing_engine` → `MakeMCVarianceSwapEngine`
 - `BlackVarianceCurve` factory; recovers fair variance 0.04 (tol 3e-4)
 
+### Phase 82 (Choi average basket)
+- `AverageBasketPayoff` + `ChoiBasketEngine` (Choi 2018)
+- Recovers golden put 15.920085 / call 22.361227 (tol 1e-5)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

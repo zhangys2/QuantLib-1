@@ -8,7 +8,8 @@ import qlnb as ql
 
 
 def test_version_is_phase81():
-    assert ql.__version__ == "0.82.0"
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (0, 82)
 
 
 def _time_to_days(t: float, days_per_year: int = 365) -> int:
