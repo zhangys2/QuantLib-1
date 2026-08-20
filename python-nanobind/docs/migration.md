@@ -1736,6 +1736,29 @@ print(opt.NPV())
 Weighted-sum basket (weights may be negative). Choi 2018 closed-form /
 quadrature engine. `rho` is a `Matrix`. Compat: `setChoiPricingEngine`.
 
+## Phase-83 holder / writer extensible options
+
+```python
+holder = ql.HolderExtensibleOption(
+    ql.OptionType.Call, 1.0, today + 270, 105.0,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(today + 180),
+)
+holder.set_pricing_engine(process)
+
+writer = ql.WriterExtensibleOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 90.0),
+    ql.EuropeanExercise(today + 180),
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 82.0),
+    ql.EuropeanExercise(today + 270),
+)
+writer.set_pricing_engine(process)
+```
+
+Haug closed forms. The holder may pay a premium to extend; the writer
+extends automatically if the option is OTM at the first expiry. Compat:
+`setPricingEngine`, `isExpired`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

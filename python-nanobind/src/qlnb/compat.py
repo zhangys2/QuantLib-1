@@ -841,6 +841,24 @@ def _install_aliases() -> None:
         )
         ComplexChooserOption.isExpired = ComplexChooserOption.is_expired  # type: ignore[attr-defined]
 
+    # Phase-83 holder / writer extensible aliases.
+    HolderExtensibleOption = getattr(_ql, "HolderExtensibleOption", None)
+    if HolderExtensibleOption is not None:
+        HolderExtensibleOption.setPricingEngine = (  # type: ignore[attr-defined]
+            HolderExtensibleOption.set_pricing_engine
+        )
+        HolderExtensibleOption.isExpired = (  # type: ignore[attr-defined]
+            HolderExtensibleOption.is_expired
+        )
+    WriterExtensibleOption = getattr(_ql, "WriterExtensibleOption", None)
+    if WriterExtensibleOption is not None:
+        WriterExtensibleOption.setPricingEngine = (  # type: ignore[attr-defined]
+            WriterExtensibleOption.set_pricing_engine
+        )
+        WriterExtensibleOption.isExpired = (  # type: ignore[attr-defined]
+            WriterExtensibleOption.is_expired
+        )
+
     # Phase-78 Kirk / Phase-79 Stulz basket aliases.
     SpreadBasketPayoff = getattr(_ql, "SpreadBasketPayoff", None)
     MinBasketPayoff = getattr(_ql, "MinBasketPayoff", None)
