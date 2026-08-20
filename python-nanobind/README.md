@@ -390,6 +390,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VarianceSwap` + `ReplicatingVarianceSwapEngine` (Demeterfi–Derman–Kamal–Zou)
 - `BlackVarianceSurface` factory; recovers fair variance 0.04189
 
+### Phase 81 (MC variance swap)
+- `VarianceSwap.set_mc_pricing_engine` → `MakeMCVarianceSwapEngine`
+- `BlackVarianceCurve` factory; recovers fair variance 0.04 (tol 3e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

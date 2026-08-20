@@ -1884,6 +1884,14 @@ def BlackVarianceSurface(
     day_counter: DayCounter,
 ) -> BlackVolTermStructureHandle: ...
 
+def BlackVarianceCurve(
+    reference_date: Date,
+    dates: Sequence[Date],
+    black_vol_curve: Sequence[float],
+    day_counter: DayCounter,
+    force_monotone_variance: bool = ...,
+) -> BlackVolTermStructureHandle: ...
+
 class VarianceSwap:
     def __init__(
         self,
@@ -1915,6 +1923,28 @@ class VarianceSwap:
         put_strikes: Sequence[float],
         dk: float = ...,
     ) -> None: ...
+    def set_mc_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+    ) -> None: ...
+    def setMcPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+    ) -> None: ...
     def isExpired(self) -> bool: ...
     def startDate(self) -> Date: ...
     def maturityDate(self) -> Date: ...
@@ -1924,6 +1954,10 @@ def ReplicatingVarianceSwapEngine(
     call_strikes: Sequence[float],
     put_strikes: Sequence[float],
     dk: float = ...,
+) -> BlackScholesMertonProcess: ...
+
+def MCVarianceSwapEngine(
+    process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 
 class CliquetOption:

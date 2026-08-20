@@ -1698,6 +1698,23 @@ vanillas on a `BlackVarianceSurface` smile (Derman, Kamal & Zou 1999).
 Compat: `setReplicatingPricingEngine`, `isExpired`, `startDate`,
 `maturityDate`.
 
+## Phase-81 MC variance swap
+
+```python
+vol_ts = ql.BlackVarianceCurve(
+    today, [interm, maturity], [0.10, 0.20], dc
+)
+vs = ql.VarianceSwap(ql.Position.Long, 0.04, 50000.0, today, maturity)
+vs.set_mc_pricing_engine(
+    process, steps_per_year=250, required_samples=1023, seed=42
+)
+print(vs.variance())
+```
+
+Monte Carlo fair variance on a `BlackVarianceCurve` (the C++ suite notes
+`BlackVarianceSurface` is unreliable for this check). Defaults match the
+suite: 250 steps/year, 1023 samples, seed 42. Compat: `setMcPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
