@@ -28,6 +28,7 @@
 #include <ql/instruments/makecapfloor.hpp>
 #include <ql/instruments/margrabeoption.hpp>
 #include <ql/instruments/partialtimebarrieroption.hpp>
+#include <ql/instruments/holderextensibleoption.hpp>
 #include <ql/instruments/simplechooseroption.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/quantobarrieroption.hpp>
@@ -37,6 +38,7 @@
 #include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/instruments/twoassetcorrelationoption.hpp>
 #include <ql/instruments/varianceswap.hpp>
+#include <ql/instruments/writerextensibleoption.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -66,8 +68,10 @@
 #include <ql/pricingengines/exotic/analyticcomplexchooserengine.hpp>
 #include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
 #include <ql/pricingengines/exotic/analyticeuropeanmargrabeengine.hpp>
+#include <ql/pricingengines/exotic/analyticholderextensibleoptionengine.hpp>
 #include <ql/pricingengines/exotic/analyticsimplechooserengine.hpp>
 #include <ql/pricingengines/exotic/analytictwoassetcorrelationengine.hpp>
+#include <ql/pricingengines/exotic/analyticwriterextensibleoptionengine.hpp>
 #include <ql/pricingengines/forward/mcvarianceswapengine.hpp>
 #include <ql/pricingengines/forward/replicatingvarianceswapengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
@@ -1146,6 +1150,101 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "ComplexChooserOption.set_pricing_engine.");
+
+    // --- Phase 83: holder / writer extensible options (standalone; OneAssetOption MI)
+    nb::class_<HolderExtensibleOption>(m, "HolderExtensibleOption")
+        .def(
+            "__init__",
+            [](HolderExtensibleOption* self,
+               Option::Type type,
+               Real premium,
+               const Date& second_expiry_date,
+               Real second_strike,
+               const PlainVanillaPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) HolderExtensibleOption(
+                    type,
+                    premium,
+                    second_expiry_date,
+                    second_strike,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("type"),
+            nb::arg("premium"),
+            nb::arg("second_expiry_date"),
+            nb::arg("second_strike"),
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Holder may extend to a later expiry (new strike) by paying a "
+            "premium (Haug).")
+        .def("NPV", [](HolderExtensibleOption& opt) { return opt.NPV(); })
+        .def("is_expired", [](const HolderExtensibleOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_pricing_engine",
+            [](HolderExtensibleOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticHolderExtensibleOptionEngine>(
+                        process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticHolderExtensibleOptionEngine.");
+
+    m.def(
+        "AnalyticHolderExtensibleOptionEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "HolderExtensibleOption.set_pricing_engine.");
+
+    nb::class_<WriterExtensibleOption>(m, "WriterExtensibleOption")
+        .def(
+            "__init__",
+            [](WriterExtensibleOption* self,
+               const PlainVanillaPayoff& payoff1,
+               const EuropeanExercise& exercise1,
+               const PlainVanillaPayoff& payoff2,
+               const EuropeanExercise& exercise2) {
+                new (self) WriterExtensibleOption(
+                    ext::make_shared<PlainVanillaPayoff>(payoff1),
+                    ext::make_shared<EuropeanExercise>(exercise1),
+                    ext::make_shared<PlainVanillaPayoff>(payoff2),
+                    ext::make_shared<EuropeanExercise>(exercise2));
+            },
+            nb::arg("payoff1"),
+            nb::arg("exercise1"),
+            nb::arg("payoff2"),
+            nb::arg("exercise2"),
+            "If OTM at the first expiry the writer extends to a later "
+            "expiry with an amended strike (Haug).")
+        .def("NPV", [](WriterExtensibleOption& opt) { return opt.NPV(); })
+        .def("is_expired", [](const WriterExtensibleOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_pricing_engine",
+            [](WriterExtensibleOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticWriterExtensibleOptionEngine>(
+                        process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticWriterExtensibleOptionEngine.");
+
+    m.def(
+        "AnalyticWriterExtensibleOptionEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "WriterExtensibleOption.set_pricing_engine.");
 
     // --- Phase 78/79/82: basket options (standalone; MultiAssetOption MI)
     nb::class_<SpreadBasketPayoff>(m, "SpreadBasketPayoff")

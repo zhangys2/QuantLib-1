@@ -398,6 +398,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `AverageBasketPayoff` + `ChoiBasketEngine` (Choi 2018)
 - Recovers golden put 15.920085 / call 22.361227 (tol 1e-5)
 
+### Phase 83 (holder / writer extensible options)
+- `HolderExtensibleOption` + `AnalyticHolderExtensibleOptionEngine` (Haug 9.4233)
+- `WriterExtensibleOption` + `AnalyticWriterExtensibleOptionEngine` (Haug 6.8238)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
