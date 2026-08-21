@@ -1805,7 +1805,8 @@ print(opt.NPV())
 ```
 
 `GaussianCopulaSpreadEngine` prices two-asset spreads with nested
-Gauss-Hermite quadrature on a Gaussian copula. `Fd2dBlackScholesVanillaEngine`
+Gauss-Hermite quadrature on a Gaussian copula. Both processes must share
+the same risk-free `YieldTermStructure` handle. `Fd2dBlackScholesVanillaEngine`
 is the 2-D PDE engine used to benchmark it. Processes are futures-style:
 pass `BlackScholesMertonProcess` with `q = r`. Compat:
 `setGaussianCopulaPricingEngine`, `setFd2dPricingEngine`.

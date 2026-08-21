@@ -12,15 +12,20 @@ def test_version_is_phase86():
     assert parts >= (0, 87)
 
 
-def _futures_bsm(today: ql.Date, spot: float, r: float, vol: float):
-    # BlackProcess uses dividendTS = riskFreeTS (cost of carry 0).
+def _copula_market(today: ql.Date):
+    # GaussianCopulaSpreadEngine requires a shared risk-free TS handle.
     dc = ql.Actual365Fixed()
-    return ql.BlackScholesMertonProcess(
-        ql.make_quote_handle(spot),
-        ql.FlatForward(today, r, dc),
-        ql.FlatForward(today, r, dc),
-        ql.BlackConstantVol(today, ql.NullCalendar(), vol, dc),
-    )
+    r_ts = ql.FlatForward(today, 0.05, dc)
+
+    def process(spot: float, vol: float):
+        return ql.BlackScholesMertonProcess(
+            ql.make_quote_handle(spot),
+            r_ts,
+            r_ts,
+            ql.BlackConstantVol(today, ql.NullCalendar(), vol, dc),
+        )
+
+    return process(100.0, 0.20), process(96.0, 0.25), r_ts
 
 
 def _spread_option(maturity: ql.Date, option_type, strike: float):
@@ -35,14 +40,12 @@ def test_gaussian_copula_call_put_parity():
     today = ql.Date(1, ql.Month.March, 2025)
     ql.set_evaluation_date(today)
     maturity = today + ql.Period(12, ql.TimeUnit.Months)
-    p1 = _futures_bsm(today, 100.0, 0.05, 0.20)
-    p2 = _futures_bsm(today, 96.0, 0.05, 0.25)
+    p1, p2, r_ts = _copula_market(today)
     call = _spread_option(maturity, ql.OptionType.Call, 3.0)
     put = _spread_option(maturity, ql.OptionType.Put, 3.0)
     call.set_gaussian_copula_pricing_engine(p1, p2, 0.5)
     put.set_gaussian_copula_pricing_engine(p1, p2, 0.5)
-    df = ql.FlatForward(today, 0.05, ql.Actual365Fixed()).discount(maturity)
-    fwd = (call.NPV() - put.NPV()) / df
+    fwd = (call.NPV() - put.NPV()) / r_ts.discount(maturity)
     expected = 100.0 - 96.0 - 3.0
     assert fwd == pytest.approx(expected, rel=1.0e-3)
     assert call.is_expired() is False
@@ -52,8 +55,7 @@ def test_gaussian_copula_exchange_matches_bjerksund():
     today = ql.Date(1, ql.Month.March, 2025)
     ql.set_evaluation_date(today)
     maturity = today + ql.Period(12, ql.TimeUnit.Months)
-    p1 = _futures_bsm(today, 100.0, 0.05, 0.20)
-    p2 = _futures_bsm(today, 96.0, 0.05, 0.25)
+    p1, p2, _ = _copula_market(today)
     copula = _spread_option(maturity, ql.OptionType.Call, 0.0)
     bjerksund = _spread_option(maturity, ql.OptionType.Call, 0.0)
     copula.set_gaussian_copula_pricing_engine(p1, p2, 0.5)
@@ -65,8 +67,7 @@ def test_fd_2d_matches_bjerksund():
     today = ql.Date(1, ql.Month.March, 2025)
     ql.set_evaluation_date(today)
     maturity = today + ql.Period(12, ql.TimeUnit.Months)
-    p1 = _futures_bsm(today, 100.0, 0.05, 0.20)
-    p2 = _futures_bsm(today, 96.0, 0.05, 0.25)
+    p1, p2, _ = _copula_market(today)
     fd = _spread_option(maturity, ql.OptionType.Call, 3.0)
     bs = _spread_option(maturity, ql.OptionType.Call, 3.0)
     fd.set_fd_2d_pricing_engine(p1, p2, 0.5, x_grid=50, y_grid=50, t_grid=15)
