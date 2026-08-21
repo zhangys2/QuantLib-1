@@ -45,7 +45,8 @@ def test_mc_european_kirk_haug():
         required_samples=10000,
         seed=42,
     )
-    assert opt.NPV() == pytest.approx(4.7530, abs=0.15)
+    # Suite uses relativeError(npv, expected, s1) with tol 0.01.
+    assert abs(opt.NPV() - 4.7530) / 122.0 < 0.01
     assert opt.is_expired() is False
 
 
@@ -67,7 +68,7 @@ def test_mc_european_stulz_min():
         required_samples=10000,
         seed=42,
     )
-    assert opt.NPV() == pytest.approx(10.898, abs=0.25)
+    assert abs(opt.NPV() - 10.898) / 100.0 < 0.01
 
 
 # BasketOptionTests::testOddSamples — 1-asset American max-basket put.
