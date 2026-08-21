@@ -897,6 +897,14 @@ def _install_aliases() -> None:
             BasketOption.setOperatorSplittingPricingEngine = (  # type: ignore[attr-defined]
                 BasketOption.set_operator_splitting_pricing_engine
             )
+        if hasattr(BasketOption, "set_gaussian_copula_pricing_engine"):
+            BasketOption.setGaussianCopulaPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_gaussian_copula_pricing_engine
+            )
+        if hasattr(BasketOption, "set_fd_2d_pricing_engine"):
+            BasketOption.setFd2dPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_fd_2d_pricing_engine
+            )
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
 

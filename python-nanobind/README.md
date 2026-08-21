@@ -413,6 +413,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BasketOption.set_operator_splitting_pricing_engine` → `OperatorSplittingSpreadEngine`
 - Recovers PyFENG put 17.850835947276213 and Lo 2015 rho=0 Second 14.2843
 
+### Phase 86 (Gaussian copula / 2-D PDE spreads)
+- `BasketOption.set_gaussian_copula_pricing_engine` → `GaussianCopulaSpreadEngine`
+- `BasketOption.set_fd_2d_pricing_engine` → `Fd2dBlackScholesVanillaEngine`
+- Copula K=0 exchange matches Bjerksund (rel 1e-3); 2-D PDE matches Bjerksund (abs 0.05)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

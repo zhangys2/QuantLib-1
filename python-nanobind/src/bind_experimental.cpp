@@ -59,6 +59,8 @@
 #include <ql/pricingengines/basket/bjerksundstenslandspreadengine.hpp>
 #include <ql/pricingengines/basket/choibasketengine.hpp>
 #include <ql/pricingengines/basket/denglizhoubasketengine.hpp>
+#include <ql/pricingengines/basket/fd2dblackscholesvanillaengine.hpp>
+#include <ql/pricingengines/basket/gaussiancopulaspreadengine.hpp>
 #include <ql/pricingengines/basket/kirkengine.hpp>
 #include <ql/pricingengines/basket/operatorsplittingspreadengine.hpp>
 #include <ql/pricingengines/basket/pearsonspreadengine.hpp>
@@ -1251,7 +1253,7 @@ void bind_experimental(nb::module_& m) {
         "Factory alias: pass the returned process to "
         "WriterExtensibleOption.set_pricing_engine.");
 
-    // --- Phase 78/79/82/84/85: basket options (standalone; MultiAssetOption MI)
+    // --- Phase 78/79/82/84/85/86: basket options (standalone; MultiAssetOption MI)
     nb::enum_<OperatorSplittingSpreadEngine::Order>(m, "OperatorSplittingOrder")
         .value("First", OperatorSplittingSpreadEngine::First)
         .value("Second", OperatorSplittingSpreadEngine::Second);
@@ -1412,6 +1414,50 @@ void bind_experimental(nb::module_& m) {
             nb::arg("order") = OperatorSplittingSpreadEngine::Second,
             "Attach OperatorSplittingSpreadEngine (Lo 2015; use q = r).")
         .def(
+            "set_gaussian_copula_pricing_engine",
+            [](BasketOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation,
+               Size n_points) {
+                opt.setPricingEngine(
+                    ext::make_shared<GaussianCopulaSpreadEngine>(
+                        process1, process2, correlation, n_points));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            nb::arg("n_points") = 64,
+            "Attach GaussianCopulaSpreadEngine (Gauss-Hermite; use q = r).")
+        .def(
+            "set_fd_2d_pricing_engine",
+            [](BasketOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process2,
+               Real correlation,
+               Size x_grid,
+               Size y_grid,
+               Size t_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc,
+               bool local_vol) {
+                opt.setPricingEngine(
+                    ext::make_shared<Fd2dBlackScholesVanillaEngine>(
+                        process1, process2, correlation,
+                        x_grid, y_grid, t_grid, damping_steps,
+                        scheme_desc, local_vol));
+            },
+            nb::arg("process1"),
+            nb::arg("process2"),
+            nb::arg("correlation"),
+            nb::arg("x_grid") = 100,
+            nb::arg("y_grid") = 100,
+            nb::arg("t_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            nb::arg("local_vol") = false,
+            "Attach Fd2dBlackScholesVanillaEngine (2-D PDE).")
+        .def(
             "set_stulz_pricing_engine",
             [](BasketOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process1,
@@ -1529,6 +1575,44 @@ void bind_experimental(nb::module_& m) {
         nb::arg("order") = OperatorSplittingSpreadEngine::Second,
         "Factory alias: pass args to "
         "BasketOption.set_operator_splitting_pricing_engine.");
+    m.def(
+        "GaussianCopulaSpreadEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/,
+           Size /*n_points*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        nb::arg("n_points") = 64,
+        "Factory alias: pass args to "
+        "BasketOption.set_gaussian_copula_pricing_engine.");
+    m.def(
+        "Fd2dBlackScholesVanillaEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
+           const ext::shared_ptr<BlackScholesMertonProcess>& /*process2*/,
+           Real /*correlation*/,
+           Size /*x_grid*/,
+           Size /*y_grid*/,
+           Size /*t_grid*/,
+           Size /*damping_steps*/,
+           const FdmSchemeDesc& /*scheme_desc*/,
+           bool /*local_vol*/) {
+            return process1;
+        },
+        nb::arg("process1"),
+        nb::arg("process2"),
+        nb::arg("correlation"),
+        nb::arg("x_grid") = 100,
+        nb::arg("y_grid") = 100,
+        nb::arg("t_grid") = 50,
+        nb::arg("damping_steps") = 0,
+        nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+        nb::arg("local_vol") = false,
+        "Factory alias: pass args to "
+        "BasketOption.set_fd_2d_pricing_engine.");
     m.def(
         "StulzEngine",
         [](const ext::shared_ptr<BlackScholesMertonProcess>& process1,
