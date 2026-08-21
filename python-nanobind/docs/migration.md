@@ -1794,6 +1794,23 @@ with `q = r`. `OperatorSplittingOrder` is `First` or `Second` (default Second).
 Compat: `setBjerksundStenslandPricingEngine`, `setPearsonPricingEngine`,
 `setOperatorSplittingPricingEngine`.
 
+## Phase-86 Gaussian copula / 2-D PDE spreads
+
+```python
+opt.set_gaussian_copula_pricing_engine(p1, p2, rho=0.5)
+opt.set_fd_2d_pricing_engine(
+    p1, p2, rho=0.5, x_grid=50, y_grid=50, t_grid=15
+)
+print(opt.NPV())
+```
+
+`GaussianCopulaSpreadEngine` prices two-asset spreads with nested
+Gauss-Hermite quadrature on a Gaussian copula. Both processes must share
+the same risk-free `YieldTermStructure` handle. `Fd2dBlackScholesVanillaEngine`
+is the 2-D PDE engine used to benchmark it. Processes are futures-style:
+pass `BlackScholesMertonProcess` with `q = r`. Compat:
+`setGaussianCopulaPricingEngine`, `setFd2dPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

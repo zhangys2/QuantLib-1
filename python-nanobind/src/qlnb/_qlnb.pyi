@@ -1913,6 +1913,25 @@ class BasketOption:
         correlation: float,
         order: OperatorSplittingOrder = ...,
     ) -> None: ...
+    def set_gaussian_copula_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+        n_points: int = ...,
+    ) -> None: ...
+    def set_fd_2d_pricing_engine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+        x_grid: int = ...,
+        y_grid: int = ...,
+        t_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        local_vol: bool = ...,
+    ) -> None: ...
     def set_stulz_pricing_engine(
         self,
         process1: BlackScholesMertonProcess,
@@ -1986,6 +2005,25 @@ class BasketOption:
         correlation: float,
         order: OperatorSplittingOrder = ...,
     ) -> None: ...
+    def setGaussianCopulaPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+        n_points: int = ...,
+    ) -> None: ...
+    def setFd2dPricingEngine(
+        self,
+        process1: BlackScholesMertonProcess,
+        process2: BlackScholesMertonProcess,
+        correlation: float,
+        x_grid: int = ...,
+        y_grid: int = ...,
+        t_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        local_vol: bool = ...,
+    ) -> None: ...
     def isExpired(self) -> bool: ...
 
 def KirkEngine(
@@ -2035,6 +2073,25 @@ def OperatorSplittingSpreadEngine(
     process2: BlackScholesMertonProcess,
     correlation: float,
     order: OperatorSplittingOrder = ...,
+) -> BlackScholesMertonProcess: ...
+
+def GaussianCopulaSpreadEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+    n_points: int = ...,
+) -> BlackScholesMertonProcess: ...
+
+def Fd2dBlackScholesVanillaEngine(
+    process1: BlackScholesMertonProcess,
+    process2: BlackScholesMertonProcess,
+    correlation: float,
+    x_grid: int = ...,
+    y_grid: int = ...,
+    t_grid: int = ...,
+    damping_steps: int = ...,
+    scheme_desc: FdmSchemeDesc = ...,
+    local_vol: bool = ...,
 ) -> BlackScholesMertonProcess: ...
 
 def BlackVarianceSurface(

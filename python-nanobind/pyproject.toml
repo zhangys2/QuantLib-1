@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "0.86.0"
-description = "Nanobind Python bindings for QuantLib (phase 85: Bjerksund/Pearson/operator-splitting spreads)"
+version = "0.87.0"
+description = "Nanobind Python bindings for QuantLib (phase 86: Gaussian copula / 2-D PDE spreads)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
