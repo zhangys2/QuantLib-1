@@ -885,6 +885,18 @@ def _install_aliases() -> None:
             BasketOption.setDengLiZhouPricingEngine = (  # type: ignore[attr-defined]
                 BasketOption.set_deng_li_zhou_pricing_engine
             )
+        if hasattr(BasketOption, "set_bjerksund_stensland_pricing_engine"):
+            BasketOption.setBjerksundStenslandPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_bjerksund_stensland_pricing_engine
+            )
+        if hasattr(BasketOption, "set_pearson_pricing_engine"):
+            BasketOption.setPearsonPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_pearson_pricing_engine
+            )
+        if hasattr(BasketOption, "set_operator_splitting_pricing_engine"):
+            BasketOption.setOperatorSplittingPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_operator_splitting_pricing_engine
+            )
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
 
