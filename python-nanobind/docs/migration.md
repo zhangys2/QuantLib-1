@@ -1811,6 +1811,25 @@ is the 2-D PDE engine used to benchmark it. Processes are futures-style:
 pass `BlackScholesMertonProcess` with `q = r`. Compat:
 `setGaussianCopulaPricingEngine`, `setFd2dPricingEngine`.
 
+## Phase-87 n-D PDE basket engine
+
+```python
+opt = ql.BasketOption(
+    ql.AverageBasketPayoff(
+        ql.PlainVanillaPayoff(ql.OptionType.Put, -30.0), [1.0, -2.0, -1.0]
+    ),
+    ql.AmericanExercise(today, maturity),
+)
+opt.set_fd_ndim_pricing_engine(
+    processes, rho, t_grid=15, x_grids=[20, 20, 20]
+)
+print(opt.NPV())
+```
+
+`FdndimBlackScholesVanillaEngine` prices European or American baskets in
+up to 4 dimensions. Pass `x_grid` for auto-scaled meshes, or `x_grids` for
+per-factor sizes. Compat: `setFdNdimPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

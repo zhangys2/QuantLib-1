@@ -60,6 +60,7 @@
 #include <ql/pricingengines/basket/choibasketengine.hpp>
 #include <ql/pricingengines/basket/denglizhoubasketengine.hpp>
 #include <ql/pricingengines/basket/fd2dblackscholesvanillaengine.hpp>
+#include <ql/pricingengines/basket/fdndimblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/basket/gaussiancopulaspreadengine.hpp>
 #include <ql/pricingengines/basket/kirkengine.hpp>
 #include <ql/pricingengines/basket/operatorsplittingspreadengine.hpp>
@@ -1253,7 +1254,7 @@ void bind_experimental(nb::module_& m) {
         "Factory alias: pass the returned process to "
         "WriterExtensibleOption.set_pricing_engine.");
 
-    // --- Phase 78/79/82/84/85/86: basket options (standalone; MultiAssetOption MI)
+    // --- Phase 78/79/82/84/85/86/87: basket options (standalone; MultiAssetOption MI)
     nb::enum_<OperatorSplittingSpreadEngine::Order>(m, "OperatorSplittingOrder")
         .value("First", OperatorSplittingSpreadEngine::First)
         .value("Second", OperatorSplittingSpreadEngine::Second);
@@ -1318,6 +1319,18 @@ void bind_experimental(nb::module_& m) {
         .def(
             "__init__",
             [](BasketOption* self,
+               const SpreadBasketPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<SpreadBasketPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Two-asset American spread basket.")
+        .def(
+            "__init__",
+            [](BasketOption* self,
                const MinBasketPayoff& payoff,
                const EuropeanExercise& exercise) {
                 new (self) BasketOption(
@@ -1327,6 +1340,18 @@ void bind_experimental(nb::module_& m) {
             nb::arg("payoff"),
             nb::arg("exercise"),
             "Two-asset European min basket (Stulz 1982).")
+        .def(
+            "__init__",
+            [](BasketOption* self,
+               const MinBasketPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<MinBasketPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Two-asset American min basket.")
         .def(
             "__init__",
             [](BasketOption* self,
@@ -1342,6 +1367,18 @@ void bind_experimental(nb::module_& m) {
         .def(
             "__init__",
             [](BasketOption* self,
+               const MaxBasketPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<MaxBasketPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Two-asset American max basket.")
+        .def(
+            "__init__",
+            [](BasketOption* self,
                const AverageBasketPayoff& payoff,
                const EuropeanExercise& exercise) {
                 new (self) BasketOption(
@@ -1351,6 +1388,18 @@ void bind_experimental(nb::module_& m) {
             nb::arg("payoff"),
             nb::arg("exercise"),
             "European weighted-sum basket (Choi 2018).")
+        .def(
+            "__init__",
+            [](BasketOption* self,
+               const AverageBasketPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) BasketOption(
+                    ext::make_shared<AverageBasketPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "American weighted-sum basket.")
         .def("NPV", [](BasketOption& opt) { return opt.NPV(); })
         .def("is_expired", [](const BasketOption& opt) {
             return opt.isExpired();
@@ -1523,7 +1572,46 @@ void bind_experimental(nb::module_& m) {
             },
             nb::arg("processes"),
             nb::arg("rho"),
-            "Attach DengLiZhouBasketEngine (spread/basket closed form).");
+            "Attach DengLiZhouBasketEngine (spread/basket closed form).")
+        .def(
+            "set_fd_ndim_pricing_engine",
+            [](BasketOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho,
+               Size x_grid,
+               Size t_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc,
+               std::optional<std::vector<Size>> x_grids) {
+                if (x_grids.has_value()) {
+                    opt.setPricingEngine(
+                        ext::make_shared<FdndimBlackScholesVanillaEngine>(
+                            to_gbs_processes(processes),
+                            rho,
+                            *x_grids,
+                            t_grid,
+                            damping_steps,
+                            scheme_desc));
+                } else {
+                    opt.setPricingEngine(
+                        ext::make_shared<FdndimBlackScholesVanillaEngine>(
+                            to_gbs_processes(processes),
+                            rho,
+                            x_grid,
+                            t_grid,
+                            damping_steps,
+                            scheme_desc));
+                }
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            nb::arg("x_grid") = 100,
+            nb::arg("t_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            nb::arg("x_grids") = nb::none(),
+            "Attach FdndimBlackScholesVanillaEngine (n-D PDE, max 4 assets).");
 
     m.def(
         "KirkEngine",
@@ -1667,6 +1755,28 @@ void bind_experimental(nb::module_& m) {
         nb::arg("rho"),
         "Factory alias: pass args to "
         "BasketOption.set_deng_li_zhou_pricing_engine.");
+    m.def(
+        "FdndimBlackScholesVanillaEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/,
+           Size /*x_grid*/,
+           Size /*t_grid*/,
+           Size /*damping_steps*/,
+           const FdmSchemeDesc& /*scheme_desc*/,
+           std::optional<std::vector<Size>> /*x_grids*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        nb::arg("x_grid") = 100,
+        nb::arg("t_grid") = 50,
+        nb::arg("damping_steps") = 0,
+        nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+        nb::arg("x_grids") = nb::none(),
+        "Factory alias: pass args to "
+        "BasketOption.set_fd_ndim_pricing_engine.");
 
     // --- Phase 80/81: variance swap (standalone Instrument; replicating + MC)
     m.def(

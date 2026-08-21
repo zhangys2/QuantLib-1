@@ -905,6 +905,10 @@ def _install_aliases() -> None:
             BasketOption.setFd2dPricingEngine = (  # type: ignore[attr-defined]
                 BasketOption.set_fd_2d_pricing_engine
             )
+        if hasattr(BasketOption, "set_fd_ndim_pricing_engine"):
+            BasketOption.setFdNdimPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_fd_ndim_pricing_engine
+            )
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
 

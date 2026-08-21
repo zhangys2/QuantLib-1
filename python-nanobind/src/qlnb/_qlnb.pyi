@@ -1886,6 +1886,22 @@ class BasketOption:
     def __init__(
         self, payoff: AverageBasketPayoff, exercise: EuropeanExercise
     ) -> None: ...
+    @overload
+    def __init__(
+        self, payoff: SpreadBasketPayoff, exercise: AmericanExercise
+    ) -> None: ...
+    @overload
+    def __init__(
+        self, payoff: MinBasketPayoff, exercise: AmericanExercise
+    ) -> None: ...
+    @overload
+    def __init__(
+        self, payoff: MaxBasketPayoff, exercise: AmericanExercise
+    ) -> None: ...
+    @overload
+    def __init__(
+        self, payoff: AverageBasketPayoff, exercise: AmericanExercise
+    ) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
     def set_kirk_pricing_engine(
@@ -1956,6 +1972,16 @@ class BasketOption:
         processes: Sequence[BlackScholesMertonProcess],
         rho: Matrix,
     ) -> None: ...
+    def set_fd_ndim_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        x_grid: int = ...,
+        t_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        x_grids: Sequence[int] | None = ...,
+    ) -> None: ...
     def setKirkPricingEngine(
         self,
         process1: BlackScholesMertonProcess,
@@ -2023,6 +2049,16 @@ class BasketOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
         local_vol: bool = ...,
+    ) -> None: ...
+    def setFdNdimPricingEngine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        x_grid: int = ...,
+        t_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+        x_grids: Sequence[int] | None = ...,
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
@@ -2092,6 +2128,16 @@ def Fd2dBlackScholesVanillaEngine(
     damping_steps: int = ...,
     scheme_desc: FdmSchemeDesc = ...,
     local_vol: bool = ...,
+) -> BlackScholesMertonProcess: ...
+
+def FdndimBlackScholesVanillaEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+    rho: Matrix,
+    x_grid: int = ...,
+    t_grid: int = ...,
+    damping_steps: int = ...,
+    scheme_desc: FdmSchemeDesc = ...,
+    x_grids: Sequence[int] | None = ...,
 ) -> BlackScholesMertonProcess: ...
 
 def BlackVarianceSurface(
