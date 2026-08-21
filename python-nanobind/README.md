@@ -418,6 +418,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BasketOption.set_fd_2d_pricing_engine` → `Fd2dBlackScholesVanillaEngine`
 - Copula K=0 exchange matches Bjerksund (rel 1e-3); 2-D PDE matches Bjerksund (abs 0.05)
 
+### Phase 87 (n-D PDE basket engine)
+- `BasketOption.set_fd_ndim_pricing_engine` → `FdndimBlackScholesVanillaEngine`
+- American `BasketOption` + n-D PDE recovers golden **15.1858** (tol 0.01)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
