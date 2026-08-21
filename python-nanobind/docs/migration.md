@@ -1759,6 +1759,20 @@ Haug closed forms. The holder may pay a premium to extend; the writer
 extends automatically if the option is OTM at the first expiry. Compat:
 `setPricingEngine`, `isExpired`.
 
+## Phase-84 SingleFactor / Deng-Li-Zhou baskets
+
+```python
+opt.set_single_factor_pricing_engine([process])
+
+opt.set_deng_li_zhou_pricing_engine(processes, rho)
+print(opt.NPV())
+```
+
+`SingleFactorBsmBasketEngine` prices a weighted-sum basket driven by one
+factor (1-asset case matches European Black–Scholes). `DengLiZhouBasketEngine`
+is the Deng–Li–Zhou 2008 spread/basket closed form (`rho` is a `Matrix`).
+Compat: `setSingleFactorPricingEngine`, `setDengLiZhouPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

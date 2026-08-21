@@ -877,6 +877,14 @@ def _install_aliases() -> None:
             BasketOption.setChoiPricingEngine = (  # type: ignore[attr-defined]
                 BasketOption.set_choi_pricing_engine
             )
+        if hasattr(BasketOption, "set_single_factor_pricing_engine"):
+            BasketOption.setSingleFactorPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_single_factor_pricing_engine
+            )
+        if hasattr(BasketOption, "set_deng_li_zhou_pricing_engine"):
+            BasketOption.setDengLiZhouPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_deng_li_zhou_pricing_engine
+            )
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
 

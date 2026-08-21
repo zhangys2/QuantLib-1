@@ -402,6 +402,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `HolderExtensibleOption` + `AnalyticHolderExtensibleOptionEngine` (Haug 9.4233)
 - `WriterExtensibleOption` + `AnalyticWriterExtensibleOptionEngine` (Haug 6.8238)
 
+### Phase 84 (more basket engines)
+- `BasketOption.set_single_factor_pricing_engine` → `SingleFactorBsmBasketEngine`
+- `BasketOption.set_deng_li_zhou_pricing_engine` → `DengLiZhouBasketEngine`
+- Recovers Deng-Li-Zhou negative-strike golden 3.34412 (tol 1e-5)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

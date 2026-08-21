@@ -1905,6 +1905,15 @@ class BasketOption:
         calc_fwd_delta: bool = ...,
         control_variate: bool = ...,
     ) -> None: ...
+    def set_single_factor_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+    ) -> None: ...
+    def set_deng_li_zhou_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+    ) -> None: ...
     def setKirkPricingEngine(
         self,
         process1: BlackScholesMertonProcess,
@@ -1925,6 +1934,15 @@ class BasketOption:
         max_nr_integration_steps: int | None = ...,
         calc_fwd_delta: bool = ...,
         control_variate: bool = ...,
+    ) -> None: ...
+    def setSingleFactorPricingEngine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+    ) -> None: ...
+    def setDengLiZhouPricingEngine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
@@ -1947,6 +1965,15 @@ def ChoiBasketEngine(
     max_nr_integration_steps: int | None = ...,
     calc_fwd_delta: bool = ...,
     control_variate: bool = ...,
+) -> BlackScholesMertonProcess: ...
+
+def SingleFactorBsmBasketEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+) -> BlackScholesMertonProcess: ...
+
+def DengLiZhouBasketEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+    rho: Matrix,
 ) -> BlackScholesMertonProcess: ...
 
 def BlackVarianceSurface(
