@@ -63,6 +63,8 @@
 #include <ql/pricingengines/basket/fdndimblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/basket/gaussiancopulaspreadengine.hpp>
 #include <ql/pricingengines/basket/kirkengine.hpp>
+#include <ql/pricingengines/basket/mcamericanbasketengine.hpp>
+#include <ql/pricingengines/basket/mceuropeanbasketengine.hpp>
 #include <ql/pricingengines/basket/operatorsplittingspreadengine.hpp>
 #include <ql/pricingengines/basket/pearsonspreadengine.hpp>
 #include <ql/pricingengines/basket/singlefactorbsmbasketengine.hpp>
@@ -92,6 +94,7 @@
 #include <ql/pricingengines/lookback/analyticcontinuouspartialfloatinglookback.hpp>
 #include <ql/pricingengines/lookback/mclookbackengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include <ql/processes/stochasticprocessarray.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
 #include <ql/time/calendar.hpp>
@@ -111,6 +114,17 @@ std::vector<ext::shared_ptr<GeneralizedBlackScholesProcess>> to_gbs_processes(
     for (const auto& p : processes)
         out.push_back(p);
     return out;
+}
+
+ext::shared_ptr<StochasticProcessArray> to_process_array(
+    const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>& processes,
+    const Matrix& rho) {
+    QL_REQUIRE(!processes.empty(), "no processes given");
+    std::vector<ext::shared_ptr<StochasticProcess1D>> procs;
+    procs.reserve(processes.size());
+    for (const auto& p : processes)
+        procs.push_back(p);
+    return ext::make_shared<StochasticProcessArray>(procs, rho);
 }
 
 template <class Option>
@@ -1254,7 +1268,7 @@ void bind_experimental(nb::module_& m) {
         "Factory alias: pass the returned process to "
         "WriterExtensibleOption.set_pricing_engine.");
 
-    // --- Phase 78/79/82/84/85/86/87: basket options (standalone; MultiAssetOption MI)
+    // --- Phase 78/79/82/84/85/86/87/88: basket options (standalone; MultiAssetOption MI)
     nb::enum_<OperatorSplittingSpreadEngine::Order>(m, "OperatorSplittingOrder")
         .value("First", OperatorSplittingSpreadEngine::First)
         .value("Second", OperatorSplittingSpreadEngine::Second);
@@ -1611,7 +1625,111 @@ void bind_experimental(nb::module_& m) {
             nb::arg("damping_steps") = 0,
             nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
             nb::arg("x_grids") = nb::none(),
-            "Attach FdndimBlackScholesVanillaEngine (n-D PDE, max 4 assets).");
+            "Attach FdndimBlackScholesVanillaEngine (n-D PDE, max 4 assets).")
+        .def(
+            "set_mc_european_pricing_engine",
+            [](BasketOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                QL_REQUIRE(
+                    !(time_steps.has_value() && steps_per_year.has_value()),
+                    "set only one of time_steps or steps_per_year");
+                QL_REQUIRE(
+                    !(required_samples.has_value() &&
+                      required_tolerance.has_value()),
+                    "set only one of required_samples or required_tolerance");
+                auto maker =
+                    MakeMCEuropeanBasketEngine<PseudoRandom>(
+                        to_process_array(processes, rho))
+                        .withSeed(seed)
+                        .withAntitheticVariate(antithetic)
+                        .withBrownianBridge(brownian_bridge);
+                if (time_steps.has_value())
+                    maker.withSteps(*time_steps);
+                else if (steps_per_year.has_value())
+                    maker.withStepsPerYear(*steps_per_year);
+                else
+                    maker.withStepsPerYear(Size(1));
+                if (required_samples.has_value())
+                    maker.withSamples(*required_samples);
+                else if (required_tolerance.has_value())
+                    maker.withAbsoluteTolerance(*required_tolerance);
+                else
+                    maker.withSamples(Size(10000));
+                opt.setPricingEngine(maker);
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 42UL,
+            nb::arg("antithetic") = false,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCEuropeanBasketEngine<PseudoRandom>.")
+        .def(
+            "set_mc_american_pricing_engine",
+            [](BasketOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge,
+               std::optional<Size> calibration_samples) {
+                QL_REQUIRE(
+                    !(time_steps.has_value() && steps_per_year.has_value()),
+                    "set only one of time_steps or steps_per_year");
+                QL_REQUIRE(
+                    !(required_samples.has_value() &&
+                      required_tolerance.has_value()),
+                    "set only one of required_samples or required_tolerance");
+                auto maker =
+                    MakeMCAmericanBasketEngine<PseudoRandom>(
+                        to_process_array(processes, rho))
+                        .withSeed(seed)
+                        .withAntitheticVariate(antithetic)
+                        .withBrownianBridge(brownian_bridge);
+                if (time_steps.has_value())
+                    maker.withSteps(*time_steps);
+                else if (steps_per_year.has_value())
+                    maker.withStepsPerYear(*steps_per_year);
+                else
+                    maker.withSteps(Size(52));
+                if (required_samples.has_value())
+                    maker.withSamples(*required_samples);
+                else if (required_tolerance.has_value())
+                    maker.withAbsoluteTolerance(*required_tolerance);
+                else
+                    maker.withSamples(Size(10000));
+                if (calibration_samples.has_value())
+                    maker.withCalibrationSamples(*calibration_samples);
+                opt.setPricingEngine(maker);
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 0UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            nb::arg("calibration_samples") = nb::none(),
+            "Attach MakeMCAmericanBasketEngine<PseudoRandom> (LSM).");
 
     m.def(
         "KirkEngine",
@@ -1777,6 +1895,60 @@ void bind_experimental(nb::module_& m) {
         nb::arg("x_grids") = nb::none(),
         "Factory alias: pass args to "
         "BasketOption.set_fd_ndim_pricing_engine.");
+    m.def(
+        "MCEuropeanBasketEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/,
+           std::optional<Size> /*time_steps*/,
+           std::optional<Size> /*steps_per_year*/,
+           std::optional<Size> /*required_samples*/,
+           std::optional<Real> /*required_tolerance*/,
+           unsigned long /*seed*/,
+           bool /*antithetic*/,
+           bool /*brownian_bridge*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        nb::arg("time_steps") = nb::none(),
+        nb::arg("steps_per_year") = nb::none(),
+        nb::arg("required_samples") = nb::none(),
+        nb::arg("required_tolerance") = nb::none(),
+        nb::arg("seed") = 42UL,
+        nb::arg("antithetic") = false,
+        nb::arg("brownian_bridge") = false,
+        "Factory alias: pass args to "
+        "BasketOption.set_mc_european_pricing_engine.");
+    m.def(
+        "MCAmericanBasketEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/,
+           std::optional<Size> /*time_steps*/,
+           std::optional<Size> /*steps_per_year*/,
+           std::optional<Size> /*required_samples*/,
+           std::optional<Real> /*required_tolerance*/,
+           unsigned long /*seed*/,
+           bool /*antithetic*/,
+           bool /*brownian_bridge*/,
+           std::optional<Size> /*calibration_samples*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        nb::arg("time_steps") = nb::none(),
+        nb::arg("steps_per_year") = nb::none(),
+        nb::arg("required_samples") = nb::none(),
+        nb::arg("required_tolerance") = nb::none(),
+        nb::arg("seed") = 0UL,
+        nb::arg("antithetic") = true,
+        nb::arg("brownian_bridge") = false,
+        nb::arg("calibration_samples") = nb::none(),
+        "Factory alias: pass args to "
+        "BasketOption.set_mc_american_pricing_engine.");
 
     // --- Phase 80/81: variance swap (standalone Instrument; replicating + MC)
     m.def(

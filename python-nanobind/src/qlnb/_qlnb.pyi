@@ -1982,6 +1982,31 @@ class BasketOption:
         scheme_desc: FdmSchemeDesc = ...,
         x_grids: Sequence[int] | None = ...,
     ) -> None: ...
+    def set_mc_european_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+    ) -> None: ...
+    def set_mc_american_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+        calibration_samples: int | None = ...,
+    ) -> None: ...
     def setKirkPricingEngine(
         self,
         process1: BlackScholesMertonProcess,
@@ -2059,6 +2084,31 @@ class BasketOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
         x_grids: Sequence[int] | None = ...,
+    ) -> None: ...
+    def setMCEuropeanPricingEngine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+    ) -> None: ...
+    def setMCAmericanPricingEngine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+        calibration_samples: int | None = ...,
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
@@ -2138,6 +2188,31 @@ def FdndimBlackScholesVanillaEngine(
     damping_steps: int = ...,
     scheme_desc: FdmSchemeDesc = ...,
     x_grids: Sequence[int] | None = ...,
+) -> BlackScholesMertonProcess: ...
+
+def MCEuropeanBasketEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+    rho: Matrix,
+    time_steps: int | None = ...,
+    steps_per_year: int | None = ...,
+    required_samples: int | None = ...,
+    required_tolerance: float | None = ...,
+    seed: int = ...,
+    antithetic: bool = ...,
+    brownian_bridge: bool = ...,
+) -> BlackScholesMertonProcess: ...
+
+def MCAmericanBasketEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+    rho: Matrix,
+    time_steps: int | None = ...,
+    steps_per_year: int | None = ...,
+    required_samples: int | None = ...,
+    required_tolerance: float | None = ...,
+    seed: int = ...,
+    antithetic: bool = ...,
+    brownian_bridge: bool = ...,
+    calibration_samples: int | None = ...,
 ) -> BlackScholesMertonProcess: ...
 
 def BlackVarianceSurface(

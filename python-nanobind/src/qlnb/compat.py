@@ -909,6 +909,14 @@ def _install_aliases() -> None:
             BasketOption.setFdNdimPricingEngine = (  # type: ignore[attr-defined]
                 BasketOption.set_fd_ndim_pricing_engine
             )
+        if hasattr(BasketOption, "set_mc_european_pricing_engine"):
+            BasketOption.setMCEuropeanPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_mc_european_pricing_engine
+            )
+        if hasattr(BasketOption, "set_mc_american_pricing_engine"):
+            BasketOption.setMCAmericanPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_mc_american_pricing_engine
+            )
         if hasattr(BasketOption, "is_expired"):
             BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
 

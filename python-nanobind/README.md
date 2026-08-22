@@ -422,6 +422,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BasketOption.set_fd_ndim_pricing_engine` → `FdndimBlackScholesVanillaEngine`
 - American `BasketOption` + n-D PDE recovers golden **15.1858** (tol 0.01)
 
+### Phase 88 (MC European / American baskets)
+- `BasketOption.set_mc_european_pricing_engine` → `MakeMCEuropeanBasketEngine`
+- `BasketOption.set_mc_american_pricing_engine` → `MakeMCAmericanBasketEngine`
+- Recovers Haug Kirk 4.7530 and 1-asset American put 21.6059
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

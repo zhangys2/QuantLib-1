@@ -1830,6 +1830,27 @@ print(opt.NPV())
 up to 4 dimensions. Pass `x_grid` for auto-scaled meshes, or `x_grids` for
 per-factor sizes. Compat: `setFdNdimPricingEngine`.
 
+## Phase-88 MC European / American baskets
+
+```python
+opt.set_mc_european_pricing_engine(
+    [p1, p2], rho, steps_per_year=1, required_samples=10000, seed=42
+)
+am.set_mc_american_pricing_engine(
+    [process],
+    ql.Matrix(1, 1, [1.0]),
+    time_steps=53,
+    required_samples=10001,
+    calibration_samples=2500,
+    seed=0,
+)
+```
+
+Monte Carlo engines build a `StochasticProcessArray` internally from BSM
+processes and a correlation `Matrix`. European matches Haug/Kirk with
+`steps_per_year=1`. American is Longstaff–Schwartz. Compat:
+`setMCEuropeanPricingEngine`, `setMCAmericanPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
