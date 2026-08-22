@@ -10,6 +10,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/methods/finitedifferences/utilities/fdmquantohelper.hpp>
 #include <ql/cashflows/duration.hpp>
+#include <ql/instruments/assetswap.hpp>
 #include <ql/instruments/bond.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
@@ -1110,4 +1111,155 @@ void bind_instruments(nb::module_& m) {
                     ext::make_shared<DiscountingSwapEngine>(discount_curve));
             },
             nb::arg("discount_curve"));
+
+    // AssetSwap is Swap/Instrument (MI via LazyObject) — standalone wrapper.
+    // Bond argument is copied into a shared_ptr; the original Python bond is
+    // unchanged. IborLeg attaches BlackIborCouponPricer internally.
+    nb::class_<AssetSwap>(m, "AssetSwap")
+        .def(
+            "__init__",
+            [](AssetSwap* self,
+               bool pay_bond_coupon,
+               const FixedRateBond& bond,
+               Real bond_clean_price,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               Spread spread,
+               const Schedule& float_schedule,
+               const DayCounter& floating_day_count,
+               bool par_asset_swap,
+               Real gearing,
+               std::optional<Real> non_par_repayment,
+               const Date& deal_maturity) {
+                new (self) AssetSwap(pay_bond_coupon,
+                                     ext::make_shared<FixedRateBond>(bond),
+                                     bond_clean_price,
+                                     ibor_index,
+                                     spread,
+                                     float_schedule,
+                                     floating_day_count,
+                                     par_asset_swap,
+                                     gearing,
+                                     non_par_repayment.value_or(Null<Real>()),
+                                     deal_maturity);
+            },
+            nb::arg("pay_bond_coupon"),
+            nb::arg("bond"),
+            nb::arg("bond_clean_price"),
+            nb::arg("ibor_index"),
+            nb::arg("spread"),
+            nb::arg("float_schedule") = Schedule(),
+            nb::arg("floating_day_count") = DayCounter(),
+            nb::arg("par_asset_swap") = true,
+            nb::arg("gearing") = 1.0,
+            nb::arg("non_par_repayment") = nb::none(),
+            nb::arg("deal_maturity") = Date())
+        .def(
+            "__init__",
+            [](AssetSwap* self,
+               bool pay_bond_coupon,
+               const ZeroCouponBond& bond,
+               Real bond_clean_price,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               Spread spread,
+               const Schedule& float_schedule,
+               const DayCounter& floating_day_count,
+               bool par_asset_swap,
+               Real gearing,
+               std::optional<Real> non_par_repayment,
+               const Date& deal_maturity) {
+                new (self) AssetSwap(pay_bond_coupon,
+                                     ext::make_shared<ZeroCouponBond>(bond),
+                                     bond_clean_price,
+                                     ibor_index,
+                                     spread,
+                                     float_schedule,
+                                     floating_day_count,
+                                     par_asset_swap,
+                                     gearing,
+                                     non_par_repayment.value_or(Null<Real>()),
+                                     deal_maturity);
+            },
+            nb::arg("pay_bond_coupon"),
+            nb::arg("bond"),
+            nb::arg("bond_clean_price"),
+            nb::arg("ibor_index"),
+            nb::arg("spread"),
+            nb::arg("float_schedule") = Schedule(),
+            nb::arg("floating_day_count") = DayCounter(),
+            nb::arg("par_asset_swap") = true,
+            nb::arg("gearing") = 1.0,
+            nb::arg("non_par_repayment") = nb::none(),
+            nb::arg("deal_maturity") = Date())
+        .def(
+            "__init__",
+            [](AssetSwap* self,
+               bool pay_bond_coupon,
+               const FloatingRateBond& bond,
+               Real bond_clean_price,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               Spread spread,
+               const Schedule& float_schedule,
+               const DayCounter& floating_day_count,
+               bool par_asset_swap,
+               Real gearing,
+               std::optional<Real> non_par_repayment,
+               const Date& deal_maturity) {
+                new (self) AssetSwap(pay_bond_coupon,
+                                     ext::make_shared<FloatingRateBond>(bond),
+                                     bond_clean_price,
+                                     ibor_index,
+                                     spread,
+                                     float_schedule,
+                                     floating_day_count,
+                                     par_asset_swap,
+                                     gearing,
+                                     non_par_repayment.value_or(Null<Real>()),
+                                     deal_maturity);
+            },
+            nb::arg("pay_bond_coupon"),
+            nb::arg("bond"),
+            nb::arg("bond_clean_price"),
+            nb::arg("ibor_index"),
+            nb::arg("spread"),
+            nb::arg("float_schedule") = Schedule(),
+            nb::arg("floating_day_count") = DayCounter(),
+            nb::arg("par_asset_swap") = true,
+            nb::arg("gearing") = 1.0,
+            nb::arg("non_par_repayment") = nb::none(),
+            nb::arg("deal_maturity") = Date())
+        .def("NPV", [](AssetSwap& s) { return s.NPV(); })
+        .def("is_expired", [](const AssetSwap& s) { return s.isExpired(); })
+        .def("fair_spread", [](AssetSwap& s) { return s.fairSpread(); })
+        .def("fair_clean_price", [](AssetSwap& s) { return s.fairCleanPrice(); })
+        .def("fair_non_par_repayment",
+             [](AssetSwap& s) { return s.fairNonParRepayment(); })
+        .def("floating_leg_BPS",
+             [](AssetSwap& s) { return s.floatingLegBPS(); })
+        .def("floating_leg_NPV",
+             [](AssetSwap& s) { return s.floatingLegNPV(); })
+        .def("par_swap", [](const AssetSwap& s) { return s.parSwap(); })
+        .def("spread", [](const AssetSwap& s) { return s.spread(); })
+        .def("clean_price", [](const AssetSwap& s) { return s.cleanPrice(); })
+        .def("non_par_repayment",
+             [](const AssetSwap& s) { return s.nonParRepayment(); })
+        .def("pay_bond_coupon",
+             [](const AssetSwap& s) { return s.payBondCoupon(); })
+        .def(
+            "set_pricing_engine",
+            [](AssetSwap& s,
+               const Handle<YieldTermStructure>& discount_curve,
+               std::optional<bool> include_settlement_date_flows,
+               const Date& settlement_date,
+               const Date& npv_date) {
+                s.setPricingEngine(ext::make_shared<DiscountingSwapEngine>(
+                    discount_curve,
+                    include_settlement_date_flows,
+                    settlement_date,
+                    npv_date));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("include_settlement_date_flows") = nb::none(),
+            nb::arg("settlement_date") = Date(),
+            nb::arg("npv_date") = Date(),
+            "Attach DiscountingSwapEngine.");
 }

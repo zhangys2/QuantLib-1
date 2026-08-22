@@ -427,6 +427,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BasketOption.set_mc_american_pricing_engine` → `MakeMCAmericanBasketEngine`
 - Recovers Haug Kirk 4.7530 and 1-asset American put 21.6059
 
+### Phase 89 (AssetSwap)
+- `AssetSwap` (par / market) on `FixedRateBond` / `ZeroCouponBond` / `FloatingRateBond`
+- `set_pricing_engine` → `DiscountingSwapEngine`
+- Recovers suite implied-value (zero-spread fair clean = bond clean) and fair-price/spread NPV-zeroing
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
