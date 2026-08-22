@@ -12,6 +12,7 @@
 #include <ql/cashflows/duration.hpp>
 #include <ql/instruments/assetswap.hpp>
 #include <ql/instruments/bond.hpp>
+#include <ql/instruments/zerocouponswap.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
@@ -1261,5 +1262,104 @@ void bind_instruments(nb::module_& m) {
             nb::arg("include_settlement_date_flows") = nb::none(),
             nb::arg("settlement_date") = Date(),
             nb::arg("npv_date") = Date(),
+            "Attach DiscountingSwapEngine.");
+
+    // ZeroCouponSwap is Swap/Instrument (MI via LazyObject) — standalone wrapper.
+    // Overloads dispatch on arg 6: IborIndex (fixed payment) vs DayCounter (rate).
+    nb::class_<ZeroCouponSwap>(m, "ZeroCouponSwap")
+        .def(
+            "__init__",
+            [](ZeroCouponSwap* self,
+               Swap::Type type,
+               Real base_nominal,
+               const Date& start_date,
+               const Date& maturity_date,
+               Real fixed_payment,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               const Calendar& payment_calendar,
+               BusinessDayConvention payment_convention,
+               Natural payment_delay) {
+                new (self) ZeroCouponSwap(type,
+                                          base_nominal,
+                                          start_date,
+                                          maturity_date,
+                                          fixed_payment,
+                                          ibor_index,
+                                          payment_calendar,
+                                          payment_convention,
+                                          payment_delay);
+            },
+            nb::arg("type"),
+            nb::arg("base_nominal"),
+            nb::arg("start_date"),
+            nb::arg("maturity_date"),
+            nb::arg("fixed_payment"),
+            nb::arg("ibor_index"),
+            nb::arg("payment_calendar"),
+            nb::arg("payment_convention") = Following,
+            nb::arg("payment_delay") = 0)
+        .def(
+            "__init__",
+            [](ZeroCouponSwap* self,
+               Swap::Type type,
+               Real base_nominal,
+               const Date& start_date,
+               const Date& maturity_date,
+               Rate fixed_rate,
+               const DayCounter& fixed_day_counter,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               const Calendar& payment_calendar,
+               BusinessDayConvention payment_convention,
+               Natural payment_delay) {
+                new (self) ZeroCouponSwap(type,
+                                          base_nominal,
+                                          start_date,
+                                          maturity_date,
+                                          fixed_rate,
+                                          fixed_day_counter,
+                                          ibor_index,
+                                          payment_calendar,
+                                          payment_convention,
+                                          payment_delay);
+            },
+            nb::arg("type"),
+            nb::arg("base_nominal"),
+            nb::arg("start_date"),
+            nb::arg("maturity_date"),
+            nb::arg("fixed_rate"),
+            nb::arg("fixed_day_counter"),
+            nb::arg("ibor_index"),
+            nb::arg("payment_calendar"),
+            nb::arg("payment_convention") = Following,
+            nb::arg("payment_delay") = 0)
+        .def("NPV", [](ZeroCouponSwap& s) { return s.NPV(); })
+        .def("is_expired", [](const ZeroCouponSwap& s) { return s.isExpired(); })
+        .def("type", [](const ZeroCouponSwap& s) { return s.type(); })
+        .def("base_nominal", [](const ZeroCouponSwap& s) { return s.baseNominal(); })
+        .def("start_date", [](const ZeroCouponSwap& s) { return s.startDate(); })
+        .def("maturity_date",
+             [](const ZeroCouponSwap& s) { return s.maturityDate(); })
+        .def("fixed_payment",
+             [](const ZeroCouponSwap& s) { return s.fixedPayment(); })
+        .def("fixed_leg_NPV",
+             [](ZeroCouponSwap& s) { return s.fixedLegNPV(); })
+        .def("floating_leg_NPV",
+             [](ZeroCouponSwap& s) { return s.floatingLegNPV(); })
+        .def("fair_fixed_payment",
+             [](ZeroCouponSwap& s) { return s.fairFixedPayment(); })
+        .def(
+            "fair_fixed_rate",
+            [](ZeroCouponSwap& s, const DayCounter& day_counter) {
+                return s.fairFixedRate(day_counter);
+            },
+            nb::arg("day_counter"))
+        .def(
+            "set_pricing_engine",
+            [](ZeroCouponSwap& s,
+               const Handle<YieldTermStructure>& discount_curve) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingSwapEngine>(discount_curve));
+            },
+            nb::arg("discount_curve"),
             "Attach DiscountingSwapEngine.");
 }
