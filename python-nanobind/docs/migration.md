@@ -1851,6 +1851,27 @@ processes and a correlation `Matrix`. European matches Haug/Kirk with
 `steps_per_year=1`. American is Longstaff–Schwartz. Compat:
 `setMCEuropeanPricingEngine`, `setMCAmericanPricingEngine`.
 
+## Phase-89 AssetSwap
+
+```python
+asw = ql.AssetSwap(
+    True, bond, bond.clean_price(), euribor6m, 0.0,
+    floating_day_count=euribor6m.day_counter(),
+    par_asset_swap=True,
+)
+asw.set_pricing_engine(curve)
+print(asw.fair_clean_price(), asw.fair_spread(), asw.NPV())
+```
+
+Standalone wrapper (Swap/Instrument MI). Accepts `FixedRateBond`,
+`ZeroCouponBond`, or `FloatingRateBond`. Default empty float schedule
+builds from the bond settlement/maturity and the Ibor tenor. Engine is
+`DiscountingSwapEngine`. Compat: `fairCleanPrice`, `fairSpread`,
+`setPricingEngine`.
+
+Fair prices are wrong with indexed coupons (QuantLib `\bug`); match the
+suite's at-par coupon settings.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

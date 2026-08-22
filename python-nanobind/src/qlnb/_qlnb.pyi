@@ -515,6 +515,69 @@ class VanillaSwap:
     def fair_spread(self) -> float: ...
     def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
 
+class AssetSwap:
+    def __init__(
+        self,
+        pay_bond_coupon: bool,
+        bond: FixedRateBond,
+        bond_clean_price: float,
+        ibor_index: IborIndex,
+        spread: float,
+        float_schedule: Schedule = ...,
+        floating_day_count: DayCounter = ...,
+        par_asset_swap: bool = ...,
+        gearing: float = ...,
+        non_par_repayment: float | None = ...,
+        deal_maturity: Date = ...,
+    ) -> None: ...
+    def __init__(
+        self,
+        pay_bond_coupon: bool,
+        bond: ZeroCouponBond,
+        bond_clean_price: float,
+        ibor_index: IborIndex,
+        spread: float,
+        float_schedule: Schedule = ...,
+        floating_day_count: DayCounter = ...,
+        par_asset_swap: bool = ...,
+        gearing: float = ...,
+        non_par_repayment: float | None = ...,
+        deal_maturity: Date = ...,
+    ) -> None: ...  # type: ignore[misc]
+    def __init__(
+        self,
+        pay_bond_coupon: bool,
+        bond: FloatingRateBond,
+        bond_clean_price: float,
+        ibor_index: IborIndex,
+        spread: float,
+        float_schedule: Schedule = ...,
+        floating_day_count: DayCounter = ...,
+        par_asset_swap: bool = ...,
+        gearing: float = ...,
+        non_par_repayment: float | None = ...,
+        deal_maturity: Date = ...,
+    ) -> None: ...  # type: ignore[misc]
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def fair_spread(self) -> float: ...
+    def fair_clean_price(self) -> float: ...
+    def fair_non_par_repayment(self) -> float: ...
+    def floating_leg_BPS(self) -> float: ...
+    def floating_leg_NPV(self) -> float: ...
+    def par_swap(self) -> bool: ...
+    def spread(self) -> float: ...
+    def clean_price(self) -> float: ...
+    def non_par_repayment(self) -> float: ...
+    def pay_bond_coupon(self) -> bool: ...
+    def set_pricing_engine(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        include_settlement_date_flows: bool | None = ...,
+        settlement_date: Date = ...,
+        npv_date: Date = ...,
+    ) -> None: ...
+
 class EuropeanExercise:
     def __init__(self, date: Date) -> None: ...
     def last_date(self) -> Date: ...

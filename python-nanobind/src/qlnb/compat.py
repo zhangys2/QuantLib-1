@@ -219,6 +219,24 @@ def _install_aliases() -> None:
     VanillaSwap.fairSpread = VanillaSwap.fair_spread  # type: ignore[attr-defined]
     VanillaSwap.setPricingEngine = VanillaSwap.set_pricing_engine  # type: ignore[attr-defined]
 
+    AssetSwap = getattr(_ql, "AssetSwap", None)
+    if AssetSwap is not None:
+        AssetSwap.fairSpread = AssetSwap.fair_spread  # type: ignore[attr-defined]
+        AssetSwap.fairCleanPrice = AssetSwap.fair_clean_price  # type: ignore[attr-defined]
+        AssetSwap.fairNonParRepayment = (  # type: ignore[attr-defined]
+            AssetSwap.fair_non_par_repayment
+        )
+        AssetSwap.floatingLegBPS = AssetSwap.floating_leg_BPS  # type: ignore[attr-defined]
+        AssetSwap.floatingLegNPV = AssetSwap.floating_leg_NPV  # type: ignore[attr-defined]
+        AssetSwap.parSwap = AssetSwap.par_swap  # type: ignore[attr-defined]
+        AssetSwap.cleanPrice = AssetSwap.clean_price  # type: ignore[attr-defined]
+        AssetSwap.nonParRepayment = (  # type: ignore[attr-defined]
+            AssetSwap.non_par_repayment
+        )
+        AssetSwap.payBondCoupon = AssetSwap.pay_bond_coupon  # type: ignore[attr-defined]
+        AssetSwap.isExpired = AssetSwap.is_expired  # type: ignore[attr-defined]
+        AssetSwap.setPricingEngine = AssetSwap.set_pricing_engine  # type: ignore[attr-defined]
+
     Swaption = getattr(_ql, "Swaption", None)
     if Swaption is not None:
         Swaption.setPricingEngine = Swaption.set_pricing_engine  # type: ignore[attr-defined]
