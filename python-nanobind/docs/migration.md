@@ -1872,6 +1872,27 @@ builds from the bond settlement/maturity and the Ibor tenor. Engine is
 Fair prices are wrong with indexed coupons (QuantLib `\bug`); match the
 suite's at-par coupon settings.
 
+## Phase-90 ZeroCouponSwap
+
+```python
+zc = ql.ZeroCouponSwap(
+    ql.SwapType.Receiver, 1e6, start, end, 1.2e6, euribor6m, calendar,
+    ql.BusinessDayConvention.ModifiedFollowing, 1,
+)
+zc.set_pricing_engine(curve)
+print(zc.NPV(), zc.fixed_leg_NPV(), zc.fair_fixed_payment())
+
+zc_rate = ql.ZeroCouponSwap(
+    ql.SwapType.Receiver, 1e6, start, end, 0.01, ql.Actual365Fixed(),
+    euribor6m, calendar,
+)
+```
+
+Standalone wrapper (Swap/Instrument MI). Two constructors: known fixed
+cashflow, or compounded annual fixed rate. Engine is
+`DiscountingSwapEngine`. Compat: `fairFixedPayment`, `fairFixedRate`,
+`fixedLegNPV`, `setPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

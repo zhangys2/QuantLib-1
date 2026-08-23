@@ -237,6 +237,35 @@ def _install_aliases() -> None:
         AssetSwap.isExpired = AssetSwap.is_expired  # type: ignore[attr-defined]
         AssetSwap.setPricingEngine = AssetSwap.set_pricing_engine  # type: ignore[attr-defined]
 
+    ZeroCouponSwap = getattr(_ql, "ZeroCouponSwap", None)
+    if ZeroCouponSwap is not None:
+        ZeroCouponSwap.baseNominal = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.base_nominal
+        )
+        ZeroCouponSwap.startDate = ZeroCouponSwap.start_date  # type: ignore[attr-defined]
+        ZeroCouponSwap.maturityDate = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.maturity_date
+        )
+        ZeroCouponSwap.fixedPayment = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fixed_payment
+        )
+        ZeroCouponSwap.fixedLegNPV = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fixed_leg_NPV
+        )
+        ZeroCouponSwap.floatingLegNPV = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.floating_leg_NPV
+        )
+        ZeroCouponSwap.fairFixedPayment = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fair_fixed_payment
+        )
+        ZeroCouponSwap.fairFixedRate = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fair_fixed_rate
+        )
+        ZeroCouponSwap.isExpired = ZeroCouponSwap.is_expired  # type: ignore[attr-defined]
+        ZeroCouponSwap.setPricingEngine = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.set_pricing_engine
+        )
+
     Swaption = getattr(_ql, "Swaption", None)
     if Swaption is not None:
         Swaption.setPricingEngine = Swaption.set_pricing_engine  # type: ignore[attr-defined]
