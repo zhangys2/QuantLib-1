@@ -765,6 +765,20 @@ def _install_aliases() -> None:
     ForwardRateAgreement.forwardRate = ForwardRateAgreement.forward_rate  # type: ignore[attr-defined]
     ForwardRateAgreement.fixingDate = ForwardRateAgreement.fixing_date  # type: ignore[attr-defined]
 
+    BondForward = getattr(_ql, "BondForward", None)
+    if BondForward is not None:
+        BondForward.cleanForwardPrice = (  # type: ignore[attr-defined]
+            BondForward.clean_forward_price
+        )
+        BondForward.forwardPrice = BondForward.forward_price  # type: ignore[attr-defined]
+        BondForward.forwardValue = BondForward.forward_value  # type: ignore[attr-defined]
+        BondForward.spotValue = BondForward.spot_value  # type: ignore[attr-defined]
+        BondForward.spotIncome = BondForward.spot_income  # type: ignore[attr-defined]
+        BondForward.settlementDate = (  # type: ignore[attr-defined]
+            BondForward.settlement_date
+        )
+        BondForward.isExpired = BondForward.is_expired  # type: ignore[attr-defined]
+
     # Phase-4 / Phase-31 barrier instruments (present when bindings are built).
     BarrierOption = getattr(_ql, "BarrierOption", None)
     AnalyticBinaryBarrierEngine = getattr(
