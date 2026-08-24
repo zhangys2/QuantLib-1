@@ -1111,6 +1111,33 @@ _ql.VanillaSwap.Receiver = _ql.SwapType.Receiver  # type: ignore[attr-defined]
 # Phase-6 MakeOIS-style alias.
 makeOIS = getattr(_ql, "make_ois", None)
 
+# Phase-93 MakeMultipleResetsSwap-style alias.
+makeMultipleResetsSwap = getattr(_ql, "make_multiple_resets_swap", None)
+MakeMultipleResetsSwap = makeMultipleResetsSwap
+MultipleResetsSwap = getattr(_ql, "MultipleResetsSwap", None)
+if MultipleResetsSwap is not None:
+    MultipleResetsSwap.fairRate = MultipleResetsSwap.fair_rate  # type: ignore[attr-defined]
+    MultipleResetsSwap.fairSpread = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.fair_spread
+    )
+    MultipleResetsSwap.fixedRate = MultipleResetsSwap.fixed_rate  # type: ignore[attr-defined]
+    MultipleResetsSwap.fixedLegNPV = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.fixed_leg_NPV
+    )
+    MultipleResetsSwap.floatingLegNPV = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.floating_leg_NPV
+    )
+    MultipleResetsSwap.resetsPerCoupon = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.resets_per_coupon
+    )
+    MultipleResetsSwap.averagingMethod = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.averaging_method
+    )
+    MultipleResetsSwap.isExpired = MultipleResetsSwap.is_expired  # type: ignore[attr-defined]
+    MultipleResetsSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.set_pricing_engine
+    )
+
 # Phase-7 Protection nested namespace (SWIG: ql.Protection.Seller).
 class Protection:
     """SWIG-style Protection.Buyer / Protection.Seller namespace."""
