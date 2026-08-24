@@ -12,7 +12,9 @@
 #include <ql/cashflows/duration.hpp>
 #include <ql/instruments/assetswap.hpp>
 #include <ql/instruments/bond.hpp>
+#include <ql/instruments/perpetualfutures.hpp>
 #include <ql/instruments/zerocouponswap.hpp>
+#include <ql/pricingengines/futures/discountingperpetualfuturesengine.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
@@ -1362,4 +1364,81 @@ void bind_instruments(nb::module_& m) {
             },
             nb::arg("discount_curve"),
             "Attach DiscountingSwapEngine.");
+
+    // PerpetualFutures is Instrument/LazyObject (MI) — standalone wrapper.
+    nb::enum_<PerpetualFutures::PayoffType>(m, "PerpetualFuturesPayoffType")
+        .value("Linear", PerpetualFutures::Linear)
+        .value("Inverse", PerpetualFutures::Inverse)
+        .value("Quanto", PerpetualFutures::Quanto);
+
+    nb::enum_<PerpetualFutures::FundingType>(m, "PerpetualFuturesFundingType")
+        .value("FundingWithPreviousSpot",
+               PerpetualFutures::FundingWithPreviousSpot)
+        .value("FundingWithCurrentSpot",
+               PerpetualFutures::FundingWithCurrentSpot);
+
+    nb::enum_<DiscountingPerpetualFuturesEngine::InterpolationType>(
+        m, "PerpetualFuturesInterpType")
+        .value("PiecewiseConstant",
+               DiscountingPerpetualFuturesEngine::PiecewiseConstant)
+        .value("Linear", DiscountingPerpetualFuturesEngine::Linear)
+        .value("CubicSpline", DiscountingPerpetualFuturesEngine::CubicSpline);
+
+    nb::class_<PerpetualFutures>(m, "PerpetualFutures")
+        .def(
+            "__init__",
+            [](PerpetualFutures* self,
+               PerpetualFutures::PayoffType payoff_type,
+               PerpetualFutures::FundingType funding_type,
+               const Period& funding_frequency,
+               const Calendar& calendar,
+               const DayCounter& day_counter) {
+                new (self) PerpetualFutures(payoff_type,
+                                            funding_type,
+                                            funding_frequency,
+                                            calendar,
+                                            day_counter);
+            },
+            nb::arg("payoff_type"),
+            nb::arg("funding_type") = PerpetualFutures::FundingWithCurrentSpot,
+            nb::arg("funding_frequency") = Period(8, Hours),
+            nb::arg("calendar") = Calendar(NullCalendar()),
+            nb::arg("day_counter") =
+                DayCounter(ActualActual(ActualActual::ISDA)))
+        .def("NPV", [](PerpetualFutures& f) { return f.NPV(); })
+        .def("is_expired",
+             [](const PerpetualFutures& f) { return f.isExpired(); })
+        .def(
+            "set_pricing_engine",
+            [](PerpetualFutures& f,
+               const Handle<YieldTermStructure>& domestic_curve,
+               const Handle<YieldTermStructure>& foreign_curve,
+               const Handle<Quote>& asset_spot,
+               const std::vector<Time>& funding_times,
+               const std::vector<Rate>& funding_rates,
+               const std::vector<Spread>& interest_rate_diffs,
+               DiscountingPerpetualFuturesEngine::InterpolationType
+                   funding_interp_type,
+               Real max_t) {
+                f.setPricingEngine(
+                    ext::make_shared<DiscountingPerpetualFuturesEngine>(
+                        domestic_curve,
+                        foreign_curve,
+                        asset_spot,
+                        funding_times,
+                        funding_rates,
+                        interest_rate_diffs,
+                        funding_interp_type,
+                        max_t));
+            },
+            nb::arg("domestic_curve"),
+            nb::arg("foreign_curve"),
+            nb::arg("asset_spot"),
+            nb::arg("funding_times"),
+            nb::arg("funding_rates"),
+            nb::arg("interest_rate_diffs"),
+            nb::arg("funding_interp_type") =
+                DiscountingPerpetualFuturesEngine::PiecewiseConstant,
+            nb::arg("max_t") = 60.0,
+            "Attach DiscountingPerpetualFuturesEngine.");
 }

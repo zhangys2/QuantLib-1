@@ -617,6 +617,43 @@ class ZeroCouponSwap:
     def fair_fixed_rate(self, day_counter: DayCounter) -> float: ...
     def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
 
+class PerpetualFuturesPayoffType:
+    Linear: PerpetualFuturesPayoffType
+    Inverse: PerpetualFuturesPayoffType
+    Quanto: PerpetualFuturesPayoffType
+
+class PerpetualFuturesFundingType:
+    FundingWithPreviousSpot: PerpetualFuturesFundingType
+    FundingWithCurrentSpot: PerpetualFuturesFundingType
+
+class PerpetualFuturesInterpType:
+    PiecewiseConstant: PerpetualFuturesInterpType
+    Linear: PerpetualFuturesInterpType
+    CubicSpline: PerpetualFuturesInterpType
+
+class PerpetualFutures:
+    def __init__(
+        self,
+        payoff_type: PerpetualFuturesPayoffType,
+        funding_type: PerpetualFuturesFundingType = ...,
+        funding_frequency: Period = ...,
+        calendar: Calendar = ...,
+        day_counter: DayCounter = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def set_pricing_engine(
+        self,
+        domestic_curve: YieldTermStructureHandle,
+        foreign_curve: YieldTermStructureHandle,
+        asset_spot: QuoteHandle,
+        funding_times: Sequence[float],
+        funding_rates: Sequence[float],
+        interest_rate_diffs: Sequence[float],
+        funding_interp_type: PerpetualFuturesInterpType = ...,
+        max_t: float = ...,
+    ) -> None: ...
+
 class EuropeanExercise:
     def __init__(self, date: Date) -> None: ...
     def last_date(self) -> Date: ...
