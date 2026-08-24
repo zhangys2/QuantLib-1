@@ -1911,6 +1911,24 @@ before constructing the forward. Discount / income curves are constructor
 arguments (no separate engine). Compat: `cleanForwardPrice`,
 `forwardValue`, `spotValue`.
 
+## Phase-92 PerpetualFutures
+
+```python
+pf = ql.PerpetualFutures(
+    ql.PerpetualFuturesPayoffType.Linear,
+    ql.PerpetualFuturesFundingType.FundingWithPreviousSpot,
+    ql.Period(3, ql.TimeUnit.Months),
+)
+pf.set_pricing_engine(dom, foreign, ql.make_quote_handle(10000.0),
+                      [0.0], [0.01], [0.005])
+print(pf.NPV())
+```
+
+Standalone wrapper (Instrument/LazyObject MI). Engine is
+`DiscountingPerpetualFuturesEngine` (Linear / Inverse only). Compat:
+`setPricingEngine`, plus `PerpetualFutures.Linear` / `.Inverse` nested
+aliases. Recovers the AHJ 2024 closed form (rel 1e-6).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

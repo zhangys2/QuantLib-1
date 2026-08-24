@@ -441,6 +441,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BondForward` on `FixedRateBond` (standalone Forward/Instrument wrapper)
 - Recovers suite futures price **207.47** (clean forward / 0.76871)
 
+### Phase 92 (PerpetualFutures)
+- `PerpetualFutures` + `set_pricing_engine` → `DiscountingPerpetualFuturesEngine`
+- Recovers Ackerer–Hugonnier–Jermann analytic goldens (rel 1e-6)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

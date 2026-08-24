@@ -779,6 +779,36 @@ def _install_aliases() -> None:
         )
         BondForward.isExpired = BondForward.is_expired  # type: ignore[attr-defined]
 
+    PerpetualFutures = getattr(_ql, "PerpetualFutures", None)
+    if PerpetualFutures is not None:
+        PerpetualFutures.setPricingEngine = (  # type: ignore[attr-defined]
+            PerpetualFutures.set_pricing_engine
+        )
+        PerpetualFutures.isExpired = PerpetualFutures.is_expired  # type: ignore[attr-defined]
+        PerpetualFuturesPayoffType = getattr(  # noqa: N816
+            _ql, "PerpetualFuturesPayoffType", None
+        )
+        PerpetualFuturesFundingType = getattr(  # noqa: N816
+            _ql, "PerpetualFuturesFundingType", None
+        )
+        if PerpetualFuturesPayoffType is not None:
+            PerpetualFutures.Linear = (  # type: ignore[attr-defined]
+                PerpetualFuturesPayoffType.Linear
+            )
+            PerpetualFutures.Inverse = (  # type: ignore[attr-defined]
+                PerpetualFuturesPayoffType.Inverse
+            )
+            PerpetualFutures.Quanto = (  # type: ignore[attr-defined]
+                PerpetualFuturesPayoffType.Quanto
+            )
+        if PerpetualFuturesFundingType is not None:
+            PerpetualFutures.FundingWithPreviousSpot = (  # type: ignore[attr-defined]
+                PerpetualFuturesFundingType.FundingWithPreviousSpot
+            )
+            PerpetualFutures.FundingWithCurrentSpot = (  # type: ignore[attr-defined]
+                PerpetualFuturesFundingType.FundingWithCurrentSpot
+            )
+
     # Phase-4 / Phase-31 barrier instruments (present when bindings are built).
     BarrierOption = getattr(_ql, "BarrierOption", None)
     AnalyticBinaryBarrierEngine = getattr(
