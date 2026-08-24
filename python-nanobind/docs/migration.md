@@ -1929,6 +1929,26 @@ Standalone wrapper (Instrument/LazyObject MI). Engine is
 `setPricingEngine`, plus `PerpetualFutures.Linear` / `.Inverse` nested
 aliases. Recovers the AHJ 2024 closed form (rel 1e-6).
 
+## Phase-93 MultipleResetsSwap
+
+```python
+swap = ql.make_multiple_resets_swap(
+    ql.Period(2, ql.TimeUnit.Years), euribor3m, 2,
+    fixed_rate=0.06, settlement_days=0, nominal=1e6,
+)
+print(swap.fair_rate(), swap.NPV())
+par = ql.make_multiple_resets_swap(
+    ql.Period(2, ql.TimeUnit.Years), euribor3m, 2,
+    fixed_rate=swap.fair_rate(), settlement_days=0, nominal=1e6,
+)
+print(par.NPV())  # ~0
+```
+
+Standalone wrapper (FixedVsFloatingSwap/Instrument MI). Builder attaches
+`DiscountingSwapEngine` from the Ibor forwarding curve. Omit `fixed_rate`
+to lock the fair rate (NPV 0). Compat: `makeMultipleResetsSwap`,
+`fairRate`, `fixedLegNPV`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

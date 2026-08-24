@@ -445,6 +445,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `PerpetualFutures` + `set_pricing_engine` → `DiscountingPerpetualFuturesEngine`
 - Recovers Ackerer–Hugonnier–Jermann analytic goldens (rel 1e-6)
 
+### Phase 93 (MultipleResetsSwap)
+- `make_multiple_resets_swap` → `MakeMultipleResetsSwap` (value copy)
+- Recovers suite fair-rate NPV-zeroing (tol 1e-8) and legs-sum identity
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

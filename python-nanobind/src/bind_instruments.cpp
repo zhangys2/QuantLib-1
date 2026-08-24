@@ -10,8 +10,11 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/methods/finitedifferences/utilities/fdmquantohelper.hpp>
 #include <ql/cashflows/duration.hpp>
+#include <ql/cashflows/rateaveraging.hpp>
 #include <ql/instruments/assetswap.hpp>
 #include <ql/instruments/bond.hpp>
+#include <ql/instruments/makemultipleresetsswap.hpp>
+#include <ql/instruments/multipleresetsswap.hpp>
 #include <ql/instruments/perpetualfutures.hpp>
 #include <ql/instruments/zerocouponswap.hpp>
 #include <ql/pricingengines/futures/discountingperpetualfuturesengine.hpp>
@@ -1441,4 +1444,73 @@ void bind_instruments(nb::module_& m) {
                 DiscountingPerpetualFuturesEngine::PiecewiseConstant,
             nb::arg("max_t") = 60.0,
             "Attach DiscountingPerpetualFuturesEngine.");
+
+    // MultipleResetsSwap is FixedVsFloatingSwap/Instrument (MI) — standalone.
+    nb::enum_<RateAveraging::Type>(m, "RateAveraging")
+        .value("Simple", RateAveraging::Simple)
+        .value("Compound", RateAveraging::Compound);
+
+    nb::class_<MultipleResetsSwap>(m, "MultipleResetsSwap")
+        .def("NPV", [](MultipleResetsSwap& s) { return s.NPV(); })
+        .def("is_expired",
+             [](const MultipleResetsSwap& s) { return s.isExpired(); })
+        .def("type", [](const MultipleResetsSwap& s) { return s.type(); })
+        .def("nominal", [](const MultipleResetsSwap& s) { return s.nominal(); })
+        .def("fixed_rate",
+             [](const MultipleResetsSwap& s) { return s.fixedRate(); })
+        .def("spread", [](const MultipleResetsSwap& s) { return s.spread(); })
+        .def("resets_per_coupon",
+             [](const MultipleResetsSwap& s) { return s.resetsPerCoupon(); })
+        .def("averaging_method",
+             [](const MultipleResetsSwap& s) { return s.averagingMethod(); })
+        .def("fair_rate", [](MultipleResetsSwap& s) { return s.fairRate(); })
+        .def("fair_spread",
+             [](MultipleResetsSwap& s) { return s.fairSpread(); })
+        .def("fixed_leg_NPV",
+             [](MultipleResetsSwap& s) { return s.fixedLegNPV(); })
+        .def("floating_leg_NPV",
+             [](MultipleResetsSwap& s) { return s.floatingLegNPV(); })
+        .def(
+            "set_pricing_engine",
+            [](MultipleResetsSwap& s,
+               const Handle<YieldTermStructure>& discount_curve) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingSwapEngine>(discount_curve));
+            },
+            nb::arg("discount_curve"),
+            "Attach DiscountingSwapEngine.");
+
+    m.def(
+        "make_multiple_resets_swap",
+        [](const Period& tenor,
+           const ext::shared_ptr<IborIndex>& ibor_index,
+           Size resets_per_coupon,
+           std::optional<Rate> fixed_rate,
+           std::optional<Natural> settlement_days,
+           Real nominal,
+           Swap::Type type,
+           RateAveraging::Type averaging_method,
+           Spread spread) {
+            MakeMultipleResetsSwap maker(tenor, ibor_index, resets_per_coupon);
+            maker.withType(type)
+                .withNominal(nominal)
+                .withFloatingLegSpread(spread)
+                .withAveragingMethod(averaging_method);
+            if (fixed_rate)
+                maker.withFixedRate(*fixed_rate);
+            if (settlement_days)
+                maker.withSettlementDays(*settlement_days);
+            return MultipleResetsSwap(maker);
+        },
+        nb::arg("tenor"),
+        nb::arg("ibor_index"),
+        nb::arg("resets_per_coupon"),
+        nb::arg("fixed_rate") = nb::none(),
+        nb::arg("settlement_days") = nb::none(),
+        nb::arg("nominal") = 1.0,
+        nb::arg("type") = Swap::Payer,
+        nb::arg("averaging_method") = RateAveraging::Compound,
+        nb::arg("spread") = 0.0,
+        "Build a MultipleResetsSwap via QuantLib MakeMultipleResetsSwap "
+        "(value copy). Omit fixed_rate to use the fair rate (NPV 0).");
 }
