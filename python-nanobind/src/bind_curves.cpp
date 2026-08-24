@@ -12,6 +12,7 @@
 #include <ql/indexes/ibor/euribor.hpp>
 #include <ql/indexes/ibor/gbplibor.hpp>
 #include <ql/indexes/ibor/sofr.hpp>
+#include <ql/indexes/ibor/usdlibor.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/interestrate.hpp>
 #include <ql/math/interpolations/cubicinterpolation.hpp>
@@ -425,6 +426,16 @@ void bind_curves(nb::module_& m) {
         nb::arg("tenor"),
         nb::arg("handle") = Handle<YieldTermStructure>(),
         "Factory: GBPLibor → IborIndex.");
+
+    m.def(
+        "USDLibor",
+        [](const Period& tenor, const Handle<YieldTermStructure>& h) {
+            return ext::shared_ptr<IborIndex>(
+                ext::make_shared<USDLibor>(tenor, h));
+        },
+        nb::arg("tenor"),
+        nb::arg("handle") = Handle<YieldTermStructure>(),
+        "Factory: USDLibor → IborIndex.");
 
     // Overnight indexes as opaque shared_ptrs (standalone; Index hierarchy is MI-heavy).
     nb::class_<OvernightIndex>(m, "OvernightIndex")

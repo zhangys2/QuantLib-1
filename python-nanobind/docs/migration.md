@@ -1949,6 +1949,28 @@ Standalone wrapper (FixedVsFloatingSwap/Instrument MI). Builder attaches
 to lock the fair rate (NPV 0). Compat: `makeMultipleResetsSwap`,
 `fairRate`, `fixedLegNPV`.
 
+## Phase-94 EquityTotalReturnSwap
+
+```python
+eq = ql.EquityIndex("eqIndex", calendar, ql.USDCurrency(), interest, dividend, spot)
+eq.add_fixing(ql.Date(5, ql.Month.January, 2023), 9010.0)
+libor = ql.USDLibor(ql.Period(3, ql.TimeUnit.Months), interest)
+trs = ql.EquityTotalReturnSwap(
+    ql.SwapType.Receiver, 1e7, schedule, eq, libor,
+    ql.Actual365Fixed(), 0.0, 1.0, calendar,
+    ql.BusinessDayConvention.Following, 0,
+)
+trs.set_pricing_engine(interest)
+print(trs.equity_leg_NPV(), trs.fair_margin(), trs.NPV())
+```
+
+Standalone wrapper (Swap/Instrument MI). `EquityIndex` is an Index
+(Observable+Observer MI) standalone wrapper; `USDLibor` is an IborIndex
+factory. Overnight (Sofr) overload dispatches on the interest-rate index.
+Engine is `DiscountingSwapEngine`. Compat: `fairMargin`, `equityLegNPV`,
+`setPricingEngine`. Recovers suite equity-leg NPV (tol 1e-8) and
+fair-margin par rebuild (tol 1e-8).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
