@@ -437,6 +437,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_pricing_engine` → `DiscountingSwapEngine`
 - Recovers suite fixed-leg NPV replication and fair payment / fair rate NPV-zeroing
 
+### Phase 91 (BondForward)
+- `BondForward` on `FixedRateBond` (standalone Forward/Instrument wrapper)
+- Recovers suite futures price **207.47** (clean forward / 0.76871)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

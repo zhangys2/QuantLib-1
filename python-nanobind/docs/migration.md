@@ -1893,6 +1893,24 @@ cashflow, or compounded annual fixed rate. Engine is
 `DiscountingSwapEngine`. Compat: `fairFixedPayment`, `fairFixedRate`,
 `fixedLegNPV`, `setPricingEngine`.
 
+## Phase-91 BondForward
+
+```python
+bond.set_pricing_engine(curve)
+fwd = ql.BondForward(
+    curve.reference_date(), delivery, ql.Position.Long, 0.0, 2,
+    ql.ActualActual(ql.ActualActualConvention.ISDA), ql.TARGET(),
+    ql.BusinessDayConvention.Following, bond, curve, curve,
+)
+print(fwd.clean_forward_price() / 0.76871)  # suite 207.47
+```
+
+Standalone wrapper (Forward/Instrument MI). The underlying
+`FixedRateBond` is copied; attach `DiscountingBondEngine` on the bond
+before constructing the forward. Discount / income curves are constructor
+arguments (no separate engine). Compat: `cleanForwardPrice`,
+`forwardValue`, `spotValue`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

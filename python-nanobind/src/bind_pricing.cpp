@@ -10,6 +10,8 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/dividendschedule.hpp>
 #include <ql/methods/finitedifferences/utilities/fdmquantohelper.hpp>
+#include <ql/instruments/bondforward.hpp>
+#include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/forwardrateagreement.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/vanillaoption.hpp>
@@ -732,6 +734,63 @@ void bind_pricing(nb::module_& m) {
              [](const ForwardRateAgreement& fra) { return fra.forwardRate(); })
         .def("fixing_date",
              [](const ForwardRateAgreement& fra) { return fra.fixingDate(); });
+
+    // BondForward is Forward/Instrument (MI via LazyObject) — standalone wrapper.
+    // Underlying FixedRateBond is copied into a shared_ptr; price it first.
+    nb::class_<BondForward>(m, "BondForward")
+        .def(
+            "__init__",
+            [](BondForward* self,
+               const Date& value_date,
+               const Date& maturity_date,
+               Position::Type type,
+               Real strike,
+               Natural settlement_days,
+               const DayCounter& day_counter,
+               const Calendar& calendar,
+               BusinessDayConvention business_day_convention,
+               const FixedRateBond& bond,
+               const Handle<YieldTermStructure>& discount_curve,
+               const Handle<YieldTermStructure>& income_discount_curve) {
+                new (self) BondForward(value_date,
+                                       maturity_date,
+                                       type,
+                                       strike,
+                                       settlement_days,
+                                       day_counter,
+                                       calendar,
+                                       business_day_convention,
+                                       ext::make_shared<FixedRateBond>(bond),
+                                       discount_curve,
+                                       income_discount_curve);
+            },
+            nb::arg("value_date"),
+            nb::arg("maturity_date"),
+            nb::arg("type"),
+            nb::arg("strike"),
+            nb::arg("settlement_days"),
+            nb::arg("day_counter"),
+            nb::arg("calendar"),
+            nb::arg("business_day_convention"),
+            nb::arg("bond"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            nb::arg("income_discount_curve") = Handle<YieldTermStructure>())
+        .def("NPV", [](BondForward& f) { return f.NPV(); })
+        .def("is_expired", [](const BondForward& f) { return f.isExpired(); })
+        .def("clean_forward_price",
+             [](BondForward& f) { return f.cleanForwardPrice(); })
+        .def("forward_price", [](BondForward& f) { return f.forwardPrice(); })
+        .def("forward_value", [](BondForward& f) { return f.forwardValue(); })
+        .def("spot_value", [](const BondForward& f) { return f.spotValue(); })
+        .def(
+            "spot_income",
+            [](const BondForward& f,
+               const Handle<YieldTermStructure>& income_discount_curve) {
+                return f.spotIncome(income_discount_curve);
+            },
+            nb::arg("income_discount_curve"))
+        .def("settlement_date",
+             [](const BondForward& f) { return f.settlementDate(); });
 
     m.def("simulate_gbm_paths",
           &simulate_gbm_paths,
