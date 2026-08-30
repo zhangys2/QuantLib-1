@@ -2034,6 +2034,24 @@ Standalone wrapper (MultiAssetOption/Instrument MI). Engine is
 Compat: `setMCPricingEngine`, `errorEstimate`, `isExpired`. Recovers
 suite cached NPV 0.01221094 (tol 1e-8).
 
+## Phase-97 EverestOption
+
+```python
+today = ql.Date(15, ql.Month.May, 1998)
+ql.set_evaluation_date(today)
+opt = ql.EverestOption(1.0, 0.0, ql.EuropeanExercise(today + 360))
+opt.set_mc_pricing_engine(
+    processes, rho, steps_per_year=1, required_samples=1023, seed=86421
+)
+print(opt.NPV(), opt.yield_())  # 0.75784944, ...
+```
+
+Standalone wrapper (MultiAssetOption/Instrument MI). Engine is
+`MakeMCEverestEngine<PseudoRandom>` (default 1 step/year). Method
+`yield_` avoids the Python `yield` keyword; compat exposes `yield` via
+setattr. Compat: `setMCPricingEngine`, `errorEstimate`, `isExpired`.
+Recovers suite cached NPV 0.75784944 (tol 1e-8).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

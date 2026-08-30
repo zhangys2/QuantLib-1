@@ -2048,6 +2048,44 @@ def MCPagodaEngine(
     max_samples: int | None = ...,
 ) -> BlackScholesMertonProcess: ...
 
+class EverestOption:
+    def __init__(
+        self,
+        notional: float,
+        guarantee: float,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    def set_mc_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        time_steps: int | None = ...,
+        steps_per_year: int | None = ...,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+        max_samples: int | None = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def yield_(self) -> float: ...
+    def error_estimate(self) -> float: ...
+    def is_expired(self) -> bool: ...
+
+def MCEverestEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+    rho: Matrix,
+    time_steps: int | None = ...,
+    steps_per_year: int | None = ...,
+    required_samples: int | None = ...,
+    required_tolerance: float | None = ...,
+    seed: int = ...,
+    antithetic: bool = ...,
+    brownian_bridge: bool = ...,
+    max_samples: int | None = ...,
+) -> BlackScholesMertonProcess: ...
+
 class MargrabeOption:
     @overload
     def __init__(
