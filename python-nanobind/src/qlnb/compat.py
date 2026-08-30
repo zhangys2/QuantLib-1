@@ -1175,6 +1175,16 @@ if HimalayaOption is not None:
     HimalayaOption.isExpired = HimalayaOption.is_expired  # type: ignore[attr-defined]
 MCHimalayaEngine = getattr(_ql, "MCHimalayaEngine", None)
 
+# Phase-96 PagodaOption aliases.
+PagodaOption = getattr(_ql, "PagodaOption", None)
+if PagodaOption is not None:
+    PagodaOption.setMCPricingEngine = (  # type: ignore[attr-defined]
+        PagodaOption.set_mc_pricing_engine
+    )
+    PagodaOption.errorEstimate = PagodaOption.error_estimate  # type: ignore[attr-defined]
+    PagodaOption.isExpired = PagodaOption.is_expired  # type: ignore[attr-defined]
+MCPagodaEngine = getattr(_ql, "MCPagodaEngine", None)
+
 # Phase-7 Protection nested namespace (SWIG: ql.Protection.Seller).
 class Protection:
     """SWIG-style Protection.Buyer / Protection.Seller namespace."""
