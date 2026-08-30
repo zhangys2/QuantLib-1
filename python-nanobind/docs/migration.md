@@ -2016,6 +2016,24 @@ MC engines. Empty `fixing_dates` raises. Compat: `setMCPricingEngine`,
 `errorEstimate`, `isExpired`. Recovers suite cached NPV 5.93632056
 (tol 1e-8).
 
+## Phase-96 PagodaOption
+
+```python
+today = ql.Date(15, ql.Month.May, 1998)
+ql.set_evaluation_date(today)
+fixings = [today + i * 90 for i in range(1, 5)]
+opt = ql.PagodaOption(fixings, roof=0.20, fraction=0.62)
+opt.set_mc_pricing_engine(
+    processes, rho, required_samples=1023, seed=86421
+)
+print(opt.NPV())  # 0.01221094
+```
+
+Standalone wrapper (MultiAssetOption/Instrument MI). Engine is
+`MakeMCPagodaEngine<PseudoRandom>` (time grid from fixing dates).
+Compat: `setMCPricingEngine`, `errorEstimate`, `isExpired`. Recovers
+suite cached NPV 0.01221094 (tol 1e-8).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

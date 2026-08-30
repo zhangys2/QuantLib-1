@@ -2002,6 +2002,52 @@ def MCHimalayaEngine(
     max_samples: int | None = ...,
 ) -> BlackScholesMertonProcess: ...
 
+class PagodaOption:
+    def __init__(
+        self,
+        fixing_dates: Sequence[Date],
+        roof: float,
+        fraction: float,
+    ) -> None: ...
+    def set_mc_pricing_engine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+        max_samples: int | None = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def error_estimate(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def setMCPricingEngine(
+        self,
+        processes: Sequence[BlackScholesMertonProcess],
+        rho: Matrix,
+        required_samples: int | None = ...,
+        required_tolerance: float | None = ...,
+        seed: int = ...,
+        antithetic: bool = ...,
+        brownian_bridge: bool = ...,
+        max_samples: int | None = ...,
+    ) -> None: ...
+    def errorEstimate(self) -> float: ...
+    def isExpired(self) -> bool: ...
+
+def MCPagodaEngine(
+    processes: Sequence[BlackScholesMertonProcess],
+    rho: Matrix,
+    required_samples: int | None = ...,
+    required_tolerance: float | None = ...,
+    seed: int = ...,
+    antithetic: bool = ...,
+    brownian_bridge: bool = ...,
+    max_samples: int | None = ...,
+) -> BlackScholesMertonProcess: ...
+
 class MargrabeOption:
     @overload
     def __init__(

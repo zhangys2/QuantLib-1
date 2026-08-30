@@ -41,6 +41,8 @@
 #include <ql/instruments/writerextensibleoption.hpp>
 #include <ql/experimental/exoticoptions/himalayaoption.hpp>
 #include <ql/experimental/exoticoptions/mchimalayaengine.hpp>
+#include <ql/experimental/exoticoptions/pagodaoption.hpp>
+#include <ql/experimental/exoticoptions/mcpagodaengine.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -1078,6 +1080,94 @@ void bind_experimental(nb::module_& m) {
         nb::arg("max_samples") = nb::none(),
         "Documentation alias — use "
         "HimalayaOption.set_mc_pricing_engine instead.");
+
+    // --- Phase 96: Pagoda options (standalone; MultiAssetOption MI)
+    nb::class_<PagodaOption>(m, "PagodaOption")
+        .def(
+            "__init__",
+            [](PagodaOption* self,
+               const std::vector<Date>& fixing_dates,
+               Real roof,
+               Real fraction) {
+                new (self) PagodaOption(fixing_dates, roof, fraction);
+            },
+            nb::arg("fixing_dates"),
+            nb::arg("roof"),
+            nb::arg("fraction"),
+            "Roofed Asian basket: fraction * min(roof, max(portfolio "
+            "performance, 0)).")
+        .def("NPV", [](PagodaOption& opt) { return opt.NPV(); })
+        .def("error_estimate",
+             [](PagodaOption& opt) { return opt.errorEstimate(); })
+        .def("is_expired", [](const PagodaOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_mc_pricing_engine",
+            [](PagodaOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge,
+               std::optional<Size> max_samples) {
+                QL_REQUIRE(
+                    !(required_samples.has_value() &&
+                      required_tolerance.has_value()),
+                    "set only one of required_samples or required_tolerance");
+                auto maker =
+                    MakeMCPagodaEngine<PseudoRandom>(
+                        to_process_array(processes, rho))
+                        .withSeed(seed)
+                        .withAntitheticVariate(antithetic)
+                        .withBrownianBridge(brownian_bridge);
+                if (required_samples.has_value())
+                    maker.withSamples(*required_samples);
+                else if (required_tolerance.has_value())
+                    maker.withAbsoluteTolerance(*required_tolerance);
+                else
+                    maker.withSamples(Size(1023));
+                if (max_samples.has_value())
+                    maker.withMaxSamples(*max_samples);
+                opt.setPricingEngine(maker);
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 86421UL,
+            nb::arg("antithetic") = false,
+            nb::arg("brownian_bridge") = false,
+            nb::arg("max_samples") = nb::none(),
+            "Attach MakeMCPagodaEngine<PseudoRandom> "
+            "(time grid from fixing_dates).");
+    m.def(
+        "MCPagodaEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/,
+           std::optional<Size> /*required_samples*/,
+           std::optional<Real> /*required_tolerance*/,
+           unsigned long /*seed*/,
+           bool /*antithetic*/,
+           bool /*brownian_bridge*/,
+           std::optional<Size> /*max_samples*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        nb::arg("required_samples") = nb::none(),
+        nb::arg("required_tolerance") = nb::none(),
+        nb::arg("seed") = 86421UL,
+        nb::arg("antithetic") = false,
+        nb::arg("brownian_bridge") = false,
+        nb::arg("max_samples") = nb::none(),
+        "Documentation alias — use "
+        "PagodaOption.set_mc_pricing_engine instead.");
 
     // --- Phase 75: Margrabe exchange options (standalone; MultiAssetOption MI)
     nb::class_<MargrabeOption>(m, "MargrabeOption")
