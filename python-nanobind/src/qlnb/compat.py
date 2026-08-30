@@ -1138,6 +1138,33 @@ if MultipleResetsSwap is not None:
         MultipleResetsSwap.set_pricing_engine
     )
 
+# Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
+USDLibor = getattr(_ql, "USDLibor", None)
+EquityIndex = getattr(_ql, "EquityIndex", None)
+if EquityIndex is not None:
+    EquityIndex.fixingCalendar = EquityIndex.fixing_calendar  # type: ignore[attr-defined]
+    EquityIndex.addFixing = EquityIndex.add_fixing  # type: ignore[attr-defined]
+EquityTotalReturnSwap = getattr(_ql, "EquityTotalReturnSwap", None)
+if EquityTotalReturnSwap is not None:
+    EquityTotalReturnSwap.fairMargin = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.fair_margin
+    )
+    EquityTotalReturnSwap.equityLegNPV = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.equity_leg_NPV
+    )
+    EquityTotalReturnSwap.interestRateLegNPV = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.interest_rate_leg_NPV
+    )
+    EquityTotalReturnSwap.isExpired = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.is_expired
+    )
+    EquityTotalReturnSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.set_pricing_engine
+    )
+    EquityTotalReturnSwap.paymentDelay = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.payment_delay
+    )
+
 # Phase-7 Protection nested namespace (SWIG: ql.Protection.Seller).
 class Protection:
     """SWIG-style Protection.Buyer / Protection.Seller namespace."""

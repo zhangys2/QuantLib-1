@@ -9,6 +9,9 @@
 
 #include <ql/currency.hpp>
 #include <ql/currencies/america.hpp>
+#include <ql/indexes/equityindex.hpp>
+#include <ql/indexes/iborindex.hpp>
+#include <ql/instruments/equitytotalreturnswap.hpp>
 #include <ql/currencies/asia.hpp>
 #include <ql/currencies/europe.hpp>
 #include <ql/currencies/exchangeratemanager.hpp>
@@ -23,6 +26,7 @@
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/money.hpp>
 #include <ql/pricingengines/forward/discountingfxforwardengine.hpp>
+#include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
@@ -33,6 +37,8 @@
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/calendar.hpp>
 #include <ql/time/date.hpp>
+#include <ql/time/daycounter.hpp>
+#include <ql/time/schedule.hpp>
 
 using namespace QuantLib;
 
@@ -484,4 +490,145 @@ void bind_fx(nb::module_& m) {
         nb::arg("process"),
         "Factory alias documentation token — prefer "
         "QuantoForwardVanillaOption.set_performance_pricing_engine(...).");
+
+    // --- Phase 94: EquityIndex + EquityTotalReturnSwap ----------------------
+    // Index is Observable+Observer (MI) — standalone wrapper, same pattern as
+    // IborIndex. Currency is registered in this function, so the factory lives
+    // here rather than in bind_curves.
+    nb::class_<EquityIndex>(m, "EquityIndex")
+        .def(nb::init<std::string,
+                      Calendar,
+                      Currency,
+                      Handle<YieldTermStructure>,
+                      Handle<YieldTermStructure>,
+                      Handle<Quote>>(),
+             nb::arg("name"),
+             nb::arg("fixing_calendar"),
+             nb::arg("currency"),
+             nb::arg("interest") = Handle<YieldTermStructure>(),
+             nb::arg("dividend") = Handle<YieldTermStructure>(),
+             nb::arg("spot") = Handle<Quote>())
+        .def("name", [](const EquityIndex& i) { return i.name(); })
+        .def("fixing_calendar",
+             [](const EquityIndex& i) { return i.fixingCalendar(); })
+        .def(
+            "add_fixing",
+            [](EquityIndex& i, const Date& fixing_date, Real fixing, bool force) {
+                i.addFixing(fixing_date, fixing, force);
+            },
+            nb::arg("fixing_date"),
+            nb::arg("fixing"),
+            nb::arg("force_overwrite") = false)
+        .def(
+            "fixing",
+            [](const EquityIndex& i, const Date& fixing_date, bool forecast_today) {
+                return i.fixing(fixing_date, forecast_today);
+            },
+            nb::arg("fixing_date"),
+            nb::arg("forecast_todays_fixing") = false);
+
+    // EquityTotalReturnSwap is Swap/Instrument (MI via LazyObject) —
+    // standalone wrapper. Overloads dispatch on arg 5: IborIndex vs
+    // OvernightIndex. Engine is DiscountingSwapEngine.
+    nb::class_<EquityTotalReturnSwap>(m, "EquityTotalReturnSwap")
+        .def(
+            "__init__",
+            [](EquityTotalReturnSwap* self,
+               Swap::Type type,
+               Real nominal,
+               Schedule schedule,
+               const ext::shared_ptr<EquityIndex>& equity_index,
+               const ext::shared_ptr<IborIndex>& interest_rate_index,
+               const DayCounter& day_counter,
+               Rate margin,
+               Real gearing,
+               const Calendar& payment_calendar,
+               BusinessDayConvention payment_convention,
+               Natural payment_delay) {
+                new (self) EquityTotalReturnSwap(type,
+                                                 nominal,
+                                                 std::move(schedule),
+                                                 equity_index,
+                                                 interest_rate_index,
+                                                 day_counter,
+                                                 margin,
+                                                 gearing,
+                                                 payment_calendar,
+                                                 payment_convention,
+                                                 payment_delay);
+            },
+            nb::arg("type"),
+            nb::arg("nominal"),
+            nb::arg("schedule"),
+            nb::arg("equity_index"),
+            nb::arg("interest_rate_index"),
+            nb::arg("day_counter"),
+            nb::arg("margin"),
+            nb::arg("gearing") = 1.0,
+            nb::arg("payment_calendar") = Calendar(),
+            nb::arg("payment_convention") = Unadjusted,
+            nb::arg("payment_delay") = 0)
+        .def(
+            "__init__",
+            [](EquityTotalReturnSwap* self,
+               Swap::Type type,
+               Real nominal,
+               Schedule schedule,
+               const ext::shared_ptr<EquityIndex>& equity_index,
+               const ext::shared_ptr<OvernightIndex>& interest_rate_index,
+               const DayCounter& day_counter,
+               Rate margin,
+               Real gearing,
+               const Calendar& payment_calendar,
+               BusinessDayConvention payment_convention,
+               Natural payment_delay) {
+                new (self) EquityTotalReturnSwap(type,
+                                                 nominal,
+                                                 std::move(schedule),
+                                                 equity_index,
+                                                 interest_rate_index,
+                                                 day_counter,
+                                                 margin,
+                                                 gearing,
+                                                 payment_calendar,
+                                                 payment_convention,
+                                                 payment_delay);
+            },
+            nb::arg("type"),
+            nb::arg("nominal"),
+            nb::arg("schedule"),
+            nb::arg("equity_index"),
+            nb::arg("interest_rate_index"),
+            nb::arg("day_counter"),
+            nb::arg("margin"),
+            nb::arg("gearing") = 1.0,
+            nb::arg("payment_calendar") = Calendar(),
+            nb::arg("payment_convention") = Unadjusted,
+            nb::arg("payment_delay") = 0)
+        .def("NPV", [](EquityTotalReturnSwap& s) { return s.NPV(); })
+        .def("is_expired",
+             [](const EquityTotalReturnSwap& s) { return s.isExpired(); })
+        .def("type", [](const EquityTotalReturnSwap& s) { return s.type(); })
+        .def("nominal",
+             [](const EquityTotalReturnSwap& s) { return s.nominal(); })
+        .def("margin", [](const EquityTotalReturnSwap& s) { return s.margin(); })
+        .def("gearing",
+             [](const EquityTotalReturnSwap& s) { return s.gearing(); })
+        .def("payment_delay",
+             [](const EquityTotalReturnSwap& s) { return s.paymentDelay(); })
+        .def("fair_margin",
+             [](EquityTotalReturnSwap& s) { return s.fairMargin(); })
+        .def("equity_leg_NPV",
+             [](EquityTotalReturnSwap& s) { return s.equityLegNPV(); })
+        .def("interest_rate_leg_NPV",
+             [](EquityTotalReturnSwap& s) { return s.interestRateLegNPV(); })
+        .def(
+            "set_pricing_engine",
+            [](EquityTotalReturnSwap& s,
+               const Handle<YieldTermStructure>& discount_curve) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingSwapEngine>(discount_curve));
+            },
+            nb::arg("discount_curve"),
+            "Attach DiscountingSwapEngine.");
 }
