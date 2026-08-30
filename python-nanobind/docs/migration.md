@@ -1971,6 +1971,24 @@ Engine is `DiscountingSwapEngine`. Compat: `fairMargin`, `equityLegNPV`,
 `setPricingEngine`. Recovers suite equity-leg NPV (tol 1e-8) and
 fair-margin par rebuild (tol 1e-8).
 
+## Phase-95 HimalayaOption
+
+```python
+today = ql.Date(15, ql.Month.May, 1998)
+ql.set_evaluation_date(today)
+fixings = [today + i * 90 for i in range(5)]
+opt = ql.HimalayaOption(fixings, 101.0)
+opt.set_mc_pricing_engine(
+    processes, rho, required_samples=1023, seed=86421
+)
+print(opt.NPV())  # 5.93632056
+```
+
+Standalone wrapper (MultiAssetOption/Instrument MI). Engine is
+`MakeMCHimalayaEngine<PseudoRandom>` (time grid from fixing dates).
+Compat: `setMCPricingEngine`, `errorEstimate`, `isExpired`. Recovers
+suite cached NPV 5.93632056 (tol 1e-8).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -39,6 +39,8 @@
 #include <ql/instruments/twoassetcorrelationoption.hpp>
 #include <ql/instruments/varianceswap.hpp>
 #include <ql/instruments/writerextensibleoption.hpp>
+#include <ql/experimental/exoticoptions/himalayaoption.hpp>
+#include <ql/experimental/exoticoptions/mchimalayaengine.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -988,6 +990,92 @@ void bind_experimental(nb::module_& m) {
             nb::arg("correlation"),
             "Attach AnalyticTwoAssetCorrelationEngine from a scalar "
             "correlation.");
+
+    // --- Phase 95: Himalaya options (standalone; MultiAssetOption MI)
+    nb::class_<HimalayaOption>(m, "HimalayaOption")
+        .def(
+            "__init__",
+            [](HimalayaOption* self,
+               const std::vector<Date>& fixing_dates,
+               Real strike) {
+                new (self) HimalayaOption(fixing_dates, strike);
+            },
+            nb::arg("fixing_dates"),
+            nb::arg("strike"),
+            "Himalaya basket: at each fixing take the best remaining "
+            "performer into the average, then discard it; payoff is "
+            "max(average - strike, 0).")
+        .def("NPV", [](HimalayaOption& opt) { return opt.NPV(); })
+        .def("error_estimate",
+             [](HimalayaOption& opt) { return opt.errorEstimate(); })
+        .def("is_expired", [](const HimalayaOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_mc_pricing_engine",
+            [](HimalayaOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge,
+               std::optional<Size> max_samples) {
+                QL_REQUIRE(
+                    !(required_samples.has_value() &&
+                      required_tolerance.has_value()),
+                    "set only one of required_samples or required_tolerance");
+                auto maker =
+                    MakeMCHimalayaEngine<PseudoRandom>(
+                        to_process_array(processes, rho))
+                        .withSeed(seed)
+                        .withAntitheticVariate(antithetic)
+                        .withBrownianBridge(brownian_bridge);
+                if (required_samples.has_value())
+                    maker.withSamples(*required_samples);
+                else if (required_tolerance.has_value())
+                    maker.withAbsoluteTolerance(*required_tolerance);
+                else
+                    maker.withSamples(Size(1023));
+                if (max_samples.has_value())
+                    maker.withMaxSamples(*max_samples);
+                opt.setPricingEngine(maker);
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 86421UL,
+            nb::arg("antithetic") = false,
+            nb::arg("brownian_bridge") = false,
+            nb::arg("max_samples") = nb::none(),
+            "Attach MakeMCHimalayaEngine<PseudoRandom> "
+            "(time grid from fixing_dates).");
+    m.def(
+        "MCHimalayaEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/,
+           std::optional<Size> /*required_samples*/,
+           std::optional<Real> /*required_tolerance*/,
+           unsigned long /*seed*/,
+           bool /*antithetic*/,
+           bool /*brownian_bridge*/,
+           std::optional<Size> /*max_samples*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        nb::arg("required_samples") = nb::none(),
+        nb::arg("required_tolerance") = nb::none(),
+        nb::arg("seed") = 86421UL,
+        nb::arg("antithetic") = false,
+        nb::arg("brownian_bridge") = false,
+        nb::arg("max_samples") = nb::none(),
+        "Factory alias: pass args to HimalayaOption.set_mc_pricing_engine.");
 
     // --- Phase 75: Margrabe exchange options (standalone; MultiAssetOption MI)
     nb::class_<MargrabeOption>(m, "MargrabeOption")

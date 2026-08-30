@@ -1165,6 +1165,16 @@ if EquityTotalReturnSwap is not None:
         EquityTotalReturnSwap.payment_delay
     )
 
+# Phase-95 HimalayaOption aliases.
+HimalayaOption = getattr(_ql, "HimalayaOption", None)
+if HimalayaOption is not None:
+    HimalayaOption.setMCPricingEngine = (  # type: ignore[attr-defined]
+        HimalayaOption.set_mc_pricing_engine
+    )
+    HimalayaOption.errorEstimate = HimalayaOption.error_estimate  # type: ignore[attr-defined]
+    HimalayaOption.isExpired = HimalayaOption.is_expired  # type: ignore[attr-defined]
+MCHimalayaEngine = getattr(_ql, "MCHimalayaEngine", None)
+
 # Phase-7 Protection nested namespace (SWIG: ql.Protection.Seller).
 class Protection:
     """SWIG-style Protection.Buyer / Protection.Seller namespace."""
