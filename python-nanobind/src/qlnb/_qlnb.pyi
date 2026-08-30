@@ -2072,21 +2072,6 @@ class EverestOption:
     def yield_(self) -> float: ...
     def error_estimate(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setMCPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-        time_steps: int | None = ...,
-        steps_per_year: int | None = ...,
-        required_samples: int | None = ...,
-        required_tolerance: float | None = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-        brownian_bridge: bool = ...,
-        max_samples: int | None = ...,
-    ) -> None: ...
-    def errorEstimate(self) -> float: ...
-    def isExpired(self) -> bool: ...
 
 def MCEverestEngine(
     processes: Sequence[BlackScholesMertonProcess],

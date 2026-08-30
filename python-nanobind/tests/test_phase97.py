@@ -107,6 +107,18 @@ def test_everest_absolute_tolerance():
     assert opt.error_estimate() <= tolerance
 
 
+def test_native_everest_snake_case_only():
+    # Native qlnb exposes snake_case; camelCase aliases live in qlnb.compat.
+    assert hasattr(ql.EverestOption, "set_mc_pricing_engine")
+    assert hasattr(ql.EverestOption, "error_estimate")
+    assert hasattr(ql.EverestOption, "is_expired")
+    assert not hasattr(ql.EverestOption, "setMCPricingEngine")
+    assert not hasattr(ql.EverestOption, "errorEstimate")
+    assert not hasattr(ql.EverestOption, "isExpired")
+    with pytest.raises(AttributeError):
+        ql.EverestOption.setMCPricingEngine  # type: ignore[attr-defined]
+
+
 def test_compat_phase97_aliases():
     import qlnb.compat as cql
 
@@ -115,3 +127,7 @@ def test_compat_phase97_aliases():
     assert hasattr(cql.EverestOption, "isExpired")
     assert getattr(cql.EverestOption, "yield") is cql.EverestOption.yield_
     assert cql.MCEverestEngine is not None
+    # Compat aliases call through to the native snake_case methods.
+    assert cql.EverestOption.setMCPricingEngine is cql.EverestOption.set_mc_pricing_engine
+    assert cql.EverestOption.errorEstimate is cql.EverestOption.error_estimate
+    assert cql.EverestOption.isExpired is cql.EverestOption.is_expired
