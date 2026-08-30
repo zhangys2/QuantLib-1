@@ -1971,6 +1971,51 @@ Engine is `DiscountingSwapEngine`. Compat: `fairMargin`, `equityLegNPV`,
 `setPricingEngine`. Recovers suite equity-leg NPV (tol 1e-8) and
 fair-margin par rebuild (tol 1e-8).
 
+## Phase-95 HimalayaOption
+
+```python
+today = ql.Date(15, ql.Month.May, 1998)
+ql.set_evaluation_date(today)
+dc = ql.Actual360()
+
+def bsm(spot, q, r, vol):
+    return ql.BlackScholesMertonProcess(
+        ql.make_quote_handle(spot),
+        ql.FlatForward(today, q, dc),
+        ql.FlatForward(today, r, dc),
+        ql.BlackConstantVol(today, ql.NullCalendar(), vol, dc),
+    )
+
+fixings = [today + i * 90 for i in range(5)]
+opt = ql.HimalayaOption(fixings, 101.0)
+processes = [
+    bsm(100.0, 0.01, 0.05, 0.30),
+    bsm(110.0, 0.05, 0.05, 0.35),
+    bsm(90.0, 0.04, 0.05, 0.25),
+    bsm(105.0, 0.03, 0.05, 0.20),
+]
+rho = ql.Matrix(
+    4, 4,
+    [
+        1.00, 0.50, 0.30, 0.10,
+        0.50, 1.00, 0.20, 0.40,
+        0.30, 0.20, 1.00, 0.60,
+        0.10, 0.40, 0.60, 1.00,
+    ],
+)
+opt.set_mc_pricing_engine(
+    processes, rho, required_samples=1023, seed=86421
+)
+print(opt.NPV())  # 5.93632056
+```
+
+Standalone wrapper (MultiAssetOption/Instrument MI). Engine is
+`MakeMCHimalayaEngine<PseudoRandom>` (time grid from fixing dates);
+pass BSM processes plus a correlation `Matrix` as for other multi-asset
+MC engines. Empty `fixing_dates` raises. Compat: `setMCPricingEngine`,
+`errorEstimate`, `isExpired`. Recovers suite cached NPV 5.93632056
+(tol 1e-8).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
