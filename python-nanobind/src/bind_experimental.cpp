@@ -43,6 +43,8 @@
 #include <ql/experimental/exoticoptions/mchimalayaengine.hpp>
 #include <ql/experimental/exoticoptions/pagodaoption.hpp>
 #include <ql/experimental/exoticoptions/mcpagodaengine.hpp>
+#include <ql/experimental/exoticoptions/everestoption.hpp>
+#include <ql/experimental/exoticoptions/mceverestengine.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -1168,6 +1170,115 @@ void bind_experimental(nb::module_& m) {
         nb::arg("max_samples") = nb::none(),
         "Documentation alias — use "
         "PagodaOption.set_mc_pricing_engine instead.");
+
+    // --- Phase 97: Everest options (standalone; MultiAssetOption MI)
+    nb::class_<EverestOption>(m, "EverestOption")
+        .def(
+            "__init__",
+            [](EverestOption* self,
+               Real notional,
+               Rate guarantee,
+               const EuropeanExercise& exercise) {
+                new (self) EverestOption(
+                    notional,
+                    guarantee,
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("notional"),
+            nb::arg("guarantee"),
+            nb::arg("exercise"),
+            "Everest basket: notional * (guarantee + min performance) "
+            "at European exercise.")
+        .def("NPV", [](EverestOption& opt) { return opt.NPV(); })
+        .def("yield_", [](EverestOption& opt) { return opt.yield(); },
+             "Implied yield from NPV / (notional * discount) - 1.")
+        .def("error_estimate",
+             [](EverestOption& opt) { return opt.errorEstimate(); })
+        .def("is_expired", [](const EverestOption& opt) {
+            return opt.isExpired();
+        })
+        .def(
+            "set_mc_pricing_engine",
+            [](EverestOption& opt,
+               const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+                   processes,
+               const Matrix& rho,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge,
+               std::optional<Size> max_samples) {
+                QL_REQUIRE(
+                    !(time_steps.has_value() && steps_per_year.has_value()),
+                    "set only one of time_steps or steps_per_year");
+                QL_REQUIRE(
+                    !(required_samples.has_value() &&
+                      required_tolerance.has_value()),
+                    "set only one of required_samples or required_tolerance");
+                auto maker =
+                    MakeMCEverestEngine<PseudoRandom>(
+                        to_process_array(processes, rho))
+                        .withSeed(seed)
+                        .withAntitheticVariate(antithetic)
+                        .withBrownianBridge(brownian_bridge);
+                if (time_steps.has_value())
+                    maker.withSteps(*time_steps);
+                else if (steps_per_year.has_value())
+                    maker.withStepsPerYear(*steps_per_year);
+                else
+                    maker.withStepsPerYear(Size(1));
+                if (required_samples.has_value())
+                    maker.withSamples(*required_samples);
+                else if (required_tolerance.has_value())
+                    maker.withAbsoluteTolerance(*required_tolerance);
+                else
+                    maker.withSamples(Size(1023));
+                if (max_samples.has_value())
+                    maker.withMaxSamples(*max_samples);
+                opt.setPricingEngine(maker);
+            },
+            nb::arg("processes"),
+            nb::arg("rho"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 86421UL,
+            nb::arg("antithetic") = false,
+            nb::arg("brownian_bridge") = false,
+            nb::arg("max_samples") = nb::none(),
+            "Attach MakeMCEverestEngine<PseudoRandom>.");
+    m.def(
+        "MCEverestEngine",
+        [](const std::vector<ext::shared_ptr<BlackScholesMertonProcess>>&
+               processes,
+           const Matrix& /*rho*/,
+           std::optional<Size> /*time_steps*/,
+           std::optional<Size> /*steps_per_year*/,
+           std::optional<Size> /*required_samples*/,
+           std::optional<Real> /*required_tolerance*/,
+           unsigned long /*seed*/,
+           bool /*antithetic*/,
+           bool /*brownian_bridge*/,
+           std::optional<Size> /*max_samples*/) {
+            QL_REQUIRE(!processes.empty(), "no processes given");
+            return processes.front();
+        },
+        nb::arg("processes"),
+        nb::arg("rho"),
+        nb::arg("time_steps") = nb::none(),
+        nb::arg("steps_per_year") = nb::none(),
+        nb::arg("required_samples") = nb::none(),
+        nb::arg("required_tolerance") = nb::none(),
+        nb::arg("seed") = 86421UL,
+        nb::arg("antithetic") = false,
+        nb::arg("brownian_bridge") = false,
+        nb::arg("max_samples") = nb::none(),
+        "Documentation alias — use "
+        "EverestOption.set_mc_pricing_engine instead.");
 
     // --- Phase 75: Margrabe exchange options (standalone; MultiAssetOption MI)
     nb::class_<MargrabeOption>(m, "MargrabeOption")

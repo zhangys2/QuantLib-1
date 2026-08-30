@@ -1185,6 +1185,18 @@ if PagodaOption is not None:
     PagodaOption.isExpired = PagodaOption.is_expired  # type: ignore[attr-defined]
 MCPagodaEngine = getattr(_ql, "MCPagodaEngine", None)
 
+# Phase-97 EverestOption aliases.
+EverestOption = getattr(_ql, "EverestOption", None)
+if EverestOption is not None:
+    EverestOption.setMCPricingEngine = (  # type: ignore[attr-defined]
+        EverestOption.set_mc_pricing_engine
+    )
+    EverestOption.errorEstimate = EverestOption.error_estimate  # type: ignore[attr-defined]
+    EverestOption.isExpired = EverestOption.is_expired  # type: ignore[attr-defined]
+    # `yield` is a Python keyword; expose via setattr for SWIG-style access.
+    setattr(EverestOption, "yield", EverestOption.yield_)
+MCEverestEngine = getattr(_ql, "MCEverestEngine", None)
+
 # Phase-7 Protection nested namespace (SWIG: ql.Protection.Seller).
 class Protection:
     """SWIG-style Protection.Buyer / Protection.Seller namespace."""

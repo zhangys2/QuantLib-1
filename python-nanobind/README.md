@@ -464,6 +464,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - Engine: `set_mc_pricing_engine` → `MakeMCPagodaEngine<PseudoRandom>`
 - Recovers suite cached NPV **0.01221094** (tol 1e-8, seed 86421, 1023 samples)
 
+### Phase 97 (EverestOption)
+- `EverestOption` (standalone MultiAssetOption wrapper) + `yield_`
+- Engine: `set_mc_pricing_engine` → `MakeMCEverestEngine<PseudoRandom>`
+- Recovers suite cached NPV **0.75784944** (tol 1e-8, seed 86421, 1023 samples, 1 step/year)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
