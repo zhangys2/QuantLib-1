@@ -998,6 +998,7 @@ void bind_experimental(nb::module_& m) {
             [](HimalayaOption* self,
                const std::vector<Date>& fixing_dates,
                Real strike) {
+                QL_REQUIRE(!fixing_dates.empty(), "no fixing dates given");
                 new (self) HimalayaOption(fixing_dates, strike);
             },
             nb::arg("fixing_dates"),
@@ -1075,7 +1076,8 @@ void bind_experimental(nb::module_& m) {
         nb::arg("antithetic") = false,
         nb::arg("brownian_bridge") = false,
         nb::arg("max_samples") = nb::none(),
-        "Factory alias: pass args to HimalayaOption.set_mc_pricing_engine.");
+        "Documentation alias — use "
+        "HimalayaOption.set_mc_pricing_engine instead.");
 
     // --- Phase 75: Margrabe exchange options (standalone; MultiAssetOption MI)
     nb::class_<MargrabeOption>(m, "MargrabeOption")
