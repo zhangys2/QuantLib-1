@@ -9,6 +9,7 @@
 #include <ql/time/calendars/japan.hpp>
 #include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/calendars/nullcalendar.hpp>
+#include <ql/time/calendars/switzerland.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/calendars/turkey.hpp>
 #include <ql/time/calendars/unitedkingdom.hpp>
@@ -158,6 +159,7 @@ void bind_time(nb::module_& m) {
     m.def("NullCalendar", []() { return Calendar(NullCalendar()); });
     m.def("WeekendsOnly", []() { return Calendar(WeekendsOnly()); });
     m.def("UnitedKingdom", []() { return Calendar(UnitedKingdom()); });
+    m.def("Switzerland", []() { return Calendar(Switzerland()); });
     m.def("Japan", []() { return Calendar(Japan()); });
     m.def(
         "Germany",

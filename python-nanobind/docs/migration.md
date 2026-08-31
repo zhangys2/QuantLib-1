@@ -2329,6 +2329,21 @@ assert opt.NPV() == pytest.approx(0.9104619, abs=1e-7)
 Standalone variance option on realized variance. Compat: `setIntegralHestonPricingEngine`,
 `isExpired`, `startDate`, `maturityDate`. Recovers `VarianceOptionTests::testIntegralHeston`.
 
+## Phase-111 ConstNotionalCrossCurrencySwap
+
+```python
+swap = ql.make_fix_fix_xccy_swap(125_000_000.0, 1.22)
+swap.set_pricing_engine(
+    ql.USDCurrency(), usd_discount, ql.CHFCurrency(), chf_discount, fx_quote
+)
+assert swap.NPV() == pytest.approx(-21108172.67, abs=0.01)
+```
+
+Generic two-leg XCCY swap wrapper (factory builds fix/fix legs with notional
+exchange). Reuses `DiscountingConstNotionalCrossCurrencySwapEngine` from Phase 106.
+Also adds `CHFCurrency` and `Switzerland`. Compat: `setPricingEngine`, `legNPV`,
+`legBPS`, `makeFixFixXCCYSwap`. Recovers `testFixFixXCCYSwapPricing`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -74,6 +74,7 @@ void bind_fx(nb::module_& m) {
     m.def("USDCurrency", []() { return Currency(USDCurrency()); });
     m.def("EURCurrency", []() { return Currency(EURCurrency()); });
     m.def("GBPCurrency", []() { return Currency(GBPCurrency()); });
+    m.def("CHFCurrency", []() { return Currency(CHFCurrency()); });
     m.def("TRYCurrency", []() { return Currency(TRYCurrency()); });
     m.def("SGDCurrency", []() { return Currency(SGDCurrency()); });
 

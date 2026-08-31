@@ -1451,6 +1451,34 @@ if ConstNotionalCrossCurrencyBasisSwap is not None:
         ConstNotionalCrossCurrencyBasisSwap.fair_rec_spread
     )
 
+# Phase-111 generic cross-currency swap aliases.
+ConstNotionalCrossCurrencySwap = getattr(
+    _ql, "ConstNotionalCrossCurrencySwap", None
+)
+if ConstNotionalCrossCurrencySwap is not None:
+    ConstNotionalCrossCurrencySwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.set_pricing_engine
+    )
+    ConstNotionalCrossCurrencySwap.legNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.leg_npv
+    )
+    ConstNotionalCrossCurrencySwap.legBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.leg_bps
+    )
+    ConstNotionalCrossCurrencySwap.inCcyLegNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.in_ccy_leg_npv
+    )
+    ConstNotionalCrossCurrencySwap.inCcyLegBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.in_ccy_leg_bps
+    )
+    ConstNotionalCrossCurrencySwap.isExpired = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.is_expired
+    )
+
+makeFixFixXCCYSwap = getattr(_ql, "make_fix_fix_xccy_swap", None)
+CHFCurrency = getattr(_ql, "CHFCurrency", None)
+Switzerland = getattr(_ql, "Switzerland", None)
+
 TRYCurrency = getattr(_ql, "TRYCurrency", None)
 Turkey = getattr(_ql, "Turkey", None)
 DiscountCurve = getattr(_ql, "DiscountCurve", None)
