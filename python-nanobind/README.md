@@ -564,6 +564,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `NonstandardSwaption(NonstandardSwap, exercise)` direct constructor
 - Discounting NPV matches equivalent `VanillaSwap` (tol 1e-12)
 
+### Phase 118 (VarianceGamma)
+- `VarianceGammaProcess` + `EuropeanOption.set_variance_gamma_pricing_engine`
+- Recovers `VarianceGammaTests::testVarianceGamma` analytic NPVs (tol 0.01)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
