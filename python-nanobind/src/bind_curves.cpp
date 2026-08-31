@@ -19,6 +19,7 @@
 #include <ql/math/interpolations/cubicinterpolation.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/quote.hpp>
+#include <ql/termstructures/yield/discountcurve.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
@@ -380,6 +381,19 @@ void bind_curves(nb::module_& m) {
         nb::arg("helpers"),
         nb::arg("day_counter"),
         "PiecewiseYieldCurve<Discount, Linear> (SOFR futures suite default).");
+
+    m.def(
+        "DiscountCurve",
+        [](const std::vector<Date>& dates,
+           const std::vector<DiscountFactor>& discount_factors,
+           const DayCounter& day_counter) {
+            return Handle<YieldTermStructure>(ext::make_shared<DiscountCurve>(
+                dates, discount_factors, day_counter));
+        },
+        nb::arg("dates"),
+        nb::arg("discount_factors"),
+        nb::arg("day_counter"),
+        "Log-linear discount curve from date/discount-factor pairs.");
 
     // Ibor indexes as opaque shared_ptrs.
     nb::class_<IborIndex>(m, "IborIndex")

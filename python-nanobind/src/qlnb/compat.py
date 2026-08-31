@@ -1358,6 +1358,37 @@ if CompositeInstrument is not None:
         CompositeInstrument.is_expired
     )
 
+# Phase-106 cross-currency fix/float swap aliases.
+ConstNotionalCrossCurrencyFixedVsFloatingSwap = getattr(
+    _ql, "ConstNotionalCrossCurrencyFixedVsFloatingSwap", None
+)
+if ConstNotionalCrossCurrencyFixedVsFloatingSwap is not None:
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.set_pricing_engine
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.legNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.leg_npv
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.legBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.leg_bps
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.inCcyLegNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.in_ccy_leg_npv
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.inCcyLegBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.in_ccy_leg_bps
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.fairRate = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.fair_rate
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.fairSpread = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.fair_spread
+    )
+
+TRYCurrency = getattr(_ql, "TRYCurrency", None)
+Turkey = getattr(_ql, "Turkey", None)
+DiscountCurve = getattr(_ql, "DiscountCurve", None)
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)
