@@ -2104,6 +2104,29 @@ Self-priced Instrument (no external engine). Bootstrap helpers:
 `SofrFuturesTests::testBootstrap` (97.44 / 87.44) and
 `testBootstrapWithJuneteenth` (97.220), tol 1e-9.
 
+## Phase-100 BMASwap
+
+```python
+calendar = ql.JointCalendar(
+    ql.BMAIndex().fixing_calendar(),
+    ql.USDLibor(ql.Period(3, ql.TimeUnit.Months)).fixing_calendar(),
+)
+today = calendar.adjust(ql.Date(15, ql.Month.January, 2020))
+ql.set_evaluation_date(today)
+# ... bootstrap BMASwapRateHelper list into PiecewiseLinearDiscountCurve ...
+swap = ql.make_bma_swap(
+    ql.SwapType.Payer, 100.0, ql.Period(5, ql.TimeUnit.Years),
+    0.75, 0.0, libor, bma, libor_curve,
+)
+assert abs(swap.fair_libor_fraction() - 0.6881) < 1e-9
+```
+
+Standalone Swap/Instrument wrapper + `BMAIndex`, `BMASwapRateHelper`,
+`JointCalendar`. Engine is `DiscountingSwapEngine` (via `set_pricing_engine`
+/ `make_bma_swap`). Compat: `fairLiborFraction`, `liborLegNPV`,
+`setPricingEngine`, `makeBMASwap`. Recovers piecewise BMA curve fair libor
+fractions from `PiecewiseYieldCurve` BMA consistency (tol 1e-9).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

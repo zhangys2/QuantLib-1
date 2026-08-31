@@ -30,8 +30,8 @@ void settings_set_evaluation_date(const Date& d) {
 } // namespace
 
 NB_MODULE(_qlnb, m) {
-    m.doc() = "Nanobind bindings for QuantLib (phase 99)";
-    m.attr("__version__") = "1.0.0";
+    m.doc() = "Nanobind bindings for QuantLib (phase 100)";
+    m.attr("__version__") = "1.1.0";
 
     nb::enum_<Month>(m, "Month")
         .value("January", January)
@@ -92,6 +92,15 @@ NB_MODULE(_qlnb, m) {
         .def("__ne__", [](const Period& a, const Period& b) { return a != b; })
         .def("__mul__", [](const Period& p, Integer n) { return p * n; });
 
+    nb::enum_<Weekday>(m, "Weekday")
+        .value("Sunday", Sunday)
+        .value("Monday", Monday)
+        .value("Tuesday", Tuesday)
+        .value("Wednesday", Wednesday)
+        .value("Thursday", Thursday)
+        .value("Friday", Friday)
+        .value("Saturday", Saturday);
+
     nb::class_<Date>(m, "Date")
         .def(nb::init<>())
         .def(nb::init<Date::serial_type>(), nb::arg("serial_number"))
@@ -102,6 +111,8 @@ NB_MODULE(_qlnb, m) {
         .def("day_of_month", &Date::dayOfMonth)
         .def("month", &Date::month)
         .def("year", &Date::year)
+        .def("weekday",
+             [](const Date& d) { return static_cast<int>(d.weekday()); })
         .def("serial_number", &Date::serialNumber)
         .def_static("todays_date", &Date::todaysDate)
         .def_static("min_date", &Date::minDate)

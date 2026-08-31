@@ -12,6 +12,7 @@
 #include <ql/cashflows/duration.hpp>
 #include <ql/cashflows/rateaveraging.hpp>
 #include <ql/instruments/assetswap.hpp>
+#include <ql/instruments/bmaswap.hpp>
 #include <ql/instruments/bond.hpp>
 #include <ql/instruments/floatfloatswap.hpp>
 #include <ql/instruments/makemultipleresetsswap.hpp>
@@ -19,7 +20,9 @@
 #include <ql/instruments/overnightindexfuture.hpp>
 #include <ql/instruments/perpetualfutures.hpp>
 #include <ql/instruments/zerocouponswap.hpp>
+#include <ql/indexes/bmaindex.hpp>
 #include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
+#include <ql/termstructures/yield/ratehelpers.hpp>
 #include <ql/pricingengines/futures/discountingperpetualfuturesengine.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
@@ -53,8 +56,10 @@
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
+#include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/daycounter.hpp>
+#include <ql/time/daycounters/actualactual.hpp>
 #include <ql/time/schedule.hpp>
 #include <ql/utilities/null.hpp>
 
@@ -1710,4 +1715,145 @@ void bind_instruments(nb::module_& m) {
         nb::arg("reference_freq"),
         nb::arg("convexity_adjustment") = 0.0,
         "CME SOFR futures rate helper (compounds third-Wed to third-Wed).");
+
+    // BMASwap is Swap/Instrument (MI) — standalone concrete wrapper.
+    nb::class_<BMASwap>(m, "BMASwap")
+        .def(
+            "__init__",
+            [](BMASwap* self,
+               Swap::Type type,
+               Real nominal,
+               const Schedule& libor_schedule,
+               Real libor_fraction,
+               Spread libor_spread,
+               const ext::shared_ptr<IborIndex>& libor_index,
+               const DayCounter& libor_day_count,
+               const Schedule& bma_schedule,
+               const ext::shared_ptr<BMAIndex>& bma_index,
+               const DayCounter& bma_day_count) {
+                new (self) BMASwap(type, nominal, libor_schedule, libor_fraction,
+                                   libor_spread, libor_index, libor_day_count,
+                                   bma_schedule, bma_index, bma_day_count);
+            },
+            nb::arg("type"),
+            nb::arg("nominal"),
+            nb::arg("libor_schedule"),
+            nb::arg("libor_fraction"),
+            nb::arg("libor_spread"),
+            nb::arg("libor_index"),
+            nb::arg("libor_day_count"),
+            nb::arg("bma_schedule"),
+            nb::arg("bma_index"),
+            nb::arg("bma_day_count"))
+        .def("NPV", [](BMASwap& s) { return s.NPV(); })
+        .def("is_expired", [](const BMASwap& s) { return s.isExpired(); })
+        .def("type", [](const BMASwap& s) { return s.type(); })
+        .def("nominal", [](const BMASwap& s) { return s.nominal(); })
+        .def("libor_fraction",
+             [](const BMASwap& s) { return s.liborFraction(); })
+        .def("libor_spread",
+             [](const BMASwap& s) { return s.liborSpread(); })
+        .def("fair_libor_fraction",
+             [](BMASwap& s) { return s.fairLiborFraction(); })
+        .def("fair_libor_spread",
+             [](BMASwap& s) { return s.fairLiborSpread(); })
+        .def("libor_leg_NPV",
+             [](BMASwap& s) { return s.liborLegNPV(); })
+        .def("bma_leg_NPV", [](BMASwap& s) { return s.bmaLegNPV(); })
+        .def("libor_leg_BPS",
+             [](BMASwap& s) { return s.liborLegBPS(); })
+        .def("bma_leg_BPS", [](BMASwap& s) { return s.bmaLegBPS(); })
+        .def(
+            "set_pricing_engine",
+            [](BMASwap& s,
+               const Handle<YieldTermStructure>& discount_curve) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingSwapEngine>(discount_curve));
+            },
+            nb::arg("discount_curve"),
+            "Attach DiscountingSwapEngine.");
+
+    m.def(
+        "make_bma_swap",
+        [](Swap::Type type,
+           Real nominal,
+           const Period& tenor,
+           Real libor_fraction,
+           Spread libor_spread,
+           const ext::shared_ptr<IborIndex>& libor_index,
+           const ext::shared_ptr<BMAIndex>& bma_index,
+           const Handle<YieldTermStructure>& discount_curve,
+           Natural settlement_days,
+           Frequency bma_frequency,
+           BusinessDayConvention bma_convention,
+           const DayCounter& bma_day_count) {
+            Calendar calendar = JointCalendar(bma_index->fixingCalendar(),
+                                              libor_index->fixingCalendar(),
+                                              JoinHolidays);
+            Date today = calendar.adjust(Settings::instance().evaluationDate());
+            Date settlement =
+                calendar.advance(today, settlement_days, Days);
+            Date maturity = settlement + tenor;
+
+            Schedule bma_schedule(settlement, maturity,
+                                  Period(bma_frequency),
+                                  bma_index->fixingCalendar(), bma_convention,
+                                  bma_convention, DateGeneration::Backward,
+                                  false);
+            Schedule libor_schedule(
+                settlement, maturity, libor_index->tenor(),
+                libor_index->fixingCalendar(),
+                libor_index->businessDayConvention(),
+                libor_index->businessDayConvention(),
+                DateGeneration::Backward, libor_index->endOfMonth());
+
+            BMASwap swap(type, nominal, libor_schedule, libor_fraction,
+                         libor_spread, libor_index, libor_index->dayCounter(),
+                         bma_schedule, bma_index, bma_day_count);
+            swap.setPricingEngine(
+                ext::make_shared<DiscountingSwapEngine>(discount_curve));
+            return swap;
+        },
+        nb::arg("type"),
+        nb::arg("nominal"),
+        nb::arg("tenor"),
+        nb::arg("libor_fraction"),
+        nb::arg("libor_spread"),
+        nb::arg("libor_index"),
+        nb::arg("bma_index"),
+        nb::arg("discount_curve"),
+        nb::arg("settlement_days") = 2,
+        nb::arg("bma_frequency") = Quarterly,
+        nb::arg("bma_convention") = Following,
+        nb::arg("bma_day_count") =
+            DayCounter(ActualActual(ActualActual::ISDA)),
+        "Build a BMASwap matching PiecewiseYieldCurve BMA consistency setup.");
+
+    m.def(
+        "BMASwapRateHelper",
+        [](const Handle<Quote>& libor_fraction,
+           const Period& tenor,
+           Natural settlement_days,
+           const Calendar& calendar,
+           const Period& bma_period,
+           BusinessDayConvention bma_convention,
+           const DayCounter& bma_day_count,
+           const ext::shared_ptr<BMAIndex>& bma_index,
+           const ext::shared_ptr<IborIndex>& ibor_index) {
+            return ext::shared_ptr<RateHelper>(
+                ext::make_shared<BMASwapRateHelper>(
+                    libor_fraction, tenor, settlement_days, calendar,
+                    bma_period, bma_convention, bma_day_count, bma_index,
+                    ibor_index));
+        },
+        nb::arg("libor_fraction"),
+        nb::arg("tenor"),
+        nb::arg("settlement_days"),
+        nb::arg("calendar"),
+        nb::arg("bma_period"),
+        nb::arg("bma_convention"),
+        nb::arg("bma_day_count"),
+        nb::arg("bma_index"),
+        nb::arg("ibor_index"),
+        "Rate helper for bootstrapping over BMA swap libor fractions.");
 }

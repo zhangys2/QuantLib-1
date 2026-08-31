@@ -1174,6 +1174,45 @@ if OvernightIndexFuture is not None:
         OvernightIndexFuture.maturity_date
     )
 
+# Phase-100 BMASwap / BMAIndex aliases.
+BMAIndex = getattr(_ql, "BMAIndex", None)
+BMASwap = getattr(_ql, "BMASwap", None)
+makeBMASwap = getattr(_ql, "make_bma_swap", None)
+MakeBMASwap = makeBMASwap
+BMASwapRateHelper = getattr(_ql, "BMASwapRateHelper", None)
+JointCalendar = getattr(_ql, "JointCalendar", None)
+JointCalendarRule = getattr(_ql, "JointCalendarRule", None)
+if BMAIndex is not None:
+    BMAIndex.fixingCalendar = BMAIndex.fixing_calendar  # type: ignore[attr-defined]
+    BMAIndex.dayCounter = BMAIndex.day_counter  # type: ignore[attr-defined]
+    BMAIndex.fixingDays = BMAIndex.fixing_days  # type: ignore[attr-defined]
+    BMAIndex.addFixing = BMAIndex.add_fixing  # type: ignore[attr-defined]
+    BMAIndex.isValidFixingDate = (  # type: ignore[attr-defined]
+        BMAIndex.is_valid_fixing_date
+    )
+if BMASwap is not None:
+    BMASwap.liborFraction = BMASwap.libor_fraction  # type: ignore[attr-defined]
+    BMASwap.liborSpread = BMASwap.libor_spread  # type: ignore[attr-defined]
+    BMASwap.fairLiborFraction = (  # type: ignore[attr-defined]
+        BMASwap.fair_libor_fraction
+    )
+    BMASwap.fairLiborSpread = (  # type: ignore[attr-defined]
+        BMASwap.fair_libor_spread
+    )
+    BMASwap.liborLegNPV = BMASwap.libor_leg_NPV  # type: ignore[attr-defined]
+    BMASwap.bmaLegNPV = BMASwap.bma_leg_NPV  # type: ignore[attr-defined]
+    BMASwap.liborLegBPS = BMASwap.libor_leg_BPS  # type: ignore[attr-defined]
+    BMASwap.bmaLegBPS = BMASwap.bma_leg_BPS  # type: ignore[attr-defined]
+    BMASwap.isExpired = BMASwap.is_expired  # type: ignore[attr-defined]
+    BMASwap.setPricingEngine = (  # type: ignore[attr-defined]
+        BMASwap.set_pricing_engine
+    )
+if hasattr(_ql, "IborIndex"):
+    _ql.IborIndex.businessDayConvention = (  # type: ignore[attr-defined]
+        _ql.IborIndex.business_day_convention
+    )
+    _ql.IborIndex.endOfMonth = _ql.IborIndex.end_of_month  # type: ignore[attr-defined]
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)

@@ -7,6 +7,7 @@
 
 #include <ql/compounding.hpp>
 #include <ql/handle.hpp>
+#include <ql/indexes/bmaindex.hpp>
 #include <ql/indexes/ibor/eonia.hpp>
 #include <ql/indexes/ibor/estr.hpp>
 #include <ql/indexes/ibor/euribor.hpp>
@@ -388,6 +389,9 @@ void bind_curves(nb::module_& m) {
              [](const IborIndex& i) { return i.fixingCalendar(); })
         .def("day_counter", [](const IborIndex& i) { return i.dayCounter(); })
         .def("fixing_days", [](const IborIndex& i) { return i.fixingDays(); })
+        .def("business_day_convention",
+             [](const IborIndex& i) { return i.businessDayConvention(); })
+        .def("end_of_month", [](const IborIndex& i) { return i.endOfMonth(); })
         .def(
             "add_fixing",
             [](IborIndex& i, const Date& fixing_date, Rate fixing, bool force) {
@@ -403,6 +407,37 @@ void bind_curves(nb::module_& m) {
             },
             nb::arg("fixing_date"),
             nb::arg("forecast_todays_fixing") = false);
+
+    // BMAIndex is InterestRateIndex (MI) — concrete wrapper (like EquityIndex).
+    nb::class_<BMAIndex>(m, "BMAIndex")
+        .def(nb::init<Handle<YieldTermStructure>>(),
+             nb::arg("handle") = Handle<YieldTermStructure>())
+        .def("name", [](const BMAIndex& i) { return i.name(); })
+        .def("tenor", [](const BMAIndex& i) { return i.tenor(); })
+        .def("fixing_calendar",
+             [](const BMAIndex& i) { return i.fixingCalendar(); })
+        .def("day_counter", [](const BMAIndex& i) { return i.dayCounter(); })
+        .def("fixing_days", [](const BMAIndex& i) { return i.fixingDays(); })
+        .def(
+            "add_fixing",
+            [](BMAIndex& i, const Date& fixing_date, Rate fixing, bool force) {
+                i.addFixing(fixing_date, fixing, force);
+            },
+            nb::arg("fixing_date"),
+            nb::arg("fixing"),
+            nb::arg("force_overwrite") = false)
+        .def(
+            "fixing",
+            [](const BMAIndex& i, const Date& fixing_date, bool forecast_today) {
+                return i.fixing(fixing_date, forecast_today);
+            },
+            nb::arg("fixing_date"),
+            nb::arg("forecast_todays_fixing") = false)
+        .def("is_valid_fixing_date",
+             [](const BMAIndex& i, const Date& d) {
+                 return i.isValidFixingDate(d);
+             },
+             nb::arg("fixing_date"));
 
     m.def("Euribor3M", []() {
         return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor3M>());
