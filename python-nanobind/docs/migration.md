@@ -2890,6 +2890,19 @@ assert opt.NPV() == pytest.approx(expected, abs=5e-4)
 Attaches `AnalyticRoughHestonEngine`. Compat: `setRoughHestonPricingEngine`
 (compat-only). Recovers `RoughHestonModelTests::testKnownReferenceValues`.
 
+## Phase-150 piecewise time-dependent Heston
+
+```python
+ptd = ql.PiecewiseTimeDependentHestonModel(
+    r_ts, q_ts, spot, v0, theta, kappa, sigma, rho, grid_end=20.0, grid_steps=2
+)
+opt.set_ptd_heston_pricing_engine(ptd, integration_order=192)
+assert opt.NPV() == pytest.approx(heston_npv, abs=1e-7)
+```
+
+Attaches `AnalyticPTDHestonEngine`. Compat: `setPtdHestonPricingEngine`
+(compat-only). Matches `HestonModelTests::testAnalyticPiecewiseTimeDependent`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

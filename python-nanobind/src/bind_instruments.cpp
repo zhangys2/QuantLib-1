@@ -66,6 +66,8 @@
 #include <ql/pricingengines/vanilla/fdsimplebsswingengine.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/gjrgarchmodel.hpp>
+#include <ql/models/equity/piecewisetimedependenthestonmodel.hpp>
+#include <ql/pricingengines/vanilla/analyticptdhestonengine.hpp>
 #include <ql/pricingengines/vanilla/analyticroughhestonengine.hpp>
 #include <ql/models/equity/roughhestonmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
@@ -964,6 +966,18 @@ void bind_instruments(nb::module_& m) {
             nb::arg("approximation") =
                 AnalyticRoughHestonEngine::Approximation::AdamsPredictorCorrector,
             "Attach AnalyticRoughHestonEngine (fractional Riccati / Fourier).")
+        .def(
+            "set_ptd_heston_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<PiecewiseTimeDependentHestonModel>& model,
+               Size integration_order) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticPTDHestonEngine>(
+                        model, integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 144,
+            "Attach AnalyticPTDHestonEngine (piecewise time-dependent Heston).")
         .def(
             "set_cos_heston_pricing_engine",
             [](EuropeanOption& opt,

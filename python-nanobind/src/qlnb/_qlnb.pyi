@@ -1809,6 +1809,28 @@ def AnalyticRoughHestonEngine(
     time_steps: int = ...,
 ) -> RoughHestonModel: ...
 
+class PiecewiseTimeDependentHestonModel:
+    def __init__(
+        self,
+        risk_free_rate: YieldTermStructureHandle,
+        dividend_yield: YieldTermStructureHandle,
+        s0: QuoteHandle,
+        v0: float,
+        theta: float,
+        kappa: float,
+        sigma: float,
+        rho: float,
+        grid_end: float = ...,
+        grid_steps: int = ...,
+    ) -> None: ...
+    def v0(self) -> float: ...
+    def s0(self) -> float: ...
+
+def AnalyticPTDHestonEngine(
+    model: PiecewiseTimeDependentHestonModel,
+    integration_order: int = ...,
+) -> PiecewiseTimeDependentHestonModel: ...
+
 class FdmSchemeType:
     Hundsdorfer: FdmSchemeType
     Douglas: FdmSchemeType
@@ -2151,6 +2173,11 @@ class EuropeanOption:
         integration_order: int = ...,
         time_steps: int = ...,
         approximation: RoughHestonApproximation = ...,
+    ) -> None: ...
+    def set_ptd_heston_pricing_engine(
+        self,
+        model: PiecewiseTimeDependentHestonModel,
+        integration_order: int = ...,
     ) -> None: ...
     def set_cos_heston_pricing_engine(
         self, model: HestonModel, L: float = ..., N: int = ...
@@ -2512,6 +2539,11 @@ class VanillaOption:
         integration_order: int = ...,
         time_steps: int = ...,
         approximation: RoughHestonApproximation = ...,
+    ) -> None: ...
+    def set_ptd_heston_pricing_engine(
+        self,
+        model: PiecewiseTimeDependentHestonModel,
+        integration_order: int = ...,
     ) -> None: ...
     def set_pdf_heston_pricing_engine(
         self,
