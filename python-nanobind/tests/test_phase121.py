@@ -59,7 +59,22 @@ def test_discrete_geometric_asian_heston_tables():
         assert opt.NPV() == pytest.approx(expected, abs=tol), (days, strike)
 
 
+def test_native_discrete_asian_heston_snake_case_only():
+    # Native qlnb exposes snake_case; camelCase aliases live in qlnb.compat.
+    import sys
+
+    assert hasattr(ql.DiscreteAveragingAsianOption, "set_heston_pricing_engine")
+    if "qlnb.compat" in sys.modules:
+        pytest.skip(
+            "qlnb.compat already loaded; camelCase aliases mutate DiscreteAveragingAsianOption"
+        )
+    assert not hasattr(ql.DiscreteAveragingAsianOption, "setHestonPricingEngine")
+
+
 def test_compat_phase121_aliases():
     import qlnb.compat as c
 
     assert hasattr(c.DiscreteAveragingAsianOption, "setHestonPricingEngine")
+    assert c.DiscreteAveragingAsianOption.setHestonPricingEngine is (
+        ql.DiscreteAveragingAsianOption.set_heston_pricing_engine
+    )
