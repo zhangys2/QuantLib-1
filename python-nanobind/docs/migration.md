@@ -2785,6 +2785,20 @@ assert impl == pytest.approx(0.01, abs=1e-8)
 Attaches `BachelierCapFloorEngine` (normal vol). Compat:
 `setBachelierPricingEngine` (compat-only). Also on Cap / Floor / Collar.
 
+## Phase-141 Bachelier Swaption
+
+```python
+swaption.set_bachelier_pricing_engine(curve, 0.01)
+price = swaption.NPV()
+impl = swaption.implied_volatility(
+    price, curve, guess=0.005, accuracy=1e-8, vol_type=ql.VolatilityType.Normal
+)
+assert impl == pytest.approx(0.01, abs=1e-8)
+```
+
+Attaches `BachelierSwaptionEngine` (normal vol). Compat:
+`setBachelierPricingEngine` (compat-only).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
