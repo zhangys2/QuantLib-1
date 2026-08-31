@@ -54,6 +54,7 @@
 #include <ql/quotes/simplequote.hpp>
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
 #include <ql/pricingengines/asian/analytic_discr_geom_av_price.hpp>
+#include <ql/pricingengines/asian/continuousarithmeticasianlevyengine.hpp>
 #include <ql/pricingengines/asian/turnbullwakemanasianengine.hpp>
 #include <ql/experimental/asian/analytic_cont_geom_av_price_heston.hpp>
 #include <ql/experimental/asian/analytic_discr_geom_av_price_heston.hpp>
@@ -276,6 +277,24 @@ void bind_experimental(nb::module_& m) {
             nb::arg("average_type"),
             nb::arg("payoff"),
             nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](ContinuousAveragingAsianOption* self,
+               Average::Type average_type,
+               const Date& start_date,
+               const PlainVanillaPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) ContinuousAveragingAsianOption(
+                    average_type,
+                    start_date,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("average_type"),
+            nb::arg("start_date"),
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Seasoned continuous Asian (averaging already started).")
         .def("NPV",
              [](ContinuousAveragingAsianOption& opt) { return opt.NPV(); })
         .def("delta",
@@ -335,7 +354,19 @@ void bind_experimental(nb::module_& m) {
             nb::arg("asset_steps") = Size(100),
             nb::arg("z_min") = -1.0,
             nb::arg("z_max") = 1.0,
-            "Attach ContinuousArithmeticAsianVecerEngine.");
+            "Attach ContinuousArithmeticAsianVecerEngine.")
+        .def(
+            "set_levy_pricing_engine",
+            [](ContinuousAveragingAsianOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const Handle<Quote>& current_average) {
+                opt.setPricingEngine(
+                    ext::make_shared<ContinuousArithmeticAsianLevyEngine>(
+                        process, current_average));
+            },
+            nb::arg("process"),
+            nb::arg("current_average"),
+            "Attach ContinuousArithmeticAsianLevyEngine.");
 
     nb::class_<DiscreteAveragingAsianOption>(m, "DiscreteAveragingAsianOption")
         .def(

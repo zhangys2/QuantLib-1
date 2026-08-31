@@ -4029,9 +4029,18 @@ class NonstandardSwaption:
     ) -> None: ...
 
 class ContinuousAveragingAsianOption:
+    @overload
     def __init__(
         self,
         average_type: AverageType,
+        payoff: PlainVanillaPayoff,
+        exercise: EuropeanExercise,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        average_type: AverageType,
+        start_date: Date,
         payoff: PlainVanillaPayoff,
         exercise: EuropeanExercise,
     ) -> None: ...
@@ -4054,6 +4063,11 @@ class ContinuousAveragingAsianOption:
         asset_steps: int = ...,
         z_min: float = ...,
         z_max: float = ...,
+    ) -> None: ...
+    def set_levy_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        current_average: QuoteHandle,
     ) -> None: ...
 
 class DiscreteAveragingAsianOption:

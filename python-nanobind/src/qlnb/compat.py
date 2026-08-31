@@ -1652,6 +1652,10 @@ if ContinuousAveragingAsianOption is not None:
         ContinuousAveragingAsianOption.setVecerPricingEngine = (  # type: ignore[attr-defined]
             ContinuousAveragingAsianOption.set_vecer_pricing_engine
         )
+    if hasattr(ContinuousAveragingAsianOption, "set_levy_pricing_engine"):
+        ContinuousAveragingAsianOption.setLevyPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousAveragingAsianOption.set_levy_pricing_engine
+        )
 if DiscreteAveragingAsianOption is not None:
     DiscreteAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
         DiscreteAveragingAsianOption.set_pricing_engine
