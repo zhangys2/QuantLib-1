@@ -3302,6 +3302,16 @@ model.standard_errors()
 Recovers `LinearLeastSquaresRegressionTests::test1dLinearRegression`.
 Compat: `standardErrors`.
 
+## Phase-179 AbcdFunction degenerate covariance
+
+```python
+f = ql.AbcdFunction(0.0, 0.0, 1.0e-15, 1.0)
+cov = f.covariance(0.0, 1.0, 1.0, 1.0)
+```
+
+Recovers `MarketModelTests::testAbcdDegenerateCases`.
+Compat: `maximumVolatility`, `shortTermVolatility`, `longTermVolatility`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
