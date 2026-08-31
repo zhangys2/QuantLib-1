@@ -751,6 +751,13 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption.set_mc_heston_hull_white_pricing_engine` with `control_variate=True`, HW σ≈0
 - MC vs `AnalyticHestonEngine` (3σ / absolute floor 1e-3) across corr × strike grid
 
+### Phase 160 (Libor forward model cap)
+- `LiborForwardModelProcess`, `LmFixedVolatilityModel`, `LmExponentialCorrelationModel`
+- `CapletVarianceCurve`, `LiborForwardModel`
+- `make_lfm_cap`, `lm_fixed_volatilities_from_caplet_curve`
+- `Cap.set_libor_forward_pricing_engine` → `AnalyticCapFloorEngine` (LFM exact caplets)
+- Golden NPV from `LiborMarketModelTests::testCapletPricing` (0.015853935178)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
