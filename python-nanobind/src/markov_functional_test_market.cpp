@@ -15,6 +15,7 @@
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 #include <ql/termstructures/volatility/swaption/sabrswaptionvolatilitycube.hpp>
+#include <ql/termstructures/volatility/swaption/swaptionvolcube.hpp>
 #include <ql/termstructures/volatility/swaption/swaptionvolmatrix.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/daycounters/actual360.hpp>
@@ -357,6 +358,28 @@ Handle<OptionletVolatilityStructure> md0OptionletVts() {
                 new StrippedOptionletAdapter(stripper)));
 }
 
+std::vector<Real> md0CoterminalHelperVols() {
+    const Handle<SwaptionVolatilityStructure> vts = md0SwaptionVts();
+    ext::shared_ptr<SwaptionVolatilityCube> cube =
+        ext::dynamic_pointer_cast<SwaptionVolatilityCube>(vts.currentLink());
+    QL_REQUIRE(cube, "md0 swaption vol structure must be a SwaptionVolatilityCube");
+
+    const std::pair<Period, Period> specs[] = {
+        {1 * Years, 4 * Years},
+        {2 * Years, 3 * Years},
+        {3 * Years, 2 * Years},
+        {4 * Years, 1 * Years},
+    };
+
+    std::vector<Real> result;
+    result.reserve(4);
+    for (const auto& [option_tenor, swap_tenor] : specs) {
+        result.push_back(
+            vts->volatility(option_tenor, swap_tenor, cube->atmStrike(option_tenor, swap_tenor)));
+    }
+    return result;
+}
+
 } // namespace
 
 Handle<YieldTermStructure> markov_functional_test_md0_yts() {
@@ -369,6 +392,10 @@ Handle<SwaptionVolatilityStructure> markov_functional_test_md0_swaption_vts() {
 
 Handle<OptionletVolatilityStructure> markov_functional_test_md0_optionlet_vts() {
     return md0OptionletVts();
+}
+
+std::vector<Real> markov_functional_test_md0_coterminal_helper_vols() {
+    return md0CoterminalHelperVols();
 }
 
 } // namespace qlnb

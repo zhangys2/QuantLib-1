@@ -3222,6 +3222,17 @@ assert abs(black - swaption.NPV() + smile_corr) <= tol
 
 Recovers `MarkovFunctionalTests::testVanillaEngines` (real md0 baskets 1–2).
 
+## Phase-172 MarkovFunctional md0 secondary calibration
+
+```python
+helper_vols = ql.markov_functional_test_md0_coterminal_helper_vols()
+mf.calibrate(helpers, ql.LevenbergMarquardt(), end_criteria)
+assert abs(black_price - mf_price) / black_vega <= 0.1
+```
+
+Recovers `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (real md0 basket).
+Compat: `markovFunctionalTestMd0CoterminalHelperVols`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

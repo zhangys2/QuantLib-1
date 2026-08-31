@@ -813,6 +813,10 @@ Experimental Python package that binds a focused QuantLib surface with
 ### Phase 171 (MarkovFunctional real-market vanilla engines)
 - Golden checks from `MarkovFunctionalTests::testVanillaEngines` (real md0 baskets 1–2)
 
+### Phase 172 (MarkovFunctional md0 secondary calibration)
+- `markov_functional_test_md0_coterminal_helper_vols` fixture
+- Golden checks from `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (real md0 basket)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
