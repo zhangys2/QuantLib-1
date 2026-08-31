@@ -2450,6 +2450,20 @@ FFT batch engine for variance-gamma Europeans; single-option uncached path
 also supported. Compat: `setFftVarianceGammaPricingEngine`. Recovers
 `VarianceGammaTests::testVarianceGamma` FFT values (tol 0.01).
 
+## Phase-120 Asian continuous geometric Heston
+
+```python
+asian = ql.ContinuousAveragingAsianOption(
+    ql.AverageType.Geometric, payoff, exercise
+)
+asian.set_heston_pricing_engine(heston_process)
+assert asian.NPV() == pytest.approx(3.4478, abs=1e-2)
+```
+
+Attaches `AnalyticContinuousGeometricAveragePriceAsianHestonEngine`.
+Compat: `setHestonPricingEngine`. Recovers Kim–Wee Table 1/4 cases from
+`AsianOptionTests::testAnalyticContinuousGeometricAveragePriceHeston`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
