@@ -20,6 +20,8 @@
 #include <ql/instruments/swap.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/quotes/simplequote.hpp>
+#include <ql/termstructures/volatility/optionlet/constantoptionletvol.hpp>
+#include <ql/termstructures/volatility/optionlet/optionletvolatilitystructure.hpp>
 #include <ql/termstructures/volatility/swaption/swaptionconstantvol.hpp>
 #include <ql/termstructures/volatility/swaption/swaptionvolstructure.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
@@ -186,6 +188,35 @@ void bind_cms(nb::module_& m) {
         nb::arg("shift") = 0.0,
         "Factory: ConstantSwaptionVolatility → "
         "SwaptionVolatilityStructureHandle.");
+
+    nb::class_<Handle<OptionletVolatilityStructure>>(
+        m, "OptionletVolatilityStructureHandle")
+        .def(nb::init<>())
+        .def("empty", &Handle<OptionletVolatilityStructure>::empty);
+
+    m.def(
+        "ConstantOptionletVolatility",
+        [](const Date& reference_date,
+           const Calendar& calendar,
+           BusinessDayConvention bdc,
+           Volatility volatility,
+           const DayCounter& day_counter,
+           VolatilityType type,
+           Real shift) {
+            return Handle<OptionletVolatilityStructure>(
+                ext::make_shared<ConstantOptionletVolatility>(
+                    reference_date, calendar, bdc, volatility, day_counter, type,
+                    shift));
+        },
+        nb::arg("reference_date"),
+        nb::arg("calendar"),
+        nb::arg("bdc"),
+        nb::arg("volatility"),
+        nb::arg("day_counter"),
+        nb::arg("type") = ShiftedLognormal,
+        nb::arg("shift") = 0.0,
+        "Factory: ConstantOptionletVolatility → "
+        "OptionletVolatilityStructureHandle.");
 
     // CmsCouponPricer hierarchy is MI-heavy — opaque + factories.
     nb::class_<CmsCouponPricer>(m, "CmsCouponPricer");

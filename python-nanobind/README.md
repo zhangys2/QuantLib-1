@@ -785,6 +785,13 @@ Experimental Python package that binds a focused QuantLib surface with
 - `black_formula`, `black_formula_implied_std_dev`
 - Golden checks from `MarkovFunctionalTests::testKahaleSmileSection`
 
+### Phase 166 (MarkovFunctional vanilla engines)
+- `MarkovFunctional`, `MarkovFunctionalModelSettings`, `MarkovFunctionalModelOutputs`
+- `ConstantOptionletVolatility` → `OptionletVolatilityStructureHandle`
+- `Swaption` / `Cap` / `Floor` Gaussian1d engines on `MarkovFunctional`
+- Black engines with vol term structures
+- Golden checks from `MarkovFunctionalTests::testVanillaEngines` (flat baskets 1–2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

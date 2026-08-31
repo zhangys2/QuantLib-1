@@ -3129,6 +3129,29 @@ ksec.option_price(strike)
 Recovers `MarkovFunctionalTests::testKahaleSmileSection`. Compat: `leftCoreStrike`,
 `rightCoreStrike`, `digitalOptionPrice`.
 
+## Phase-166 MarkovFunctional vanilla engines
+
+```python
+settings = (
+    ql.MarkovFunctionalModelSettings()
+    .with_y_grid_points(64)
+    .with_smile_moneyness_checkpoints([0.5, 1.0, 1.5])
+)
+mf = ql.MarkovFunctional(
+    yts, 0.01, [], [1.0], swaption_vol, expiries, tenors, swap_index, settings
+)
+outputs = mf.model_outputs()
+
+swaption.set_pricing_engine(yts, swaption_vol)  # Black
+swaption.set_gaussian1d_pricing_engine(mf)
+
+cap.set_pricing_engine(yts, optionlet_vol)
+cap.set_gaussian1d_pricing_engine(mf)
+```
+
+Recovers `MarkovFunctionalTests::testVanillaEngines` (flat baskets). Compat:
+`modelOutputs`, `withYGridPoints`, `ConstantOptionletVolatility`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

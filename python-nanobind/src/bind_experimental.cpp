@@ -4,7 +4,6 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
 
-#include <limits>
 #include <optional>
 
 #include <ql/cashflows/dividend.hpp>
@@ -117,11 +116,13 @@
 #include <ql/pricingengines/capfloor/bacheliercapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/gaussian1dcapfloorengine.hpp>
+#include <ql/termstructures/volatility/optionlet/optionletvolatilitystructure.hpp>
 #include <ql/pricingengines/capfloor/mchullwhiteengine.hpp>
 #include <ql/pricingengines/capfloor/treecapfloorengine.hpp>
 #include <ql/legacy/libormarketmodels/liborforwardmodel.hpp>
 #include <ql/models/model.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
+#include <ql/models/shortrate/onefactormodels/markovfunctional.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfloatinglookback.hpp>
@@ -3759,6 +3760,45 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             "Attach BachelierCapFloorEngine (normal vol).")
         .def(
+            "set_pricing_engine",
+            [](CapFloor& cf,
+               const Handle<YieldTermStructure>& discount_curve,
+               const Handle<OptionletVolatilityStructure>& caplet_vol,
+               std::optional<Real> displacement) {
+                cf.setPricingEngine(ext::make_shared<BlackCapFloorEngine>(
+                    discount_curve,
+                    caplet_vol,
+                    displacement.value_or(Null<Real>())));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("caplet_vol"),
+            nb::arg("displacement") = nb::none(),
+            "Attach BlackCapFloorEngine with an optionlet volatility term structure.")
+        .def(
+            "set_gaussian1d_pricing_engine",
+            [](CapFloor& cf,
+               const ext::shared_ptr<MarkovFunctional>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation,
+               const Handle<YieldTermStructure>& discount_curve) {
+                cf.setPricingEngine(ext::make_shared<Gaussian1dCapFloorEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach Gaussian1dCapFloorEngine on a MarkovFunctional model.")
+        .def(
             "set_gaussian1d_pricing_engine",
             [](CapFloor& cf,
                const ext::shared_ptr<Gsr>& model,
@@ -4116,6 +4156,45 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             "Attach BachelierCapFloorEngine (normal vol).")
         .def(
+            "set_pricing_engine",
+            [](Cap& c,
+               const Handle<YieldTermStructure>& discount_curve,
+               const Handle<OptionletVolatilityStructure>& caplet_vol,
+               std::optional<Real> displacement) {
+                c.setPricingEngine(ext::make_shared<BlackCapFloorEngine>(
+                    discount_curve,
+                    caplet_vol,
+                    displacement.value_or(Null<Real>())));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("caplet_vol"),
+            nb::arg("displacement") = nb::none(),
+            "Attach BlackCapFloorEngine with an optionlet volatility term structure.")
+        .def(
+            "set_gaussian1d_pricing_engine",
+            [](Cap& c,
+               const ext::shared_ptr<MarkovFunctional>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<Gaussian1dCapFloorEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach Gaussian1dCapFloorEngine on a MarkovFunctional model.")
+        .def(
             "set_gaussian1d_pricing_engine",
             [](Cap& c,
                const ext::shared_ptr<Gsr>& model,
@@ -4290,6 +4369,45 @@ void bind_experimental(nb::module_& m) {
             nb::arg("volatility"),
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             "Attach BachelierCapFloorEngine (normal vol).")
+        .def(
+            "set_pricing_engine",
+            [](Floor& c,
+               const Handle<YieldTermStructure>& discount_curve,
+               const Handle<OptionletVolatilityStructure>& caplet_vol,
+               std::optional<Real> displacement) {
+                c.setPricingEngine(ext::make_shared<BlackCapFloorEngine>(
+                    discount_curve,
+                    caplet_vol,
+                    displacement.value_or(Null<Real>())));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("caplet_vol"),
+            nb::arg("displacement") = nb::none(),
+            "Attach BlackCapFloorEngine with an optionlet volatility term structure.")
+        .def(
+            "set_gaussian1d_pricing_engine",
+            [](Floor& c,
+               const ext::shared_ptr<MarkovFunctional>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<Gaussian1dCapFloorEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach Gaussian1dCapFloorEngine on a MarkovFunctional model.")
         .def(
             "set_gaussian1d_pricing_engine",
             [](Floor& c,

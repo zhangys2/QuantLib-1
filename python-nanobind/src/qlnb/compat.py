@@ -440,6 +440,38 @@ def _install_aliases() -> None:
                 KahaleSmileSection.digital_option_price
             )
 
+    MarkovFunctionalModelSettings = getattr(_ql, "MarkovFunctionalModelSettings", None)
+    if MarkovFunctionalModelSettings is not None:
+        for snake, camel in (
+            ("with_y_grid_points", "withYGridPoints"),
+            ("with_y_std_devs", "withYStdDevs"),
+            ("with_gauss_hermite_points", "withGaussHermitePoints"),
+            ("with_digital_gap", "withDigitalGap"),
+            ("with_market_rate_accuracy", "withMarketRateAccuracy"),
+            ("with_upper_rate_bound", "withUpperRateBound"),
+            ("with_lower_rate_bound", "withLowerRateBound"),
+            ("with_adjustments", "withAdjustments"),
+            ("add_adjustment", "addAdjustment"),
+            ("remove_adjustment", "removeAdjustment"),
+            ("with_smile_moneyness_checkpoints", "withSmileMoneynessCheckpoints"),
+        ):
+            if hasattr(MarkovFunctionalModelSettings, snake):
+                setattr(  # type: ignore[attr-defined]
+                    MarkovFunctionalModelSettings,
+                    camel,
+                    getattr(MarkovFunctionalModelSettings, snake),
+                )
+
+    MarkovFunctional = getattr(_ql, "MarkovFunctional", None)
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "model_outputs"):
+        MarkovFunctional.modelOutputs = MarkovFunctional.model_outputs  # type: ignore[attr-defined]
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "model_settings"):
+        MarkovFunctional.modelSettings = MarkovFunctional.model_settings  # type: ignore[attr-defined]
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "numeraire_date"):
+        MarkovFunctional.numeraireDate = MarkovFunctional.numeraire_date  # type: ignore[attr-defined]
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "numeraire_time"):
+        MarkovFunctional.numeraireTime = MarkovFunctional.numeraire_time  # type: ignore[attr-defined]
+
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
     EuropeanOption.impliedVolatility = EuropeanOption.implied_volatility  # type: ignore[attr-defined]
@@ -2016,6 +2048,11 @@ if DiscreteAveragingAsianOption is not None:
 # Phase-10 CMS / SwapIndex aliases.
 EuriborSwapIsdaFixA = getattr(_ql, "EuriborSwapIsdaFixA", None)
 ConstantSwaptionVolatility = getattr(_ql, "ConstantSwaptionVolatility", None)
+ConstantOptionletVolatility = getattr(_ql, "ConstantOptionletVolatility", None)
+MarkovFunctional = getattr(_ql, "MarkovFunctional", None)
+MarkovFunctionalModelSettings = getattr(_ql, "MarkovFunctionalModelSettings", None)
+MarkovFunctionalModelOutputs = getattr(_ql, "MarkovFunctionalModelOutputs", None)
+MarkovFunctionalAdjustment = getattr(_ql, "MarkovFunctionalAdjustment", None)
 AnalyticHaganPricer = getattr(_ql, "AnalyticHaganPricer", None)
 NumericHaganPricer = getattr(_ql, "NumericHaganPricer", None)
 makeCms = getattr(_ql, "make_cms", None)

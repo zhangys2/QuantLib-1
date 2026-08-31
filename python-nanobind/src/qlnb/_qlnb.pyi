@@ -4462,6 +4462,62 @@ class KahaleSmileSection:
     def option_price(self, strike: float) -> float: ...
     def digital_option_price(self, strike: float) -> float: ...
 
+class MarkovFunctionalModelSettings:
+    def __init__(self) -> None: ...
+    def with_y_grid_points(self, n: int) -> MarkovFunctionalModelSettings: ...
+    def with_y_std_devs(self, s: float) -> MarkovFunctionalModelSettings: ...
+    def with_gauss_hermite_points(self, n: int) -> MarkovFunctionalModelSettings: ...
+    def with_digital_gap(self, d: float) -> MarkovFunctionalModelSettings: ...
+    def with_market_rate_accuracy(self, a: float) -> MarkovFunctionalModelSettings: ...
+    def with_upper_rate_bound(self, u: float) -> MarkovFunctionalModelSettings: ...
+    def with_lower_rate_bound(self, l: float) -> MarkovFunctionalModelSettings: ...
+    def with_adjustments(self, a: int) -> MarkovFunctionalModelSettings: ...
+    def add_adjustment(self, a: int) -> MarkovFunctionalModelSettings: ...
+    def remove_adjustment(self, a: int) -> MarkovFunctionalModelSettings: ...
+    def with_smile_moneyness_checkpoints(
+        self, m: list[float]
+    ) -> MarkovFunctionalModelSettings: ...
+
+class MarkovFunctionalModelOutputs:
+    expiries: list[Date]
+    tenors: list[Period]
+    atm: list[float]
+    annuity: list[float]
+    smile_strikes: list[list[float]]
+    market_call_premium: list[list[float]]
+    market_put_premium: list[list[float]]
+    market_raw_call_premium: list[list[float]]
+    market_raw_put_premium: list[list[float]]
+
+class MarkovFunctional:
+    def __init__(
+        self,
+        term_structure: YieldTermStructureHandle,
+        reversion: float,
+        vol_step_dates: list[Date],
+        volatilities: list[float],
+        swaption_vol: SwaptionVolatilityStructureHandle,
+        swaption_expiries: list[Date],
+        swaption_tenors: list[Period],
+        swap_index_base: SwapIndex,
+        model_settings: MarkovFunctionalModelSettings = ...,
+    ) -> None: ...
+    def __init__(
+        self,
+        term_structure: YieldTermStructureHandle,
+        reversion: float,
+        vol_step_dates: list[Date],
+        volatilities: list[float],
+        caplet_vol: OptionletVolatilityStructureHandle,
+        caplet_expiries: list[Date],
+        ibor_index: IborIndex,
+        model_settings: MarkovFunctionalModelSettings = ...,
+    ) -> None: ...
+    def model_outputs(self) -> MarkovFunctionalModelOutputs: ...
+    def model_settings(self) -> MarkovFunctionalModelSettings: ...
+    def numeraire_date(self) -> Date: ...
+    def numeraire_time(self) -> float: ...
+
 class G2:
     def __init__(
         self,
@@ -5584,6 +5640,18 @@ def ConstantSwaptionVolatility(
     type: VolatilityType = ...,
     shift: float = ...,
 ) -> SwaptionVolatilityStructureHandle: ...
+class OptionletVolatilityStructureHandle:
+    def __init__(self) -> None: ...
+    def empty(self) -> bool: ...
+def ConstantOptionletVolatility(
+    reference_date: Date,
+    calendar: Calendar,
+    bdc: BusinessDayConvention,
+    volatility: float,
+    day_counter: DayCounter,
+    type: VolatilityType = ...,
+    shift: float = ...,
+) -> OptionletVolatilityStructureHandle: ...
 def AnalyticHaganPricer(
     swaption_vol: SwaptionVolatilityStructureHandle,
     model: YieldCurveModel,

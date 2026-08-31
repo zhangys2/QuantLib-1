@@ -14,6 +14,7 @@
 #include <ql/instruments/swaption.hpp>
 #include <ql/instruments/vanillaswap.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
+#include <ql/models/shortrate/onefactormodels/markovfunctional.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
 #include <ql/models/shortrate/twofactormodels/g2.hpp>
 #include <ql/legacy/libormarketmodels/liborforwardmodel.hpp>
@@ -30,6 +31,7 @@
 #include <ql/legacy/libormarketmodels/lfmswaptionengine.hpp>
 #include <ql/processes/mfstateprocess.hpp>
 #include <ql/pricingengines/swaption/treeswaptionengine.hpp>
+#include <ql/termstructures/volatility/swaption/swaptionvolstructure.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/daycounter.hpp>
@@ -362,6 +364,38 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("model"),
             "Attach JamshidianSwaptionEngine on a HullWhite model (European).")
         .def(
+            "set_pricing_engine",
+            [](Swaption& s,
+               const Handle<YieldTermStructure>& discount_curve,
+               const Handle<SwaptionVolatilityStructure>& swaption_vol) {
+                s.setPricingEngine(
+                    ext::make_shared<BlackSwaptionEngine>(discount_curve, swaption_vol));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("swaption_vol"),
+            "Attach BlackSwaptionEngine with a swaption volatility term structure.")
+        .def(
+            "set_gaussian1d_pricing_engine",
+            [](Swaption& s,
+               const ext::shared_ptr<MarkovFunctional>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation) {
+                s.setPricingEngine(ext::make_shared<Gaussian1dSwaptionEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            "Attach Gaussian1dSwaptionEngine on a MarkovFunctional model.")
+        .def(
             "set_gaussian1d_pricing_engine",
             [](Swaption& s,
                const ext::shared_ptr<Gsr>& model,
@@ -562,6 +596,13 @@ void bind_rates_options(nb::module_& m) {
         [](const ext::shared_ptr<HullWhite>& model) { return model; },
         nb::arg("model"),
         "Factory alias: pass model to Swaption.set_tree_pricing_engine.");
+
+    m.def(
+        "Gaussian1dSwaptionEngine",
+        [](const ext::shared_ptr<MarkovFunctional>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass MarkovFunctional to "
+        "Swaption.set_gaussian1d_pricing_engine.");
 
     m.def(
         "Gaussian1dSwaptionEngine",
