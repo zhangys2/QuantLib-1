@@ -113,8 +113,13 @@
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/pricingengines/capfloor/analyticcapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/bacheliercapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
+#include <ql/pricingengines/capfloor/gaussian1dcapfloorengine.hpp>
+#include <ql/models/model.hpp>
+#include <ql/models/shortrate/onefactormodels/gsr.hpp>
+#include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfloatinglookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuouspartialfixedlookback.hpp>
@@ -3717,6 +3722,42 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             "Attach BachelierCapFloorEngine (normal vol).")
         .def(
+            "set_gaussian1d_pricing_engine",
+            [](CapFloor& cf,
+               const ext::shared_ptr<Gsr>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation,
+               const Handle<YieldTermStructure>& discount_curve) {
+                cf.setPricingEngine(ext::make_shared<Gaussian1dCapFloorEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach Gaussian1dCapFloorEngine on a Gsr model.")
+        .def(
+            "set_analytic_cap_floor_pricing_engine",
+            [](CapFloor& cf,
+               const ext::shared_ptr<HullWhite>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                cf.setPricingEngine(ext::make_shared<AnalyticCapFloorEngine>(
+                    ext::static_pointer_cast<AffineModel>(model),
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
+        .def(
             "implied_volatility",
             [](const CapFloor& cf,
                Real target_price,
@@ -3815,6 +3856,42 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             "Attach BachelierCapFloorEngine (normal vol).")
         .def(
+            "set_gaussian1d_pricing_engine",
+            [](Collar& c,
+               const ext::shared_ptr<Gsr>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<Gaussian1dCapFloorEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach Gaussian1dCapFloorEngine on a Gsr model.")
+        .def(
+            "set_analytic_cap_floor_pricing_engine",
+            [](Collar& c,
+               const ext::shared_ptr<HullWhite>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<AnalyticCapFloorEngine>(
+                    ext::static_pointer_cast<AffineModel>(model),
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
+        .def(
             "implied_volatility",
             [](const Collar& c,
                Real target_price,
@@ -3908,6 +3985,42 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             "Attach BachelierCapFloorEngine (normal vol).")
         .def(
+            "set_gaussian1d_pricing_engine",
+            [](Cap& c,
+               const ext::shared_ptr<Gsr>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<Gaussian1dCapFloorEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach Gaussian1dCapFloorEngine on a Gsr model.")
+        .def(
+            "set_analytic_cap_floor_pricing_engine",
+            [](Cap& c,
+               const ext::shared_ptr<HullWhite>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<AnalyticCapFloorEngine>(
+                    ext::static_pointer_cast<AffineModel>(model),
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
+        .def(
             "implied_volatility",
             [](const Cap& c,
                Real target_price,
@@ -3999,6 +4112,42 @@ void bind_experimental(nb::module_& m) {
             nb::arg("volatility"),
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             "Attach BachelierCapFloorEngine (normal vol).")
+        .def(
+            "set_gaussian1d_pricing_engine",
+            [](Floor& c,
+               const ext::shared_ptr<Gsr>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<Gaussian1dCapFloorEngine>(
+                    model,
+                    integration_points,
+                    stddevs,
+                    extrapolate_payoff,
+                    flat_payoff_extrapolation,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach Gaussian1dCapFloorEngine on a Gsr model.")
+        .def(
+            "set_analytic_cap_floor_pricing_engine",
+            [](Floor& c,
+               const ext::shared_ptr<HullWhite>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<AnalyticCapFloorEngine>(
+                    ext::static_pointer_cast<AffineModel>(model),
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
             "implied_volatility",
             [](const Floor& c,
@@ -4094,6 +4243,20 @@ void bind_experimental(nb::module_& m) {
         nb::arg("volatility"),
         nb::arg("day_counter") = DayCounter(Actual365Fixed()),
         "Documentation alias — use CapFloor.set_bachelier_pricing_engine.");
+
+    m.def(
+        "Gaussian1dCapFloorEngine",
+        [](const ext::shared_ptr<Gsr>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to CapFloor/Cap/Floor/Collar "
+        "set_gaussian1d_pricing_engine.");
+
+    m.def(
+        "AnalyticCapFloorEngine",
+        [](const ext::shared_ptr<HullWhite>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to CapFloor/Cap/Floor/Collar "
+        "set_analytic_cap_floor_pricing_engine.");
 
     // --- Phase 103: Extended OU process (constant b) for storage options ---
     nb::enum_<ExtendedOrnsteinUhlenbeckProcess::Discretization>(

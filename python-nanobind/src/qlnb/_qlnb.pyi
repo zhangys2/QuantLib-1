@@ -4115,6 +4115,20 @@ class CapFloor:
         volatility: float,
         day_counter: DayCounter = ...,
     ) -> None: ...
+    def set_gaussian1d_pricing_engine(
+        self,
+        model: Gsr,
+        integration_points: int = ...,
+        stddevs: float = ...,
+        extrapolate_payoff: bool = ...,
+        flat_payoff_extrapolation: bool = ...,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_analytic_cap_floor_pricing_engine(
+        self,
+        model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -4156,6 +4170,20 @@ class Collar:
         volatility: float,
         day_counter: DayCounter = ...,
     ) -> None: ...
+    def set_gaussian1d_pricing_engine(
+        self,
+        model: Gsr,
+        integration_points: int = ...,
+        stddevs: float = ...,
+        extrapolate_payoff: bool = ...,
+        flat_payoff_extrapolation: bool = ...,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_analytic_cap_floor_pricing_engine(
+        self,
+        model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -4196,6 +4224,20 @@ class Cap:
         volatility: float,
         day_counter: DayCounter = ...,
     ) -> None: ...
+    def set_gaussian1d_pricing_engine(
+        self,
+        model: Gsr,
+        integration_points: int = ...,
+        stddevs: float = ...,
+        extrapolate_payoff: bool = ...,
+        flat_payoff_extrapolation: bool = ...,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_analytic_cap_floor_pricing_engine(
+        self,
+        model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -4235,6 +4277,20 @@ class Floor:
         discount_curve: YieldTermStructureHandle,
         volatility: float,
         day_counter: DayCounter = ...,
+    ) -> None: ...
+    def set_gaussian1d_pricing_engine(
+        self,
+        model: Gsr,
+        integration_points: int = ...,
+        stddevs: float = ...,
+        extrapolate_payoff: bool = ...,
+        flat_payoff_extrapolation: bool = ...,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_analytic_cap_floor_pricing_engine(
+        self,
+        model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
     def implied_volatility(
         self,
@@ -4879,6 +4935,8 @@ def BlackCapFloorEngine(
     day_counter: DayCounter = ...,
     displacement: float = ...,
 ) -> YieldTermStructureHandle: ...
+def Gaussian1dCapFloorEngine(model: Gsr) -> Gsr: ...
+def AnalyticCapFloorEngine(model: HullWhite) -> HullWhite: ...
 def simulate_gbm_paths(
     process: BlackScholesMertonProcess,
     length: float,
