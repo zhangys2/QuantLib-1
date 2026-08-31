@@ -16,6 +16,7 @@
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
 #include <ql/models/shortrate/twofactormodels/g2.hpp>
+#include <ql/legacy/libormarketmodels/liborforwardmodel.hpp>
 #include <ql/processes/hullwhiteprocess.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/swaption/blackswaptionengine.hpp>
@@ -26,6 +27,7 @@
 #include <ql/pricingengines/swaption/gaussian1djamshidianswaptionengine.hpp>
 #include <ql/pricingengines/swaption/gaussian1dswaptionengine.hpp>
 #include <ql/pricingengines/swaption/jamshidianswaptionengine.hpp>
+#include <ql/legacy/libormarketmodels/lfmswaptionengine.hpp>
 #include <ql/pricingengines/swaption/treeswaptionengine.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -405,7 +407,18 @@ void bind_rates_options(nb::module_& m) {
             },
             nb::arg("model"),
             nb::arg("time_steps") = 50,
-            "Attach TreeSwaptionEngine on a G2 model (Bermudan/European).");
+            "Attach TreeSwaptionEngine on a G2 model (Bermudan/European).")
+        .def(
+            "set_lfm_pricing_engine",
+            [](Swaption& s,
+               const ext::shared_ptr<LiborForwardModel>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                s.setPricingEngine(
+                    ext::make_shared<LfmSwaptionEngine>(model, discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve"),
+            "Attach LfmSwaptionEngine (Libor forward model, European).");
 
     // --- Phase 116/117: NonstandardSwaption + Gaussian1d nonstandard engine ---
     nb::class_<NonstandardSwaption>(m, "NonstandardSwaption")
@@ -543,6 +556,12 @@ void bind_rates_options(nb::module_& m) {
         [](const ext::shared_ptr<G2>& model) { return model; },
         nb::arg("model"),
         "Factory alias: pass model to Swaption.set_g2_tree_pricing_engine.");
+
+    m.def(
+        "LfmSwaptionEngine",
+        [](const ext::shared_ptr<LiborForwardModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to Swaption.set_lfm_pricing_engine.");
 
     // Overnight indexed swap (standalone; Swap/Instrument are MI-heavy).
     nb::class_<OvernightIndexedSwap>(m, "OvernightIndexedSwap")
