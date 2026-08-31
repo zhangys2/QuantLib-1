@@ -2856,6 +2856,17 @@ Attaches `AnalyticH1HWEngine` (Grzelak–Oosterlee H1–HW). Compat:
 `setH1HWPricingEngine` (compat-only). Recovers
 `HybridHestonHullWhiteProcessTests::testH1HWPricingEngine`.
 
+## Phase-147 FD shout options
+
+```python
+opt = ql.VanillaOption(payoff, ql.AmericanExercise(maturity))
+opt.set_fd_shout_pricing_engine(process, t_grid=400, x_grid=200)
+assert opt.NPV() == pytest.approx(expected, abs=2e-2)
+```
+
+Attaches `FdBlackScholesShoutEngine`. Compat: `setFdShoutPricingEngine`
+(compat-only). Recovers `AmericanOptionTests::testFDShoutNPV`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

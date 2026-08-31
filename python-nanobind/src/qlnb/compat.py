@@ -575,6 +575,10 @@ def _install_aliases() -> None:
             VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
                 VanillaOption.set_fd_pricing_engine
             )
+        if hasattr(VanillaOption, "set_fd_shout_pricing_engine"):
+            VanillaOption.setFdShoutPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_fd_shout_pricing_engine
+            )
     if hasattr(VanillaOption, "set_heston_pricing_engine"):
         VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_heston_pricing_engine
