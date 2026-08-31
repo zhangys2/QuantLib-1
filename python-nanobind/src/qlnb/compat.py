@@ -531,6 +531,10 @@ def _install_aliases() -> None:
         VanillaOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_binomial_pricing_engine
         )
+    if hasattr(VanillaOption, "set_digital_american_pricing_engine"):
+        VanillaOption.setDigitalAmericanPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_digital_american_pricing_engine
+        )
     if hasattr(VanillaOption, "set_fd_pricing_engine"):
         VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_fd_pricing_engine

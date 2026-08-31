@@ -2599,6 +2599,21 @@ Attaches `VannaVolgaDoubleBarrierEngine<SuoWangDoubleBarrierEngine>`. Compat:
 `setVannaVolgaPricingEngine` (compat-only). Recovers KO goldens (and KI as
 vanilla − KO) from `DoubleBarrierOptionTests::testVannaVolgaDoubleBarrierValues`.
 
+## Phase-130 digital American
+
+```python
+opt = ql.VanillaOption(
+    ql.CashOrNothingPayoff(ql.OptionType.Put, 100.0, 15.0),
+    ql.AmericanExercise(today, today + 180),
+)
+opt.set_digital_american_pricing_engine(process)
+assert opt.NPV() == pytest.approx(9.7264, abs=1e-4)
+```
+
+Attaches `AnalyticDigitalAmericanEngine` for American cash/asset digital
+payoffs. Compat: `setDigitalAmericanPricingEngine` (compat-only). Recovers
+Haug at-hit cases from `DigitalOptionTests`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
