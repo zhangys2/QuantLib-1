@@ -55,6 +55,8 @@
 #include <ql/option.hpp>
 #include <ql/experimental/finitedifferences/fdsimpleextoustorageengine.hpp>
 #include <ql/experimental/processes/extendedornsteinuhlenbeckprocess.hpp>
+#include <ql/experimental/variancegamma/analyticvariancegammaengine.hpp>
+#include <ql/experimental/variancegamma/variancegammaprocess.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/pricingengines/swap/discountingconstnotionalcrosscurrencyswapengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
@@ -403,6 +405,25 @@ void bind_instruments(nb::module_& m) {
              nb::arg("dividend_ts"),
              nb::arg("risk_free_ts"),
              nb::arg("black_vol_ts"));
+
+    // --- Phase 118: VarianceGammaProcess ---
+    nb::class_<VarianceGammaProcess>(m, "VarianceGammaProcess")
+        .def(nb::init<Handle<Quote>,
+                      Handle<YieldTermStructure>,
+                      Handle<YieldTermStructure>,
+                      Real,
+                      Real,
+                      Real>(),
+             nb::arg("s0"),
+             nb::arg("dividend_yield"),
+             nb::arg("risk_free_rate"),
+             nb::arg("sigma"),
+             nb::arg("nu"),
+             nb::arg("theta"))
+        .def("sigma", [](const VarianceGammaProcess& p) { return p.sigma(); })
+        .def("nu", [](const VarianceGammaProcess& p) { return p.nu(); })
+        .def("theta", [](const VarianceGammaProcess& p) { return p.theta(); })
+        .def("x0", [](const VarianceGammaProcess& p) { return p.x0(); });
 
     nb::enum_<Option::Type>(m, "OptionType")
         .value("Put", Option::Put)
@@ -932,6 +953,17 @@ void bind_instruments(nb::module_& m) {
             nb::arg("model"),
             nb::arg("integration_order") = 144,
             "Attach BatesEngine (Heston + log-normal jumps).")
+        .def(
+            "set_variance_gamma_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<VarianceGammaProcess>& process,
+               Real absolute_error) {
+                opt.setPricingEngine(
+                    ext::make_shared<VarianceGammaEngine>(process, absolute_error));
+            },
+            nb::arg("process"),
+            nb::arg("absolute_error") = 1e-5,
+            "Attach VarianceGammaEngine (analytic integral VG).")
         .def(
             "set_fd_bates_pricing_engine",
             [](EuropeanOption& opt,

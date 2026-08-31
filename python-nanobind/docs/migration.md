@@ -2423,6 +2423,19 @@ Vanilla swap with per-period nominals and fixed rates; wraps from
 `(NonstandardSwap, exercise)`. Compat: `NonstandardSwap`, `setPricingEngine`,
 inspector camelCase aliases. Discounting NPV parity with source vanilla swap.
 
+## Phase-118 VarianceGamma
+
+```python
+process = ql.VarianceGammaProcess(spot, q_ts, r_ts, sigma=0.20, nu=0.05, theta=-0.50)
+opt = ql.EuropeanOption(ql.PlainVanillaPayoff(ql.OptionType.Call, 6000.0), exercise)
+opt.set_variance_gamma_pricing_engine(process)
+assert opt.NPV() == pytest.approx(687.2032, abs=0.01)
+```
+
+Variance-gamma process and analytic integral engine for European options.
+Compat: `setVarianceGammaPricingEngine`. Recovers
+`VarianceGammaTests::testVarianceGamma` goldens (tol 0.01).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

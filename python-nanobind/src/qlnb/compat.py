@@ -460,6 +460,10 @@ def _install_aliases() -> None:
         EuropeanOption.setBatesPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_bates_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_variance_gamma_pricing_engine"):
+        EuropeanOption.setVarianceGammaPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_variance_gamma_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_fd_bates_pricing_engine"):
         EuropeanOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_bates_pricing_engine
