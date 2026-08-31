@@ -293,6 +293,21 @@ def _install_aliases() -> None:
                 Swaption.set_fd_hullwhite_pricing_engine
             )
 
+    NonstandardSwaption = getattr(_ql, "NonstandardSwaption", None)
+    if NonstandardSwaption is not None:
+        NonstandardSwaption.settlementType = (  # type: ignore[attr-defined]
+            NonstandardSwaption.settlement_type
+        )
+        NonstandardSwaption.settlementMethod = (  # type: ignore[attr-defined]
+            NonstandardSwaption.settlement_method
+        )
+        NonstandardSwaption.isExpired = (  # type: ignore[attr-defined]
+            NonstandardSwaption.is_expired
+        )
+        NonstandardSwaption.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+            NonstandardSwaption.set_gaussian1d_pricing_engine
+        )
+
     CreditDefaultSwap = getattr(_ql, "CreditDefaultSwap", None)
     if CreditDefaultSwap is not None:
         CreditDefaultSwap.fairSpread = CreditDefaultSwap.fair_spread  # type: ignore[attr-defined]
@@ -1478,6 +1493,30 @@ if ConstNotionalCrossCurrencySwap is not None:
 makeFixFixXCCYSwap = getattr(_ql, "make_fix_fix_xccy_swap", None)
 makeFloatFloatXCCYSwap = getattr(_ql, "make_float_float_xccy_swap", None)
 makeFixFloatXCCYSwap = getattr(_ql, "make_fix_float_xccy_swap", None)
+CmsRateBond = getattr(_ql, "CmsRateBond", None)
+if CmsRateBond is not None:
+    CmsRateBond.cleanPrice = CmsRateBond.clean_price  # type: ignore[attr-defined]
+    CmsRateBond.dirtyPrice = CmsRateBond.dirty_price  # type: ignore[attr-defined]
+    CmsRateBond.settlementDate = CmsRateBond.settlement_date  # type: ignore[attr-defined]
+    CmsRateBond.maturityDate = CmsRateBond.maturity_date  # type: ignore[attr-defined]
+    CmsRateBond.settlementValue = (  # type: ignore[attr-defined]
+        CmsRateBond.settlement_value
+    )
+    CmsRateBond.setPricingEngine = (  # type: ignore[attr-defined]
+        CmsRateBond.set_pricing_engine
+    )
+    CmsRateBond.setCmsCouponPricer = (  # type: ignore[attr-defined]
+        CmsRateBond.set_cms_coupon_pricer
+    )
+    if hasattr(CmsRateBond, "bond_yield"):
+        CmsRateBond.bondYield = CmsRateBond.bond_yield  # type: ignore[attr-defined]
+        CmsRateBond.zSpread = CmsRateBond.z_spread  # type: ignore[attr-defined]
+        CmsRateBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+            CmsRateBond.clean_price_from_z_spread
+        )
+        CmsRateBond.accruedAmount = (  # type: ignore[attr-defined]
+            CmsRateBond.accrued_amount
+        )
 CHFCurrency = getattr(_ql, "CHFCurrency", None)
 Switzerland = getattr(_ql, "Switzerland", None)
 
@@ -1830,6 +1869,49 @@ if YoYInflationCapFloor is not None:
     )
 
 YoYInflationCapFloorType = getattr(_ql, "YoYInflationCapFloorType", None)
+YoYInflationCap = getattr(_ql, "YoYInflationCap", None)
+YoYInflationFloor = getattr(_ql, "YoYInflationFloor", None)
+YoYInflationCollar = getattr(_ql, "YoYInflationCollar", None)
+if YoYInflationCap is not None:
+    YoYInflationCap.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationCap.set_pricing_engine
+    )
+    YoYInflationCap.atmRate = YoYInflationCap.atm_rate  # type: ignore[attr-defined]
+    YoYInflationCap.startDate = YoYInflationCap.start_date  # type: ignore[attr-defined]
+    YoYInflationCap.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationCap.maturity_date
+    )
+    YoYInflationCap.isExpired = YoYInflationCap.is_expired  # type: ignore[attr-defined]
+if YoYInflationFloor is not None:
+    YoYInflationFloor.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationFloor.set_pricing_engine
+    )
+    YoYInflationFloor.atmRate = YoYInflationFloor.atm_rate  # type: ignore[attr-defined]
+    YoYInflationFloor.startDate = (  # type: ignore[attr-defined]
+        YoYInflationFloor.start_date
+    )
+    YoYInflationFloor.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationFloor.maturity_date
+    )
+    YoYInflationFloor.isExpired = (  # type: ignore[attr-defined]
+        YoYInflationFloor.is_expired
+    )
+if YoYInflationCollar is not None:
+    YoYInflationCollar.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationCollar.set_pricing_engine
+    )
+    YoYInflationCollar.atmRate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.atm_rate
+    )
+    YoYInflationCollar.startDate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.start_date
+    )
+    YoYInflationCollar.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.maturity_date
+    )
+    YoYInflationCollar.isExpired = (  # type: ignore[attr-defined]
+        YoYInflationCollar.is_expired
+    )
 YoYOptionletVolatilitySurfaceHandle = getattr(
     _ql, "YoYOptionletVolatilitySurfaceHandle", None
 )

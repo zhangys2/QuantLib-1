@@ -2372,6 +2372,42 @@ assert swap.NPV() == pytest.approx(218961.99, abs=0.01)  # or 218981.99
 Adds `make_fix_float_xccy_swap` for TRY fixed vs USD 3M Libor float legs.
 Compat: `makeFixFloatXCCYSwap`. Recovers `testFloatFixXCCYSwapPricing`.
 
+## Phase-114 YoY inflation Cap / Floor / Collar
+
+```python
+cap = ql.YoYInflationCap(sched, yoy, lag, interp, strike, calendar, dc)
+cap.set_pricing_engine(yoy, vol, nominal, model="black")
+assert cap.NPV() == pytest.approx(wrapper.NPV(), abs=1e-12)
+```
+
+Standalone wrappers mirror SWIG class names; NPV matches `YoYInflationCapFloor(type, …)`.
+Compat: `YoYInflationCap`, `YoYInflationFloor`, `YoYInflationCollar`.
+Recovers `InflationCapFloorTests::testConsistency`.
+
+## Phase-115 CmsRateBond
+
+```python
+bond = ql.CmsRateBond(3, 100.0, schedule, swap_index, dc, gearings=[0.84])
+bond.set_pricing_engine(curve)
+bond.set_cms_coupon_pricer(cms_pricer)
+asw = ql.AssetSwap(True, bond, bond.clean_price(), ibor, 0.0, floating_day_count=ibor.day_counter())
+```
+
+Adds `CmsRateBond` with CMS coupon pricer attachment and `AssetSwap(CmsRateBond, …)`.
+Compat: `CmsRateBond`, `setCmsCouponPricer`. Recovers CMS leg of `AssetSwapTests::testImpliedValue`.
+
+## Phase-116 NonstandardSwaption
+
+```python
+nonstd = ql.NonstandardSwaption(std_swaption)
+nonstd.set_gaussian1d_pricing_engine(gsr)
+assert nonstd.NPV() == pytest.approx(hw_jam.NPV(), abs=5e-5)
+```
+
+Wraps a standard `Swaption` as `NonstandardSwaption`; prices with
+`Gaussian1dNonstandardSwaptionEngine`. Compat: `NonstandardSwaption`,
+`setGaussian1dPricingEngine`. Recovers `GsrTests::testGsrModel` NPV check.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -8,6 +8,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/makeois.hpp>
 #include <ql/instruments/makevanillaswap.hpp>
+#include <ql/instruments/nonstandardswaption.hpp>
 #include <ql/instruments/overnightindexedswap.hpp>
 #include <ql/instruments/swaption.hpp>
 #include <ql/instruments/vanillaswap.hpp>
@@ -16,6 +17,7 @@
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/swaption/blackswaptionengine.hpp>
 #include <ql/pricingengines/swaption/fdhullwhiteswaptionengine.hpp>
+#include <ql/pricingengines/swaption/gaussian1dnonstandardswaptionengine.hpp>
 #include <ql/pricingengines/swaption/gaussian1dswaptionengine.hpp>
 #include <ql/pricingengines/swaption/jamshidianswaptionengine.hpp>
 #include <ql/pricingengines/swaption/treeswaptionengine.hpp>
@@ -292,6 +294,46 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("x_grid") = 100,
             nb::arg("damping_steps") = 0,
             "Attach FdHullWhiteSwaptionEngine (Bermudan/European).");
+
+    // --- Phase 116: NonstandardSwaption + Gaussian1d nonstandard engine ---
+    nb::class_<NonstandardSwaption>(m, "NonstandardSwaption")
+        .def(
+            "__init__",
+            [](NonstandardSwaption* self, const Swaption& from_swaption) {
+                new (self) NonstandardSwaption(from_swaption);
+            },
+            nb::arg("swaption"),
+            "Build a NonstandardSwaption from an existing Swaption "
+            "(GsrTests::testGsrModel pattern).")
+        .def("NPV", [](NonstandardSwaption& s) { return s.NPV(); })
+        .def("type", [](const NonstandardSwaption& s) { return s.type(); })
+        .def("settlement_type",
+             [](const NonstandardSwaption& s) { return s.settlementType(); })
+        .def("settlement_method",
+             [](const NonstandardSwaption& s) { return s.settlementMethod(); })
+        .def("is_expired", [](const NonstandardSwaption& s) { return s.isExpired(); })
+        .def(
+            "set_gaussian1d_pricing_engine",
+            [](NonstandardSwaption& s,
+               const ext::shared_ptr<Gsr>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation) {
+                s.setPricingEngine(
+                    ext::make_shared<Gaussian1dNonstandardSwaptionEngine>(
+                        model,
+                        integration_points,
+                        stddevs,
+                        extrapolate_payoff,
+                        flat_payoff_extrapolation));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            "Attach Gaussian1dNonstandardSwaptionEngine on a Gsr model.");
 
     m.def(
         "BlackSwaptionEngine",

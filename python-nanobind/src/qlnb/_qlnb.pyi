@@ -534,6 +534,93 @@ class FloatingRateBond:
     ) -> float: ...
     def accrued_amount(self, date: Date = ...) -> float: ...
 
+class CmsRateBond:
+    def __init__(
+        self,
+        settlement_days: int,
+        face_amount: float,
+        schedule: Schedule,
+        swap_index: SwapIndex,
+        payment_day_counter: DayCounter,
+        payment_convention: BusinessDayConvention = ...,
+        fixing_days: int = ...,
+        gearings: Sequence[float] = ...,
+        spreads: Sequence[float] = ...,
+        caps: Sequence[float] = ...,
+        floors: Sequence[float] = ...,
+        in_arrears: bool = ...,
+        redemption: float = ...,
+        issue_date: Date = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    @overload
+    def clean_price(self) -> float: ...
+    @overload
+    def clean_price(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def dirty_price(self) -> float: ...
+    def settlement_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def settlement_value(self) -> float: ...
+    def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def set_cms_coupon_pricer(self, pricer: CmsCouponPricer) -> None: ...
+    def bond_yield(
+        self,
+        price: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def duration(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        type: DurationType = ...,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def convexity(
+        self,
+        yield_rate: float,
+        day_counter: DayCounter,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def z_spread(
+        self,
+        price: float,
+        discount_curve: YieldTermStructureHandle,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        guess: float = ...,
+        price_type: BondPriceType = ...,
+    ) -> float: ...
+    def clean_price_from_z_spread(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        z_spread: float,
+        compounding: Compounding,
+        frequency: Frequency,
+        settlement_date: Date = ...,
+    ) -> float: ...
+    def accrued_amount(self, date: Date = ...) -> float: ...
+
 class AmortizingFixedRateBond:
     def __init__(
         self,
@@ -909,6 +996,20 @@ class AssetSwap:
         self,
         pay_bond_coupon: bool,
         bond: FloatingRateBond,
+        bond_clean_price: float,
+        ibor_index: IborIndex,
+        spread: float,
+        float_schedule: Schedule = ...,
+        floating_day_count: DayCounter = ...,
+        par_asset_swap: bool = ...,
+        gearing: float = ...,
+        non_par_repayment: float | None = ...,
+        deal_maturity: Date = ...,
+    ) -> None: ...  # type: ignore[misc]
+    def __init__(
+        self,
+        pay_bond_coupon: bool,
+        bond: CmsRateBond,
         bond_clean_price: float,
         ibor_index: IborIndex,
         spread: float,
@@ -3828,6 +3929,22 @@ class Swaption:
         damping_steps: int = ...,
     ) -> None: ...
 
+class NonstandardSwaption:
+    def __init__(self, swaption: Swaption) -> None: ...
+    def NPV(self) -> float: ...
+    def type(self) -> SwapType: ...
+    def settlement_type(self) -> SettlementType: ...
+    def settlement_method(self) -> SettlementMethod: ...
+    def is_expired(self) -> bool: ...
+    def set_gaussian1d_pricing_engine(
+        self,
+        model: Gsr,
+        integration_points: int = ...,
+        stddevs: float = ...,
+        extrapolate_payoff: bool = ...,
+        flat_payoff_extrapolation: bool = ...,
+    ) -> None: ...
+
 class ContinuousAveragingAsianOption:
     def __init__(
         self,
@@ -4722,6 +4839,103 @@ class YoYInflationCapFloor:
         yoy_leg: Sequence[object],
         strike: float,
         floor_strike: float | None = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def type(self) -> YoYInflationCapFloorType: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def is_expired(self) -> bool: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def set_pricing_engine(
+        self,
+        index: YoYInflationIndex,
+        volatility: YoYOptionletVolatilitySurfaceHandle,
+        nominal: YieldTermStructureHandle,
+        model: str = ...,
+    ) -> None: ...
+
+class YoYInflationCap:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: YoYInflationIndex,
+        observation_lag: Period,
+        observation_interpolation: CPIInterpolationType,
+        strike: float,
+        payment_calendar: Calendar,
+        day_counter: DayCounter,
+        nominal: float = ...,
+        payment_convention: BusinessDayConvention = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def __init__(
+        self, yoy_leg: Sequence[object], strike: float
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def type(self) -> YoYInflationCapFloorType: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def is_expired(self) -> bool: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def set_pricing_engine(
+        self,
+        index: YoYInflationIndex,
+        volatility: YoYOptionletVolatilitySurfaceHandle,
+        nominal: YieldTermStructureHandle,
+        model: str = ...,
+    ) -> None: ...
+
+class YoYInflationFloor:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: YoYInflationIndex,
+        observation_lag: Period,
+        observation_interpolation: CPIInterpolationType,
+        strike: float,
+        payment_calendar: Calendar,
+        day_counter: DayCounter,
+        nominal: float = ...,
+        payment_convention: BusinessDayConvention = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def __init__(
+        self, yoy_leg: Sequence[object], strike: float
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def type(self) -> YoYInflationCapFloorType: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def is_expired(self) -> bool: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def set_pricing_engine(
+        self,
+        index: YoYInflationIndex,
+        volatility: YoYOptionletVolatilitySurfaceHandle,
+        nominal: YieldTermStructureHandle,
+        model: str = ...,
+    ) -> None: ...
+
+class YoYInflationCollar:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: YoYInflationIndex,
+        observation_lag: Period,
+        observation_interpolation: CPIInterpolationType,
+        cap_strike: float,
+        floor_strike: float,
+        payment_calendar: Calendar,
+        day_counter: DayCounter,
+        nominal: float = ...,
+        payment_convention: BusinessDayConvention = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def __init__(
+        self,
+        yoy_leg: Sequence[object],
+        cap_strike: float,
+        floor_strike: float,
     ) -> None: ...
     def NPV(self) -> float: ...
     def type(self) -> YoYInflationCapFloorType: ...
