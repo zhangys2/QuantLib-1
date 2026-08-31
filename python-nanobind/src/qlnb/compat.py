@@ -219,6 +219,29 @@ def _install_aliases() -> None:
     VanillaSwap.fairSpread = VanillaSwap.fair_spread  # type: ignore[attr-defined]
     VanillaSwap.setPricingEngine = VanillaSwap.set_pricing_engine  # type: ignore[attr-defined]
 
+    NonstandardSwap = getattr(_ql, "NonstandardSwap", None)
+    if NonstandardSwap is not None:
+        NonstandardSwap.setPricingEngine = (  # type: ignore[attr-defined]
+            NonstandardSwap.set_pricing_engine
+        )
+        NonstandardSwap.fixedNominal = NonstandardSwap.fixed_nominal  # type: ignore[attr-defined]
+        NonstandardSwap.floatingNominal = (  # type: ignore[attr-defined]
+            NonstandardSwap.floating_nominal
+        )
+        NonstandardSwap.fixedRate = NonstandardSwap.fixed_rate  # type: ignore[attr-defined]
+        NonstandardSwap.fixedSchedule = NonstandardSwap.fixed_schedule  # type: ignore[attr-defined]
+        NonstandardSwap.floatingSchedule = (  # type: ignore[attr-defined]
+            NonstandardSwap.floating_schedule
+        )
+        NonstandardSwap.iborIndex = NonstandardSwap.ibor_index  # type: ignore[attr-defined]
+        NonstandardSwap.fixedDayCount = NonstandardSwap.fixed_day_count  # type: ignore[attr-defined]
+        NonstandardSwap.floatingDayCount = (  # type: ignore[attr-defined]
+            NonstandardSwap.floating_day_count
+        )
+        NonstandardSwap.paymentConvention = (  # type: ignore[attr-defined]
+            NonstandardSwap.payment_convention
+        )
+
     AssetSwap = getattr(_ql, "AssetSwap", None)
     if AssetSwap is not None:
         AssetSwap.fairSpread = AssetSwap.fair_spread  # type: ignore[attr-defined]
@@ -306,6 +329,9 @@ def _install_aliases() -> None:
         )
         NonstandardSwaption.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
             NonstandardSwaption.set_gaussian1d_pricing_engine
+        )
+        NonstandardSwaption.underlyingSwap = (  # type: ignore[attr-defined]
+            NonstandardSwaption.underlying_swap
         )
 
     CreditDefaultSwap = getattr(_ql, "CreditDefaultSwap", None)

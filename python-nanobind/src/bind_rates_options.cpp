@@ -8,6 +8,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/makeois.hpp>
 #include <ql/instruments/makevanillaswap.hpp>
+#include <ql/instruments/nonstandardswap.hpp>
 #include <ql/instruments/nonstandardswaption.hpp>
 #include <ql/instruments/overnightindexedswap.hpp>
 #include <ql/instruments/swaption.hpp>
@@ -295,7 +296,7 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("damping_steps") = 0,
             "Attach FdHullWhiteSwaptionEngine (Bermudan/European).");
 
-    // --- Phase 116: NonstandardSwaption + Gaussian1d nonstandard engine ---
+    // --- Phase 116/117: NonstandardSwaption + Gaussian1d nonstandard engine ---
     nb::class_<NonstandardSwaption>(m, "NonstandardSwaption")
         .def(
             "__init__",
@@ -305,6 +306,42 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("swaption"),
             "Build a NonstandardSwaption from an existing Swaption "
             "(GsrTests::testGsrModel pattern).")
+        .def(
+            "__init__",
+            [](NonstandardSwaption* self,
+               const NonstandardSwap& swap,
+               const EuropeanExercise& exercise,
+               Settlement::Type delivery,
+               Settlement::Method settlement_method) {
+                new (self) NonstandardSwaption(
+                    ext::make_shared<NonstandardSwap>(swap),
+                    ext::make_shared<EuropeanExercise>(exercise),
+                    delivery,
+                    settlement_method);
+            },
+            nb::arg("swap"),
+            nb::arg("exercise"),
+            nb::arg("delivery") = Settlement::Physical,
+            nb::arg("settlement_method") = Settlement::PhysicalOTC)
+        .def(
+            "__init__",
+            [](NonstandardSwaption* self,
+               const NonstandardSwap& swap,
+               const BermudanExercise& exercise,
+               Settlement::Type delivery,
+               Settlement::Method settlement_method) {
+                new (self) NonstandardSwaption(
+                    ext::make_shared<NonstandardSwap>(swap),
+                    ext::make_shared<BermudanExercise>(exercise),
+                    delivery,
+                    settlement_method);
+            },
+            nb::arg("swap"),
+            nb::arg("exercise"),
+            nb::arg("delivery") = Settlement::Physical,
+            nb::arg("settlement_method") = Settlement::PhysicalOTC)
+        .def("underlying_swap",
+             [](const NonstandardSwaption& s) { return s.underlyingSwap(); })
         .def("NPV", [](NonstandardSwaption& s) { return s.NPV(); })
         .def("type", [](const NonstandardSwaption& s) { return s.type(); })
         .def("settlement_type",
