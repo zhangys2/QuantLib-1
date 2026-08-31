@@ -12,13 +12,16 @@
 #include <ql/methods/finitedifferences/solvers/fdmbackwardsolver.hpp>
 #include <ql/models/calibrationhelper.hpp>
 #include <ql/models/equity/batesmodel.hpp>
+#include <ql/models/equity/gjrgarchmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/models/equity/hestonmodelhelper.hpp>
+#include <ql/pricingengines/vanilla/analyticgjrgarchengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/analyticpdfhestonengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/processes/batesprocess.hpp>
+#include <ql/processes/gjrgarchprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/quote.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -606,4 +609,64 @@ void bind_heston(nb::module_& m) {
         "Factory alias: pass the returned model to "
         "VanillaOption/EuropeanOption."
         "set_bates_double_exp_det_jump_pricing_engine.");
+
+    // --- Phase 148: GJR-GARCH ------------------------------------------------
+    nb::enum_<GJRGARCHProcess::Discretization>(m, "GJRGARCHDiscretization")
+        .value("PartialTruncation", GJRGARCHProcess::PartialTruncation)
+        .value("FullTruncation", GJRGARCHProcess::FullTruncation)
+        .value("Reflection", GJRGARCHProcess::Reflection);
+
+    nb::class_<GJRGARCHProcess>(m, "GJRGARCHProcess")
+        .def(nb::init<Handle<YieldTermStructure>,
+                      Handle<YieldTermStructure>,
+                      Handle<Quote>,
+                      Real,
+                      Real,
+                      Real,
+                      Real,
+                      Real,
+                      Real,
+                      Real,
+                      GJRGARCHProcess::Discretization>(),
+             nb::arg("risk_free_rate"),
+             nb::arg("dividend_yield"),
+             nb::arg("s0"),
+             nb::arg("v0"),
+             nb::arg("omega"),
+             nb::arg("alpha"),
+             nb::arg("beta"),
+             nb::arg("gamma"),
+             nb::arg("market_price_of_risk"),
+             nb::arg("days_per_year") = 252.0,
+             nb::arg("discretization") = GJRGARCHProcess::FullTruncation)
+        .def("v0", &GJRGARCHProcess::v0)
+        .def("omega", &GJRGARCHProcess::omega)
+        .def("alpha", &GJRGARCHProcess::alpha)
+        .def("beta", &GJRGARCHProcess::beta)
+        .def("gamma", &GJRGARCHProcess::gamma)
+        .def("lambda", &GJRGARCHProcess::lambda)
+        .def("days_per_year", &GJRGARCHProcess::daysPerYear);
+
+    nb::class_<GJRGARCHModel>(m, "GJRGARCHModel")
+        .def(
+            "__init__",
+            [](GJRGARCHModel* self,
+               const ext::shared_ptr<GJRGARCHProcess>& process) {
+                new (self) GJRGARCHModel(process);
+            },
+            nb::arg("process"))
+        .def("v0", &GJRGARCHModel::v0)
+        .def("omega", &GJRGARCHModel::omega)
+        .def("alpha", &GJRGARCHModel::alpha)
+        .def("beta", &GJRGARCHModel::beta)
+        .def("gamma", &GJRGARCHModel::gamma)
+        .def("lambda", &GJRGARCHModel::lambda)
+        .def("process", &GJRGARCHModel::process);
+
+    m.def(
+        "AnalyticGJRGARCHEngine",
+        [](const ext::shared_ptr<GJRGARCHModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption/EuropeanOption.set_gjr_garch_pricing_engine.");
 }
