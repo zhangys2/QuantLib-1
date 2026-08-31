@@ -3028,6 +3028,23 @@ opt.set_mc_heston_hull_white_pricing_engine(
 
 Recovers `HybridHestonHullWhiteProcessTests::testMcPureHestonPricing`.
 
+## Phase-160 Libor forward model cap
+
+```python
+process = ql.LiborForwardModelProcess(size, index)
+vols = ql.lm_fixed_volatilities_from_caplet_curve(process, caplet_vol)
+model = ql.LiborForwardModel(
+    process,
+    ql.LmFixedVolatilityModel(vols, process.fixing_times()),
+    ql.LmExponentialCorrelationModel(size, 0.3),
+)
+cap = ql.make_lfm_cap(process, strike=0.04)
+cap.set_libor_forward_pricing_engine(model, discount_curve=yts)
+```
+
+Attaches `AnalyticCapFloorEngine` on `LiborForwardModel`. Compat:
+`setLiborForwardPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

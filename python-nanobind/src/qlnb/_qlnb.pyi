@@ -4130,6 +4130,11 @@ class CapFloor:
         model: HullWhite,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
+    def set_libor_forward_pricing_engine(
+        self,
+        model: LiborForwardModel,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
     def set_tree_pricing_engine(
         self,
         model: HullWhite,
@@ -4199,6 +4204,11 @@ class Collar:
     def set_analytic_cap_floor_pricing_engine(
         self,
         model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_libor_forward_pricing_engine(
+        self,
+        model: LiborForwardModel,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
     def set_tree_pricing_engine(
@@ -4271,6 +4281,11 @@ class Cap:
         model: HullWhite,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
+    def set_libor_forward_pricing_engine(
+        self,
+        model: LiborForwardModel,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
     def set_tree_pricing_engine(
         self,
         model: HullWhite,
@@ -4339,6 +4354,11 @@ class Floor:
     def set_analytic_cap_floor_pricing_engine(
         self,
         model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_libor_forward_pricing_engine(
+        self,
+        model: LiborForwardModel,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
     def set_tree_pricing_engine(
@@ -4420,6 +4440,40 @@ class G2:
     def b(self) -> float: ...
     def eta(self) -> float: ...
     def rho(self) -> float: ...
+
+class LiborForwardModelProcess:
+    def __init__(self, size: int, index: IborIndex) -> None: ...
+    def size(self) -> int: ...
+    def fixing_times(self) -> list[float]: ...
+    def fixing_dates(self) -> list[Date]: ...
+    def index(self) -> IborIndex: ...
+
+class LmFixedVolatilityModel:
+    def __init__(
+        self, volatilities: list[float], start_times: list[float]
+    ) -> None: ...
+
+class LmExponentialCorrelationModel:
+    def __init__(self, size: int, rho: float) -> None: ...
+
+class CapletVarianceCurve:
+    def __init__(
+        self,
+        reference_date: Date,
+        dates: list[Date],
+        volatilities: list[float],
+        day_counter: DayCounter,
+        vol_type: VolatilityType = ...,
+        displacement: float = ...,
+    ) -> None: ...
+
+class LiborForwardModel:
+    def __init__(
+        self,
+        process: LiborForwardModelProcess,
+        volatility_model: LmFixedVolatilityModel,
+        correlation_model: LmExponentialCorrelationModel,
+    ) -> None: ...
 
 class DefaultProbabilityTermStructureHandle:
     def empty(self) -> bool: ...
@@ -5022,6 +5076,13 @@ def make_floor(
     nominal: float = ...,
     forward_start: Period = ...,
 ) -> CapFloor: ...
+def lm_fixed_volatilities_from_caplet_curve(
+    process: LiborForwardModelProcess,
+    caplet_vol: CapletVarianceCurve,
+) -> list[float]: ...
+def make_lfm_cap(
+    process: LiborForwardModelProcess, strike: float, amount: float = ...
+) -> Cap: ...
 def BachelierCapFloorEngine(
     discount_curve: YieldTermStructureHandle,
     volatility: float,

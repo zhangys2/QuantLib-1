@@ -119,6 +119,7 @@
 #include <ql/pricingengines/capfloor/gaussian1dcapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/mchullwhiteengine.hpp>
 #include <ql/pricingengines/capfloor/treecapfloorengine.hpp>
+#include <ql/legacy/libormarketmodels/liborforwardmodel.hpp>
 #include <ql/models/model.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
@@ -288,6 +289,14 @@ void attach_mc_hull_white_cap_floor_engine(
     else
         maker.withAbsoluteTolerance(Real(0.05));
     cf.setPricingEngine(maker);
+}
+
+void attach_libor_forward_cap_floor_engine(
+    CapFloor& instrument,
+    const ext::shared_ptr<LiborForwardModel>& model,
+    const Handle<YieldTermStructure>& discount_curve) {
+    instrument.setPricingEngine(ext::make_shared<AnalyticCapFloorEngine>(
+        ext::static_pointer_cast<AffineModel>(model), discount_curve));
 }
 
 } // namespace
@@ -3786,6 +3795,16 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
+            "set_libor_forward_pricing_engine",
+            [](CapFloor& cf,
+               const ext::shared_ptr<LiborForwardModel>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                attach_libor_forward_cap_floor_engine(cf, model, discount_curve);
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine on a LiborForwardModel.")
+        .def(
             "set_tree_pricing_engine",
             [](CapFloor& cf,
                const ext::shared_ptr<HullWhite>& model,
@@ -3957,6 +3976,16 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
+            "set_libor_forward_pricing_engine",
+            [](Collar& c,
+               const ext::shared_ptr<LiborForwardModel>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                attach_libor_forward_cap_floor_engine(c, model, discount_curve);
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine on a LiborForwardModel.")
+        .def(
             "set_tree_pricing_engine",
             [](Collar& c,
                const ext::shared_ptr<HullWhite>& model,
@@ -4123,6 +4152,16 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
+            "set_libor_forward_pricing_engine",
+            [](Cap& c,
+               const ext::shared_ptr<LiborForwardModel>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                attach_libor_forward_cap_floor_engine(c, model, discount_curve);
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine on a LiborForwardModel.")
+        .def(
             "set_tree_pricing_engine",
             [](Cap& c,
                const ext::shared_ptr<HullWhite>& model,
@@ -4287,6 +4326,16 @@ void bind_experimental(nb::module_& m) {
             nb::arg("model"),
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
+        .def(
+            "set_libor_forward_pricing_engine",
+            [](Floor& c,
+               const ext::shared_ptr<LiborForwardModel>& model,
+               const Handle<YieldTermStructure>& discount_curve) {
+                attach_libor_forward_cap_floor_engine(c, model, discount_curve);
+            },
+            nb::arg("model"),
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach AnalyticCapFloorEngine on a LiborForwardModel.")
         .def(
             "set_tree_pricing_engine",
             [](Floor& c,
