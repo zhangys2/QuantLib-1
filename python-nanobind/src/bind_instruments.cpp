@@ -80,6 +80,7 @@
 #include <ql/pricingengines/vanilla/mceuropeanhestonengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
+#include <ql/processes/merton76process.hpp>
 #include <ql/settings.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
@@ -408,6 +409,36 @@ void bind_instruments(nb::module_& m) {
              nb::arg("dividend_ts"),
              nb::arg("risk_free_ts"),
              nb::arg("black_vol_ts"));
+
+    // --- Phase 135: Merton76Process (jump diffusion) ---
+    nb::class_<Merton76Process>(m, "Merton76Process")
+        .def(nb::init<const Handle<Quote>&,
+                      const Handle<YieldTermStructure>&,
+                      const Handle<YieldTermStructure>&,
+                      const Handle<BlackVolTermStructure>&,
+                      Handle<Quote>,
+                      Handle<Quote>,
+                      Handle<Quote>>(),
+             nb::arg("x0"),
+             nb::arg("dividend_ts"),
+             nb::arg("risk_free_ts"),
+             nb::arg("black_vol_ts"),
+             nb::arg("jump_intensity"),
+             nb::arg("log_mean_jump"),
+             nb::arg("log_jump_volatility"))
+        .def("x0", [](const Merton76Process& p) { return p.x0(); })
+        .def("jump_intensity",
+             [](const Merton76Process& p) {
+                 return p.jumpIntensity()->value();
+             })
+        .def("log_mean_jump",
+             [](const Merton76Process& p) {
+                 return p.logMeanJump()->value();
+             })
+        .def("log_jump_volatility",
+             [](const Merton76Process& p) {
+                 return p.logJumpVolatility()->value();
+             });
 
     // --- Phase 118: VarianceGammaProcess ---
     nb::class_<VarianceGammaProcess>(m, "VarianceGammaProcess")

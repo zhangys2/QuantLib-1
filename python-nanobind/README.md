@@ -636,6 +636,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_bjerksund_stensland_pricing_engine` → `BjerksundStenslandApproximationEngine`
 - Recovers Haug / suite cases from `AmericanOptionTests::testBjerksundStenslandValues` (tol 5e-5)
 
+### Phase 135 (Merton 76 jump diffusion)
+- `Merton76Process` + `set_jump_diffusion_pricing_engine` → `JumpDiffusionEngine`
+- Recovers Haug Merton cases from `JumpDiffusionTests::testMerton76` (tol 1e-2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
