@@ -2730,6 +2730,21 @@ European cash-or-nothing `VanillaOption` ctor for digital PDF pricing.
 Compat: `setPdfHestonPricingEngine` (compat-only). Matches
 `HestonModelTests::testAnalyticPDFHestonEngine`.
 
+## Phase-137 Analytic CEV
+
+```python
+opt = ql.VanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 2.3),
+    ql.EuropeanExercise(today + ql.Period(12, ql.TimeUnit.Months)),
+)
+opt.set_cev_pricing_engine(2.1, 0.75, 0.45, ql.FlatForward(today, 0.15, dc))
+assert opt.NPV() > 0.0
+```
+
+Attaches `AnalyticCEVEngine` (`df = α f^β dW`). Compat: `setCevPricingEngine`
+(compat-only). Recovers the analytic CEV setup from `FdCEVTests`
+(finite-difference delta consistency across β).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
