@@ -2709,6 +2709,27 @@ Adds `Merton76Process` and `JumpDiffusionEngine` (via
 `setJumpDiffusionPricingEngine` (compat-only). Recovers Haug Merton cases
 from `JumpDiffusionTests::testMerton76`.
 
+## Phase-136 Analytic PDF Heston
+
+```python
+opt = ql.VanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(maturity),
+)
+opt.set_pdf_heston_pricing_engine(model, gauss_lobatto_eps=1e-6)
+ref = ql.VanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(maturity),
+)
+ref.set_heston_pricing_engine(model, integration_order=178)
+assert opt.NPV() == pytest.approx(ref.NPV(), abs=3e-6)
+```
+
+Attaches `AnalyticPDFHestonEngine` (Dragulescu–Yakovenko). Also adds
+European cash-or-nothing `VanillaOption` ctor for digital PDF pricing.
+Compat: `setPdfHestonPricingEngine` (compat-only). Matches
+`HestonModelTests::testAnalyticPDFHestonEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
