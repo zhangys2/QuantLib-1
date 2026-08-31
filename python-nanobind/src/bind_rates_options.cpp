@@ -15,6 +15,7 @@
 #include <ql/instruments/vanillaswap.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
+#include <ql/processes/hullwhiteprocess.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/swaption/blackswaptionengine.hpp>
 #include <ql/pricingengines/swaption/fdhullwhiteswaptionengine.hpp>
@@ -90,6 +91,14 @@ void bind_rates_options(nb::module_& m) {
              nb::arg("term_structure"),
              nb::arg("a") = 0.1,
              nb::arg("sigma") = 0.01);
+
+    nb::class_<HullWhiteProcess>(m, "HullWhiteProcess")
+        .def(nb::init<const Handle<YieldTermStructure>&, Real, Real>(),
+             nb::arg("term_structure"),
+             nb::arg("a"),
+             nb::arg("sigma"))
+        .def("a", &HullWhiteProcess::a)
+        .def("sigma", &HullWhiteProcess::sigma);
 
     // Gsr / Gaussian1dModel are MI-heavy — standalone concrete wrapper.
     nb::class_<Gsr>(m, "Gsr")
