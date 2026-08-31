@@ -2521,6 +2521,20 @@ Attaches `AnalyticHestonForwardEuropeanEngine` for forward-start vanillas under
 Heston. Compat: `setHestonForwardPricingEngine` (compat-only). Recovers
 `ForwardOptionTests::testHestonMCPrices` T=0 analytic cross-check.
 
+## Phase-125 SuoWang double barrier
+
+```python
+opt = ql.DoubleBarrierOption(
+    ql.DoubleBarrierType.KnockOut, 50.0, 150.0, 0.0, payoff, exercise
+)
+opt.set_suo_wang_pricing_engine(process, series=5)
+assert opt.NPV() == pytest.approx(4.3515, abs=1e-4)
+```
+
+Attaches `SuoWangDoubleBarrierEngine` (Wulin Suo / Yong Wang). Compat:
+`setSuoWangPricingEngine` (compat-only). Recovers Haug cases from
+`DoubleBarrierOptionTests::testEuropeanHaugValues`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

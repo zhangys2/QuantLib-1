@@ -593,6 +593,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `ForwardVanillaOption.set_heston_forward_pricing_engine` → `AnalyticHestonForwardEuropeanEngine`
 - Recovers `ForwardOptionTests::testHestonMCPrices` T=0 analytic cross-check (tol 5e-4)
 
+### Phase 125 (SuoWang double barrier)
+- `DoubleBarrierOption.set_suo_wang_pricing_engine` → `SuoWangDoubleBarrierEngine`
+- Recovers Haug goldens from `DoubleBarrierOptionTests::testEuropeanHaugValues` (tol 1e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
