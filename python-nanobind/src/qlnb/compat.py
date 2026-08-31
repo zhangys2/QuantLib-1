@@ -1300,6 +1300,14 @@ def _install_aliases() -> None:
             CapFloor.setBachelierPricingEngine = (  # type: ignore[attr-defined]
                 CapFloor.set_bachelier_pricing_engine
             )
+        if hasattr(CapFloor, "set_gaussian1d_pricing_engine"):
+            CapFloor.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_gaussian1d_pricing_engine
+            )
+        if hasattr(CapFloor, "set_analytic_cap_floor_pricing_engine"):
+            CapFloor.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_analytic_cap_floor_pricing_engine
+            )
         if hasattr(CapFloor, "implied_volatility"):
             CapFloor.impliedVolatility = (  # type: ignore[attr-defined]
                 CapFloor.implied_volatility
@@ -1314,6 +1322,14 @@ def _install_aliases() -> None:
         if hasattr(Collar, "set_bachelier_pricing_engine"):
             Collar.setBachelierPricingEngine = (  # type: ignore[attr-defined]
                 Collar.set_bachelier_pricing_engine
+            )
+        if hasattr(Collar, "set_gaussian1d_pricing_engine"):
+            Collar.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Collar, "set_analytic_cap_floor_pricing_engine"):
+            Collar.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_analytic_cap_floor_pricing_engine
             )
         if hasattr(Collar, "implied_volatility"):
             Collar.impliedVolatility = (  # type: ignore[attr-defined]
@@ -1330,6 +1346,14 @@ def _install_aliases() -> None:
             Cap.setBachelierPricingEngine = (  # type: ignore[attr-defined]
                 Cap.set_bachelier_pricing_engine
             )
+        if hasattr(Cap, "set_gaussian1d_pricing_engine"):
+            Cap.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Cap, "set_analytic_cap_floor_pricing_engine"):
+            Cap.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_analytic_cap_floor_pricing_engine
+            )
         if hasattr(Cap, "implied_volatility"):
             Cap.impliedVolatility = Cap.implied_volatility  # type: ignore[attr-defined]
 
@@ -1342,6 +1366,14 @@ def _install_aliases() -> None:
         if hasattr(Floor, "set_bachelier_pricing_engine"):
             Floor.setBachelierPricingEngine = (  # type: ignore[attr-defined]
                 Floor.set_bachelier_pricing_engine
+            )
+        if hasattr(Floor, "set_gaussian1d_pricing_engine"):
+            Floor.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Floor, "set_analytic_cap_floor_pricing_engine"):
+            Floor.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_analytic_cap_floor_pricing_engine
             )
         if hasattr(Floor, "implied_volatility"):
             Floor.impliedVolatility = Floor.implied_volatility  # type: ignore[attr-defined]

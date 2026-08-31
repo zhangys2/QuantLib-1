@@ -2961,6 +2961,19 @@ Attaches `Gaussian1dJamshidianSwaptionEngine`. Compat:
 `setGaussian1dJamshidianPricingEngine` (compat-only). Recovers
 `GsrTests::testGsrModel` Jamshidian NPV check (tol 5e-5).
 
+## Phase-155 GSR / affine cap–floor
+
+```python
+gsr = ql.Gsr(yts, [], [vol], reversion, T=50.0)
+hw = ql.HullWhite(yts, reversion, vol)
+cap.set_gaussian1d_pricing_engine(gsr, discount_curve=yts)
+cap.set_analytic_cap_floor_pricing_engine(hw, discount_curve=yts)
+```
+
+Attaches `Gaussian1dCapFloorEngine` and `AnalyticCapFloorEngine`. Compat:
+`setGaussian1dPricingEngine`, `setAnalyticCapFloorPricingEngine`. GSR vs Hull–White
+analytic on constant parameters (reference golden).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
