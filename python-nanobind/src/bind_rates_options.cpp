@@ -15,10 +15,13 @@
 #include <ql/instruments/vanillaswap.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
+#include <ql/models/shortrate/twofactormodels/g2.hpp>
 #include <ql/processes/hullwhiteprocess.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/swaption/blackswaptionengine.hpp>
+#include <ql/pricingengines/swaption/fdg2swaptionengine.hpp>
 #include <ql/pricingengines/swaption/fdhullwhiteswaptionengine.hpp>
+#include <ql/pricingengines/swaption/g2swaptionengine.hpp>
 #include <ql/pricingengines/swaption/gaussian1dnonstandardswaptionengine.hpp>
 #include <ql/pricingengines/swaption/gaussian1djamshidianswaptionengine.hpp>
 #include <ql/pricingengines/swaption/gaussian1dswaptionengine.hpp>
@@ -111,6 +114,26 @@ void bind_rates_options(nb::module_& m) {
              nb::arg("time"))
         .def("a", &HullWhiteForwardProcess::a)
         .def("sigma", &HullWhiteForwardProcess::sigma);
+
+    // G2 is MI-heavy (TwoFactorModel + AffineModel) — concrete wrapper only.
+    nb::class_<G2>(m, "G2")
+        .def(nb::init<const Handle<YieldTermStructure>&,
+                      Real,
+                      Real,
+                      Real,
+                      Real,
+                      Real>(),
+             nb::arg("term_structure"),
+             nb::arg("a") = 0.1,
+             nb::arg("sigma") = 0.01,
+             nb::arg("b") = 0.1,
+             nb::arg("eta") = 0.01,
+             nb::arg("rho") = -0.75)
+        .def("a", &G2::a)
+        .def("sigma", &G2::sigma)
+        .def("b", &G2::b)
+        .def("eta", &G2::eta)
+        .def("rho", &G2::rho);
 
     // Gsr / Gaussian1dModel are MI-heavy — standalone concrete wrapper.
     nb::class_<Gsr>(m, "Gsr")
@@ -338,7 +361,51 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("t_grid") = 100,
             nb::arg("x_grid") = 100,
             nb::arg("damping_steps") = 0,
-            "Attach FdHullWhiteSwaptionEngine (Bermudan/European).");
+            "Attach FdHullWhiteSwaptionEngine (Bermudan/European).")
+        .def(
+            "set_g2_pricing_engine",
+            [](Swaption& s,
+               const ext::shared_ptr<G2>& model,
+               Real range,
+               Size intervals) {
+                s.setPricingEngine(
+                    ext::make_shared<G2SwaptionEngine>(model, range, intervals));
+            },
+            nb::arg("model"),
+            nb::arg("range") = 7.0,
+            nb::arg("intervals") = 64,
+            "Attach G2SwaptionEngine (European, G2++ analytic integration).")
+        .def(
+            "set_fd_g2_pricing_engine",
+            [](Swaption& s,
+               const ext::shared_ptr<G2>& model,
+               Size t_grid,
+               Size x_grid,
+               Size y_grid,
+               Size damping_steps,
+               Real inv_eps) {
+                s.setPricingEngine(ext::make_shared<FdG2SwaptionEngine>(
+                    model, t_grid, x_grid, y_grid, damping_steps, inv_eps));
+            },
+            nb::arg("model"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 50,
+            nb::arg("y_grid") = 50,
+            nb::arg("damping_steps") = 0,
+            nb::arg("inv_eps") = 1e-5,
+            "Attach FdG2SwaptionEngine (Bermudan/European).")
+        .def(
+            "set_g2_tree_pricing_engine",
+            [](Swaption& s,
+               const ext::shared_ptr<G2>& model,
+               Size time_steps) {
+                s.setPricingEngine(ext::make_shared<TreeSwaptionEngine>(
+                    ext::static_pointer_cast<ShortRateModel>(model),
+                    time_steps));
+            },
+            nb::arg("model"),
+            nb::arg("time_steps") = 50,
+            "Attach TreeSwaptionEngine on a G2 model (Bermudan/European).");
 
     // --- Phase 116/117: NonstandardSwaption + Gaussian1d nonstandard engine ---
     nb::class_<NonstandardSwaption>(m, "NonstandardSwaption")
@@ -458,6 +525,24 @@ void bind_rates_options(nb::module_& m) {
         [](const ext::shared_ptr<HullWhite>& model) { return model; },
         nb::arg("model"),
         "Factory alias: pass model to Swaption.set_fd_hullwhite_pricing_engine.");
+
+    m.def(
+        "G2SwaptionEngine",
+        [](const ext::shared_ptr<G2>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to Swaption.set_g2_pricing_engine.");
+
+    m.def(
+        "FdG2SwaptionEngine",
+        [](const ext::shared_ptr<G2>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to Swaption.set_fd_g2_pricing_engine.");
+
+    m.def(
+        "G2TreeSwaptionEngine",
+        [](const ext::shared_ptr<G2>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to Swaption.set_g2_tree_pricing_engine.");
 
     // Overnight indexed swap (standalone; Swap/Instrument are MI-heavy).
     nb::class_<OvernightIndexedSwap>(m, "OvernightIndexedSwap")
