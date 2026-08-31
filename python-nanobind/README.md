@@ -516,6 +516,14 @@ Experimental Python package that binds a focused QuantLib surface with
 - Helpers: `DiscountCurve`, `TRYCurrency`, `Turkey` calendar
 - Recovers `ConstNotionalCrossCurrencyFixedVsFloatingSwapTest` NPV (tol 0.01)
 
+### Phase 107 (Ibor Collar)
+- `Collar` standalone wrapper + Black cap/floor engine
+- Recovers `CapFloorTest::testConsistency` cap−floor identity (tol 1e-10)
+
+### Phase 108 (Ibor Cap / Floor)
+- `Cap` and `Floor` standalone wrappers (SWIG parity with Collar)
+- NPV matches `CapFloor` type wrapper; implied-vol round-trip (tol 1e-8)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

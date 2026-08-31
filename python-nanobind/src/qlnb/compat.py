@@ -1110,6 +1110,35 @@ def _install_aliases() -> None:
                 CapFloor.implied_volatility
             )
 
+    Collar = getattr(_ql, "Collar", None)
+    if Collar is not None:
+        Collar.setPricingEngine = Collar.set_pricing_engine  # type: ignore[attr-defined]
+        Collar.atmRate = Collar.atm_rate  # type: ignore[attr-defined]
+        Collar.startDate = Collar.start_date  # type: ignore[attr-defined]
+        Collar.maturityDate = Collar.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Collar, "implied_volatility"):
+            Collar.impliedVolatility = (  # type: ignore[attr-defined]
+                Collar.implied_volatility
+            )
+
+    Cap = getattr(_ql, "Cap", None)
+    if Cap is not None:
+        Cap.setPricingEngine = Cap.set_pricing_engine  # type: ignore[attr-defined]
+        Cap.atmRate = Cap.atm_rate  # type: ignore[attr-defined]
+        Cap.startDate = Cap.start_date  # type: ignore[attr-defined]
+        Cap.maturityDate = Cap.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Cap, "implied_volatility"):
+            Cap.impliedVolatility = Cap.implied_volatility  # type: ignore[attr-defined]
+
+    Floor = getattr(_ql, "Floor", None)
+    if Floor is not None:
+        Floor.setPricingEngine = Floor.set_pricing_engine  # type: ignore[attr-defined]
+        Floor.atmRate = Floor.atm_rate  # type: ignore[attr-defined]
+        Floor.startDate = Floor.start_date  # type: ignore[attr-defined]
+        Floor.maturityDate = Floor.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Floor, "implied_volatility"):
+            Floor.impliedVolatility = Floor.implied_volatility  # type: ignore[attr-defined]
+
 
 _install_aliases()
 
