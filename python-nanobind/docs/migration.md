@@ -2985,6 +2985,18 @@ cap.set_tree_pricing_engine(hw, time_steps=200, discount_curve=yts)
 Attaches `TreeCapFloorEngine`. Compat: `setTreePricingEngine`. Lattice NPV
 matches Hull–White analytic for a 5Y ATM cap (tol 0.05).
 
+## Phase-157 MC Hull–White cap–floor
+
+```python
+hw = ql.HullWhite(yts, reversion, vol)
+cap.set_mc_hull_white_pricing_engine(
+    hw, required_tolerance=0.05, seed=42, antithetic=True
+)
+# Compare to AnalyticCapFloorEngine (within 3 * error_estimate).
+```
+
+Attaches `MCHullWhiteCapFloorEngine`. Compat: `setMcHullWhitePricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
