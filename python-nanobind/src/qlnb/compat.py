@@ -1173,6 +1173,10 @@ def _install_aliases() -> None:
             DoubleBarrierOption.setSuoWangPricingEngine = (  # type: ignore[attr-defined]
                 DoubleBarrierOption.set_suo_wang_pricing_engine
             )
+        if hasattr(DoubleBarrierOption, "set_binomial_pricing_engine"):
+            DoubleBarrierOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_binomial_pricing_engine
+            )
         if hasattr(DoubleBarrierOption, "set_vanna_volga_pricing_engine"):
             DoubleBarrierOption.setVannaVolgaPricingEngine = (  # type: ignore[attr-defined]
                 DoubleBarrierOption.set_vanna_volga_pricing_engine

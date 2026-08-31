@@ -2650,6 +2650,26 @@ Attaches `BinomialBarrierEngine<CoxRossRubinstein, DiscretizedBarrierOption>`
 `setBinomialPricingEngine` (compat-only). Recovers Haug cases from
 `BarrierOptionTests::testHaugValues`.
 
+## Phase-133 binomial double barrier
+
+```python
+opt = ql.DoubleBarrierOption(
+    ql.DoubleBarrierType.KnockOut,
+    50.0,
+    150.0,
+    0.0,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(today + 90),
+)
+opt.set_binomial_pricing_engine(process, time_steps=300)
+assert opt.NPV() == pytest.approx(4.3515, abs=0.28)
+```
+
+Attaches `BinomialDoubleBarrierEngine<CoxRossRubinstein,
+DiscretizedDoubleBarrierOption>`. Compat: `setBinomialPricingEngine`
+(compat-only). Recovers Haug cases from
+`DoubleBarrierOptionTests::testEuropeanHaugValues`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
