@@ -26,10 +26,12 @@
 #include <ql/methods/montecarlo/pathgenerator.hpp>
 #include <ql/position.hpp>
 #include <ql/models/equity/batesmodel.hpp>
+#include <ql/models/equity/gjrgarchmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticdigitalamericanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticcevengine.hpp>
+#include <ql/pricingengines/vanilla/analyticgjrgarchengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/analyticpdfhestonengine.hpp>
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
@@ -575,6 +577,15 @@ void bind_pricing(nb::module_& m) {
             nb::arg("model"),
             nb::arg("integration_order") = 144,
             "Attach AnalyticHestonEngine (Laguerre / Gatheral).")
+        .def(
+            "set_gjr_garch_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<GJRGARCHModel>& model) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticGJRGARCHEngine>(model));
+            },
+            nb::arg("model"),
+            "Attach AnalyticGJRGARCHEngine (GJR-GARCH analytic).")
         .def(
             "set_pdf_heston_pricing_engine",
             [](VanillaOption& opt,
