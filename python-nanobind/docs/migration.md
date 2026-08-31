@@ -2464,6 +2464,20 @@ Attaches `AnalyticContinuousGeometricAveragePriceAsianHestonEngine`.
 Compat: `setHestonPricingEngine`. Recovers Kim–Wee Table 1/4 cases from
 `AsianOptionTests::testAnalyticContinuousGeometricAveragePriceHeston`.
 
+## Phase-121 Asian discrete geometric Heston
+
+```python
+asian = ql.DiscreteAveragingAsianOption(
+    ql.AverageType.Geometric, 1.0, 0, fixing_dates, payoff, exercise
+)
+asian.set_heston_pricing_engine(heston_process)
+assert asian.NPV() == pytest.approx(5.2132, abs=2e-2)
+```
+
+Attaches `AnalyticDiscreteGeometricAveragePriceAsianHestonEngine`.
+Compat: `setHestonPricingEngine`. Recovers Tables 1–3 from
+`AsianOptionTests::testAnalyticDiscreteGeometricAveragePriceHeston`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

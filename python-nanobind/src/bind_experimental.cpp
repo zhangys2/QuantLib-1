@@ -56,6 +56,7 @@
 #include <ql/pricingengines/asian/analytic_discr_geom_av_price.hpp>
 #include <ql/pricingengines/asian/turnbullwakemanasianengine.hpp>
 #include <ql/experimental/asian/analytic_cont_geom_av_price_heston.hpp>
+#include <ql/experimental/asian/analytic_discr_geom_av_price_heston.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticbinarybarrierengine.hpp>
@@ -360,7 +361,20 @@ void bind_experimental(nb::module_& m) {
                     ext::make_shared<TurnbullWakemanAsianEngine>(process));
             },
             nb::arg("process"),
-            "Attach TurnbullWakemanAsianEngine (arithmetic average-price).");
+            "Attach TurnbullWakemanAsianEngine (arithmetic average-price).")
+        .def(
+            "set_heston_pricing_engine",
+            [](DiscreteAveragingAsianOption& opt,
+               const ext::shared_ptr<HestonProcess>& process,
+               Real xi_right_limit) {
+                opt.setPricingEngine(
+                    ext::make_shared<
+                        AnalyticDiscreteGeometricAveragePriceAsianHestonEngine>(
+                        process, xi_right_limit));
+            },
+            nb::arg("process"),
+            nb::arg("xi_right_limit") = 100.0,
+            "Attach AnalyticDiscreteGeometricAveragePriceAsianHestonEngine.");
 
     m.def(
         "AnalyticContinuousGeometricAveragePriceAsianEngine",
