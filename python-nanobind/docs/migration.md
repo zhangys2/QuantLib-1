@@ -3085,6 +3085,23 @@ model.calibrate(helpers, ql.LevenbergMarquardt(1e-6, 1e-6, 1e-6),
 Recovers `LiborMarketModelTests::testCalibration` (RMSE < 8e-3). Compat:
 `setLfmPricingEngine` on helpers.
 
+## Phase-163 LMM covariance introspection
+
+```python
+corr = ql.LmExponentialCorrelationModel(size, 0.1)
+corr.correlation(0.0)
+corr.pseudo_sqrt(0.0)
+
+vola = ql.LmLinearExponentialVolatilityModel(fixing_times, a, b, c, d)
+proxy = ql.LfmCovarianceProxy(vola, corr)
+proxy.covariance(t)
+proxy.diffusion(t)
+vola.volatility(t)
+```
+
+Recovers `LiborMarketModelTests::testSimpleCovarianceModels`. Compat:
+`pseudoSqrt`, `volatility`, `covariance`, `diffusion`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "4.33.0"
-description = "Nanobind Python bindings for QuantLib (phase 162: LMM calibration)"
+version = "4.34.0"
+description = "Nanobind Python bindings for QuantLib (phase 163: LMM covariance introspection)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }

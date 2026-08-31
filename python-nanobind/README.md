@@ -770,6 +770,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `LiborForwardModel.calibrate`, `params`, `set_params`, `end_criteria`
 - Golden RMSE from `LiborMarketModelTests::testCalibration` (< 8e-3)
 
+### Phase 163 (LMM covariance introspection)
+- `LmExponentialCorrelationModel.correlation`, `pseudo_sqrt`
+- `LmLinearExponentialVolatilityModel.volatility`
+- `LfmCovarianceProxy.covariance`, `diffusion`
+- Golden checks from `LiborMarketModelTests::testSimpleCovarianceModels`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
