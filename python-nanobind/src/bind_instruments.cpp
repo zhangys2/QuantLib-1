@@ -24,6 +24,8 @@
 #include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 #include <ql/pricingengines/futures/discountingperpetualfuturesengine.hpp>
+#include <ql/instruments/bonds/amortizingfixedratebond.hpp>
+#include <ql/instruments/bonds/amortizingfloatingratebond.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
@@ -1080,6 +1082,199 @@ void bind_instruments(nb::module_& m) {
             nb::arg("discount_curve"),
             "Attach DiscountingBondEngine and BlackIborCouponPricer on cashflows.");
     add_bond_analytics(floating_rate_bond);
+
+    // Amortizing fixed-rate bond (standalone; Bond/Instrument use MI via LazyObject).
+    nb::class_<AmortizingFixedRateBond> amortizing_fixed_rate_bond(
+        m, "AmortizingFixedRateBond");
+    amortizing_fixed_rate_bond
+        .def(
+            "__init__",
+            [](AmortizingFixedRateBond* self,
+               Natural settlement_days,
+               const std::vector<Real>& notionals,
+               const Schedule& schedule,
+               const std::vector<Rate>& coupons,
+               const DayCounter& accrual_day_counter,
+               BusinessDayConvention payment_convention,
+               const Date& issue_date) {
+                new (self) AmortizingFixedRateBond(settlement_days,
+                                                   notionals,
+                                                   schedule,
+                                                   coupons,
+                                                   accrual_day_counter,
+                                                   payment_convention,
+                                                   issue_date);
+            },
+            nb::arg("settlement_days"),
+            nb::arg("notionals"),
+            nb::arg("schedule"),
+            nb::arg("coupons"),
+            nb::arg("accrual_day_counter"),
+            nb::arg("payment_convention") = Following,
+            nb::arg("issue_date") = Date())
+        .def("NPV", [](AmortizingFixedRateBond& b) { return b.NPV(); })
+        .def("clean_price",
+             [](AmortizingFixedRateBond& b) { return b.cleanPrice(); })
+        .def("dirty_price",
+             [](AmortizingFixedRateBond& b) { return b.dirtyPrice(); })
+        .def("settlement_date",
+             [](const AmortizingFixedRateBond& b) {
+                 return b.settlementDate();
+             })
+        .def("maturity_date",
+             [](const AmortizingFixedRateBond& b) {
+                 return b.maturityDate();
+             })
+        .def("settlement_value",
+             [](const AmortizingFixedRateBond& b) {
+                 return b.settlementValue();
+             })
+        .def("frequency",
+             [](const AmortizingFixedRateBond& b) { return b.frequency(); })
+        .def("day_counter",
+             [](const AmortizingFixedRateBond& b) { return b.dayCounter(); })
+        .def(
+            "cashflow_amounts",
+            [](const AmortizingFixedRateBond& b) {
+                std::vector<Real> amounts;
+                amounts.reserve(b.cashflows().size());
+                for (const auto& cf : b.cashflows())
+                    amounts.push_back(cf->amount());
+                return amounts;
+            },
+            "Cash-flow amounts in schedule order (coupon, principal, …).")
+        .def(
+            "set_pricing_engine",
+            [](AmortizingFixedRateBond& b,
+               const Handle<YieldTermStructure>& discount_curve) {
+                b.setPricingEngine(
+                    ext::make_shared<DiscountingBondEngine>(discount_curve));
+            },
+            nb::arg("discount_curve"));
+    add_bond_analytics(amortizing_fixed_rate_bond);
+
+    // Amortizing floating-rate bond (standalone; Bond/Instrument use MI).
+    nb::class_<AmortizingFloatingRateBond> amortizing_floating_rate_bond(
+        m, "AmortizingFloatingRateBond");
+    amortizing_floating_rate_bond
+        .def(
+            "__init__",
+            [](AmortizingFloatingRateBond* self,
+               Natural settlement_days,
+               const std::vector<Real>& notionals,
+               const Schedule& schedule,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               const DayCounter& accrual_day_counter,
+               BusinessDayConvention payment_convention,
+               Natural fixing_days,
+               const std::vector<Real>& gearings,
+               const std::vector<Spread>& spreads,
+               const std::vector<Rate>& caps,
+               const std::vector<Rate>& floors,
+               bool in_arrears,
+               const Date& issue_date) {
+                const Natural ql_fixing_days =
+                    (fixing_days == 0) ? Null<Natural>() : fixing_days;
+                const std::vector<Real> ql_gearings =
+                    gearings.empty() ? std::vector<Real>{1.0} : gearings;
+                const std::vector<Spread> ql_spreads =
+                    spreads.empty() ? std::vector<Spread>{0.0} : spreads;
+                new (self) AmortizingFloatingRateBond(settlement_days,
+                                                      notionals,
+                                                      schedule,
+                                                      ibor_index,
+                                                      accrual_day_counter,
+                                                      payment_convention,
+                                                      ql_fixing_days,
+                                                      ql_gearings,
+                                                      ql_spreads,
+                                                      caps,
+                                                      floors,
+                                                      in_arrears,
+                                                      issue_date);
+            },
+            nb::arg("settlement_days"),
+            nb::arg("notionals"),
+            nb::arg("schedule"),
+            nb::arg("ibor_index"),
+            nb::arg("accrual_day_counter"),
+            nb::arg("payment_convention") = Following,
+            nb::arg("fixing_days") = 0,
+            nb::arg("gearings") = std::vector<Real>{},
+            nb::arg("spreads") = std::vector<Spread>{},
+            nb::arg("caps") = std::vector<Rate>{},
+            nb::arg("floors") = std::vector<Rate>{},
+            nb::arg("in_arrears") = false,
+            nb::arg("issue_date") = Date())
+        .def("NPV", [](AmortizingFloatingRateBond& b) { return b.NPV(); })
+        .def("clean_price",
+             [](AmortizingFloatingRateBond& b) { return b.cleanPrice(); })
+        .def("dirty_price",
+             [](AmortizingFloatingRateBond& b) { return b.dirtyPrice(); })
+        .def("settlement_date",
+             [](const AmortizingFloatingRateBond& b) {
+                 return b.settlementDate();
+             })
+        .def("maturity_date",
+             [](const AmortizingFloatingRateBond& b) {
+                 return b.maturityDate();
+             })
+        .def("settlement_value",
+             [](const AmortizingFloatingRateBond& b) {
+                 return b.settlementValue();
+             })
+        .def(
+            "cashflow_amounts",
+            [](const AmortizingFloatingRateBond& b) {
+                std::vector<Real> amounts;
+                amounts.reserve(b.cashflows().size());
+                for (const auto& cf : b.cashflows())
+                    amounts.push_back(cf->amount());
+                return amounts;
+            },
+            "Cash-flow amounts in schedule order (coupon, principal, …).")
+        .def(
+            "set_pricing_engine",
+            [](AmortizingFloatingRateBond& b,
+               const Handle<YieldTermStructure>& discount_curve) {
+                b.setPricingEngine(
+                    ext::make_shared<DiscountingBondEngine>(discount_curve));
+                setCouponPricer(b.cashflows(),
+                                ext::make_shared<BlackIborCouponPricer>());
+            },
+            nb::arg("discount_curve"),
+            "Attach DiscountingBondEngine and BlackIborCouponPricer on cashflows.");
+    add_bond_analytics(amortizing_floating_rate_bond);
+
+    m.def(
+        "sinking_schedule",
+        [](const Date& start_date,
+           const Period& bond_length,
+           Frequency frequency,
+           const Calendar& payment_calendar) {
+            return sinkingSchedule(
+                start_date, bond_length, frequency, payment_calendar);
+        },
+        nb::arg("start_date"),
+        nb::arg("bond_length"),
+        nb::arg("frequency"),
+        nb::arg("payment_calendar"),
+        "French-amortization schedule (sinkingSchedule).");
+
+    m.def(
+        "sinking_notionals",
+        [](const Period& bond_length,
+           Frequency frequency,
+           Rate coupon_rate,
+           Real initial_notional) {
+            return sinkingNotionals(
+                bond_length, frequency, coupon_rate, initial_notional);
+        },
+        nb::arg("bond_length"),
+        nb::arg("frequency"),
+        nb::arg("coupon_rate"),
+        nb::arg("initial_notional"),
+        "French-amortization notional schedule (sinkingNotionals).");
 
     nb::enum_<Swap::Type>(m, "SwapType")
         .value("Receiver", Swap::Receiver)

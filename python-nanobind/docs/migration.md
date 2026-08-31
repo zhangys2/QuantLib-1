@@ -2127,6 +2127,35 @@ Standalone Swap/Instrument wrapper + `BMAIndex`, `BMASwapRateHelper`,
 `setPricingEngine`, `makeBMASwap`. Recovers piecewise BMA curve fair libor
 fractions from `PiecewiseYieldCurve` BMA consistency (tol 1e-9).
 
+## Phase-101 AmortizingFixedRateBond
+
+```python
+today = ql.get_evaluation_date()
+freq = ql.Frequency.Monthly
+schedule = ql.sinking_schedule(
+    today, ql.Period(30, ql.TimeUnit.Years), freq, ql.NullCalendar()
+)
+notionals = ql.sinking_notionals(
+    ql.Period(30, ql.TimeUnit.Years), freq, 0.05, 100.0
+)
+bond = ql.AmortizingFixedRateBond(
+    0, notionals, schedule, [0.05],
+    ql.ActualActual(ql.ActualActualConvention.ISMA),
+)
+amounts = bond.cashflow_amounts()
+# coupon + principal ≈ Excel PMT(0.05/12, 360, -100) each period
+assert abs(amounts[0] + amounts[1] - 0.536821623) < 1e-6
+bond.set_pricing_engine(ql.FlatForward(today, 0.03, ql.Actual365Fixed()))
+assert bond.NPV() > 0.0
+```
+
+Standalone Bond wrappers (`AmortizingFixedRateBond` /
+`AmortizingFloatingRateBond`) + French amortization helpers. Engine is
+`DiscountingBondEngine` (floating also attaches `BlackIborCouponPricer`).
+Compat: `sinkingSchedule`, `sinkingNotionals`, `cashflowAmounts`,
+`setPricingEngine`. Recovers `AmortizingBondTests::testAmortizingFixedRateBond`
+pmt / coupon amounts (tol 1e-6).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
