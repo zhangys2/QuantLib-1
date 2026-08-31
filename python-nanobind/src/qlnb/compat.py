@@ -2061,6 +2061,9 @@ markovFunctionalTestMd0Yts = getattr(_ql, "markov_functional_test_md0_yts", None
 markovFunctionalTestMd0SwaptionVts = getattr(
     _ql, "markov_functional_test_md0_swaption_vts", None
 )
+markovFunctionalTestMd0OptionletVts = getattr(
+    _ql, "markov_functional_test_md0_optionlet_vts", None
+)
 AnalyticHaganPricer = getattr(_ql, "AnalyticHaganPricer", None)
 NumericHaganPricer = getattr(_ql, "NumericHaganPricer", None)
 makeCms = getattr(_ql, "make_cms", None)
