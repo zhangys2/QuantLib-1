@@ -299,6 +299,10 @@ def _install_aliases() -> None:
             Swaption.impliedVolatility = (  # type: ignore[attr-defined]
                 Swaption.implied_volatility
             )
+        if hasattr(Swaption, "set_bachelier_pricing_engine"):
+            Swaption.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_bachelier_pricing_engine
+            )
         if hasattr(Swaption, "set_tree_pricing_engine"):
             Swaption.setTreePricingEngine = (  # type: ignore[attr-defined]
                 Swaption.set_tree_pricing_engine

@@ -241,6 +241,19 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("displacement") = 0.0,
             "Attach BlackSwaptionEngine (European).")
         .def(
+            "set_bachelier_pricing_engine",
+            [](Swaption& s,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility volatility,
+               const DayCounter& day_counter) {
+                s.setPricingEngine(ext::make_shared<BachelierSwaptionEngine>(
+                    discount_curve, volatility, day_counter));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("volatility"),
+            nb::arg("day_counter") = DayCounter(Actual365Fixed()),
+            "Attach BachelierSwaptionEngine (normal vol, European).")
+        .def(
             "set_tree_pricing_engine",
             [](Swaption& s,
                const ext::shared_ptr<HullWhite>& model,
@@ -380,6 +393,15 @@ void bind_rates_options(nb::module_& m) {
         nb::arg("discount_curve"),
         "Factory alias: pass the curve (and volatility) to "
         "Swaption.set_pricing_engine(discount_curve, volatility).");
+
+    m.def(
+        "BachelierSwaptionEngine",
+        [](const Handle<YieldTermStructure>& discount_curve) {
+            return discount_curve;
+        },
+        nb::arg("discount_curve"),
+        "Factory alias: pass the curve (and volatility) to "
+        "Swaption.set_bachelier_pricing_engine(discount_curve, volatility).");
 
     m.def(
         "TreeSwaptionEngine",
