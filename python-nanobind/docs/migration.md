@@ -2974,6 +2974,17 @@ Attaches `Gaussian1dCapFloorEngine` and `AnalyticCapFloorEngine`. Compat:
 `setGaussian1dPricingEngine`, `setAnalyticCapFloorPricingEngine`. GSR vs Hull–White
 analytic on constant parameters (reference golden).
 
+## Phase-156 tree cap–floor
+
+```python
+hw = ql.HullWhite(yts, reversion, vol)
+cap.set_tree_pricing_engine(hw, time_steps=200, discount_curve=yts)
+# Compare to AnalyticCapFloorEngine on the same Hull–White model.
+```
+
+Attaches `TreeCapFloorEngine`. Compat: `setTreePricingEngine`. Lattice NPV
+matches Hull–White analytic for a 5Y ATM cap (tol 0.05).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

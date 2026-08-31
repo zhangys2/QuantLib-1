@@ -4129,6 +4129,12 @@ class CapFloor:
         model: HullWhite,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
+    def set_tree_pricing_engine(
+        self,
+        model: HullWhite,
+        time_steps: int = ...,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -4182,6 +4188,12 @@ class Collar:
     def set_analytic_cap_floor_pricing_engine(
         self,
         model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_tree_pricing_engine(
+        self,
+        model: HullWhite,
+        time_steps: int = ...,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
     def implied_volatility(
@@ -4238,6 +4250,12 @@ class Cap:
         model: HullWhite,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
+    def set_tree_pricing_engine(
+        self,
+        model: HullWhite,
+        time_steps: int = ...,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -4290,6 +4308,12 @@ class Floor:
     def set_analytic_cap_floor_pricing_engine(
         self,
         model: HullWhite,
+        discount_curve: YieldTermStructureHandle | None = ...,
+    ) -> None: ...
+    def set_tree_pricing_engine(
+        self,
+        model: HullWhite,
+        time_steps: int = ...,
         discount_curve: YieldTermStructureHandle | None = ...,
     ) -> None: ...
     def implied_volatility(
@@ -4937,6 +4961,7 @@ def BlackCapFloorEngine(
 ) -> YieldTermStructureHandle: ...
 def Gaussian1dCapFloorEngine(model: Gsr) -> Gsr: ...
 def AnalyticCapFloorEngine(model: HullWhite) -> HullWhite: ...
+def TreeCapFloorEngine(model: HullWhite) -> HullWhite: ...
 def simulate_gbm_paths(
     process: BlackScholesMertonProcess,
     length: float,

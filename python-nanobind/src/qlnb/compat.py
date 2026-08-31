@@ -1308,6 +1308,10 @@ def _install_aliases() -> None:
             CapFloor.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
                 CapFloor.set_analytic_cap_floor_pricing_engine
             )
+        if hasattr(CapFloor, "set_tree_pricing_engine"):
+            CapFloor.setTreePricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_tree_pricing_engine
+            )
         if hasattr(CapFloor, "implied_volatility"):
             CapFloor.impliedVolatility = (  # type: ignore[attr-defined]
                 CapFloor.implied_volatility
@@ -1330,6 +1334,10 @@ def _install_aliases() -> None:
         if hasattr(Collar, "set_analytic_cap_floor_pricing_engine"):
             Collar.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
                 Collar.set_analytic_cap_floor_pricing_engine
+            )
+        if hasattr(Collar, "set_tree_pricing_engine"):
+            Collar.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_tree_pricing_engine
             )
         if hasattr(Collar, "implied_volatility"):
             Collar.impliedVolatility = (  # type: ignore[attr-defined]
@@ -1354,6 +1362,10 @@ def _install_aliases() -> None:
             Cap.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
                 Cap.set_analytic_cap_floor_pricing_engine
             )
+        if hasattr(Cap, "set_tree_pricing_engine"):
+            Cap.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_tree_pricing_engine
+            )
         if hasattr(Cap, "implied_volatility"):
             Cap.impliedVolatility = Cap.implied_volatility  # type: ignore[attr-defined]
 
@@ -1374,6 +1386,10 @@ def _install_aliases() -> None:
         if hasattr(Floor, "set_analytic_cap_floor_pricing_engine"):
             Floor.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
                 Floor.set_analytic_cap_floor_pricing_engine
+            )
+        if hasattr(Floor, "set_tree_pricing_engine"):
+            Floor.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_tree_pricing_engine
             )
         if hasattr(Floor, "implied_volatility"):
             Floor.impliedVolatility = Floor.implied_volatility  # type: ignore[attr-defined]
