@@ -3194,6 +3194,19 @@ swaption.set_gaussian1d_pricing_engine(mf)
 Recovers `MarkovFunctionalTests::testBermudanSwaption` (md0 market, coterminal basket 3).
 Compat: `markovFunctionalTestMd0Yts`, `markovFunctionalTestMd0SwaptionVts`.
 
+## Phase-170 MarkovFunctional real-market calibration
+
+```python
+yts = ql.markov_functional_test_md0_yts()
+swaption_vol = ql.markov_functional_test_md0_swaption_vts()
+optionlet_vol = ql.markov_functional_test_md0_optionlet_vts()
+outputs = mf.model_outputs()
+outputs.market_zerorate[i]  # vs outputs.model_zerorate[i]
+```
+
+Recovers `MarkovFunctionalTests::testCalibrationOneInstrumentSet` (real md0 baskets 1–2).
+Compat: `markovFunctionalTestMd0OptionletVts`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
