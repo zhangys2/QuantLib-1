@@ -1937,6 +1937,12 @@ class EuropeanOption:
         max_vol: float = ...,
     ) -> float: ...
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
+    def set_bsm_hull_white_pricing_engine(
+        self,
+        equity_short_rate_correlation: float,
+        process: BlackScholesMertonProcess,
+        model: "HullWhite",
+    ) -> None: ...
     def set_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -4389,6 +4395,11 @@ def BachelierSwaptionEngine(
 ) -> YieldTermStructureHandle: ...
 def AnalyticEuropeanEngine(
     process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def AnalyticBSMHullWhiteEngine(
+    equity_short_rate_correlation: float,
+    process: BlackScholesMertonProcess,
+    model: "HullWhite",
 ) -> BlackScholesMertonProcess: ...
 def AnalyticDividendEuropeanEngine(
     process: BlackScholesMertonProcess,

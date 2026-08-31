@@ -2821,6 +2821,17 @@ Attaches `AnalyticPerformanceEngine` on `CliquetOption`. Compat:
 `setPerformancePricingEngine` (compat-only). Recovers FD-delta consistency
 from `CliquetOptionTests::testPerformanceGreeks`.
 
+## Phase-144 BSM + Hull–White
+
+```python
+opt.set_bsm_hull_white_pricing_engine(corr, process, hull_white)
+impl = opt.implied_volatility(opt.NPV(), bs_process_at_expected_vol)
+assert impl == pytest.approx(0.256402830, abs=1e-8)  # corr=0
+```
+
+Attaches `AnalyticBSMHullWhiteEngine`. Compat: `setBsmHullWhitePricingEngine`
+(compat-only). Recovers `HybridHestonHullWhiteProcessTests::testBsmHullWhiteEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

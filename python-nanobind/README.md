@@ -673,6 +673,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `CliquetOption.set_performance_pricing_engine` → `AnalyticPerformanceEngine`
 - FD delta consistency + NPV vs AnalyticCliquetEngine from `CliquetOptionTests`
 
+### Phase 144 (BSM + Hull–White)
+- `EuropeanOption.set_bsm_hull_white_pricing_engine` → `AnalyticBSMHullWhiteEngine`
+- Recovers implied-vol table from `HybridHestonHullWhiteProcessTests::testBsmHullWhiteEngine` (tol 1e-8)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
