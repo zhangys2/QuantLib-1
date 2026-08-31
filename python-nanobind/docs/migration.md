@@ -3207,6 +3207,21 @@ outputs.market_zerorate[i]  # vs outputs.model_zerorate[i]
 Recovers `MarkovFunctionalTests::testCalibrationOneInstrumentSet` (real md0 baskets 1–2).
 Compat: `markovFunctionalTestMd0OptionletVts`.
 
+## Phase-171 MarkovFunctional real-market vanilla engines
+
+```python
+outputs = mf.model_outputs()
+smile_corr = (
+    outputs.market_call_premium[i][j] - outputs.market_raw_call_premium[i][j]
+)
+swaption.set_pricing_engine(yts, swaption_vol)
+black = swaption.NPV()
+swaption.set_gaussian1d_pricing_engine(mf)
+assert abs(black - swaption.NPV() + smile_corr) <= tol
+```
+
+Recovers `MarkovFunctionalTests::testVanillaEngines` (real md0 baskets 1–2).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
