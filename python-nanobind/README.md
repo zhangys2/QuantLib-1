@@ -821,6 +821,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `SmileSectionUtils` with `arbitragefree_indices` / `arbitragefree_region`
 - Golden check from `MarkovFunctionalTests::testSmileSectionUtilsWShapedSmile`
 
+### Phase 174 (LMM MC swaption loop)
+- `LiborForwardModelProcess.discount_bond`, `factors`, accrual times
+- `TimeGrid`, `MultiPathGenerator` (PseudoRandom), `GeneralStatistics`
+- Golden MC loop from `LiborMarketModelTests::testSwaptionPricing`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

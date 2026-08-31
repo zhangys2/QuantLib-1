@@ -3244,6 +3244,20 @@ assert right > left
 
 Recovers `MarkovFunctionalTests::testSmileSectionUtilsWShapedSmile`.
 
+## Phase-174 LMM MC swaption loop
+
+```python
+grid = ql.TimeGrid(process.fixing_times(), steps)
+gen = ql.MultiPathGenerator(process, grid, seed=42)
+path = gen.next()  # path[asset][time]
+dis = process.discount_bond(rates)
+stat = ql.GeneralStatistics()
+stat.add(max(npv, 0.0))
+```
+
+Recovers `LiborMarketModelTests::testSwaptionPricing` Monte-Carlo loop.
+Compat: `discountBond`, `accrualStartTimes`, `errorEstimate`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

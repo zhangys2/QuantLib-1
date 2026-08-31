@@ -23,6 +23,9 @@
 #include <ql/legacy/libormarketmodels/liborforwardmodel.hpp>
 #include <ql/math/optimization/endcriteria.hpp>
 #include <ql/math/optimization/levenbergmarquardt.hpp>
+#include <ql/math/randomnumbers/rngtraits.hpp>
+#include <ql/math/statistics/generalstatistics.hpp>
+#include <ql/methods/montecarlo/multipathgenerator.hpp>
 #include <ql/models/calibrationhelper.hpp>
 #include <ql/models/model.hpp>
 #include <ql/models/shortrate/calibrationhelpers/caphelper.hpp>
@@ -34,8 +37,45 @@
 #include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/frequency.hpp>
+#include <ql/timegrid.hpp>
 
 using namespace QuantLib;
+
+namespace {
+
+using LfmPrRsg = PseudoRandom::rsg_type;
+
+struct LfmMultiPathGeneratorHandle {
+    MultiPathGenerator<LfmPrRsg> generator;
+
+    explicit LfmMultiPathGeneratorHandle(
+        MultiPathGenerator<LfmPrRsg> generator_)
+        : generator(std::move(generator_)) {}
+
+    static std::vector<std::vector<Real>> to_matrix(
+        const MultiPathGenerator<LfmPrRsg>::sample_type& sample) {
+        const MultiPath& path = sample.value;
+        const Size n_assets = path.assetNumber();
+        const Size n_times = path.pathSize();
+        std::vector<std::vector<Real>> out(n_assets);
+        for (Size k = 0; k < n_assets; ++k) {
+            out[k].resize(n_times);
+            for (Size t = 0; t < n_times; ++t)
+                out[k][t] = path[k][t];
+        }
+        return out;
+    }
+
+    std::vector<std::vector<Real>> next() {
+        return to_matrix(generator.next());
+    }
+
+    std::vector<std::vector<Real>> antithetic() {
+        return to_matrix(generator.antithetic());
+    }
+};
+
+} // namespace
 
 void bind_lmm(nb::module_& m) {
     nb::class_<LiborForwardModelProcess>(m, "LiborForwardModelProcess")
@@ -43,6 +83,7 @@ void bind_lmm(nb::module_& m) {
              nb::arg("size"),
              nb::arg("index"))
         .def("size", &LiborForwardModelProcess::size)
+        .def("factors", &LiborForwardModelProcess::factors)
         .def(
             "fixing_times",
             [](const LiborForwardModelProcess& p) {
@@ -52,6 +93,24 @@ void bind_lmm(nb::module_& m) {
         .def(
             "fixing_dates",
             [](const LiborForwardModelProcess& p) { return p.fixingDates(); })
+        .def(
+            "accrual_start_times",
+            [](const LiborForwardModelProcess& p) {
+                return p.accrualStartTimes();
+            })
+        .def(
+            "accrual_end_times",
+            [](const LiborForwardModelProcess& p) {
+                return p.accrualEndTimes();
+            })
+        .def(
+            "discount_bond",
+            [](const LiborForwardModelProcess& p,
+               const std::vector<Rate>& rates) {
+                return p.discountBond(rates);
+            },
+            nb::arg("rates"),
+            "Discount factors implied by a Libor rate vector.")
         .def("index",
              [](const LiborForwardModelProcess& p) {
                  return p.index();
@@ -64,6 +123,60 @@ void bind_lmm(nb::module_& m) {
             },
             nb::arg("covar_param"),
             "Attach LfmCovarianceProxy for process simulation.");
+
+    nb::class_<TimeGrid>(m, "TimeGrid")
+        .def(
+            "__init__",
+            [](TimeGrid* self, const std::vector<Time>& times, Size steps) {
+                new (self) TimeGrid(times.begin(), times.end(), steps);
+            },
+            nb::arg("times"),
+            nb::arg("steps"),
+            "Time grid through mandatory times with the given step count.")
+        .def("size", &TimeGrid::size)
+        .def(
+            "index",
+            [](const TimeGrid& g, Time t) { return g.index(t); },
+            nb::arg("t"))
+        .def(
+            "__getitem__",
+            [](const TimeGrid& g, Size i) { return g[i]; },
+            nb::arg("i"));
+
+    nb::class_<LfmMultiPathGeneratorHandle>(m, "MultiPathGenerator")
+        .def(
+            "__init__",
+            [](LfmMultiPathGeneratorHandle* self,
+               const ext::shared_ptr<LiborForwardModelProcess>& process,
+               const TimeGrid& grid,
+               BigNatural seed,
+               bool brownian_bridge) {
+                auto rsg = PseudoRandom::make_sequence_generator(
+                    process->factors() * (grid.size() - 1), seed);
+                new (self) LfmMultiPathGeneratorHandle(
+                    MultiPathGenerator<LfmPrRsg>(
+                        process, grid, rsg, brownian_bridge));
+            },
+            nb::arg("process"),
+            nb::arg("grid"),
+            nb::arg("seed") = BigNatural(42),
+            nb::arg("brownian_bridge") = false,
+            "PseudoRandom MultiPathGenerator for LiborForwardModelProcess.")
+        .def("next", &LfmMultiPathGeneratorHandle::next)
+        .def("antithetic", &LfmMultiPathGeneratorHandle::antithetic);
+
+    nb::class_<GeneralStatistics>(m, "GeneralStatistics")
+        .def(nb::init<>())
+        .def(
+            "add",
+            [](GeneralStatistics& s, Real value, Real weight) {
+                s.add(value, weight);
+            },
+            nb::arg("value"),
+            nb::arg("weight") = 1.0)
+        .def("mean", &GeneralStatistics::mean)
+        .def("error_estimate", &GeneralStatistics::errorEstimate)
+        .def("samples", &GeneralStatistics::samples);
 
     nb::class_<LmFixedVolatilityModel>(m, "LmFixedVolatilityModel")
         .def(

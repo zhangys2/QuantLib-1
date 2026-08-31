@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "4.44.0"
-description = "Nanobind Python bindings for QuantLib (phase 173: SmileSectionUtils W-shaped smile)"
+version = "4.45.0"
+description = "Nanobind Python bindings for QuantLib (phase 174: LMM MC swaption loop)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
