@@ -34,6 +34,7 @@
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/quantobarrieroption.hpp>
 #include <ql/experimental/barrieroption/mcdoublebarrierengine.hpp>
+#include <ql/experimental/barrieroption/perturbativebarrieroptionengine.hpp>
 #include <ql/experimental/barrieroption/quantodoublebarrieroption.hpp>
 #include <ql/experimental/barrieroption/suowangdoublebarrierengine.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
@@ -595,6 +596,20 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process"),
             "Attach AnalyticBarrierEngine (vanilla barrier).")
         .def(
+            "set_perturbative_pricing_engine",
+            [](BarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Natural order,
+               bool zero_gamma) {
+                opt.setPricingEngine(
+                    ext::make_shared<PerturbativeBarrierOptionEngine>(
+                        process, order, zero_gamma));
+            },
+            nb::arg("process"),
+            nb::arg("order") = Natural(1),
+            nb::arg("zero_gamma") = false,
+            "Attach PerturbativeBarrierOptionEngine (Recchioni).")
+        .def(
             "set_binary_pricing_engine",
             [](BarrierOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process) {
@@ -734,6 +749,15 @@ void bind_experimental(nb::module_& m) {
         },
         nb::arg("process"),
         "Factory alias: pass the returned process to BarrierOption.set_pricing_engine.");
+
+    m.def(
+        "PerturbativeBarrierOptionEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "BarrierOption.set_perturbative_pricing_engine.");
 
     m.def(
         "AnalyticBinaryBarrierEngine",
