@@ -2188,6 +2188,29 @@ Standalone OneAssetOption wrapper + `SwingExercise` /
 `isExpired`, `setPricingEngine` → `set_fd_pricing_engine`. Recovers
 `SwingOptionTest::testFdBSSwingOption` upper/lower bounds.
 
+## Phase-103 VanillaStorageOption
+
+```python
+today = ql.Date(18, ql.Month.December, 2011)
+ql.set_evaluation_date(today)
+dc = ql.ActualActual(ql.ActualActualConvention.ISDA)
+maturity = today + ql.Period(12, ql.TimeUnit.Months)
+dates = [today + ql.Period(1, ql.TimeUnit.Days)]
+while dates[-1] < maturity:
+    dates.append(dates[-1] + ql.Period(1, ql.TimeUnit.Days))
+process = ql.ExtendedOrnsteinUhlenbeckProcess(1.0, 0.5, 3.0, 3.0)
+opt = ql.VanillaStorageOption(ql.BermudanExercise(dates), 50, 0, 1)
+opt.set_fd_pricing_engine(
+    process, ql.FlatForward(today, 0.1, dc), t_grid=1, x_grid=25
+)
+assert abs(opt.NPV() - 69.5755) < 5e-2
+```
+
+Standalone OneAssetOption wrapper + `ExtendedOrnsteinUhlenbeckProcess`
+(constant `b`). Engine is `FdSimpleExtOUStorageEngine`. Compat:
+`isExpired`, `setPricingEngine`. Recovers
+`VPPOptionTest::testSimpleExtOUStorageEngine` cached NPV (tol 5e-2).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

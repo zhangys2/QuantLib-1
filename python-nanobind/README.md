@@ -496,6 +496,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption` BermudanExercise constructor (FD upper-bound checks)
 - Recovers suite BS swing upper/lower bounds (tol 0.01 / 4e-2)
 
+### Phase 103 (VanillaStorageOption)
+- `ExtendedOrnsteinUhlenbeckProcess`, `VanillaStorageOption`
+- Engine: `set_fd_pricing_engine` → `FdSimpleExtOUStorageEngine`
+- Recovers suite cached NPV **69.5755** (tol 5e-2, tGrid=1, xGrid=25)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
