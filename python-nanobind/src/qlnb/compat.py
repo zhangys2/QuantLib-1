@@ -555,6 +555,10 @@ def _install_aliases() -> None:
         VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_heston_pricing_engine
         )
+    if hasattr(VanillaOption, "set_pdf_heston_pricing_engine"):
+        VanillaOption.setPdfHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_pdf_heston_pricing_engine
+        )
     if hasattr(VanillaOption, "set_mc_heston_pricing_engine"):
         VanillaOption.setMcHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_mc_heston_pricing_engine

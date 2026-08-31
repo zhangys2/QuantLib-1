@@ -30,6 +30,7 @@
 #include <ql/pricingengines/vanilla/analyticdigitalamericanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/analyticpdfhestonengine.hpp>
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
@@ -246,6 +247,19 @@ void bind_pricing(nb::module_& m) {
             nb::arg("payoff"),
             nb::arg("exercise"),
             "Vanilla option with Bermudan exercise (FD / tree engines).")
+        .def(
+            "__init__",
+            [](VanillaOption* self,
+               const CashOrNothingPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) VanillaOption(
+                    ext::make_shared<CashOrNothingPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "European digital cash-or-nothing vanilla "
+            "(e.g. AnalyticPDFHestonEngine).")
         .def(
             "__init__",
             [](VanillaOption* self,
@@ -489,6 +503,19 @@ void bind_pricing(nb::module_& m) {
             nb::arg("model"),
             nb::arg("integration_order") = 144,
             "Attach AnalyticHestonEngine (Laguerre / Gatheral).")
+        .def(
+            "set_pdf_heston_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<HestonModel>& model,
+               Real gauss_lobatto_eps,
+               Size gauss_lobatto_integration_order) {
+                opt.setPricingEngine(ext::make_shared<AnalyticPDFHestonEngine>(
+                    model, gauss_lobatto_eps, gauss_lobatto_integration_order));
+            },
+            nb::arg("model"),
+            nb::arg("gauss_lobatto_eps") = 1e-6,
+            nb::arg("gauss_lobatto_integration_order") = Size(10000),
+            "Attach AnalyticPDFHestonEngine (Dragulescu–Yakovenko PDF).")
         .def(
             "set_mc_heston_pricing_engine",
             [](VanillaOption& opt,

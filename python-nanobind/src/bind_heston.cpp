@@ -15,6 +15,7 @@
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/models/equity/hestonmodelhelper.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/analyticpdfhestonengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/processes/batesprocess.hpp>
@@ -328,6 +329,13 @@ void bind_heston(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "VanillaOption/EuropeanOption.set_heston_pricing_engine.");
+
+    m.def(
+        "AnalyticPDFHestonEngine",
+        [](const ext::shared_ptr<HestonModel>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass the returned model to "
+        "VanillaOption.set_pdf_heston_pricing_engine.");
 
     m.def(
         "MCEuropeanHestonEngine",
