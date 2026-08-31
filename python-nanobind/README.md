@@ -539,6 +539,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - Helpers: `CHFCurrency`, `Switzerland` calendar
 - Recovers `ConstNotionalCrossCurrencySwapTests::testFixFixXCCYSwapPricing` (tol 0.01)
 
+### Phase 112 (float/float XCCY factory)
+- `make_float_float_xccy_swap` factory for generic `ConstNotionalCrossCurrencySwap`
+- Recovers `ConstNotionalCrossCurrencySwapTests::testFloatFloatXCCYSwapPricing` (NPV ≈ 0, tol 0.01)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

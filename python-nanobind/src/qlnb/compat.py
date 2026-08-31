@@ -1476,6 +1476,7 @@ if ConstNotionalCrossCurrencySwap is not None:
     )
 
 makeFixFixXCCYSwap = getattr(_ql, "make_fix_fix_xccy_swap", None)
+makeFloatFloatXCCYSwap = getattr(_ql, "make_float_float_xccy_swap", None)
 CHFCurrency = getattr(_ql, "CHFCurrency", None)
 Switzerland = getattr(_ql, "Switzerland", None)
 
