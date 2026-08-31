@@ -899,6 +899,10 @@ def _install_aliases() -> None:
             BarrierOption.setPerturbativePricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_perturbative_pricing_engine
             )
+        if hasattr(BarrierOption, "set_vanna_volga_pricing_engine"):
+            BarrierOption.setVannaVolgaPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_vanna_volga_pricing_engine
+            )
         if hasattr(BarrierOption, "set_binary_pricing_engine"):
             BarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_binary_pricing_engine

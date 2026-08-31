@@ -37,6 +37,8 @@
 #include <ql/experimental/barrieroption/perturbativebarrieroptionengine.hpp>
 #include <ql/experimental/barrieroption/quantodoublebarrieroption.hpp>
 #include <ql/experimental/barrieroption/suowangdoublebarrierengine.hpp>
+#include <ql/experimental/barrieroption/vannavolgabarrierengine.hpp>
+#include <ql/quotes/deltavolquote.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/instruments/twoassetcorrelationoption.hpp>
@@ -464,6 +466,58 @@ void bind_experimental(nb::module_& m) {
         "Factory alias for "
         "DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine.");
 
+    // --- Phase 128: DeltaVolQuote (FX smile quotes for Vanna/Volga) ---
+    nb::enum_<DeltaVolQuote::DeltaType>(m, "DeltaVolDeltaType")
+        .value("Spot", DeltaVolQuote::Spot)
+        .value("Fwd", DeltaVolQuote::Fwd)
+        .value("PaSpot", DeltaVolQuote::PaSpot)
+        .value("PaFwd", DeltaVolQuote::PaFwd);
+
+    nb::enum_<DeltaVolQuote::AtmType>(m, "DeltaVolAtmType")
+        .value("AtmNull", DeltaVolQuote::AtmNull)
+        .value("AtmSpot", DeltaVolQuote::AtmSpot)
+        .value("AtmFwd", DeltaVolQuote::AtmFwd)
+        .value("AtmDeltaNeutral", DeltaVolQuote::AtmDeltaNeutral)
+        .value("AtmVegaMax", DeltaVolQuote::AtmVegaMax)
+        .value("AtmGammaMax", DeltaVolQuote::AtmGammaMax)
+        .value("AtmPutCall50", DeltaVolQuote::AtmPutCall50);
+
+    nb::class_<DeltaVolQuote, Quote>(m, "DeltaVolQuote")
+        .def(
+            "__init__",
+            [](DeltaVolQuote* self,
+               Real delta,
+               const Handle<Quote>& vol,
+               Time maturity,
+               DeltaVolQuote::DeltaType delta_type) {
+                new (self) DeltaVolQuote(delta, vol, maturity, delta_type);
+            },
+            nb::arg("delta"),
+            nb::arg("vol"),
+            nb::arg("maturity"),
+            nb::arg("delta_type"),
+            "Standard delta vs vol quote.")
+        .def(
+            "__init__",
+            [](DeltaVolQuote* self,
+               const Handle<Quote>& vol,
+               DeltaVolQuote::DeltaType delta_type,
+               Time maturity,
+               DeltaVolQuote::AtmType atm_type) {
+                new (self) DeltaVolQuote(vol, delta_type, maturity, atm_type);
+            },
+            nb::arg("vol"),
+            nb::arg("delta_type"),
+            nb::arg("maturity"),
+            nb::arg("atm_type"),
+            "ATM delta-vol quote.")
+        .def("value", &DeltaVolQuote::value)
+        .def("delta", &DeltaVolQuote::delta)
+        .def("maturity", &DeltaVolQuote::maturity)
+        .def("atm_type", &DeltaVolQuote::atmType)
+        .def("delta_type", &DeltaVolQuote::deltaType)
+        .def("is_valid", &DeltaVolQuote::isValid);
+
     nb::class_<BarrierOption>(m, "BarrierOption")
         .def(
             "__init__",
@@ -609,6 +663,37 @@ void bind_experimental(nb::module_& m) {
             nb::arg("order") = Natural(1),
             nb::arg("zero_gamma") = false,
             "Attach PerturbativeBarrierOptionEngine (Recchioni).")
+        .def(
+            "set_vanna_volga_pricing_engine",
+            [](BarrierOption& opt,
+               const ext::shared_ptr<DeltaVolQuote>& atm_vol,
+               const ext::shared_ptr<DeltaVolQuote>& vol25_put,
+               const ext::shared_ptr<DeltaVolQuote>& vol25_call,
+               const Handle<Quote>& spot_fx,
+               const Handle<YieldTermStructure>& domestic_ts,
+               const Handle<YieldTermStructure>& foreign_ts,
+               bool adapt_van_delta,
+               Real bs_price_with_smile) {
+                opt.setPricingEngine(
+                    ext::make_shared<VannaVolgaBarrierEngine>(
+                        Handle<DeltaVolQuote>(atm_vol),
+                        Handle<DeltaVolQuote>(vol25_put),
+                        Handle<DeltaVolQuote>(vol25_call),
+                        spot_fx,
+                        domestic_ts,
+                        foreign_ts,
+                        adapt_van_delta,
+                        bs_price_with_smile));
+            },
+            nb::arg("atm_vol"),
+            nb::arg("vol25_put"),
+            nb::arg("vol25_call"),
+            nb::arg("spot_fx"),
+            nb::arg("domestic_ts"),
+            nb::arg("foreign_ts"),
+            nb::arg("adapt_van_delta") = false,
+            nb::arg("bs_price_with_smile") = 0.0,
+            "Attach VannaVolgaBarrierEngine (FX barrier with smile).")
         .def(
             "set_binary_pricing_engine",
             [](BarrierOption& opt,
