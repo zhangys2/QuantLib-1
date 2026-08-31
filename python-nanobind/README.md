@@ -506,6 +506,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `CompositeInstrument.add` supports `Stock` and `EuropeanOption`
 - Recovers suite composite expiration / NPV behavior on date shifts
 
+### Phase 105 (Gap / SuperFund / SuperShare payoffs)
+- `GapPayoff`, `SuperFundPayoff`, `SuperSharePayoff` standalone wrappers
+- `EuropeanOption` constructors for each payoff type
+- Recovers `DigitalOptionTest::testGapEuropeanValues` (Haug p.88, tol 1e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

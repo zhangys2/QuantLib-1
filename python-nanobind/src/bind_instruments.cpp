@@ -353,6 +353,39 @@ void bind_instruments(nb::module_& m) {
         .def("option_type",
              [](const AssetOrNothingPayoff& p) { return p.optionType(); });
 
+    // --- Phase 105: Gap / SuperFund / SuperShare payoffs ---
+    nb::class_<GapPayoff>(m, "GapPayoff")
+        .def(nb::init<Option::Type, Real, Real>(),
+             nb::arg("type"),
+             nb::arg("strike"),
+             nb::arg("second_strike"))
+        .def("strike", [](const GapPayoff& p) { return p.strike(); })
+        .def("option_type", [](const GapPayoff& p) { return p.optionType(); })
+        .def("second_strike", [](const GapPayoff& p) { return p.secondStrike(); });
+
+    nb::class_<SuperFundPayoff>(m, "SuperFundPayoff")
+        .def(nb::init<Real, Real>(),
+             nb::arg("strike"),
+             nb::arg("second_strike"))
+        .def("strike", [](const SuperFundPayoff& p) { return p.strike(); })
+        .def("option_type",
+             [](const SuperFundPayoff& p) { return p.optionType(); })
+        .def("second_strike",
+             [](const SuperFundPayoff& p) { return p.secondStrike(); });
+
+    nb::class_<SuperSharePayoff>(m, "SuperSharePayoff")
+        .def(nb::init<Real, Real, Real>(),
+             nb::arg("strike"),
+             nb::arg("second_strike"),
+             nb::arg("cash_payoff"))
+        .def("strike", [](const SuperSharePayoff& p) { return p.strike(); })
+        .def("option_type",
+             [](const SuperSharePayoff& p) { return p.optionType(); })
+        .def("second_strike",
+             [](const SuperSharePayoff& p) { return p.secondStrike(); })
+        .def("cash_payoff",
+             [](const SuperSharePayoff& p) { return p.cashPayoff(); });
+
     // Floating-strike payoff for lookbacks (no TypePayoff MI hierarchy).
     nb::class_<FloatingTypePayoff>(m, "FloatingTypePayoff")
         .def(nb::init<Option::Type>(), nb::arg("type"))
@@ -413,6 +446,39 @@ void bind_instruments(nb::module_& m) {
                const EuropeanExercise& exercise) {
                 new (self) EuropeanOption(
                     ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](EuropeanOption* self,
+               const GapPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) EuropeanOption(
+                    ext::make_shared<GapPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](EuropeanOption* self,
+               const SuperFundPayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) EuropeanOption(
+                    ext::make_shared<SuperFundPayoff>(payoff),
+                    ext::make_shared<EuropeanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](EuropeanOption* self,
+               const SuperSharePayoff& payoff,
+               const EuropeanExercise& exercise) {
+                new (self) EuropeanOption(
+                    ext::make_shared<SuperSharePayoff>(payoff),
                     ext::make_shared<EuropeanExercise>(exercise));
             },
             nb::arg("payoff"),

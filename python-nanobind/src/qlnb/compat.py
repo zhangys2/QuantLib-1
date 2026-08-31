@@ -665,6 +665,32 @@ def _install_aliases() -> None:
             AssetOrNothingPayoff.option_type
         )
 
+    GapPayoff = getattr(_ql, "GapPayoff", None)
+    if GapPayoff is not None:
+        GapPayoff.optionType = GapPayoff.option_type  # type: ignore[attr-defined]
+        GapPayoff.secondStrike = GapPayoff.second_strike  # type: ignore[attr-defined]
+
+    SuperFundPayoff = getattr(_ql, "SuperFundPayoff", None)
+    if SuperFundPayoff is not None:
+        SuperFundPayoff.optionType = (  # type: ignore[attr-defined]
+            SuperFundPayoff.option_type
+        )
+        SuperFundPayoff.secondStrike = (  # type: ignore[attr-defined]
+            SuperFundPayoff.second_strike
+        )
+
+    SuperSharePayoff = getattr(_ql, "SuperSharePayoff", None)
+    if SuperSharePayoff is not None:
+        SuperSharePayoff.optionType = (  # type: ignore[attr-defined]
+            SuperSharePayoff.option_type
+        )
+        SuperSharePayoff.secondStrike = (  # type: ignore[attr-defined]
+            SuperSharePayoff.second_strike
+        )
+        SuperSharePayoff.cashPayoff = (  # type: ignore[attr-defined]
+            SuperSharePayoff.cash_payoff
+        )
+
     FloatingTypePayoff = getattr(_ql, "FloatingTypePayoff", None)
     if FloatingTypePayoff is not None:
         FloatingTypePayoff.optionType = (  # type: ignore[attr-defined]
