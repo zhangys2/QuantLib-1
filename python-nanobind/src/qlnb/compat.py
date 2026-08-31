@@ -335,6 +335,10 @@ def _install_aliases() -> None:
             Swaption.setG2TreePricingEngine = (  # type: ignore[attr-defined]
                 Swaption.set_g2_tree_pricing_engine
             )
+        if hasattr(Swaption, "set_lfm_pricing_engine"):
+            Swaption.setLfmPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_lfm_pricing_engine
+            )
 
     NonstandardSwaption = getattr(_ql, "NonstandardSwaption", None)
     if NonstandardSwaption is not None:
