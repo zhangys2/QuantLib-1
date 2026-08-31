@@ -863,6 +863,13 @@ class ConstNotionalCrossCurrencySwap:
 
 def make_fix_fix_xccy_swap(usd_nominal: float, spot_fx: float) -> ConstNotionalCrossCurrencySwap: ...
 
+def make_float_float_xccy_swap(
+    usd_nominal: float,
+    spot_fx: float,
+    usd_projection: YieldTermStructureHandle,
+    gbp_projection: YieldTermStructureHandle,
+) -> ConstNotionalCrossCurrencySwap: ...
+
 class AssetSwap:
     def __init__(
         self,
