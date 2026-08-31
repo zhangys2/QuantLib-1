@@ -3312,6 +3312,15 @@ cov = f.covariance(0.0, 1.0, 1.0, 1.0)
 Recovers `MarketModelTests::testAbcdDegenerateCases`.
 Compat: `maximumVolatility`, `shortTermVolatility`, `longTermVolatility`.
 
+## Phase-180 multi-dimensional linear regression
+
+```python
+model = ql.LinearRegression(x_rows, y, intercept=1.0)
+```
+
+Recovers the intercept-based path in
+`LinearLeastSquaresRegressionTests::testMultiDimRegression`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
