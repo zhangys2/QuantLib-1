@@ -2914,6 +2914,22 @@ assert opt.NPV() == pytest.approx(4.275, abs=3e-4)
 Attaches `FdCIRVanillaEngine`. Compat: `setFdCirPricingEngine` (compat-only).
 Recovers `FdCIRTests::testFdmCIRConvergence`.
 
+## Phase-152 FD Heston + Hull–White
+
+```python
+heston = ql.HestonModel(heston_process)
+hw = ql.HullWhiteProcess(r_ts, 0.00883, 0.01)
+opt.set_fd_heston_hull_white_pricing_engine(
+    heston, hw, equity_short_rate_correlation=corr,
+    t_grid=50, x_grid=200, v_grid=10, r_grid=15,
+)
+# Compare to AnalyticBSMHullWhiteEngine when Heston vol → 0 (BSM limit).
+```
+
+Attaches `FdHestonHullWhiteVanillaEngine`. Compat:
+`setFdHestonHullWhitePricingEngine` (compat-only). Recovers
+`HybridHestonHullWhiteProcessTests::testFdmHestonHullWhiteEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

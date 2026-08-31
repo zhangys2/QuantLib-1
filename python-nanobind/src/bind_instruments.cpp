@@ -84,12 +84,14 @@
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
+#include <ql/pricingengines/vanilla/fdhestonhullwhitevanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanhestonengine.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
+#include <ql/processes/hullwhiteprocess.hpp>
 #include <ql/processes/merton76process.hpp>
 #include <ql/settings.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
@@ -978,6 +980,43 @@ void bind_instruments(nb::module_& m) {
             nb::arg("model"),
             nb::arg("integration_order") = 144,
             "Attach AnalyticPTDHestonEngine (piecewise time-dependent Heston).")
+        .def(
+            "set_fd_heston_hull_white_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& heston_model,
+               const ext::shared_ptr<HullWhiteProcess>& hw_process,
+               Real equity_short_rate_correlation,
+               Size t_grid,
+               Size x_grid,
+               Size v_grid,
+               Size r_grid,
+               Size damping_steps,
+               bool control_variate,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdHestonHullWhiteVanillaEngine>(
+                        heston_model,
+                        hw_process,
+                        equity_short_rate_correlation,
+                        t_grid,
+                        x_grid,
+                        v_grid,
+                        r_grid,
+                        damping_steps,
+                        control_variate,
+                        scheme_desc));
+            },
+            nb::arg("heston_model"),
+            nb::arg("hw_process"),
+            nb::arg("equity_short_rate_correlation"),
+            nb::arg("t_grid") = 50,
+            nb::arg("x_grid") = 100,
+            nb::arg("v_grid") = 40,
+            nb::arg("r_grid") = 20,
+            nb::arg("damping_steps") = 0,
+            nb::arg("control_variate") = true,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
+            "Attach FdHestonHullWhiteVanillaEngine (Heston + 1F Hull–White).")
         .def(
             "set_cos_heston_pricing_engine",
             [](EuropeanOption& opt,
