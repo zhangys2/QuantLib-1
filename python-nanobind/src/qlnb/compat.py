@@ -543,6 +543,10 @@ def _install_aliases() -> None:
             VanillaOption.setBjerksundStenslandPricingEngine = (  # type: ignore[attr-defined]
                 VanillaOption.set_bjerksund_stensland_pricing_engine
             )
+        if hasattr(VanillaOption, "set_jump_diffusion_pricing_engine"):
+            VanillaOption.setJumpDiffusionPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_jump_diffusion_pricing_engine
+            )
         if hasattr(VanillaOption, "set_fd_pricing_engine"):
             VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
                 VanillaOption.set_fd_pricing_engine

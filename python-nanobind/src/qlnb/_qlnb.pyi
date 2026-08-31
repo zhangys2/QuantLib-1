@@ -1549,6 +1549,22 @@ class BlackScholesMertonProcess:
         black_vol_ts: object,
     ) -> None: ...
 
+class Merton76Process:
+    def __init__(
+        self,
+        x0: QuoteHandle,
+        dividend_ts: YieldTermStructureHandle,
+        risk_free_ts: YieldTermStructureHandle,
+        black_vol_ts: object,
+        jump_intensity: QuoteHandle,
+        log_mean_jump: QuoteHandle,
+        log_jump_volatility: QuoteHandle,
+    ) -> None: ...
+    def x0(self) -> float: ...
+    def jump_intensity(self) -> float: ...
+    def log_mean_jump(self) -> float: ...
+    def log_jump_volatility(self) -> float: ...
+
 class VarianceGammaProcess:
     def __init__(
         self,
@@ -2251,6 +2267,12 @@ class VanillaOption:
     ) -> None: ...
     def set_bjerksund_stensland_pricing_engine(
         self, process: BlackScholesMertonProcess
+    ) -> None: ...
+    def set_jump_diffusion_pricing_engine(
+        self,
+        process: Merton76Process,
+        relative_accuracy: float = ...,
+        max_iterations: int = ...,
     ) -> None: ...
     def set_dividend_pricing_engine(
         self,
@@ -4296,6 +4318,7 @@ def BaroneAdesiWhaleyEngine(
 def BjerksundStenslandEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
+def JumpDiffusionEngine(process: Merton76Process) -> Merton76Process: ...
 def AnalyticDigitalAmericanEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...

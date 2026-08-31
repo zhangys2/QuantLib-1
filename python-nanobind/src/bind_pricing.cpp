@@ -35,6 +35,7 @@
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
 #include <ql/pricingengines/vanilla/bjerksundstenslandengine.hpp>
 #include <ql/pricingengines/vanilla/cashdividendeuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/jumpdiffusionengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
@@ -313,6 +314,19 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("process"),
             "Attach BjerksundStenslandApproximationEngine (American).")
+        .def(
+            "set_jump_diffusion_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<Merton76Process>& process,
+               Real relative_accuracy,
+               Size max_iterations) {
+                opt.setPricingEngine(ext::make_shared<JumpDiffusionEngine>(
+                    process, relative_accuracy, max_iterations));
+            },
+            nb::arg("process"),
+            nb::arg("relative_accuracy") = 1e-4,
+            nb::arg("max_iterations") = Size(100),
+            "Attach JumpDiffusionEngine (Merton 1976).")
         .def(
             "set_dividend_pricing_engine",
             [](VanillaOption& opt,
@@ -749,6 +763,13 @@ void bind_pricing(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "VanillaOption.set_bjerksund_stensland_pricing_engine.");
+
+    m.def(
+        "JumpDiffusionEngine",
+        [](const ext::shared_ptr<Merton76Process>& process) { return process; },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "VanillaOption.set_jump_diffusion_pricing_engine.");
 
     m.def(
         "AnalyticDigitalAmericanEngine",
