@@ -948,6 +948,16 @@ def _install_aliases() -> None:
     if LinearRegression is not None and hasattr(LinearRegression, "standard_errors"):
         LinearRegression.standardErrors = LinearRegression.standard_errors  # type: ignore[attr-defined]
 
+    AbcdFunction = getattr(_ql, "AbcdFunction", None)
+    if AbcdFunction is not None:
+        for snake, camel in (
+            ("maximum_volatility", "maximumVolatility"),
+            ("short_term_volatility", "shortTermVolatility"),
+            ("long_term_volatility", "longTermVolatility"),
+        ):
+            if hasattr(AbcdFunction, snake):
+                setattr(AbcdFunction, camel, getattr(AbcdFunction, snake))
+
     LmExponentialCorrelationModel = getattr(_ql, "LmExponentialCorrelationModel", None)
     if LmExponentialCorrelationModel is not None:
         if hasattr(LmExponentialCorrelationModel, "pseudo_sqrt"):
