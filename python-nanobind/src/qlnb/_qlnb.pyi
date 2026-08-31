@@ -2120,11 +2120,6 @@ class EuropeanOption:
     def set_fft_variance_gamma_pricing_engine(
         self, engine: FFTVarianceGammaEngine
     ) -> None: ...
-    def setFftVarianceGammaPricingEngine(
-        self,
-        process: VarianceGammaProcess | FFTVarianceGammaEngine,
-        log_strike_spacing: float = ...,
-    ) -> None: ...
     def set_fd_bates_pricing_engine(
         self,
         model: BatesModel,

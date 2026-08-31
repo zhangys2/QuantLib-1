@@ -78,8 +78,23 @@ def test_fft_matches_analytic_variance_gamma():
     assert opt_fft.NPV() == pytest.approx(opt_analytic.NPV(), abs=0.01)
 
 
+def test_native_fft_variance_gamma_snake_case_only():
+    # Native qlnb exposes snake_case; camelCase aliases live in qlnb.compat.
+    import sys
+
+    assert hasattr(ql.EuropeanOption, "set_fft_variance_gamma_pricing_engine")
+    assert hasattr(ql, "FFTVarianceGammaEngine")
+    assert hasattr(ql.FFTVarianceGammaEngine, "precalculate")
+    if "qlnb.compat" in sys.modules:
+        pytest.skip("qlnb.compat already loaded; camelCase aliases mutate EuropeanOption")
+    assert not hasattr(ql.EuropeanOption, "setFftVarianceGammaPricingEngine")
+
+
 def test_compat_phase119_aliases():
     import qlnb.compat as c
 
     assert ql.FFTVarianceGammaEngine is not None
     assert hasattr(c.EuropeanOption, "setFftVarianceGammaPricingEngine")
+    assert c.EuropeanOption.setFftVarianceGammaPricingEngine is (
+        ql.EuropeanOption.set_fft_variance_gamma_pricing_engine
+    )
