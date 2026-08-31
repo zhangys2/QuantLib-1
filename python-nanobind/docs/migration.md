@@ -2493,6 +2493,20 @@ assert asian.NPV() == pytest.approx(0.246416, abs=1e-5)
 Attaches `ContinuousArithmeticAsianVecerEngine`. Compat: `setVecerPricingEngine`
 (compat-only). Recovers `AsianOptionTests::testVecerEngine`.
 
+## Phase-123 Asian Levy continuous arithmetic
+
+```python
+asian = ql.ContinuousAveragingAsianOption(
+    ql.AverageType.Arithmetic, start_date, payoff, exercise
+)
+asian.set_levy_pricing_engine(process, ql.QuoteHandle(ql.SimpleQuote(100.0)))
+assert asian.NPV() == pytest.approx(7.0544, abs=1e-4)
+```
+
+Attaches `ContinuousArithmeticAsianLevyEngine` for (seasoned) continuous
+arithmetic Asians. Compat: `setLevyPricingEngine` (compat-only). Recovers
+Haug cases from `AsianOptionTests::testLevyEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

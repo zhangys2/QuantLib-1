@@ -584,6 +584,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `ContinuousAveragingAsianOption.set_vecer_pricing_engine` → `ContinuousArithmeticAsianVecerEngine`
 - Recovers `AsianOptionTests::testVecerEngine` NPVs (suite tols)
 
+### Phase 123 (Asian Levy continuous arithmetic)
+- Seasoned `ContinuousAveragingAsianOption(..., start_date, ...)` constructor
+- `set_levy_pricing_engine` → `ContinuousArithmeticAsianLevyEngine`
+- Recovers `AsianOptionTests::testLevyEngine` Haug goldens (tol 1e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
