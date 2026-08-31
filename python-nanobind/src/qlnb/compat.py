@@ -865,6 +865,10 @@ def _install_aliases() -> None:
             SwaptionHelper.setLfmPricingEngine = (  # type: ignore[attr-defined]
                 SwaptionHelper.set_lfm_pricing_engine
             )
+        if hasattr(SwaptionHelper, "set_gaussian1d_pricing_engine"):
+            SwaptionHelper.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                SwaptionHelper.set_gaussian1d_pricing_engine
+            )
         if hasattr(SwaptionHelper, "calibration_error"):
             SwaptionHelper.calibrationError = (  # type: ignore[attr-defined]
                 SwaptionHelper.calibration_error
@@ -2056,6 +2060,7 @@ MarkovFunctionalAdjustment = getattr(_ql, "MarkovFunctionalAdjustment", None)
 AnalyticHaganPricer = getattr(_ql, "AnalyticHaganPricer", None)
 NumericHaganPricer = getattr(_ql, "NumericHaganPricer", None)
 makeCms = getattr(_ql, "make_cms", None)
+makeSwaption = getattr(_ql, "make_swaption", None)
 
 CmsCoupon = getattr(_ql, "CmsCoupon", None)
 if CmsCoupon is not None:

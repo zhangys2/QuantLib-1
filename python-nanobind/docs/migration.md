@@ -3162,6 +3162,22 @@ outputs.market_call_premium[i][j]  # vs outputs.model_call_premium[i][j]
 
 Recovers `MarkovFunctionalTests::testCalibrationOneInstrumentSet` (flat baskets 1–2).
 
+## Phase-168 MarkovFunctional secondary calibration
+
+```python
+helper.set_gaussian1d_pricing_engine(mf)
+mf.calibrate(helpers, ql.LevenbergMarquardt(), end_criteria)
+mf.params()
+
+swaption = ql.make_swaption(swap_index, option_tenor)
+swaption.set_pricing_engine(yts, vol)
+black_vega = swaption.vega()
+swaption.set_gaussian1d_pricing_engine(mf)
+```
+
+Recovers `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (flat basket).
+Compat: `setGaussian1dPricingEngine` on `SwaptionHelper`, `makeSwaption`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
