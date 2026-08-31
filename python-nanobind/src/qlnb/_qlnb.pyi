@@ -4270,12 +4270,24 @@ class DiscreteAveragingAsianOption:
     def set_turnbull_wakeman_pricing_engine(
         self, process: BlackScholesMertonProcess
     ) -> None: ...
+    def set_choi_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        integration_lambda: float = ...,
+        max_nr_integration_steps: int = ...,
+    ) -> None: ...
     def set_heston_pricing_engine(
         self, process: HestonProcess, xi_right_limit: float = ...
     ) -> None: ...
     def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
     def setTurnbullWakemanPricingEngine(
         self, process: BlackScholesMertonProcess
+    ) -> None: ...
+    def setChoiPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        integration_lambda: float = ...,
+        max_nr_integration_steps: int = ...,
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
@@ -4606,6 +4618,11 @@ def AnalyticDiscreteGeometricAveragePriceAsianEngine(
 ) -> BlackScholesMertonProcess: ...
 def TurnbullWakemanAsianEngine(
     process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def ChoiAsianEngine(
+    process: BlackScholesMertonProcess,
+    integration_lambda: float = ...,
+    max_nr_integration_steps: int = ...,
 ) -> BlackScholesMertonProcess: ...
 def uniform_1d_mesher_locations(
     start: float, end: float, size: int

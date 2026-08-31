@@ -2757,6 +2757,20 @@ assert opt.NPV() == pytest.approx(analytic_npv, abs=0.01)
 Attaches `FdCEVVanillaEngine`. Compat: `setFdCevPricingEngine` (compat-only).
 Matches analytic CEV NPV/delta from `FdCEVTests` (tol 0.01).
 
+## Phase-139 Choi arithmetic Asian
+
+```python
+opt = ql.DiscreteAveragingAsianOption(
+    ql.AverageType.Arithmetic, 0.0, 0, fixing_dates, payoff, exercise
+)
+opt.set_choi_pricing_engine(process, integration_lambda=10.0, max_nr_integration_steps=8192)
+assert opt.NPV() == pytest.approx(1.3942835683, abs=3e-2)
+```
+
+Attaches `ChoiAsianEngine` (Choi 2018 basket replication). Compat:
+`setChoiPricingEngine` (compat-only). Recovers Levy cases from
+`AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 3e-2).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

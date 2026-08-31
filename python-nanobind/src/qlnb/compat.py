@@ -1724,6 +1724,10 @@ if DiscreteAveragingAsianOption is not None:
         DiscreteAveragingAsianOption.setTurnbullWakemanPricingEngine = (  # type: ignore[attr-defined]
             DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine
         )
+    if hasattr(DiscreteAveragingAsianOption, "set_choi_pricing_engine"):
+        DiscreteAveragingAsianOption.setChoiPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_choi_pricing_engine
+        )
     if hasattr(DiscreteAveragingAsianOption, "set_heston_pricing_engine"):
         DiscreteAveragingAsianOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             DiscreteAveragingAsianOption.set_heston_pricing_engine

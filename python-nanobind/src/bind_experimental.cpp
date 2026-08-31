@@ -61,6 +61,7 @@
 #include <ql/quotes/simplequote.hpp>
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
 #include <ql/pricingengines/asian/analytic_discr_geom_av_price.hpp>
+#include <ql/pricingengines/asian/choiasianengine.hpp>
 #include <ql/pricingengines/asian/continuousarithmeticasianlevyengine.hpp>
 #include <ql/pricingengines/asian/turnbullwakemanasianengine.hpp>
 #include <ql/experimental/asian/analytic_cont_geom_av_price_heston.hpp>
@@ -431,6 +432,19 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process"),
             "Attach TurnbullWakemanAsianEngine (arithmetic average-price).")
         .def(
+            "set_choi_pricing_engine",
+            [](DiscreteAveragingAsianOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Real integration_lambda,
+               Size max_nr_integration_steps) {
+                opt.setPricingEngine(ext::make_shared<ChoiAsianEngine>(
+                    process, integration_lambda, max_nr_integration_steps));
+            },
+            nb::arg("process"),
+            nb::arg("integration_lambda") = 15.0,
+            nb::arg("max_nr_integration_steps") = Size(2) << 21,
+            "Attach ChoiAsianEngine (arithmetic average-price, Choi 2018).")
+        .def(
             "set_heston_pricing_engine",
             [](DiscreteAveragingAsianOption& opt,
                const ext::shared_ptr<HestonProcess>& process,
@@ -468,6 +482,18 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias for "
         "DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine.");
+
+    m.def(
+        "ChoiAsianEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process,
+           Real integration_lambda,
+           Size max_nr_integration_steps) {
+            return process;
+        },
+        nb::arg("process"),
+        nb::arg("integration_lambda") = 15.0,
+        nb::arg("max_nr_integration_steps") = Size(2) << 21,
+        "Factory alias for DiscreteAveragingAsianOption.set_choi_pricing_engine.");
 
     // --- Phase 128: DeltaVolQuote (FX smile quotes for Vanna/Volga) ---
     nb::enum_<DeltaVolQuote::DeltaType>(m, "DeltaVolDeltaType")
