@@ -1603,6 +1603,19 @@ class HestonDiscretization:
     BroadieKayaExactSchemeLaguerre: HestonDiscretization
     BroadieKayaExactSchemeTrapezoidal: HestonDiscretization
 
+class CoxIngersollRossProcess:
+    def __init__(
+        self,
+        speed: float,
+        volatility: float,
+        x0: float = ...,
+        level: float = ...,
+    ) -> None: ...
+    def x0(self) -> float: ...
+    def speed(self) -> float: ...
+    def volatility(self) -> float: ...
+    def level(self) -> float: ...
+
 class HestonProcess:
     def __init__(
         self,
@@ -2464,6 +2477,17 @@ class VanillaOption:
         process: BlackScholesMertonProcess,
         t_grid: int = ...,
         x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+    def set_fd_cir_pricing_engine(
+        self,
+        cir_process: CoxIngersollRossProcess,
+        bs_process: BlackScholesMertonProcess,
+        equity_rate_correlation: float,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        r_grid: int = ...,
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
@@ -4571,6 +4595,11 @@ def FdBlackScholesShoutEngine(
     x_grid: int = ...,
     damping_steps: int = ...,
 ) -> BlackScholesMertonProcess: ...
+def FdCIRVanillaEngine(
+    cir_process: CoxIngersollRossProcess,
+    bs_process: BlackScholesMertonProcess,
+    equity_rate_correlation: float,
+) -> CoxIngersollRossProcess: ...
 class FixedDividend:
     def __init__(self, amount: float, date: Date) -> None: ...
     def amount(self) -> float: ...
