@@ -619,6 +619,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_digital_american_pricing_engine` → `AnalyticDigitalAmericanEngine`
 - Recovers Haug cash/asset at-hit cases from `DigitalOptionTests` (tol 1e-4)
 
+### Phase 131 (digital American KO)
+- `set_digital_american_ko_pricing_engine` → `AnalyticDigitalAmericanKOEngine`
+- Recovers at-expiry knock-out Haug cases from `DigitalOptionTests` (tol 1e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

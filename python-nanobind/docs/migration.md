@@ -2614,6 +2614,22 @@ Attaches `AnalyticDigitalAmericanEngine` for American cash/asset digital
 payoffs. Compat: `setDigitalAmericanPricingEngine` (compat-only). Recovers
 Haug at-hit cases from `DigitalOptionTests`.
 
+## Phase-131 digital American KO
+
+```python
+opt = ql.VanillaOption(
+    ql.CashOrNothingPayoff(ql.OptionType.Put, 100.0, 15.0),
+    ql.AmericanExercise(today, today + 180, payoff_at_expiry=True),
+)
+opt.set_digital_american_ko_pricing_engine(process)
+assert opt.NPV() == pytest.approx(4.9081, abs=1e-4)
+```
+
+Attaches `AnalyticDigitalAmericanKOEngine` for knock-out digital Americans
+(typically with `payoff_at_expiry=True`). Compat:
+`setDigitalAmericanKoPricingEngine` (compat-only). Recovers at-expiry KO
+Haug cases from `DigitalOptionTests`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

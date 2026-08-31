@@ -2246,6 +2246,9 @@ class VanillaOption:
     def set_digital_american_pricing_engine(
         self, process: BlackScholesMertonProcess
     ) -> None: ...
+    def set_digital_american_ko_pricing_engine(
+        self, process: BlackScholesMertonProcess
+    ) -> None: ...
     def set_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -4264,6 +4267,9 @@ def BaroneAdesiWhaleyEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 def AnalyticDigitalAmericanEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def AnalyticDigitalAmericanKOEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 def AnalyticBarrierEngine(

@@ -294,6 +294,15 @@ void bind_pricing(nb::module_& m) {
             nb::arg("process"),
             "Attach AnalyticDigitalAmericanEngine (cash/asset digital American).")
         .def(
+            "set_digital_american_ko_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticDigitalAmericanKOEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticDigitalAmericanKOEngine (knock-out digital American).")
+        .def(
             "set_dividend_pricing_engine",
             [](VanillaOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -729,6 +738,15 @@ void bind_pricing(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "VanillaOption.set_digital_american_pricing_engine.");
+
+    m.def(
+        "AnalyticDigitalAmericanKOEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "VanillaOption.set_digital_american_ko_pricing_engine.");
 
     nb::enum_<Position::Type>(m, "Position")
         .value("Long", Position::Long)
