@@ -1,12 +1,17 @@
 #include "bindings.hpp"
 
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
+
+#include <optional>
 
 #include <ql/exercise.hpp>
 #include <ql/handle.hpp>
 #include <ql/indexes/iborindex.hpp>
+#include <ql/indexes/swapindex.hpp>
 #include <ql/instruments/makeois.hpp>
+#include <ql/instruments/makeswaption.hpp>
 #include <ql/instruments/makevanillaswap.hpp>
 #include <ql/instruments/nonstandardswap.hpp>
 #include <ql/instruments/nonstandardswaption.hpp>
@@ -92,6 +97,19 @@ void bind_rates_options(nb::module_& m) {
         nb::arg("nominal") = 1.0,
         nb::arg("floating_spread") = 0.0,
         "Build a VanillaSwap via QuantLib MakeVanillaSwap (value copy).");
+
+    m.def(
+        "make_swaption",
+        [](const ext::shared_ptr<SwapIndex>& swap_index,
+           const Period& option_tenor,
+           std::optional<Rate> strike) {
+            return Swaption(MakeSwaption(
+                swap_index, option_tenor, strike.value_or(Null<Rate>())));
+        },
+        nb::arg("swap_index"),
+        nb::arg("option_tenor"),
+        nb::arg("strike") = nb::none(),
+        "Build a market Swaption via QuantLib MakeSwaption (value copy).");
 
     // HullWhite is MI-heavy (Vasicek + TermStructureConsistentModel) —
     // bind as a concrete type without exposing C++ bases.
@@ -274,6 +292,10 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("delivery") = Settlement::Physical,
             nb::arg("settlement_method") = Settlement::PhysicalOTC)
         .def("NPV", [](Swaption& s) { return s.NPV(); })
+        .def(
+            "vega",
+            [](Swaption& s) { return s.result<Real>("vega"); },
+            "Black/Bachelier vega (requires a compatible pricing engine).")
         .def("type", [](const Swaption& s) { return s.type(); })
         .def("settlement_type",
              [](const Swaption& s) { return s.settlementType(); })

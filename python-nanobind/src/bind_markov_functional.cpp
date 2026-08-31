@@ -5,6 +5,11 @@
 
 #include <ql/indexes/iborindex.hpp>
 #include <ql/indexes/swapindex.hpp>
+#include <ql/math/optimization/endcriteria.hpp>
+#include <ql/math/optimization/levenbergmarquardt.hpp>
+#include <ql/models/calibrationhelper.hpp>
+#include <ql/models/shortrate/calibrationhelpers/caphelper.hpp>
+#include <ql/models/shortrate/calibrationhelpers/swaptionhelper.hpp>
 #include <ql/models/shortrate/onefactormodels/markovfunctional.hpp>
 #include <ql/termstructures/volatility/optionlet/optionletvolatilitystructure.hpp>
 #include <ql/termstructures/volatility/swaption/swaptionvolstructure.hpp>
@@ -183,5 +188,40 @@ void bind_markov_functional(nb::module_& m) {
             "model_settings",
             [](const MarkovFunctional& model) { return model.modelSettings(); })
         .def("numeraire_date", &MarkovFunctional::numeraireDate)
-        .def("numeraire_time", &MarkovFunctional::numeraireTime);
+        .def("numeraire_time", &MarkovFunctional::numeraireTime)
+        .def(
+            "params",
+            [](const MarkovFunctional& model) {
+                const Array p = model.params();
+                return std::vector<Real>(p.begin(), p.end());
+            },
+            "Calibrated piecewise volatilities (and related parameters).")
+        .def(
+            "calibrate",
+            [](MarkovFunctional& model,
+               nb::list py_helpers,
+               LevenbergMarquardt& method,
+               const EndCriteria& end_criteria) {
+                std::vector<ext::shared_ptr<CalibrationHelper>> calib;
+                calib.reserve(py_helpers.size());
+                for (nb::handle item : py_helpers) {
+                    if (nb::isinstance<CapHelper>(item)) {
+                        calib.push_back(ext::static_pointer_cast<CalibrationHelper>(
+                            nb::cast<ext::shared_ptr<CapHelper>>(item)));
+                    } else if (nb::isinstance<SwaptionHelper>(item)) {
+                        calib.push_back(ext::static_pointer_cast<CalibrationHelper>(
+                            nb::cast<ext::shared_ptr<SwaptionHelper>>(item)));
+                    } else {
+                        throw std::runtime_error(
+                            "helpers must be CapHelper or SwaptionHelper "
+                            "instances");
+                    }
+                }
+                model.calibrate(calib, method, end_criteria);
+            },
+            nb::arg("helpers"),
+            nb::arg("method"),
+            nb::arg("end_criteria"),
+            "Secondary calibration of piecewise vols to CapHelper/"
+            "SwaptionHelper instruments.");
 }

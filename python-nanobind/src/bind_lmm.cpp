@@ -27,7 +27,9 @@
 #include <ql/models/model.hpp>
 #include <ql/models/shortrate/calibrationhelpers/caphelper.hpp>
 #include <ql/models/shortrate/calibrationhelpers/swaptionhelper.hpp>
+#include <ql/models/shortrate/onefactormodels/markovfunctional.hpp>
 #include <ql/pricingengines/capfloor/analyticcapfloorengine.hpp>
+#include <ql/pricingengines/swaption/gaussian1dswaptionengine.hpp>
 #include <ql/termstructures/volatility/optionlet/capletvariancecurve.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -407,7 +409,29 @@ void bind_lmm(nb::module_& m) {
             },
             nb::arg("model"),
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
-            "Attach LfmSwaptionEngine for LMM calibration.");
+            "Attach LfmSwaptionEngine for LMM calibration.")
+        .def(
+            "set_gaussian1d_pricing_engine",
+            [](SwaptionHelper& helper,
+               const ext::shared_ptr<MarkovFunctional>& model,
+               int integration_points,
+               Real stddevs,
+               bool extrapolate_payoff,
+               bool flat_payoff_extrapolation) {
+                helper.setPricingEngine(
+                    ext::make_shared<Gaussian1dSwaptionEngine>(
+                        model,
+                        integration_points,
+                        stddevs,
+                        extrapolate_payoff,
+                        flat_payoff_extrapolation));
+            },
+            nb::arg("model"),
+            nb::arg("integration_points") = 64,
+            nb::arg("stddevs") = 7.0,
+            nb::arg("extrapolate_payoff") = true,
+            nb::arg("flat_payoff_extrapolation") = false,
+            "Attach Gaussian1dSwaptionEngine on a MarkovFunctional model.");
 
     m.def(
         "lm_fixed_volatilities_from_caplet_curve",

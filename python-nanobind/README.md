@@ -796,6 +796,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `MarkovFunctionalModelOutputs` zero-rate and model premium fields
 - Golden checks from `MarkovFunctionalTests::testCalibrationOneInstrumentSet` (flat baskets 1–2)
 
+### Phase 168 (MarkovFunctional secondary calibration)
+- `MarkovFunctional.calibrate`, `params`
+- `SwaptionHelper.set_gaussian1d_pricing_engine` on `MarkovFunctional`
+- `make_swaption`, `Swaption.vega`
+- Golden checks from `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (flat basket)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
