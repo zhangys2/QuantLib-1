@@ -440,6 +440,19 @@ def _install_aliases() -> None:
                 KahaleSmileSection.digital_option_price
             )
 
+    SmileSectionUtils = getattr(_ql, "SmileSectionUtils", None)
+    if SmileSectionUtils is not None:
+        if hasattr(SmileSectionUtils, "arbitragefree_indices"):
+            SmileSectionUtils.arbitragefreeIndices = (  # type: ignore[attr-defined]
+                SmileSectionUtils.arbitragefree_indices
+            )
+        if hasattr(SmileSectionUtils, "arbitragefree_region"):
+            SmileSectionUtils.arbitragefreeRegion = (  # type: ignore[attr-defined]
+                SmileSectionUtils.arbitragefree_region
+            )
+        if hasattr(SmileSectionUtils, "atm_level"):
+            SmileSectionUtils.atmLevel = SmileSectionUtils.atm_level  # type: ignore[attr-defined]
+
     MarkovFunctionalModelSettings = getattr(_ql, "MarkovFunctionalModelSettings", None)
     if MarkovFunctionalModelSettings is not None:
         for snake, camel in (

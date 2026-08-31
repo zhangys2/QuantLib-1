@@ -817,6 +817,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `markov_functional_test_md0_coterminal_helper_vols` fixture
 - Golden checks from `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (real md0 basket)
 
+### Phase 173 (SmileSectionUtils)
+- `SmileSectionUtils` with `arbitragefree_indices` / `arbitragefree_region`
+- Golden check from `MarkovFunctionalTests::testSmileSectionUtilsWShapedSmile`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
