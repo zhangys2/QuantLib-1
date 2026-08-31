@@ -77,14 +77,38 @@ void bind_lmm(nb::module_& m) {
             nb::arg("start_times"));
 
     nb::class_<LmExponentialCorrelationModel>(m, "LmExponentialCorrelationModel")
-        .def(nb::init<Size, Real>(), nb::arg("size"), nb::arg("rho"));
+        .def(nb::init<Size, Real>(), nb::arg("size"), nb::arg("rho"))
+        .def(
+            "correlation",
+            [](const LmExponentialCorrelationModel& model, Time t) {
+                return model.correlation(t);
+            },
+            nb::arg("t"))
+        .def(
+            "pseudo_sqrt",
+            [](const LmExponentialCorrelationModel& model, Time t) {
+                return model.pseudoSqrt(t);
+            },
+            nb::arg("t"));
 
     nb::class_<LmLinearExponentialCorrelationModel>(m,
                                                      "LmLinearExponentialCorrelationModel")
         .def(nb::init<Size, Real, Real>(),
              nb::arg("size"),
              nb::arg("rho"),
-             nb::arg("beta"));
+             nb::arg("beta"))
+        .def(
+            "correlation",
+            [](const LmLinearExponentialCorrelationModel& model, Time t) {
+                return model.correlation(t);
+            },
+            nb::arg("t"))
+        .def(
+            "pseudo_sqrt",
+            [](const LmLinearExponentialCorrelationModel& model, Time t) {
+                return model.pseudoSqrt(t);
+            },
+            nb::arg("t"));
 
     nb::class_<LmLinearExponentialVolatilityModel>(m,
                                                      "LmLinearExponentialVolatilityModel")
@@ -103,7 +127,15 @@ void bind_lmm(nb::module_& m) {
             nb::arg("a"),
             nb::arg("b"),
             nb::arg("c"),
-            nb::arg("d"));
+            nb::arg("d"))
+        .def(
+            "volatility",
+            [](const LmLinearExponentialVolatilityModel& model, Time t) {
+                const Array v = model.volatility(t);
+                return std::vector<Real>(v.begin(), v.end());
+            },
+            nb::arg("t"),
+            "Caplet volatility vector at time t.");
 
     nb::class_<LmExtLinearExponentialVolModel>(m, "LmExtLinearExponentialVolModel")
         .def(
@@ -150,7 +182,19 @@ void bind_lmm(nb::module_& m) {
                 new (self) LfmCovarianceProxy(vola_model, corr_model);
             },
             nb::arg("volatility_model"),
-            nb::arg("correlation_model"));
+            nb::arg("correlation_model"))
+        .def(
+            "covariance",
+            [](const LfmCovarianceProxy& proxy, Time t) {
+                return proxy.covariance(t);
+            },
+            nb::arg("t"))
+        .def(
+            "diffusion",
+            [](const LfmCovarianceProxy& proxy, Time t) {
+                return proxy.diffusion(t);
+            },
+            nb::arg("t"));
 
     nb::class_<CapletVarianceCurve>(m, "CapletVarianceCurve")
         .def(nb::init<const Date&,
