@@ -7,6 +7,7 @@
 #include <ql/time/calendar.hpp>
 #include <ql/time/calendars/germany.hpp>
 #include <ql/time/calendars/japan.hpp>
+#include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/calendars/nullcalendar.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/calendars/unitedkingdom.hpp>
@@ -165,6 +166,20 @@ void bind_time(nb::module_& m) {
         "UnitedStates",
         [](UnitedStates::Market market) { return Calendar(UnitedStates(market)); },
         nb::arg("market") = UnitedStates::Settlement);
+
+    nb::enum_<JointCalendarRule>(m, "JointCalendarRule")
+        .value("JoinHolidays", JoinHolidays)
+        .value("JoinBusinessDays", JoinBusinessDays);
+
+    m.def(
+        "JointCalendar",
+        [](const Calendar& c1, const Calendar& c2, JointCalendarRule rule) {
+            return Calendar(JointCalendar(c1, c2, rule));
+        },
+        nb::arg("calendar1"),
+        nb::arg("calendar2"),
+        nb::arg("rule") = JoinHolidays,
+        "Union (JoinHolidays) or intersection (JoinBusinessDays) of two calendars.");
 
     nb::class_<Schedule>(m, "Schedule")
         .def(
