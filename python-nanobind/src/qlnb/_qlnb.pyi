@@ -1943,6 +1943,12 @@ class EuropeanOption:
         process: BlackScholesMertonProcess,
         model: "HullWhite",
     ) -> None: ...
+    def set_heston_hull_white_pricing_engine(
+        self,
+        heston_model: HestonModel,
+        hull_white_model: "HullWhite",
+        integration_order: int = ...,
+    ) -> None: ...
     def set_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -4401,6 +4407,11 @@ def AnalyticBSMHullWhiteEngine(
     process: BlackScholesMertonProcess,
     model: "HullWhite",
 ) -> BlackScholesMertonProcess: ...
+def AnalyticHestonHullWhiteEngine(
+    heston_model: HestonModel,
+    hull_white_model: "HullWhite",
+    integration_order: int = ...,
+) -> HestonModel: ...
 def AnalyticDividendEuropeanEngine(
     process: BlackScholesMertonProcess,
     dividend_dates: Sequence[Date],
