@@ -2354,6 +2354,14 @@ class VanillaOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
+    def set_fd_shout_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def set_fd_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -4438,6 +4446,12 @@ def CashDividendEuropeanEngine(
 ) -> BlackScholesMertonProcess: ...
 def FdBlackScholesVanillaEngine(
     process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def FdBlackScholesShoutEngine(
+    process: BlackScholesMertonProcess,
+    t_grid: int = ...,
+    x_grid: int = ...,
+    damping_steps: int = ...,
 ) -> BlackScholesMertonProcess: ...
 class FixedDividend:
     def __init__(self, amount: float, date: Date) -> None: ...
