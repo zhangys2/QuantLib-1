@@ -121,7 +121,6 @@
 #include <ql/pricingengines/capfloor/treecapfloorengine.hpp>
 #include <ql/legacy/libormarketmodels/liborforwardmodel.hpp>
 #include <ql/models/model.hpp>
-#include <ql/models/model.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
