@@ -1,12 +1,17 @@
 /* Test-suite market fixtures for MarkovFunctional golden tests.
- * Copied from test-suite/markovfunctional.cpp (md0Yts, md0SwaptionVts). */
+ * Copied from test-suite/markovfunctional.cpp (md0Yts, md0SwaptionVts,
+ * md0OptionletVts). */
 
 #include "markov_functional_test_market.hpp"
 
 #include <ql/indexes/ibor/euribor.hpp>
 #include <ql/indexes/swap/euriborswap.hpp>
+#include <ql/math/matrix.hpp>
 #include <ql/math/optimization/endcriteria.hpp>
 #include <ql/quotes/simplequote.hpp>
+#include <ql/termstructures/volatility/capfloor/capfloortermvolsurface.hpp>
+#include <ql/termstructures/volatility/optionlet/strippedoptionletadapter.hpp>
+#include <ql/termstructures/volatility/optionlet/optionletstripper1.hpp>
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 #include <ql/termstructures/volatility/swaption/sabrswaptionvolatilitycube.hpp>
@@ -278,6 +283,80 @@ Handle<SwaptionVolatilityStructure> md0SwaptionVts() {
     return res;
 }
 
+Handle<OptionletVolatilityStructure> md0OptionletVts() {
+
+    Size nOptTen = 16;
+    Size nStrikes = 12;
+
+    std::vector<Period> optionTenors = {
+        1 * Years,  18 * Months, 2 * Years,  3 * Years,
+        4 * Years,  5 * Years,   6 * Years,  7 * Years,
+        8 * Years,  9 * Years,   10 * Years, 12 * Years,
+        15 * Years, 20 * Years,  25 * Years, 30 * Years };
+
+    std::vector<Real> strikes = {
+        0.0025, 0.0050, 0.0100, 0.0150, 0.0200, 0.0225,
+        0.0250, 0.0300, 0.0350, 0.0400, 0.0500, 0.0600 };
+
+    Matrix vols(nOptTen, nStrikes);
+    Real volsa[13][16] = { { 1.3378, 1.3032, 1.2514, 1.081, 1.019, 0.961,
+                                 0.907,  0.862,  0.822,  0.788, 0.758, 0.709,
+                                 0.66,   0.619,  0.597,  0.579 },
+                           { 1.1882, 1.1057, 0.9823, 0.879, 0.828, 0.779,
+                             0.736,  0.7,    0.67,   0.644, 0.621, 0.582,
+                             0.544,  0.513,  0.496,  0.482 },
+                           { 1.1646, 1.0356, 0.857, 0.742, 0.682, 0.626,
+                             0.585,  0.553,  0.527, 0.506, 0.488, 0.459,
+                             0.43,   0.408,  0.396, 0.386 },
+                           { 1.1932, 1.0364, 0.8291, 0.691, 0.618, 0.553,
+                             0.509,  0.477,  0.452,  0.433, 0.417, 0.391,
+                             0.367,  0.35,   0.342,  0.335 },
+                           { 1.2233, 1.0489, 0.8268, 0.666, 0.582, 0.51,
+                             0.463,  0.43,   0.405,  0.387, 0.372, 0.348,
+                             0.326,  0.312,  0.306,  0.301 },
+                           { 1.2369, 1.0555, 0.8283, 0.659, 0.57,  0.495,
+                             0.447,  0.414,  0.388,  0.37,  0.355, 0.331,
+                             0.31,   0.298,  0.293,  0.289 },
+                           { 1.2498, 1.0622, 0.8307, 0.653, 0.56,  0.483,
+                             0.434,  0.4,    0.374,  0.356, 0.341, 0.318,
+                             0.297,  0.286,  0.282,  0.279 },
+                           { 1.2719, 1.0747, 0.8368, 0.646, 0.546, 0.465,
+                             0.415,  0.38,   0.353,  0.335, 0.32,  0.296,
+                             0.277,  0.268,  0.265,  0.263 },
+                           { 1.2905, 1.0858, 0.8438, 0.643, 0.536, 0.453,
+                             0.403,  0.367,  0.339,  0.32,  0.305, 0.281,
+                             0.262,  0.255,  0.254,  0.252 },
+                           { 1.3063, 1.0953, 0.8508, 0.642, 0.53,  0.445,
+                             0.395,  0.358,  0.329,  0.31,  0.294, 0.271,
+                             0.252,  0.246,  0.246,  0.244 },
+                           { 1.332, 1.1108, 0.8631, 0.642, 0.521, 0.436,
+                             0.386, 0.348,  0.319,  0.298, 0.282, 0.258,
+                             0.24,  0.237,  0.237,  0.236 },
+                           { 1.3513, 1.1226, 0.8732, 0.645, 0.517, 0.43,
+                             0.381,  0.344,  0.314,  0.293, 0.277, 0.252,
+                             0.235,  0.233,  0.234,  0.233 },
+                           { 1.395, 1.1491, 0.9003, 0.661, 0.511, 0.425,
+                             0.38,  0.344,  0.314,  0.292, 0.275, 0.251,
+                             0.236, 0.236,  0.238,  0.235 } };
+
+    for (Size i = 0; i < nStrikes; i++) {
+        for (Size j = 0; j < nOptTen; j++) {
+            vols[j][i] = volsa[i][j];
+        }
+    }
+
+    ext::shared_ptr<IborIndex> iborIndex(
+            new Euribor(6 * Months, md0Yts()));
+    ext::shared_ptr<CapFloorTermVolSurface> cf(new CapFloorTermVolSurface(
+            0, TARGET(), ModifiedFollowing, optionTenors, strikes, vols));
+    ext::shared_ptr<OptionletStripper> stripper(
+            new OptionletStripper1(cf, iborIndex));
+
+    return Handle<OptionletVolatilityStructure>(
+            ext::shared_ptr<OptionletVolatilityStructure>(
+                new StrippedOptionletAdapter(stripper)));
+}
+
 } // namespace
 
 Handle<YieldTermStructure> markov_functional_test_md0_yts() {
@@ -286,6 +365,10 @@ Handle<YieldTermStructure> markov_functional_test_md0_yts() {
 
 Handle<SwaptionVolatilityStructure> markov_functional_test_md0_swaption_vts() {
     return md0SwaptionVts();
+}
+
+Handle<OptionletVolatilityStructure> markov_functional_test_md0_optionlet_vts() {
+    return md0OptionletVts();
 }
 
 } // namespace qlnb
