@@ -2372,6 +2372,18 @@ assert swap.NPV() == pytest.approx(218961.99, abs=0.01)  # or 218981.99
 Adds `make_fix_float_xccy_swap` for TRY fixed vs USD 3M Libor float legs.
 Compat: `makeFixFloatXCCYSwap`. Recovers `testFloatFixXCCYSwapPricing`.
 
+## Phase-114 YoY inflation Cap / Floor / Collar
+
+```python
+cap = ql.YoYInflationCap(sched, yoy, lag, interp, strike, calendar, dc)
+cap.set_pricing_engine(yoy, vol, nominal, model="black")
+assert cap.NPV() == pytest.approx(wrapper.NPV(), abs=1e-12)
+```
+
+Standalone wrappers mirror SWIG class names; NPV matches `YoYInflationCapFloor(type, …)`.
+Compat: `YoYInflationCap`, `YoYInflationFloor`, `YoYInflationCollar`.
+Recovers `InflationCapFloorTests::testConsistency`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

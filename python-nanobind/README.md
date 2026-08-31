@@ -547,6 +547,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `make_fix_float_xccy_swap` factory (TRY fixed / USD Libor float)
 - Recovers `ConstNotionalCrossCurrencySwapTests::testFloatFixXCCYSwapPricing` (tol 0.01)
 
+### Phase 114 (YoY inflation Cap / Floor / Collar)
+- Standalone `YoYInflationCap`, `YoYInflationFloor`, `YoYInflationCollar` wrappers (SWIG parity)
+- NPV matches `YoYInflationCapFloor` type wrapper; recovers `InflationCapFloorTests::testConsistency`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

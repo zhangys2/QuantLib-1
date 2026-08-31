@@ -4737,6 +4737,103 @@ class YoYInflationCapFloor:
         model: str = ...,
     ) -> None: ...
 
+class YoYInflationCap:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: YoYInflationIndex,
+        observation_lag: Period,
+        observation_interpolation: CPIInterpolationType,
+        strike: float,
+        payment_calendar: Calendar,
+        day_counter: DayCounter,
+        nominal: float = ...,
+        payment_convention: BusinessDayConvention = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def __init__(
+        self, yoy_leg: Sequence[object], strike: float
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def type(self) -> YoYInflationCapFloorType: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def is_expired(self) -> bool: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def set_pricing_engine(
+        self,
+        index: YoYInflationIndex,
+        volatility: YoYOptionletVolatilitySurfaceHandle,
+        nominal: YieldTermStructureHandle,
+        model: str = ...,
+    ) -> None: ...
+
+class YoYInflationFloor:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: YoYInflationIndex,
+        observation_lag: Period,
+        observation_interpolation: CPIInterpolationType,
+        strike: float,
+        payment_calendar: Calendar,
+        day_counter: DayCounter,
+        nominal: float = ...,
+        payment_convention: BusinessDayConvention = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def __init__(
+        self, yoy_leg: Sequence[object], strike: float
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def type(self) -> YoYInflationCapFloorType: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def is_expired(self) -> bool: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def set_pricing_engine(
+        self,
+        index: YoYInflationIndex,
+        volatility: YoYOptionletVolatilitySurfaceHandle,
+        nominal: YieldTermStructureHandle,
+        model: str = ...,
+    ) -> None: ...
+
+class YoYInflationCollar:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: YoYInflationIndex,
+        observation_lag: Period,
+        observation_interpolation: CPIInterpolationType,
+        cap_strike: float,
+        floor_strike: float,
+        payment_calendar: Calendar,
+        day_counter: DayCounter,
+        nominal: float = ...,
+        payment_convention: BusinessDayConvention = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def __init__(
+        self,
+        yoy_leg: Sequence[object],
+        cap_strike: float,
+        floor_strike: float,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def type(self) -> YoYInflationCapFloorType: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def is_expired(self) -> bool: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def set_pricing_engine(
+        self,
+        index: YoYInflationIndex,
+        volatility: YoYOptionletVolatilitySurfaceHandle,
+        nominal: YieldTermStructureHandle,
+        model: str = ...,
+    ) -> None: ...
+
 def ConstantYoYOptionletVolatility(
     volatility: float,
     settlement_days: int,

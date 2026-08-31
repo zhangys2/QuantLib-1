@@ -1830,6 +1830,49 @@ if YoYInflationCapFloor is not None:
     )
 
 YoYInflationCapFloorType = getattr(_ql, "YoYInflationCapFloorType", None)
+YoYInflationCap = getattr(_ql, "YoYInflationCap", None)
+YoYInflationFloor = getattr(_ql, "YoYInflationFloor", None)
+YoYInflationCollar = getattr(_ql, "YoYInflationCollar", None)
+if YoYInflationCap is not None:
+    YoYInflationCap.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationCap.set_pricing_engine
+    )
+    YoYInflationCap.atmRate = YoYInflationCap.atm_rate  # type: ignore[attr-defined]
+    YoYInflationCap.startDate = YoYInflationCap.start_date  # type: ignore[attr-defined]
+    YoYInflationCap.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationCap.maturity_date
+    )
+    YoYInflationCap.isExpired = YoYInflationCap.is_expired  # type: ignore[attr-defined]
+if YoYInflationFloor is not None:
+    YoYInflationFloor.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationFloor.set_pricing_engine
+    )
+    YoYInflationFloor.atmRate = YoYInflationFloor.atm_rate  # type: ignore[attr-defined]
+    YoYInflationFloor.startDate = (  # type: ignore[attr-defined]
+        YoYInflationFloor.start_date
+    )
+    YoYInflationFloor.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationFloor.maturity_date
+    )
+    YoYInflationFloor.isExpired = (  # type: ignore[attr-defined]
+        YoYInflationFloor.is_expired
+    )
+if YoYInflationCollar is not None:
+    YoYInflationCollar.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationCollar.set_pricing_engine
+    )
+    YoYInflationCollar.atmRate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.atm_rate
+    )
+    YoYInflationCollar.startDate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.start_date
+    )
+    YoYInflationCollar.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.maturity_date
+    )
+    YoYInflationCollar.isExpired = (  # type: ignore[attr-defined]
+        YoYInflationCollar.is_expired
+    )
 YoYOptionletVolatilitySurfaceHandle = getattr(
     _ql, "YoYOptionletVolatilitySurfaceHandle", None
 )
