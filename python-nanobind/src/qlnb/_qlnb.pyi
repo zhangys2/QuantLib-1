@@ -4045,12 +4045,6 @@ class ContinuousAveragingAsianOption:
         summation_cutoff: int = ...,
         xi_right_limit: float = ...,
     ) -> None: ...
-    def setHestonPricingEngine(
-        self,
-        process: HestonProcess,
-        summation_cutoff: int = ...,
-        xi_right_limit: float = ...,
-    ) -> None: ...
 
 class DiscreteAveragingAsianOption:
     def __init__(
