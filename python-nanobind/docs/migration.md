@@ -2583,6 +2583,22 @@ Attaches `VannaVolgaBarrierEngine`. Compat: `setVannaVolgaPricingEngine`
 (compat-only). Recovers cases from
 `BarrierOptionTests::testVannaVolgaSimpleBarrierValues`.
 
+## Phase-129 Vanna/Volga double barrier
+
+```python
+opt = ql.DoubleBarrierOption(
+    ql.DoubleBarrierType.KnockOut, 1.1, 1.5, 0.0, payoff, exercise
+)
+opt.set_vanna_volga_pricing_engine(
+    atm, put25, call25, spot, domestic_ts, foreign_ts,
+    adapt_van_delta=True, bs_price_with_smile=bs_vanilla, series=5,
+)
+```
+
+Attaches `VannaVolgaDoubleBarrierEngine<SuoWangDoubleBarrierEngine>`. Compat:
+`setVannaVolgaPricingEngine` (compat-only). Recovers KO goldens (and KI as
+vanilla − KO) from `DoubleBarrierOptionTests::testVannaVolgaDoubleBarrierValues`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

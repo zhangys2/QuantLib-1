@@ -38,6 +38,7 @@
 #include <ql/experimental/barrieroption/quantodoublebarrieroption.hpp>
 #include <ql/experimental/barrieroption/suowangdoublebarrierengine.hpp>
 #include <ql/experimental/barrieroption/vannavolgabarrierengine.hpp>
+#include <ql/experimental/barrieroption/vannavolgadoublebarrierengine.hpp>
 #include <ql/quotes/deltavolquote.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
@@ -2961,6 +2962,41 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process"),
             nb::arg("series") = 5,
             "Attach SuoWangDoubleBarrierEngine (Wulin Suo / Yong Wang).")
+        .def(
+            "set_vanna_volga_pricing_engine",
+            [](DoubleBarrierOption& opt,
+               const ext::shared_ptr<DeltaVolQuote>& atm_vol,
+               const ext::shared_ptr<DeltaVolQuote>& vol25_put,
+               const ext::shared_ptr<DeltaVolQuote>& vol25_call,
+               const Handle<Quote>& spot_fx,
+               const Handle<YieldTermStructure>& domestic_ts,
+               const Handle<YieldTermStructure>& foreign_ts,
+               bool adapt_van_delta,
+               Real bs_price_with_smile,
+               int series) {
+                opt.setPricingEngine(
+                    ext::make_shared<
+                        VannaVolgaDoubleBarrierEngine<SuoWangDoubleBarrierEngine>>(
+                        Handle<DeltaVolQuote>(atm_vol),
+                        Handle<DeltaVolQuote>(vol25_put),
+                        Handle<DeltaVolQuote>(vol25_call),
+                        spot_fx,
+                        domestic_ts,
+                        foreign_ts,
+                        adapt_van_delta,
+                        bs_price_with_smile,
+                        series));
+            },
+            nb::arg("atm_vol"),
+            nb::arg("vol25_put"),
+            nb::arg("vol25_call"),
+            nb::arg("spot_fx"),
+            nb::arg("domestic_ts"),
+            nb::arg("foreign_ts"),
+            nb::arg("adapt_van_delta") = false,
+            nb::arg("bs_price_with_smile") = 0.0,
+            nb::arg("series") = 5,
+            "Attach VannaVolgaDoubleBarrierEngine<SuoWangDoubleBarrierEngine>.")
         .def(
             "set_binary_pricing_engine",
             [](DoubleBarrierOption& opt,
