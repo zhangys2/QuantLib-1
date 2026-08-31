@@ -2949,6 +2949,18 @@ Attaches `MCHestonHullWhiteEngine`. Compat:
 `setMcHestonHullWhitePricingEngine` (compat-only). Recovers
 `HybridHestonHullWhiteProcessTests::testMcVanillaPricing`.
 
+## Phase-154 GSR Jamshidian swaption
+
+```python
+gsr = ql.Gsr(yts, [], [vol], reversion, T=50.0)
+swaption.set_gaussian1d_jamshidian_pricing_engine(gsr)
+# Compare to HullWhite JamshidianSwaptionEngine (GsrTests::testGsrModel).
+```
+
+Attaches `Gaussian1dJamshidianSwaptionEngine`. Compat:
+`setGaussian1dJamshidianPricingEngine` (compat-only). Recovers
+`GsrTests::testGsrModel` Jamshidian NPV check (tol 5e-5).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

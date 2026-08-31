@@ -20,6 +20,7 @@
 #include <ql/pricingengines/swaption/blackswaptionengine.hpp>
 #include <ql/pricingengines/swaption/fdhullwhiteswaptionengine.hpp>
 #include <ql/pricingengines/swaption/gaussian1dnonstandardswaptionengine.hpp>
+#include <ql/pricingengines/swaption/gaussian1djamshidianswaptionengine.hpp>
 #include <ql/pricingengines/swaption/gaussian1dswaptionengine.hpp>
 #include <ql/pricingengines/swaption/jamshidianswaptionengine.hpp>
 #include <ql/pricingengines/swaption/treeswaptionengine.hpp>
@@ -314,6 +315,16 @@ void bind_rates_options(nb::module_& m) {
             nb::arg("flat_payoff_extrapolation") = false,
             "Attach Gaussian1dSwaptionEngine on a Gsr model.")
         .def(
+            "set_gaussian1d_jamshidian_pricing_engine",
+            [](Swaption& s, const ext::shared_ptr<Gsr>& model) {
+                s.setPricingEngine(
+                    ext::make_shared<Gaussian1dJamshidianSwaptionEngine>(
+                        model));
+            },
+            nb::arg("model"),
+            "Attach Gaussian1dJamshidianSwaptionEngine on a Gsr model "
+            "(European).")
+        .def(
             "set_fd_hullwhite_pricing_engine",
             [](Swaption& s,
                const ext::shared_ptr<HullWhite>& model,
@@ -434,6 +445,13 @@ void bind_rates_options(nb::module_& m) {
         [](const ext::shared_ptr<Gsr>& model) { return model; },
         nb::arg("model"),
         "Factory alias: pass model to Swaption.set_gaussian1d_pricing_engine.");
+
+    m.def(
+        "Gaussian1dJamshidianSwaptionEngine",
+        [](const ext::shared_ptr<Gsr>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to "
+        "Swaption.set_gaussian1d_jamshidian_pricing_engine.");
 
     m.def(
         "FdHullWhiteSwaptionEngine",
