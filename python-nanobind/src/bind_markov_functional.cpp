@@ -240,4 +240,9 @@ void bind_markov_functional(nb::module_& m) {
         "markov_functional_test_md0_optionlet_vts",
         &qlnb::markov_functional_test_md0_optionlet_vts,
         "MarkovFunctionalTests md0 caplet vol surface (14-Nov-2012 market).");
+
+    m.def(
+        "markov_functional_test_md0_coterminal_helper_vols",
+        &qlnb::markov_functional_test_md0_coterminal_helper_vols,
+        "ATM coterminal swaption vols for md0 secondary calibration helpers.");
 }
