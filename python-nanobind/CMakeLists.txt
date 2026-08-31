@@ -65,6 +65,7 @@ nanobind_add_module(
     src/bind_heston.cpp
     src/bind_lmm.cpp
     src/bind_smile.cpp
+    src/bind_markov_functional.cpp
     src/bind_experimental.cpp
 )
 
