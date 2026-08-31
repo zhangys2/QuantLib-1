@@ -1015,13 +1015,17 @@ def _install_aliases() -> None:
             TwoAssetCorrelationOption.is_expired
         )
 
-    # Phase-34 cliquet aliases.
+    # Phase-34/143 cliquet aliases.
     CliquetOption = getattr(_ql, "CliquetOption", None)
     if CliquetOption is not None:
         CliquetOption.setPricingEngine = (  # type: ignore[attr-defined]
             CliquetOption.set_pricing_engine
         )
         CliquetOption.isExpired = CliquetOption.is_expired  # type: ignore[attr-defined]
+        if hasattr(CliquetOption, "set_performance_pricing_engine"):
+            CliquetOption.setPerformancePricingEngine = (  # type: ignore[attr-defined]
+                CliquetOption.set_performance_pricing_engine
+            )
 
     CompoundOption = getattr(_ql, "CompoundOption", None)
     if CompoundOption is not None:

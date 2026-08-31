@@ -2810,6 +2810,17 @@ Attaches `FdBlackScholesAsianEngine` (arithmetic average-price). Compat:
 `setFdPricingEngine` (compat-only). Recovers Levy cases from
 `AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 2e-2).
 
+## Phase-143 Analytic performance engine
+
+```python
+opt.set_performance_pricing_engine(process)
+assert opt.NPV() > 0.0
+```
+
+Attaches `AnalyticPerformanceEngine` on `CliquetOption`. Compat:
+`setPerformancePricingEngine` (compat-only). Recovers FD-delta consistency
+from `CliquetOptionTests::testPerformanceGreeks`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
