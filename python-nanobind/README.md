@@ -721,6 +721,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `EuropeanOption.set_mc_heston_hull_white_pricing_engine` (same engine)
 - Recovers MC vs `AnalyticBSMHullWhiteEngine` (`testMcVanillaPricing`, 3σ / 1e-4 at ρ=0)
 
+### Phase 154 (GSR Jamshidian swaption)
+- `Swaption.set_gaussian1d_jamshidian_pricing_engine` → `Gaussian1dJamshidianSwaptionEngine`
+- Matches `JamshidianSwaptionEngine` on constant GSR/HW params (`GsrTests::testGsrModel`, tol 5e-5)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

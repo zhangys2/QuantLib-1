@@ -315,6 +315,10 @@ def _install_aliases() -> None:
             Swaption.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
                 Swaption.set_gaussian1d_pricing_engine
             )
+        if hasattr(Swaption, "set_gaussian1d_jamshidian_pricing_engine"):
+            Swaption.setGaussian1dJamshidianPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_gaussian1d_jamshidian_pricing_engine
+            )
         if hasattr(Swaption, "set_fd_hullwhite_pricing_engine"):
             Swaption.setFdHullWhitePricingEngine = (  # type: ignore[attr-defined]
                 Swaption.set_fd_hullwhite_pricing_engine

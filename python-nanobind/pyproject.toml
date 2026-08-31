@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "4.24.0"
-description = "Nanobind Python bindings for QuantLib (phase 153: MCHestonHullWhiteEngine)"
+version = "4.25.0"
+description = "Nanobind Python bindings for QuantLib (phase 154: Gaussian1dJamshidianSwaptionEngine)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
