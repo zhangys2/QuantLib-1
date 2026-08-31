@@ -30,6 +30,7 @@
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
 #include <ql/instruments/compositeinstrument.hpp>
+#include <ql/instruments/constnotionalcrosscurrencyfixedvsfloatingswap.hpp>
 #include <ql/instruments/stock.hpp>
 #include <ql/pricingengines/bond/bondfunctions.hpp>
 #include <ql/instruments/dividendschedule.hpp>
@@ -43,6 +44,7 @@
 #include <ql/experimental/finitedifferences/fdsimpleextoustorageengine.hpp>
 #include <ql/experimental/processes/extendedornsteinuhlenbeckprocess.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
+#include <ql/pricingengines/swap/discountingconstnotionalcrosscurrencyswapengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/vanilla/fdsimplebsswingengine.hpp>
 #include <ql/models/equity/batesmodel.hpp>
@@ -2320,4 +2322,118 @@ void bind_instruments(nb::module_& m) {
         .def("NPV", [](CompositeInstrument& c) { return c.NPV(); })
         .def("is_expired",
              [](const CompositeInstrument& c) { return c.isExpired(); });
+
+    // --- Phase 106: ConstNotionalCrossCurrencyFixedVsFloatingSwap ---
+    nb::class_<ConstNotionalCrossCurrencyFixedVsFloatingSwap>(
+        m, "ConstNotionalCrossCurrencyFixedVsFloatingSwap")
+        .def(
+            "__init__",
+            [](ConstNotionalCrossCurrencyFixedVsFloatingSwap* self,
+               Swap::Type type,
+               Real fixed_nominal,
+               const Currency& fixed_currency,
+               const Schedule& fixed_schedule,
+               Rate fixed_rate,
+               const DayCounter& fixed_day_count,
+               BusinessDayConvention fixed_payment_bdc,
+               Natural fixed_payment_lag,
+               const Calendar& fixed_payment_calendar,
+               Real float_nominal,
+               const Currency& float_currency,
+               const Schedule& float_schedule,
+               const ext::shared_ptr<IborIndex>& float_index,
+               Spread float_spread,
+               BusinessDayConvention float_payment_bdc,
+               Natural float_payment_lag,
+               const Calendar& float_payment_calendar) {
+                new (self) ConstNotionalCrossCurrencyFixedVsFloatingSwap(
+                    type,
+                    fixed_nominal,
+                    fixed_currency,
+                    fixed_schedule,
+                    fixed_rate,
+                    fixed_day_count,
+                    fixed_payment_bdc,
+                    fixed_payment_lag,
+                    fixed_payment_calendar,
+                    float_nominal,
+                    float_currency,
+                    float_schedule,
+                    float_index,
+                    float_spread,
+                    float_payment_bdc,
+                    float_payment_lag,
+                    float_payment_calendar);
+            },
+            nb::arg("type"),
+            nb::arg("fixed_nominal"),
+            nb::arg("fixed_currency"),
+            nb::arg("fixed_schedule"),
+            nb::arg("fixed_rate"),
+            nb::arg("fixed_day_count"),
+            nb::arg("fixed_payment_bdc"),
+            nb::arg("fixed_payment_lag"),
+            nb::arg("fixed_payment_calendar"),
+            nb::arg("float_nominal"),
+            nb::arg("float_currency"),
+            nb::arg("float_schedule"),
+            nb::arg("float_index"),
+            nb::arg("float_spread"),
+            nb::arg("float_payment_bdc"),
+            nb::arg("float_payment_lag"),
+            nb::arg("float_payment_calendar"))
+        .def("NPV",
+             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s) {
+                 return s.NPV();
+             })
+        .def("leg_npv",
+             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s, Size leg) {
+                 return s.legNPV(leg);
+             },
+             nb::arg("leg"))
+        .def("leg_bps",
+             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s, Size leg) {
+                 return s.legBPS(leg);
+             },
+             nb::arg("leg"))
+        .def("in_ccy_leg_npv",
+             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s, Size leg) {
+                 return s.inCcyLegNPV(leg);
+             },
+             nb::arg("leg"))
+        .def("in_ccy_leg_bps",
+             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s, Size leg) {
+                 return s.inCcyLegBPS(leg);
+             },
+             nb::arg("leg"))
+        .def("fair_rate",
+             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s) {
+                 return s.fairRate();
+             })
+        .def("fair_spread",
+             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s) {
+                 return s.fairSpread();
+             })
+        .def(
+            "set_pricing_engine",
+            [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s,
+               const Currency& domestic_currency,
+               const Handle<YieldTermStructure>& domestic_discount,
+               const Currency& foreign_currency,
+               const Handle<YieldTermStructure>& foreign_discount,
+               const Handle<Quote>& spot_fx) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingConstNotionalCrossCurrencySwapEngine>(
+                        domestic_currency,
+                        domestic_discount,
+                        foreign_currency,
+                        foreign_discount,
+                        spot_fx));
+            },
+            nb::arg("domestic_currency"),
+            nb::arg("domestic_discount"),
+            nb::arg("foreign_currency"),
+            nb::arg("foreign_discount"),
+            nb::arg("spot_fx"),
+            "Attach DiscountingConstNotionalCrossCurrencySwapEngine.");
 }

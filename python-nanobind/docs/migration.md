@@ -2252,6 +2252,20 @@ accepts `GapPayoff`, `SuperFundPayoff`, and `SuperSharePayoff`; analytic
 European pricing recovers `DigitalOptionTest::testGapEuropeanValues` for
 `GapPayoff` (tol 1e-4). Compat: `optionType`, `secondStrike`, `cashPayoff`.
 
+## Phase-106 ConstNotionalCrossCurrencyFixedVsFloatingSwap
+
+```python
+swap = ql.ConstNotionalCrossCurrencyFixedVsFloatingSwap(...)
+swap.set_pricing_engine(
+    ql.USDCurrency(), usd_curve, ql.TRYCurrency(), try_curve, fx_quote
+)
+assert swap.NPV() == pytest.approx(129777.91, abs=0.01)
+```
+
+Standalone swap wrapper with `DiscountingConstNotionalCrossCurrencySwapEngine`.
+Also adds `DiscountCurve`, `TRYCurrency`, and `Turkey` calendar helpers.
+Recovers `ConstNotionalCrossCurrencyFixedVsFloatingSwapTest` (tol 0.01).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
