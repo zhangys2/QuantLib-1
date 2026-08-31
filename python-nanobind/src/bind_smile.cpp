@@ -8,6 +8,7 @@
 #include <ql/pricingengines/blackformula.hpp>
 #include <ql/termstructures/volatility/interpolatedsmilesection.hpp>
 #include <ql/termstructures/volatility/kahalesmilesection.hpp>
+#include <ql/termstructures/volatility/smilesectionutils.hpp>
 
 using namespace QuantLib;
 
@@ -136,4 +137,35 @@ void bind_smile(nb::module_& m) {
                 return section.digitalOptionPrice(strike);
             },
             nb::arg("strike"));
+
+    nb::class_<SmileSectionUtils>(m, "SmileSectionUtils")
+        .def(
+            "__init__",
+            [](SmileSectionUtils* self,
+               const LinearSmileSectionHandle& source,
+               const std::vector<Real>& moneyness_grid,
+               Real atm) {
+                new (self) SmileSectionUtils(
+                    *source.section, moneyness_grid, atm);
+            },
+            nb::arg("source"),
+            nb::arg("moneyness_grid"),
+            nb::arg("atm"))
+        .def(
+            "arbitragefree_indices",
+            [](const SmileSectionUtils& utils) -> nb::tuple {
+                const auto idx = utils.arbitragefreeIndices();
+                return nb::make_tuple(
+                    static_cast<long long>(idx.first),
+                    static_cast<long long>(idx.second));
+            })
+        .def(
+            "arbitragefree_region",
+            [](const SmileSectionUtils& utils) -> nb::tuple {
+                const auto region = utils.arbitragefreeRegion();
+                return nb::make_tuple(region.first, region.second);
+            })
+        .def(
+            "atm_level",
+            [](const SmileSectionUtils& utils) { return utils.atmLevel(); });
 }

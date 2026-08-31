@@ -3233,6 +3233,17 @@ assert abs(black_price - mf_price) / black_vega <= 0.1
 Recovers `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (real md0 basket).
 Compat: `markovFunctionalTestMd0CoterminalHelperVols`.
 
+## Phase-173 SmileSectionUtils W-shaped smile
+
+```python
+sec = ql.LinearSmileSection(t, strikes, std_devs, atm)
+utils = ql.SmileSectionUtils(sec, money, atm)
+left, right = utils.arbitragefree_indices()
+assert right > left
+```
+
+Recovers `MarkovFunctionalTests::testSmileSectionUtilsWShapedSmile`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
