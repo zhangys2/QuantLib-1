@@ -15,6 +15,10 @@
 #include <ql/models/equity/gjrgarchmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/models/equity/hestonmodelhelper.hpp>
+#include <ql/math/optimization/constraint.hpp>
+#include <ql/models/equity/piecewisetimedependenthestonmodel.hpp>
+#include <ql/models/parameter.hpp>
+#include <ql/pricingengines/vanilla/analyticptdhestonengine.hpp>
 #include <ql/models/equity/roughhestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticgjrgarchengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
@@ -29,6 +33,7 @@
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/calendar.hpp>
 #include <ql/time/period.hpp>
+#include <ql/timegrid.hpp>
 #include <ql/utilities/null.hpp>
 
 #include <vector>
@@ -714,4 +719,58 @@ void bind_heston(nb::module_& m) {
         nb::arg("time_steps") = 256,
         "Factory alias: pass args to "
         "VanillaOption/EuropeanOption.set_rough_heston_pricing_engine.");
+
+    // --- Phase 150: piecewise time-dependent Heston -------------------------
+    nb::class_<PiecewiseTimeDependentHestonModel>(m,
+                                                  "PiecewiseTimeDependentHestonModel")
+        .def(
+            "__init__",
+            [](PiecewiseTimeDependentHestonModel* self,
+               const Handle<YieldTermStructure>& risk_free_rate,
+               const Handle<YieldTermStructure>& dividend_yield,
+               const Handle<Quote>& s0,
+               Real v0,
+               Real theta,
+               Real kappa,
+               Real sigma,
+               Real rho,
+               Time grid_end,
+               Size grid_steps) {
+                ConstantParameter theta_param(theta, PositiveConstraint());
+                ConstantParameter kappa_param(kappa, PositiveConstraint());
+                ConstantParameter sigma_param(sigma, PositiveConstraint());
+                ConstantParameter rho_param(rho, BoundaryConstraint(-1.0, 1.0));
+                new (self) PiecewiseTimeDependentHestonModel(
+                    risk_free_rate,
+                    dividend_yield,
+                    s0,
+                    v0,
+                    theta_param,
+                    kappa_param,
+                    sigma_param,
+                    rho_param,
+                    TimeGrid(grid_end, grid_steps));
+            },
+            nb::arg("risk_free_rate"),
+            nb::arg("dividend_yield"),
+            nb::arg("s0"),
+            nb::arg("v0"),
+            nb::arg("theta"),
+            nb::arg("kappa"),
+            nb::arg("sigma"),
+            nb::arg("rho"),
+            nb::arg("grid_end") = 20.0,
+            nb::arg("grid_steps") = 2,
+            "Piecewise-constant Heston parameters on a time grid.")
+        .def("v0", &PiecewiseTimeDependentHestonModel::v0)
+        .def("s0", &PiecewiseTimeDependentHestonModel::s0);
+
+    m.def(
+        "AnalyticPTDHestonEngine",
+        [](const ext::shared_ptr<PiecewiseTimeDependentHestonModel>& model,
+           Size /*integration_order*/) { return model; },
+        nb::arg("model"),
+        nb::arg("integration_order") = 144,
+        "Factory alias: pass args to "
+        "VanillaOption/EuropeanOption.set_ptd_heston_pricing_engine.");
 }
