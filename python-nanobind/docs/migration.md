@@ -3102,6 +3102,19 @@ vola.volatility(t)
 Recovers `LiborMarketModelTests::testSimpleCovarianceModels`. Compat:
 `pseudoSqrt`, `volatility`, `covariance`, `diffusion`.
 
+## Phase-164 Markov functional state process
+
+```python
+sp = ql.MfStateProcess(reversion=0.0, times=[], vols=[1.0])
+assert sp.variance(0.0, 0.0, 1.0) == 1.0
+
+sp = ql.MfStateProcess(0.01, [1.0, 2.0], [1.0, 2.0, 3.0])
+sp.diffusion(1.0, 0.0)
+sp.variance(0.0, 0.0, 1.5)
+```
+
+Recovers `MarkovFunctionalTests::testMfStateProcess`. Compat: `stdDeviation`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
