@@ -2384,6 +2384,18 @@ Standalone wrappers mirror SWIG class names; NPV matches `YoYInflationCapFloor(t
 Compat: `YoYInflationCap`, `YoYInflationFloor`, `YoYInflationCollar`.
 Recovers `InflationCapFloorTests::testConsistency`.
 
+## Phase-115 CmsRateBond
+
+```python
+bond = ql.CmsRateBond(3, 100.0, schedule, swap_index, dc, gearings=[0.84])
+bond.set_pricing_engine(curve)
+bond.set_cms_coupon_pricer(cms_pricer)
+asw = ql.AssetSwap(True, bond, bond.clean_price(), ibor, 0.0, floating_day_count=ibor.day_counter())
+```
+
+Adds `CmsRateBond` with CMS coupon pricer attachment and `AssetSwap(CmsRateBond, …)`.
+Compat: `CmsRateBond`, `setCmsCouponPricer`. Recovers CMS leg of `AssetSwapTests::testImpliedValue`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

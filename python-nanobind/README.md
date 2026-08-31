@@ -551,6 +551,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - Standalone `YoYInflationCap`, `YoYInflationFloor`, `YoYInflationCollar` wrappers (SWIG parity)
 - NPV matches `YoYInflationCapFloor` type wrapper; recovers `InflationCapFloorTests::testConsistency`
 
+### Phase 115 (CmsRateBond)
+- `CmsRateBond` + `set_cms_coupon_pricer`; `AssetSwap` overload for CMS underlying
+- Recovers `AssetSwapTests::testImpliedValue` CMS bond zero-spread fair clean (tol 1e-2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

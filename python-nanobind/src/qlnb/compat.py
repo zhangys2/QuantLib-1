@@ -1478,6 +1478,30 @@ if ConstNotionalCrossCurrencySwap is not None:
 makeFixFixXCCYSwap = getattr(_ql, "make_fix_fix_xccy_swap", None)
 makeFloatFloatXCCYSwap = getattr(_ql, "make_float_float_xccy_swap", None)
 makeFixFloatXCCYSwap = getattr(_ql, "make_fix_float_xccy_swap", None)
+CmsRateBond = getattr(_ql, "CmsRateBond", None)
+if CmsRateBond is not None:
+    CmsRateBond.cleanPrice = CmsRateBond.clean_price  # type: ignore[attr-defined]
+    CmsRateBond.dirtyPrice = CmsRateBond.dirty_price  # type: ignore[attr-defined]
+    CmsRateBond.settlementDate = CmsRateBond.settlement_date  # type: ignore[attr-defined]
+    CmsRateBond.maturityDate = CmsRateBond.maturity_date  # type: ignore[attr-defined]
+    CmsRateBond.settlementValue = (  # type: ignore[attr-defined]
+        CmsRateBond.settlement_value
+    )
+    CmsRateBond.setPricingEngine = (  # type: ignore[attr-defined]
+        CmsRateBond.set_pricing_engine
+    )
+    CmsRateBond.setCmsCouponPricer = (  # type: ignore[attr-defined]
+        CmsRateBond.set_cms_coupon_pricer
+    )
+    if hasattr(CmsRateBond, "bond_yield"):
+        CmsRateBond.bondYield = CmsRateBond.bond_yield  # type: ignore[attr-defined]
+        CmsRateBond.zSpread = CmsRateBond.z_spread  # type: ignore[attr-defined]
+        CmsRateBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+            CmsRateBond.clean_price_from_z_spread
+        )
+        CmsRateBond.accruedAmount = (  # type: ignore[attr-defined]
+            CmsRateBond.accrued_amount
+        )
 CHFCurrency = getattr(_ql, "CHFCurrency", None)
 Switzerland = getattr(_ql, "Switzerland", None)
 

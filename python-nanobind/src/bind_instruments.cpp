@@ -21,11 +21,13 @@
 #include <ql/instruments/perpetualfutures.hpp>
 #include <ql/instruments/zerocouponswap.hpp>
 #include <ql/indexes/bmaindex.hpp>
+#include <ql/indexes/swapindex.hpp>
 #include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 #include <ql/pricingengines/futures/discountingperpetualfuturesengine.hpp>
 #include <ql/instruments/bonds/amortizingfixedratebond.hpp>
 #include <ql/instruments/bonds/amortizingfloatingratebond.hpp>
+#include <ql/instruments/bonds/cmsratebond.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
@@ -1248,6 +1250,86 @@ void bind_instruments(nb::module_& m) {
             "Attach DiscountingBondEngine and BlackIborCouponPricer on cashflows.");
     add_bond_analytics(floating_rate_bond);
 
+    // CMS-rate bond (standalone; Bond/Instrument use MI via LazyObject).
+    nb::class_<CmsRateBond> cms_rate_bond(m, "CmsRateBond");
+    cms_rate_bond
+        .def(
+            "__init__",
+            [](CmsRateBond* self,
+               Natural settlement_days,
+               Real face_amount,
+               const Schedule& schedule,
+               const ext::shared_ptr<SwapIndex>& swap_index,
+               const DayCounter& payment_day_counter,
+               BusinessDayConvention payment_convention,
+               Natural fixing_days,
+               const std::vector<Real>& gearings,
+               const std::vector<Spread>& spreads,
+               const std::vector<Rate>& caps,
+               const std::vector<Rate>& floors,
+               bool in_arrears,
+               Real redemption,
+               const Date& issue_date) {
+                const Natural ql_fixing_days =
+                    (fixing_days == 0) ? Null<Natural>() : fixing_days;
+                const std::vector<Real> ql_gearings =
+                    gearings.empty() ? std::vector<Real>{1.0} : gearings;
+                const std::vector<Spread> ql_spreads =
+                    spreads.empty() ? std::vector<Spread>{0.0} : spreads;
+                new (self) CmsRateBond(settlement_days,
+                                       face_amount,
+                                       schedule,
+                                       swap_index,
+                                       payment_day_counter,
+                                       payment_convention,
+                                       ql_fixing_days,
+                                       ql_gearings,
+                                       ql_spreads,
+                                       caps,
+                                       floors,
+                                       in_arrears,
+                                       redemption,
+                                       issue_date);
+            },
+            nb::arg("settlement_days"),
+            nb::arg("face_amount"),
+            nb::arg("schedule"),
+            nb::arg("swap_index"),
+            nb::arg("payment_day_counter"),
+            nb::arg("payment_convention") = Following,
+            nb::arg("fixing_days") = 0,
+            nb::arg("gearings") = std::vector<Real>{},
+            nb::arg("spreads") = std::vector<Spread>{},
+            nb::arg("caps") = std::vector<Rate>{},
+            nb::arg("floors") = std::vector<Rate>{},
+            nb::arg("in_arrears") = false,
+            nb::arg("redemption") = 100.0,
+            nb::arg("issue_date") = Date())
+        .def("NPV", [](CmsRateBond& b) { return b.NPV(); })
+        .def("clean_price", [](CmsRateBond& b) { return b.cleanPrice(); })
+        .def("dirty_price", [](CmsRateBond& b) { return b.dirtyPrice(); })
+        .def("settlement_date",
+             [](const CmsRateBond& b) { return b.settlementDate(); })
+        .def("maturity_date",
+             [](const CmsRateBond& b) { return b.maturityDate(); })
+        .def("settlement_value",
+             [](const CmsRateBond& b) { return b.settlementValue(); })
+        .def(
+            "set_pricing_engine",
+            [](CmsRateBond& b, const Handle<YieldTermStructure>& discount_curve) {
+                b.setPricingEngine(
+                    ext::make_shared<DiscountingBondEngine>(discount_curve));
+            },
+            nb::arg("discount_curve"))
+        .def(
+            "set_cms_coupon_pricer",
+            [](CmsRateBond& b, const ext::shared_ptr<CmsCouponPricer>& pricer) {
+                setCouponPricer(b.cashflows(), pricer);
+            },
+            nb::arg("pricer"),
+            "Attach a CmsCouponPricer to all CMS coupons on the bond.");
+    add_bond_analytics(cms_rate_bond);
+
     // Amortizing fixed-rate bond (standalone; Bond/Instrument use MI via LazyObject).
     nb::class_<AmortizingFixedRateBond> amortizing_fixed_rate_bond(
         m, "AmortizingFixedRateBond");
@@ -1582,6 +1664,43 @@ void bind_instruments(nb::module_& m) {
                const Date& deal_maturity) {
                 new (self) AssetSwap(pay_bond_coupon,
                                      ext::make_shared<FloatingRateBond>(bond),
+                                     bond_clean_price,
+                                     ibor_index,
+                                     spread,
+                                     float_schedule,
+                                     floating_day_count,
+                                     par_asset_swap,
+                                     gearing,
+                                     non_par_repayment.value_or(Null<Real>()),
+                                     deal_maturity);
+            },
+            nb::arg("pay_bond_coupon"),
+            nb::arg("bond"),
+            nb::arg("bond_clean_price"),
+            nb::arg("ibor_index"),
+            nb::arg("spread"),
+            nb::arg("float_schedule") = Schedule(),
+            nb::arg("floating_day_count") = DayCounter(),
+            nb::arg("par_asset_swap") = true,
+            nb::arg("gearing") = 1.0,
+            nb::arg("non_par_repayment") = nb::none(),
+            nb::arg("deal_maturity") = Date())
+        .def(
+            "__init__",
+            [](AssetSwap* self,
+               bool pay_bond_coupon,
+               const CmsRateBond& bond,
+               Real bond_clean_price,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               Spread spread,
+               const Schedule& float_schedule,
+               const DayCounter& floating_day_count,
+               bool par_asset_swap,
+               Real gearing,
+               std::optional<Real> non_par_repayment,
+               const Date& deal_maturity) {
+                new (self) AssetSwap(pay_bond_coupon,
+                                     ext::make_shared<CmsRateBond>(bond),
                                      bond_clean_price,
                                      ibor_index,
                                      spread,
