@@ -48,6 +48,39 @@ def test_composite_when_shifting_dates():
     assert composite.NPV() != 0.0
 
 
+def test_composite_shares_stock_leg():
+    # Composite must observe the original Stock, not a value copy.
+    q = ql.SimpleQuote(1.0)
+    stock = ql.Stock(ql.QuoteHandle(q))
+    composite = ql.CompositeInstrument()
+    composite.add(stock)
+
+    assert composite.NPV() == pytest.approx(1.0)
+    q.set_value(2.5)
+    assert composite.NPV() == pytest.approx(2.5)
+
+
+def test_composite_shares_european_option_leg():
+    # Engine attached after add must be visible to the composite leg.
+    today = ql.get_evaluation_date()
+    dc = ql.Actual360()
+    opt = ql.EuropeanOption(
+        ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+        ql.EuropeanExercise(today + 30),
+    )
+    composite = ql.CompositeInstrument()
+    composite.add(opt)
+
+    process = ql.BlackScholesMertonProcess(
+        ql.make_quote_handle(100.0),
+        ql.FlatForward(today, 0.0, dc),
+        ql.FlatForward(today, 0.01, dc),
+        ql.BlackConstantVol(today, ql.NullCalendar(), 0.1, dc),
+    )
+    opt.set_pricing_engine(process)
+    assert composite.NPV() != 0.0
+
+
 def test_compat_phase104_aliases():
     import qlnb.compat as c
 

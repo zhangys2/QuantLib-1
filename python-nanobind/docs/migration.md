@@ -2231,7 +2231,8 @@ assert composite.NPV() == 0.0
 ```
 
 Standalone Instrument wrappers. `Stock` NPV tracks its quote;
-`CompositeInstrument` sums weighted leg NPVs. Compat: `isExpired`.
+`CompositeInstrument` sums weighted leg NPVs, retaining shared
+`Instrument` ownership (not value copies). Compat: `isExpired`.
 Recovers `InstrumentTests::testCompositeWhenShiftingDates`.
 
 ## Phase-49 COS / exponential-fitting Heston engines
