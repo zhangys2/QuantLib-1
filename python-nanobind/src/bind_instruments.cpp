@@ -66,6 +66,7 @@
 #include <ql/pricingengines/vanilla/fdsimplebsswingengine.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
+#include <ql/pricingengines/vanilla/analyticbsmhullwhiteengine.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
@@ -78,6 +79,7 @@
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanhestonengine.hpp>
+#include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/processes/merton76process.hpp>
@@ -700,6 +702,20 @@ void bind_instruments(nb::module_& m) {
             },
             nb::arg("process"))
         .def(
+            "set_bsm_hull_white_pricing_engine",
+            [](EuropeanOption& opt,
+               Real equity_short_rate_correlation,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const ext::shared_ptr<HullWhite>& model) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticBSMHullWhiteEngine>(
+                        equity_short_rate_correlation, process, model));
+            },
+            nb::arg("equity_short_rate_correlation"),
+            nb::arg("process"),
+            nb::arg("model"),
+            "Attach AnalyticBSMHullWhiteEngine (BSM + 1F Hull–White).")
+        .def(
             "set_dividend_pricing_engine",
             [](EuropeanOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -1171,6 +1187,17 @@ void bind_instruments(nb::module_& m) {
             return process;
         },
         nb::arg("process"));
+
+    m.def(
+        "AnalyticBSMHullWhiteEngine",
+        [](Real /*equity_short_rate_correlation*/,
+           const ext::shared_ptr<BlackScholesMertonProcess>& process,
+           const ext::shared_ptr<HullWhite>& /*model*/) { return process; },
+        nb::arg("equity_short_rate_correlation"),
+        nb::arg("process"),
+        nb::arg("model"),
+        "Factory alias: pass args to "
+        "EuropeanOption.set_bsm_hull_white_pricing_engine.");
 
     m.def(
         "AnalyticDividendEuropeanEngine",

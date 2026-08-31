@@ -404,6 +404,10 @@ def _install_aliases() -> None:
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
     EuropeanOption.impliedVolatility = EuropeanOption.implied_volatility  # type: ignore[attr-defined]
+    if hasattr(EuropeanOption, "set_bsm_hull_white_pricing_engine"):
+        EuropeanOption.setBsmHullWhitePricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bsm_hull_white_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_dividend_pricing_engine"):
         EuropeanOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_dividend_pricing_engine
