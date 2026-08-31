@@ -469,6 +469,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - Engine: `set_mc_pricing_engine` → `MakeMCEverestEngine<PseudoRandom>`
 - Recovers suite cached NPV **0.75784944** (tol 1e-8, seed 86421, 1023 samples, 1 step/year)
 
+### Phase 98 (FloatFloatSwap)
+- `FloatFloatSwap` (standalone Swap wrapper) + `make_float_float_swap`
+- Engine: `set_pricing_engine` → `DiscountingSwapEngine` + `BlackIborCouponPricer`
+- Recovers suite fair-spread NPV-zeroing / payer–receiver symmetry (tol 1e-10)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

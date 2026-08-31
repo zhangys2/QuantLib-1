@@ -2052,6 +2052,32 @@ Standalone wrapper (MultiAssetOption/Instrument MI). Engine is
 setattr. Compat: `setMCPricingEngine`, `errorEstimate`, `isExpired`.
 Recovers suite cached NPV 0.75784944 (tol 1e-8).
 
+## Phase-98 FloatFloatSwap
+
+```python
+calendar = ql.TARGET()
+today = calendar.adjust(ql.get_evaluation_date())
+ql.set_evaluation_date(today)
+settlement = calendar.advance(today, 2, ql.TimeUnit.Days)
+curve = ql.FlatForward(settlement, 0.05, ql.Actual365Fixed())
+index1, index2 = ql.Euribor3M(curve), ql.Euribor6M(curve)
+
+swap = ql.make_float_float_swap(
+    ql.SwapType.Payer, 100.0, index1, index2, curve, spread2=0.002
+)
+fair = swap.fair_spread1()
+par = ql.make_float_float_swap(
+    ql.SwapType.Payer, 100.0, index1, index2, curve, spread1=fair, spread2=0.002
+)
+assert abs(par.NPV()) < 1e-10
+```
+
+Standalone wrapper (Swap/Instrument MI). Engine is `DiscountingSwapEngine`
+with `BlackIborCouponPricer` on both legs (attached by
+`set_pricing_engine` / `make_float_float_swap`). Compat: `fairSpread1`,
+`fairSpread2`, `legNPV`, `setPricingEngine`, `makeFloatFloatSwap`. Recovers
+suite fair-spread NPV-zeroing and payer/receiver symmetry (tol 1e-10).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

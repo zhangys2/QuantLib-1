@@ -1138,6 +1138,24 @@ if MultipleResetsSwap is not None:
         MultipleResetsSwap.set_pricing_engine
     )
 
+# Phase-98 FloatFloatSwap aliases.
+FloatFloatSwap = getattr(_ql, "FloatFloatSwap", None)
+makeFloatFloatSwap = getattr(_ql, "make_float_float_swap", None)
+MakeFloatFloatSwap = makeFloatFloatSwap
+if FloatFloatSwap is not None:
+    FloatFloatSwap.fairSpread1 = (  # type: ignore[attr-defined]
+        FloatFloatSwap.fair_spread1
+    )
+    FloatFloatSwap.fairSpread2 = (  # type: ignore[attr-defined]
+        FloatFloatSwap.fair_spread2
+    )
+    FloatFloatSwap.legNPV = FloatFloatSwap.leg_NPV  # type: ignore[attr-defined]
+    FloatFloatSwap.legBPS = FloatFloatSwap.leg_BPS  # type: ignore[attr-defined]
+    FloatFloatSwap.isExpired = FloatFloatSwap.is_expired  # type: ignore[attr-defined]
+    FloatFloatSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        FloatFloatSwap.set_pricing_engine
+    )
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)
