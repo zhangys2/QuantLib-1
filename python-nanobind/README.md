@@ -746,6 +746,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `Swaption.set_g2_tree_pricing_engine` → `TreeSwaptionEngine` on G2
 - Cached Bermudan values from `bermudanswaption.cpp::testCachedG2Values` (tol 0.005)
 
+### Phase 159 (MC pure Heston via hybrid process)
+- Recovers `HybridHestonHullWhiteProcessTests::testMcPureHestonPricing`
+- `VanillaOption.set_mc_heston_hull_white_pricing_engine` with `control_variate=True`, HW σ≈0
+- MC vs `AnalyticHestonEngine` (3σ / absolute floor 1e-3) across corr × strike grid
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

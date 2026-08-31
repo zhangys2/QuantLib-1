@@ -3009,6 +3009,25 @@ swaption.set_g2_tree_pricing_engine(g2, time_steps=50)
 Attaches `G2SwaptionEngine`, `FdG2SwaptionEngine`, and G2 `TreeSwaptionEngine`.
 Compat: `setG2PricingEngine`, `setFdG2PricingEngine`, `setG2TreePricingEngine`.
 
+## Phase-159 MC pure Heston (hybrid process)
+
+```python
+joint = ql.HybridHestonHullWhiteProcess(
+    heston, hw_fwd, corr, ql.HybridHestonHullWhiteDiscretization.Euler
+)
+opt.set_mc_heston_hull_white_pricing_engine(
+    joint,
+    time_steps=2,
+    required_tolerance=0.001,
+    seed=42,
+    antithetic=True,
+    control_variate=True,
+)
+# Compare to AnalyticHestonEngine when HW vol is ~0 (pure Heston limit).
+```
+
+Recovers `HybridHestonHullWhiteProcessTests::testMcPureHestonPricing`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
