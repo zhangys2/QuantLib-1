@@ -1312,6 +1312,12 @@ def _install_aliases() -> None:
             CapFloor.setTreePricingEngine = (  # type: ignore[attr-defined]
                 CapFloor.set_tree_pricing_engine
             )
+        if hasattr(CapFloor, "set_mc_hull_white_pricing_engine"):
+            CapFloor.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(CapFloor, "error_estimate"):
+            CapFloor.errorEstimate = CapFloor.error_estimate  # type: ignore[attr-defined]
         if hasattr(CapFloor, "implied_volatility"):
             CapFloor.impliedVolatility = (  # type: ignore[attr-defined]
                 CapFloor.implied_volatility
@@ -1339,6 +1345,12 @@ def _install_aliases() -> None:
             Collar.setTreePricingEngine = (  # type: ignore[attr-defined]
                 Collar.set_tree_pricing_engine
             )
+        if hasattr(Collar, "set_mc_hull_white_pricing_engine"):
+            Collar.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(Collar, "error_estimate"):
+            Collar.errorEstimate = Collar.error_estimate  # type: ignore[attr-defined]
         if hasattr(Collar, "implied_volatility"):
             Collar.impliedVolatility = (  # type: ignore[attr-defined]
                 Collar.implied_volatility
@@ -1366,6 +1378,12 @@ def _install_aliases() -> None:
             Cap.setTreePricingEngine = (  # type: ignore[attr-defined]
                 Cap.set_tree_pricing_engine
             )
+        if hasattr(Cap, "set_mc_hull_white_pricing_engine"):
+            Cap.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(Cap, "error_estimate"):
+            Cap.errorEstimate = Cap.error_estimate  # type: ignore[attr-defined]
         if hasattr(Cap, "implied_volatility"):
             Cap.impliedVolatility = Cap.implied_volatility  # type: ignore[attr-defined]
 
@@ -1391,6 +1409,12 @@ def _install_aliases() -> None:
             Floor.setTreePricingEngine = (  # type: ignore[attr-defined]
                 Floor.set_tree_pricing_engine
             )
+        if hasattr(Floor, "set_mc_hull_white_pricing_engine"):
+            Floor.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(Floor, "error_estimate"):
+            Floor.errorEstimate = Floor.error_estimate  # type: ignore[attr-defined]
         if hasattr(Floor, "implied_volatility"):
             Floor.impliedVolatility = Floor.implied_volatility  # type: ignore[attr-defined]
 

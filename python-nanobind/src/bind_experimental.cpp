@@ -117,6 +117,7 @@
 #include <ql/pricingengines/capfloor/bacheliercapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/gaussian1dcapfloorengine.hpp>
+#include <ql/pricingengines/capfloor/mchullwhiteengine.hpp>
 #include <ql/pricingengines/capfloor/treecapfloorengine.hpp>
 #include <ql/models/model.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
@@ -263,6 +264,30 @@ void attach_mc_barrier_engine(
     else
         maker.withSamples(Size(8192));
     opt.setPricingEngine(maker);
+}
+
+void attach_mc_hull_white_cap_floor_engine(
+    CapFloor& cf,
+    const ext::shared_ptr<HullWhite>& model,
+    std::optional<Size> required_samples,
+    std::optional<Real> required_tolerance,
+    unsigned long seed,
+    bool antithetic,
+    bool brownian_bridge) {
+    QL_REQUIRE(
+        !(required_samples.has_value() && required_tolerance.has_value()),
+        "set only one of required_samples or required_tolerance");
+    auto maker = MakeMCHullWhiteCapFloorEngine<PseudoRandom>(model)
+                     .withSeed(seed)
+                     .withAntitheticVariate(antithetic)
+                     .withBrownianBridge(brownian_bridge);
+    if (required_samples.has_value())
+        maker.withSamples(*required_samples);
+    else if (required_tolerance.has_value())
+        maker.withAbsoluteTolerance(*required_tolerance);
+    else
+        maker.withAbsoluteTolerance(Real(0.05));
+    cf.setPricingEngine(maker);
 }
 
 } // namespace
@@ -3684,6 +3709,8 @@ void bind_experimental(nb::module_& m) {
             nb::arg("fixing_days") = 2,
             "Build a Cap/Floor from an Ibor schedule (includes all caplets).")
         .def("NPV", [](CapFloor& cf) { return cf.NPV(); })
+        .def("error_estimate",
+             [](CapFloor& cf) { return cf.errorEstimate(); })
         .def(
             "atm_rate",
             [](const CapFloor& cf, const Handle<YieldTermStructure>& discount) {
@@ -3774,6 +3801,26 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach TreeCapFloorEngine (Hull–White lattice).")
         .def(
+            "set_mc_hull_white_pricing_engine",
+            [](CapFloor& cf,
+               const ext::shared_ptr<HullWhite>& model,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_hull_white_cap_floor_engine(
+                    cf, model, required_samples, required_tolerance, seed,
+                    antithetic, brownian_bridge);
+            },
+            nb::arg("model"),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 42UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCHullWhiteCapFloorEngine<PseudoRandom>.")
+        .def(
             "implied_volatility",
             [](const CapFloor& cf,
                Real target_price,
@@ -3835,6 +3882,8 @@ void bind_experimental(nb::module_& m) {
             nb::arg("fixing_days") = 2,
             "Build a Collar from an Ibor schedule.")
         .def("NPV", [](Collar& c) { return c.NPV(); })
+        .def("error_estimate",
+             [](Collar& c) { return c.errorEstimate(); })
         .def(
             "atm_rate",
             [](const Collar& c, const Handle<YieldTermStructure>& discount) {
@@ -3923,6 +3972,26 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach TreeCapFloorEngine (Hull–White lattice).")
         .def(
+            "set_mc_hull_white_pricing_engine",
+            [](Collar& c,
+               const ext::shared_ptr<HullWhite>& model,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_hull_white_cap_floor_engine(
+                    c, model, required_samples, required_tolerance, seed,
+                    antithetic, brownian_bridge);
+            },
+            nb::arg("model"),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 42UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCHullWhiteCapFloorEngine<PseudoRandom>.")
+        .def(
             "implied_volatility",
             [](const Collar& c,
                Real target_price,
@@ -3979,6 +4048,8 @@ void bind_experimental(nb::module_& m) {
             nb::arg("fixing_days") = 2,
             "Build a Cap from an Ibor schedule.")
         .def("NPV", [](Cap& c) { return c.NPV(); })
+        .def("error_estimate",
+             [](Cap& c) { return c.errorEstimate(); })
         .def(
             "atm_rate",
             [](const Cap& c, const Handle<YieldTermStructure>& discount) {
@@ -4067,6 +4138,26 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach TreeCapFloorEngine (Hull–White lattice).")
         .def(
+            "set_mc_hull_white_pricing_engine",
+            [](Cap& c,
+               const ext::shared_ptr<HullWhite>& model,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_hull_white_cap_floor_engine(
+                    c, model, required_samples, required_tolerance, seed,
+                    antithetic, brownian_bridge);
+            },
+            nb::arg("model"),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 42UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCHullWhiteCapFloorEngine<PseudoRandom>.")
+        .def(
             "implied_volatility",
             [](const Cap& c,
                Real target_price,
@@ -4122,6 +4213,8 @@ void bind_experimental(nb::module_& m) {
             nb::arg("fixing_days") = 2,
             "Build a Floor from an Ibor schedule.")
         .def("NPV", [](Floor& c) { return c.NPV(); })
+        .def("error_estimate",
+             [](Floor& c) { return c.errorEstimate(); })
         .def(
             "atm_rate",
             [](const Floor& c, const Handle<YieldTermStructure>& discount) {
@@ -4209,6 +4302,26 @@ void bind_experimental(nb::module_& m) {
             nb::arg("time_steps") = 100,
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach TreeCapFloorEngine (Hull–White lattice).")
+        .def(
+            "set_mc_hull_white_pricing_engine",
+            [](Floor& c,
+               const ext::shared_ptr<HullWhite>& model,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool brownian_bridge) {
+                attach_mc_hull_white_cap_floor_engine(
+                    c, model, required_samples, required_tolerance, seed,
+                    antithetic, brownian_bridge);
+            },
+            nb::arg("model"),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 42UL,
+            nb::arg("antithetic") = true,
+            nb::arg("brownian_bridge") = false,
+            "Attach MakeMCHullWhiteCapFloorEngine<PseudoRandom>.")
         .def(
             "implied_volatility",
             [](const Floor& c,
@@ -4325,6 +4438,13 @@ void bind_experimental(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass model to CapFloor/Cap/Floor/Collar "
         "set_tree_pricing_engine.");
+
+    m.def(
+        "MCHullWhiteCapFloorEngine",
+        [](const ext::shared_ptr<HullWhite>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to CapFloor/Cap/Floor/Collar "
+        "set_mc_hull_white_pricing_engine.");
 
     // --- Phase 103: Extended OU process (constant b) for storage options ---
     nb::enum_<ExtendedOrnsteinUhlenbeckProcess::Discretization>(

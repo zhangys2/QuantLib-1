@@ -734,6 +734,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `CapFloor` / `Cap` / `Floor` / `Collar.set_tree_pricing_engine` → `TreeCapFloorEngine`
 - Matches `AnalyticCapFloorEngine` on Hull–White (5Y cap, 200 steps, tol 0.05)
 
+### Phase 157 (MC Hull–White cap–floor)
+- `CapFloor` / `Cap` / `Floor` / `Collar.set_mc_hull_white_pricing_engine` → `MCHullWhiteCapFloorEngine`
+- `error_estimate` on CapFloor instruments
+- MC vs `AnalyticCapFloorEngine` (5Y ATM cap, 3σ / absolute floor 1e-5)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
