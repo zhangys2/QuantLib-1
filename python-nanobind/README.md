@@ -640,6 +640,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `Merton76Process` + `set_jump_diffusion_pricing_engine` → `JumpDiffusionEngine`
 - Recovers Haug Merton cases from `JumpDiffusionTests::testMerton76` (tol 1e-2)
 
+### Phase 136 (Analytic PDF Heston)
+- `set_pdf_heston_pricing_engine` → `AnalyticPDFHestonEngine`
+- European cash-or-nothing `VanillaOption` ctor for digital PDF pricing
+- Matches `HestonModelTests::testAnalyticPDFHestonEngine` vs Laguerre (tol 3e-6)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
