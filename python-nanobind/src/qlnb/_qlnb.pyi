@@ -159,6 +159,45 @@ class SimpleQuote(Quote):
     def __init__(self, value: float) -> None: ...
     def set_value(self, value: float) -> float: ...
 
+class DeltaVolDeltaType:
+    Spot: DeltaVolDeltaType
+    Fwd: DeltaVolDeltaType
+    PaSpot: DeltaVolDeltaType
+    PaFwd: DeltaVolDeltaType
+
+class DeltaVolAtmType:
+    AtmNull: DeltaVolAtmType
+    AtmSpot: DeltaVolAtmType
+    AtmFwd: DeltaVolAtmType
+    AtmDeltaNeutral: DeltaVolAtmType
+    AtmVegaMax: DeltaVolAtmType
+    AtmGammaMax: DeltaVolAtmType
+    AtmPutCall50: DeltaVolAtmType
+
+class DeltaVolQuote(Quote):
+    @overload
+    def __init__(
+        self,
+        delta: float,
+        vol: QuoteHandle,
+        maturity: float,
+        delta_type: DeltaVolDeltaType,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        vol: QuoteHandle,
+        delta_type: DeltaVolDeltaType,
+        maturity: float,
+        atm_type: DeltaVolAtmType,
+    ) -> None: ...
+    def value(self) -> float: ...
+    def delta(self) -> float: ...
+    def maturity(self) -> float: ...
+    def atm_type(self) -> DeltaVolAtmType: ...
+    def delta_type(self) -> DeltaVolDeltaType: ...
+    def is_valid(self) -> bool: ...
+
 class QuoteHandle:
     def __init__(self, value: Quote = ...) -> None: ...
     def empty(self) -> bool: ...
@@ -2594,6 +2633,17 @@ class BarrierOption:
         process: BlackScholesMertonProcess,
         order: int = ...,
         zero_gamma: bool = ...,
+    ) -> None: ...
+    def set_vanna_volga_pricing_engine(
+        self,
+        atm_vol: DeltaVolQuote,
+        vol25_put: DeltaVolQuote,
+        vol25_call: DeltaVolQuote,
+        spot_fx: QuoteHandle,
+        domestic_ts: YieldTermStructureHandle,
+        foreign_ts: YieldTermStructureHandle,
+        adapt_van_delta: bool = ...,
+        bs_price_with_smile: float = ...,
     ) -> None: ...
     def set_binary_pricing_engine(
         self, process: BlackScholesMertonProcess

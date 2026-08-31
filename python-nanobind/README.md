@@ -605,6 +605,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `BarrierOption.set_perturbative_pricing_engine` → `PerturbativeBarrierOptionEngine`
 - Recovers `BarrierOptionTests::testPerturbative` (orders 0/1, tol 1e-6)
 
+### Phase 128 (Vanna/Volga barrier)
+- `DeltaVolQuote` + `DeltaVolDeltaType` / `DeltaVolAtmType`
+- `BarrierOption.set_vanna_volga_pricing_engine` → `VannaVolgaBarrierEngine`
+- Recovers representative `BarrierOptionTests::testVannaVolgaSimpleBarrierValues` (tol 1e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
