@@ -2211,6 +2211,29 @@ Standalone OneAssetOption wrapper + `ExtendedOrnsteinUhlenbeckProcess`
 `isExpired`, `setPricingEngine`. Recovers
 `VPPOptionTest::testSimpleExtOUStorageEngine` cached NPV (tol 5e-2).
 
+## Phase-104 Stock / CompositeInstrument
+
+```python
+stock = ql.Stock(ql.make_quote_handle(3.14))
+assert stock.NPV() == 3.14
+
+today = ql.get_evaluation_date()
+opt = ql.EuropeanOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 100.0),
+    ql.EuropeanExercise(today + 30),
+)
+opt.set_pricing_engine(process)
+composite = ql.CompositeInstrument()
+composite.add(opt)
+ql.set_evaluation_date(today + 45)
+assert composite.is_expired()
+assert composite.NPV() == 0.0
+```
+
+Standalone Instrument wrappers. `Stock` NPV tracks its quote;
+`CompositeInstrument` sums weighted leg NPVs. Compat: `isExpired`.
+Recovers `InstrumentTests::testCompositeWhenShiftingDates`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -29,6 +29,8 @@
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
+#include <ql/instruments/compositeinstrument.hpp>
+#include <ql/instruments/stock.hpp>
 #include <ql/pricingengines/bond/bondfunctions.hpp>
 #include <ql/instruments/dividendschedule.hpp>
 #include <ql/instruments/europeanoption.hpp>
@@ -2200,4 +2202,49 @@ void bind_instruments(nb::module_& m) {
         nb::arg("x_grid") = 100,
         "Documentation alias — use "
         "VanillaStorageOption.set_fd_pricing_engine instead.");
+
+    // --- Phase 104: Stock / CompositeInstrument (standalone Instrument wrappers) ---
+    nb::class_<Stock>(m, "Stock")
+        .def(
+            "__init__",
+            [](Stock* self, const Handle<Quote>& quote) { new (self) Stock(quote); },
+            nb::arg("quote"),
+            "Simple stock priced at a quote handle.")
+        .def("NPV", [](Stock& s) { return s.NPV(); })
+        .def("is_expired", [](const Stock& s) { return s.isExpired(); });
+
+    nb::class_<CompositeInstrument>(m, "CompositeInstrument")
+        .def(nb::init<>(), "Empty composite instrument (sum of weighted legs).")
+        .def(
+            "add",
+            [](CompositeInstrument& c, Stock& instrument, Real multiplier) {
+                c.add(ext::make_shared<Stock>(instrument), multiplier);
+            },
+            nb::arg("instrument"),
+            nb::arg("multiplier") = 1.0)
+        .def(
+            "add",
+            [](CompositeInstrument& c, EuropeanOption& instrument, Real multiplier) {
+                c.add(ext::make_shared<EuropeanOption>(instrument), multiplier);
+            },
+            nb::arg("instrument"),
+            nb::arg("multiplier") = 1.0,
+            "Add a EuropeanOption leg (value copy).")
+        .def(
+            "subtract",
+            [](CompositeInstrument& c, Stock& instrument, Real multiplier) {
+                c.subtract(ext::make_shared<Stock>(instrument), multiplier);
+            },
+            nb::arg("instrument"),
+            nb::arg("multiplier") = 1.0)
+        .def(
+            "subtract",
+            [](CompositeInstrument& c, EuropeanOption& instrument, Real multiplier) {
+                c.subtract(ext::make_shared<EuropeanOption>(instrument), multiplier);
+            },
+            nb::arg("instrument"),
+            nb::arg("multiplier") = 1.0)
+        .def("NPV", [](CompositeInstrument& c) { return c.NPV(); })
+        .def("is_expired",
+             [](const CompositeInstrument& c) { return c.isExpired(); });
 }

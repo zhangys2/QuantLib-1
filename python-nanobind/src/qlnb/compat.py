@@ -1322,6 +1322,16 @@ if VanillaStorageOption is not None:
         VanillaStorageOption.set_fd_pricing_engine
     )
 
+# Phase-104 Stock / CompositeInstrument aliases.
+Stock = getattr(_ql, "Stock", None)
+CompositeInstrument = getattr(_ql, "CompositeInstrument", None)
+if Stock is not None:
+    Stock.isExpired = Stock.is_expired  # type: ignore[attr-defined]
+if CompositeInstrument is not None:
+    CompositeInstrument.isExpired = (  # type: ignore[attr-defined]
+        CompositeInstrument.is_expired
+    )
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)
