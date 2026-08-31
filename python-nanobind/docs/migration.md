@@ -2478,6 +2478,21 @@ Attaches `AnalyticDiscreteGeometricAveragePriceAsianHestonEngine`.
 Compat: `setHestonPricingEngine`. Recovers Tables 1–3 from
 `AsianOptionTests::testAnalyticDiscreteGeometricAveragePriceHeston`.
 
+## Phase-122 Asian Vecer continuous arithmetic
+
+```python
+asian = ql.ContinuousAveragingAsianOption(
+    ql.AverageType.Arithmetic, payoff, exercise
+)
+asian.set_vecer_pricing_engine(
+    process, ql.QuoteHandle(ql.SimpleQuote(0.0)), today, 200, 200
+)
+assert asian.NPV() == pytest.approx(0.246416, abs=1e-5)
+```
+
+Attaches `ContinuousArithmeticAsianVecerEngine`. Compat: `setVecerPricingEngine`
+(compat-only). Recovers `AsianOptionTests::testVecerEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -4045,6 +4045,16 @@ class ContinuousAveragingAsianOption:
         summation_cutoff: int = ...,
         xi_right_limit: float = ...,
     ) -> None: ...
+    def set_vecer_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        current_average: QuoteHandle,
+        start_date: Date,
+        time_steps: int = ...,
+        asset_steps: int = ...,
+        z_min: float = ...,
+        z_max: float = ...,
+    ) -> None: ...
 
 class DiscreteAveragingAsianOption:
     def __init__(

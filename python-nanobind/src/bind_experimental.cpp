@@ -57,6 +57,7 @@
 #include <ql/pricingengines/asian/turnbullwakemanasianengine.hpp>
 #include <ql/experimental/asian/analytic_cont_geom_av_price_heston.hpp>
 #include <ql/experimental/asian/analytic_discr_geom_av_price_heston.hpp>
+#include <ql/experimental/exoticoptions/continuousarithmeticasianvecerengine.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticbinarybarrierengine.hpp>
@@ -306,7 +307,35 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process"),
             nb::arg("summation_cutoff") = Size(50),
             nb::arg("xi_right_limit") = 100.0,
-            "Attach AnalyticContinuousGeometricAveragePriceAsianHestonEngine.");
+            "Attach AnalyticContinuousGeometricAveragePriceAsianHestonEngine.")
+        .def(
+            "set_vecer_pricing_engine",
+            [](ContinuousAveragingAsianOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               const Handle<Quote>& current_average,
+               const Date& start_date,
+               Size time_steps,
+               Size asset_steps,
+               Real z_min,
+               Real z_max) {
+                opt.setPricingEngine(
+                    ext::make_shared<ContinuousArithmeticAsianVecerEngine>(
+                        process,
+                        current_average,
+                        start_date,
+                        time_steps,
+                        asset_steps,
+                        z_min,
+                        z_max));
+            },
+            nb::arg("process"),
+            nb::arg("current_average"),
+            nb::arg("start_date"),
+            nb::arg("time_steps") = Size(100),
+            nb::arg("asset_steps") = Size(100),
+            nb::arg("z_min") = -1.0,
+            nb::arg("z_max") = 1.0,
+            "Attach ContinuousArithmeticAsianVecerEngine.");
 
     nb::class_<DiscreteAveragingAsianOption>(m, "DiscreteAveragingAsianOption")
         .def(

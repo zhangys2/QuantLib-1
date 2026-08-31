@@ -1648,6 +1648,10 @@ if ContinuousAveragingAsianOption is not None:
         ContinuousAveragingAsianOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             ContinuousAveragingAsianOption.set_heston_pricing_engine
         )
+    if hasattr(ContinuousAveragingAsianOption, "set_vecer_pricing_engine"):
+        ContinuousAveragingAsianOption.setVecerPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousAveragingAsianOption.set_vecer_pricing_engine
+        )
 if DiscreteAveragingAsianOption is not None:
     DiscreteAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
         DiscreteAveragingAsianOption.set_pricing_engine
