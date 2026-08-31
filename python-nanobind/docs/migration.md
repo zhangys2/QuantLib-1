@@ -2832,6 +2832,17 @@ assert impl == pytest.approx(0.256402830, abs=1e-8)  # corr=0
 Attaches `AnalyticBSMHullWhiteEngine`. Compat: `setBsmHullWhitePricingEngine`
 (compat-only). Recovers `HybridHestonHullWhiteProcessTests::testBsmHullWhiteEngine`.
 
+## Phase-145 Heston + Hull–White
+
+```python
+opt.set_heston_hull_white_pricing_engine(heston_model, hull_white, integration_order=128)
+assert opt.NPV() == pytest.approx(bsm_hw_npv, abs=1e-5)
+```
+
+Attaches `AnalyticHestonHullWhiteEngine`. Compat:
+`setHestonHullWhitePricingEngine` (compat-only). Matches BSM–HW when Heston
+σ→0 (`testCompareBsmHWandHestonHW`).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

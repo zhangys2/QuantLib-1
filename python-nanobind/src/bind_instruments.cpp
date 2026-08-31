@@ -70,6 +70,7 @@
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/analytichestonhullwhiteengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/cashdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
@@ -716,6 +717,20 @@ void bind_instruments(nb::module_& m) {
             nb::arg("model"),
             "Attach AnalyticBSMHullWhiteEngine (BSM + 1F Hull–White).")
         .def(
+            "set_heston_hull_white_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& heston_model,
+               const ext::shared_ptr<HullWhite>& hull_white_model,
+               Size integration_order) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticHestonHullWhiteEngine>(
+                        heston_model, hull_white_model, integration_order));
+            },
+            nb::arg("heston_model"),
+            nb::arg("hull_white_model"),
+            nb::arg("integration_order") = 144,
+            "Attach AnalyticHestonHullWhiteEngine (Heston + 1F Hull–White).")
+        .def(
             "set_dividend_pricing_engine",
             [](EuropeanOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -1198,6 +1213,17 @@ void bind_instruments(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass args to "
         "EuropeanOption.set_bsm_hull_white_pricing_engine.");
+
+    m.def(
+        "AnalyticHestonHullWhiteEngine",
+        [](const ext::shared_ptr<HestonModel>& heston_model,
+           const ext::shared_ptr<HullWhite>& /*hull_white_model*/,
+           Size /*integration_order*/) { return heston_model; },
+        nb::arg("heston_model"),
+        nb::arg("hull_white_model"),
+        nb::arg("integration_order") = 144,
+        "Factory alias: pass args to "
+        "EuropeanOption.set_heston_hull_white_pricing_engine.");
 
     m.def(
         "AnalyticDividendEuropeanEngine",
