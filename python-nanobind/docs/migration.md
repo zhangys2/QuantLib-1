@@ -2396,6 +2396,18 @@ asw = ql.AssetSwap(True, bond, bond.clean_price(), ibor, 0.0, floating_day_count
 Adds `CmsRateBond` with CMS coupon pricer attachment and `AssetSwap(CmsRateBond, …)`.
 Compat: `CmsRateBond`, `setCmsCouponPricer`. Recovers CMS leg of `AssetSwapTests::testImpliedValue`.
 
+## Phase-116 NonstandardSwaption
+
+```python
+nonstd = ql.NonstandardSwaption(std_swaption)
+nonstd.set_gaussian1d_pricing_engine(gsr)
+assert nonstd.NPV() == pytest.approx(hw_jam.NPV(), abs=5e-5)
+```
+
+Wraps a standard `Swaption` as `NonstandardSwaption`; prices with
+`Gaussian1dNonstandardSwaptionEngine`. Compat: `NonstandardSwaption`,
+`setGaussian1dPricingEngine`. Recovers `GsrTests::testGsrModel` NPV check.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

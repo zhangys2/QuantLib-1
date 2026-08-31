@@ -293,6 +293,21 @@ def _install_aliases() -> None:
                 Swaption.set_fd_hullwhite_pricing_engine
             )
 
+    NonstandardSwaption = getattr(_ql, "NonstandardSwaption", None)
+    if NonstandardSwaption is not None:
+        NonstandardSwaption.settlementType = (  # type: ignore[attr-defined]
+            NonstandardSwaption.settlement_type
+        )
+        NonstandardSwaption.settlementMethod = (  # type: ignore[attr-defined]
+            NonstandardSwaption.settlement_method
+        )
+        NonstandardSwaption.isExpired = (  # type: ignore[attr-defined]
+            NonstandardSwaption.is_expired
+        )
+        NonstandardSwaption.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+            NonstandardSwaption.set_gaussian1d_pricing_engine
+        )
+
     CreditDefaultSwap = getattr(_ql, "CreditDefaultSwap", None)
     if CreditDefaultSwap is not None:
         CreditDefaultSwap.fairSpread = CreditDefaultSwap.fair_spread  # type: ignore[attr-defined]
