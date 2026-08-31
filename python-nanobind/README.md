@@ -694,6 +694,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption.set_gjr_garch_pricing_engine` → `AnalyticGJRGARCHEngine`
 - Recovers NPV table from `GJRGARCHModelTests::testEngines` (tol 0.15)
 
+### Phase 149 (rough Heston analytic)
+- `RoughHestonModel`, `RoughHestonApproximation`
+- `EuropeanOption.set_rough_heston_pricing_engine` → `AnalyticRoughHestonEngine`
+- Recovers reference prices from `RoughHestonModelTests::testKnownReferenceValues` (tol 5e-4; 0.25y uses 0.01)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
