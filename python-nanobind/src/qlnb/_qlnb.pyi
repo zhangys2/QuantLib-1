@@ -1071,6 +1071,50 @@ def FdSimpleBSSwingEngine(
     x_grid: int = ...,
 ) -> BlackScholesMertonProcess: ...
 
+class ExtendedOrnsteinUhlenbeckDiscretization:
+    MidPoint: ExtendedOrnsteinUhlenbeckDiscretization
+    Trapezodial: ExtendedOrnsteinUhlenbeckDiscretization
+    GaussLobatto: ExtendedOrnsteinUhlenbeckDiscretization
+
+class ExtendedOrnsteinUhlenbeckProcess:
+    def __init__(
+        self,
+        speed: float,
+        sigma: float,
+        x0: float,
+        b: float,
+        discretization: ExtendedOrnsteinUhlenbeckDiscretization = ...,
+    ) -> None: ...
+    def x0(self) -> float: ...
+    def speed(self) -> float: ...
+    def volatility(self) -> float: ...
+
+class VanillaStorageOption:
+    def __init__(
+        self,
+        exercise: BermudanExercise,
+        capacity: float,
+        load: float,
+        change_rate: float,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def set_fd_pricing_engine(
+        self,
+        process: ExtendedOrnsteinUhlenbeckProcess,
+        risk_free_ts: YieldTermStructureHandle,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
+
+def FdSimpleExtOUStorageEngine(
+    process: ExtendedOrnsteinUhlenbeckProcess,
+    risk_free_ts: YieldTermStructureHandle,
+    t_grid: int = ...,
+    x_grid: int = ...,
+) -> ExtendedOrnsteinUhlenbeckProcess: ...
+
 class EquityTotalReturnSwap:
     def __init__(
         self,

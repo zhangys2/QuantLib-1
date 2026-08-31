@@ -36,7 +36,10 @@
 #include <ql/instruments/swap.hpp>
 #include <ql/instruments/vanillaswap.hpp>
 #include <ql/instruments/vanillaswingoption.hpp>
+#include <ql/instruments/vanillastorageoption.hpp>
 #include <ql/option.hpp>
+#include <ql/experimental/finitedifferences/fdsimpleextoustorageengine.hpp>
+#include <ql/experimental/processes/extendedornsteinuhlenbeckprocess.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/vanilla/fdsimplebsswingengine.hpp>
@@ -2137,4 +2140,64 @@ void bind_instruments(nb::module_& m) {
         nb::arg("x_grid") = 100,
         "Documentation alias — use "
         "VanillaSwingOption.set_fd_pricing_engine instead.");
+
+    // --- Phase 103: VanillaStorageOption (standalone; OneAssetOption MI) ---
+    nb::class_<VanillaStorageOption>(m, "VanillaStorageOption")
+        .def(
+            "__init__",
+            [](VanillaStorageOption* self,
+               const BermudanExercise& exercise,
+               Real capacity,
+               Real load,
+               Real change_rate) {
+                new (self) VanillaStorageOption(
+                    ext::make_shared<BermudanExercise>(exercise),
+                    capacity,
+                    load,
+                    change_rate);
+            },
+            nb::arg("exercise"),
+            nb::arg("capacity"),
+            nb::arg("load"),
+            nb::arg("change_rate"),
+            "Vanilla storage option (Bermudan exercise, capacity/load limits).")
+        .def("NPV", [](VanillaStorageOption& opt) { return opt.NPV(); })
+        .def("is_expired",
+             [](const VanillaStorageOption& opt) { return opt.isExpired(); })
+        .def(
+            "set_fd_pricing_engine",
+            [](VanillaStorageOption& opt,
+               const ext::shared_ptr<ExtendedOrnsteinUhlenbeckProcess>& process,
+               const Handle<YieldTermStructure>& risk_free_ts,
+               Size t_grid,
+               Size x_grid,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdSimpleExtOUStorageEngine>(
+                        process,
+                        risk_free_ts.currentLink(),
+                        t_grid,
+                        x_grid,
+                        Null<Size>(),
+                        ext::shared_ptr<FdSimpleExtOUStorageEngine::Shape>(),
+                        scheme_desc));
+            },
+            nb::arg("process"),
+            nb::arg("risk_free_ts"),
+            nb::arg("t_grid") = 50,
+            nb::arg("x_grid") = 100,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdSimpleExtOUStorageEngine.");
+    m.def(
+        "FdSimpleExtOUStorageEngine",
+        [](const ext::shared_ptr<ExtendedOrnsteinUhlenbeckProcess>& process,
+           const Handle<YieldTermStructure>& /*risk_free_ts*/,
+           Size /*t_grid*/,
+           Size /*x_grid*/) { return process; },
+        nb::arg("process"),
+        nb::arg("risk_free_ts"),
+        nb::arg("t_grid") = 50,
+        nb::arg("x_grid") = 100,
+        "Documentation alias — use "
+        "VanillaStorageOption.set_fd_pricing_engine instead.");
 }

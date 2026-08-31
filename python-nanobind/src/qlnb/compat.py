@@ -1302,6 +1302,26 @@ if VanillaSwingOption is not None:
         VanillaSwingOption.set_fd_pricing_engine
     )
 
+# Phase-103 VanillaStorageOption / ExtendedOrnsteinUhlenbeck aliases.
+ExtendedOrnsteinUhlenbeckProcess = getattr(
+    _ql, "ExtendedOrnsteinUhlenbeckProcess", None
+)
+ExtendedOrnsteinUhlenbeckDiscretization = getattr(
+    _ql, "ExtendedOrnsteinUhlenbeckDiscretization", None
+)
+VanillaStorageOption = getattr(_ql, "VanillaStorageOption", None)
+FdSimpleExtOUStorageEngine = getattr(_ql, "FdSimpleExtOUStorageEngine", None)
+if VanillaStorageOption is not None:
+    VanillaStorageOption.isExpired = (  # type: ignore[attr-defined]
+        VanillaStorageOption.is_expired
+    )
+    VanillaStorageOption.setPricingEngine = (  # type: ignore[attr-defined]
+        VanillaStorageOption.set_fd_pricing_engine
+    )
+    VanillaStorageOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+        VanillaStorageOption.set_fd_pricing_engine
+    )
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)

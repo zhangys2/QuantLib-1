@@ -45,6 +45,8 @@
 #include <ql/experimental/exoticoptions/mcpagodaengine.hpp>
 #include <ql/experimental/exoticoptions/everestoption.hpp>
 #include <ql/experimental/exoticoptions/mceverestengine.hpp>
+#include <ql/experimental/finitedifferences/fdsimpleextoustorageengine.hpp>
+#include <ql/experimental/processes/extendedornsteinuhlenbeckprocess.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/option.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -3322,4 +3324,46 @@ void bind_experimental(nb::module_& m) {
         nb::arg("day_counter") = DayCounter(Actual365Fixed()),
         nb::arg("displacement") = 0.0,
         "Documentation alias — use CapFloor.set_pricing_engine instead.");
+
+    // --- Phase 103: Extended OU process (constant b) for storage options ---
+    nb::enum_<ExtendedOrnsteinUhlenbeckProcess::Discretization>(
+        m, "ExtendedOrnsteinUhlenbeckDiscretization")
+        .value("MidPoint", ExtendedOrnsteinUhlenbeckProcess::MidPoint)
+        .value("Trapezodial", ExtendedOrnsteinUhlenbeckProcess::Trapezodial)
+        .value("GaussLobatto", ExtendedOrnsteinUhlenbeckProcess::GaussLobatto);
+
+    nb::class_<ExtendedOrnsteinUhlenbeckProcess>(
+        m, "ExtendedOrnsteinUhlenbeckProcess")
+        .def(
+            "__init__",
+            [](ExtendedOrnsteinUhlenbeckProcess* self,
+               Real speed,
+               Volatility sigma,
+               Real x0,
+               Real b,
+               ExtendedOrnsteinUhlenbeckProcess::Discretization discretization) {
+                new (self) ExtendedOrnsteinUhlenbeckProcess(
+                    speed,
+                    sigma,
+                    x0,
+                    [b](Real) { return b; },
+                    discretization);
+            },
+            nb::arg("speed"),
+            nb::arg("sigma"),
+            nb::arg("x0"),
+            nb::arg("b"),
+            nb::arg("discretization") =
+                ExtendedOrnsteinUhlenbeckProcess::MidPoint,
+            "Extended OU process with constant mean-reversion level b(t)=b.")
+        .def("x0",
+             [](const ExtendedOrnsteinUhlenbeckProcess& p) { return p.x0(); })
+        .def("speed",
+             [](const ExtendedOrnsteinUhlenbeckProcess& p) {
+                 return p.speed();
+             })
+        .def("volatility",
+             [](const ExtendedOrnsteinUhlenbeckProcess& p) {
+                 return p.volatility();
+             });
 }
