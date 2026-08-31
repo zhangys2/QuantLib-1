@@ -3703,6 +3703,18 @@ class DoubleBarrierOption:
     def set_suo_wang_pricing_engine(
         self, process: BlackScholesMertonProcess, series: int = ...
     ) -> None: ...
+    def set_vanna_volga_pricing_engine(
+        self,
+        atm_vol: DeltaVolQuote,
+        vol25_put: DeltaVolQuote,
+        vol25_call: DeltaVolQuote,
+        spot_fx: QuoteHandle,
+        domestic_ts: YieldTermStructureHandle,
+        foreign_ts: YieldTermStructureHandle,
+        adapt_van_delta: bool = ...,
+        bs_price_with_smile: float = ...,
+        series: int = ...,
+    ) -> None: ...
     def set_binary_pricing_engine(
         self, process: BlackScholesMertonProcess
     ) -> None: ...
