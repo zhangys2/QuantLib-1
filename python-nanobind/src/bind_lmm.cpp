@@ -116,13 +116,34 @@ void bind_lmm(nb::module_& m) {
                  return p.index();
              })
         .def(
+            "covariance",
+            [](const LiborForwardModelProcess& p,
+               Time t0,
+               const std::optional<std::vector<Real>>& x0,
+               Time dt) {
+                Array state;
+                if (x0)
+                    state = Array(x0->begin(), x0->end());
+                return p.covariance(t0, state, dt);
+            },
+            nb::arg("t0"),
+            nb::arg("x0") = nb::none(),
+            nb::arg("dt"),
+            "Integrated covariance over dt from state x0 at time t0.")
+        .def(
+            "covar_param",
+            [](const LiborForwardModelProcess& p) {
+                return p.covarParam();
+            },
+            "Hull–White or proxy covariance parameterization.")
+        .def(
             "set_covar_param",
             [](LiborForwardModelProcess& p,
-               const ext::shared_ptr<LfmCovarianceProxy>& param) {
+               const ext::shared_ptr<LfmCovarianceParameterization>& param) {
                 p.setCovarParam(param);
             },
             nb::arg("covar_param"),
-            "Attach LfmCovarianceProxy for process simulation.");
+            "Attach LfmCovarianceParameterization for process simulation.");
 
     nb::class_<TimeGrid>(m, "TimeGrid")
         .def(
@@ -270,7 +291,24 @@ void bind_lmm(nb::module_& m) {
             nb::arg("c"),
             nb::arg("d"));
 
-    nb::class_<LfmCovarianceProxy>(m, "LfmCovarianceProxy")
+    nb::class_<LfmCovarianceParameterization>(m, "LfmCovarianceParameterization")
+        .def("size", &LfmCovarianceParameterization::size)
+        .def("factors", &LfmCovarianceParameterization::factors)
+        .def(
+            "integrated_covariance",
+            [](const LfmCovarianceParameterization& param, Time t) {
+                return param.integratedCovariance(t);
+            },
+            nb::arg("t"))
+        .def(
+            "covariance",
+            [](const LfmCovarianceParameterization& param, Time t) {
+                return param.covariance(t);
+            },
+            nb::arg("t"));
+
+    nb::class_<LfmCovarianceProxy, LfmCovarianceParameterization>(
+        m, "LfmCovarianceProxy")
         .def(
             "__init__",
             [](LfmCovarianceProxy* self,
@@ -324,6 +362,37 @@ void bind_lmm(nb::module_& m) {
              nb::arg("day_counter"),
              nb::arg("vol_type") = ShiftedLognormal,
              nb::arg("displacement") = 0.0);
+
+    nb::class_<LfmHullWhiteParameterization, LfmCovarianceParameterization>(
+        m, "LfmHullWhiteParameterization")
+        .def(
+            "__init__",
+            [](LfmHullWhiteParameterization* self,
+               const ext::shared_ptr<LiborForwardModelProcess>& process,
+               const CapletVarianceCurve& caplet_vol,
+               const Matrix& correlation,
+               Size factors) {
+                new (self) LfmHullWhiteParameterization(
+                    process,
+                    ext::shared_ptr<OptionletVolatilityStructure>(
+                        ext::make_shared<CapletVarianceCurve>(caplet_vol)),
+                    correlation,
+                    factors);
+            },
+            nb::arg("process"),
+            nb::arg("caplet_vol"),
+            nb::arg("correlation") = Matrix(),
+            nb::arg("factors") = Size(1),
+            "Hull–White caplet-volatility LMM covariance parameterization.");
+
+    m.def(
+        "lfm_base_integrated_covariance",
+        [](const ext::shared_ptr<LfmCovarianceParameterization>& param, Time t) {
+            return param->LfmCovarianceParameterization::integratedCovariance(t);
+        },
+        nb::arg("param"),
+        nb::arg("t"),
+        "Base-class integrated covariance (analytic quadrature helper).");
 
     nb::class_<LiborForwardModel>(m, "LiborForwardModel")
         .def(
