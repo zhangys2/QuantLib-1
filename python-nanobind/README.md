@@ -826,6 +826,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `TimeGrid`, `MultiPathGenerator` (PseudoRandom), `GeneralStatistics`
 - Golden MC loop from `LiborMarketModelTests::testSwaptionPricing`
 
+### Phase 175 (LMM Hull–White lambda bootstrapping)
+- `LfmHullWhiteParameterization`, `LfmCovarianceParameterization.integrated_covariance`
+- `LiborForwardModelProcess.covariance`, `covar_param`
+- Golden checks from `LiborMarketModelProcessTests::testLambdaBootstrapping`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

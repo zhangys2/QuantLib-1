@@ -3258,6 +3258,19 @@ stat.add(max(npv, 0.0))
 Recovers `LiborMarketModelTests::testSwaptionPricing` Monte-Carlo loop.
 Compat: `discountBond`, `accrualStartTimes`, `errorEstimate`.
 
+## Phase-175 LMM Hull–White lambda bootstrapping
+
+```python
+param = ql.LfmHullWhiteParameterization(process, caplet_vol)
+process.set_covar_param(param)
+covar = process.covariance(0.0, None, 1.0)
+vol = math.sqrt(covar.at(i + 1, i + 1))
+base = ql.lfm_base_integrated_covariance(param, t)
+```
+
+Recovers `LiborMarketModelProcessTests::testLambdaBootstrapping`.
+Compat: `covarParam`, `integratedCovariance`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

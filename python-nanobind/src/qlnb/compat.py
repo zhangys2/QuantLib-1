@@ -910,6 +910,7 @@ def _install_aliases() -> None:
             ("accrual_start_times", "accrualStartTimes"),
             ("accrual_end_times", "accrualEndTimes"),
             ("discount_bond", "discountBond"),
+            ("covar_param", "covarParam"),
             ("set_covar_param", "setCovarParam"),
         ):
             if hasattr(LiborForwardModelProcess, snake):
@@ -927,6 +928,17 @@ def _install_aliases() -> None:
 
     MultiPathGenerator = getattr(_ql, "MultiPathGenerator", None)
     TimeGrid = getattr(_ql, "TimeGrid", None)
+
+    LfmCovarianceParameterization = getattr(
+        _ql, "LfmCovarianceParameterization", None
+    )
+    if LfmCovarianceParameterization is not None:
+        if hasattr(LfmCovarianceParameterization, "integrated_covariance"):
+            LfmCovarianceParameterization.integratedCovariance = (  # type: ignore[attr-defined]
+                LfmCovarianceParameterization.integrated_covariance
+            )
+
+    LfmHullWhiteParameterization = getattr(_ql, "LfmHullWhiteParameterization", None)
 
     LmExponentialCorrelationModel = getattr(_ql, "LmExponentialCorrelationModel", None)
     if LmExponentialCorrelationModel is not None:
