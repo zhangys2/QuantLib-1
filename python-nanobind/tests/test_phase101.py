@@ -95,7 +95,8 @@ def test_amortizing_floating_rate_bond_constructs():
     curve = ql.FlatForward(today, 0.03, ql.Actual365Fixed())
     index = ql.Euribor6M(curve)
     cal = index.fixing_calendar()
-    start = cal.adjust(today)
+    # Start in the future so all Ibor fixings are forecast from the curve.
+    start = cal.advance(today, 6, ql.TimeUnit.Months)
     end = cal.advance(start, 2, ql.TimeUnit.Years)
     schedule = ql.Schedule(
         start,
