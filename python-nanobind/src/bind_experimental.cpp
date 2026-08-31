@@ -37,6 +37,8 @@
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/instruments/twoassetcorrelationoption.hpp>
+#include <ql/experimental/varianceoption/integralhestonvarianceoptionengine.hpp>
+#include <ql/experimental/varianceoption/varianceoption.hpp>
 #include <ql/instruments/varianceswap.hpp>
 #include <ql/instruments/writerextensibleoption.hpp>
 #include <ql/experimental/exoticoptions/himalayaoption.hpp>
@@ -2413,6 +2415,55 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Documentation alias — use "
         "VarianceSwap.set_mc_pricing_engine instead.");
+
+    // --- Phase 110: VarianceOption + IntegralHestonVarianceOptionEngine ---
+    nb::class_<VarianceOption>(m, "VarianceOption")
+        .def(
+            "__init__",
+            [](VarianceOption* self,
+               const PlainVanillaPayoff& payoff,
+               Real notional,
+               const Date& start_date,
+               const Date& maturity_date) {
+                new (self) VarianceOption(
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    notional,
+                    start_date,
+                    maturity_date);
+            },
+            nb::arg("payoff"),
+            nb::arg("notional"),
+            nb::arg("start_date"),
+            nb::arg("maturity_date"),
+            "Variance option on realized variance (unseasoned).")
+        .def("NPV", [](VarianceOption& opt) { return opt.NPV(); })
+        .def("is_expired", [](const VarianceOption& opt) {
+            return opt.isExpired();
+        })
+        .def("notional", [](const VarianceOption& opt) { return opt.notional(); })
+        .def("start_date", [](const VarianceOption& opt) {
+            return opt.startDate();
+        })
+        .def("maturity_date", [](const VarianceOption& opt) {
+            return opt.maturityDate();
+        })
+        .def(
+            "set_integral_heston_pricing_engine",
+            [](VarianceOption& opt,
+               const ext::shared_ptr<HestonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<IntegralHestonVarianceOptionEngine>(
+                        process));
+            },
+            nb::arg("process"),
+            "Attach IntegralHestonVarianceOptionEngine.");
+
+    m.def(
+        "IntegralHestonVarianceOptionEngine",
+        [](const ext::shared_ptr<HestonProcess>& process) { return process; },
+        nb::arg("process"),
+        "Factory alias: pass args to "
+        "VarianceOption.set_integral_heston_pricing_engine.");
 
     // --- Phase 34: cliquet / ratchet options (standalone; OneAssetOption MI)
     nb::class_<CliquetOption>(m, "CliquetOption")

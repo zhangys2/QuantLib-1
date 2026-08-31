@@ -2309,6 +2309,26 @@ Optional OIS kwargs support overnight-index legs (Sonia/Sofr). Compat:
 Recovers `ConstNotionalCrossCurrencyBasisSwapTest::testBasisXCCYSwapPricing`.
 Also recovers `testBasisONXCCYSwapPricing` (Sonia/Sofr overnight legs).
 
+## Phase-110 VarianceOption
+
+```python
+process = ql.HestonProcess(
+    ql.FlatForward(today, 0.0, ql.Actual360()),
+    ql.YieldTermStructureHandle(),
+    ql.make_quote_handle(1.0),
+    2.0, 2.0, 0.01, 0.1, -0.5,
+)
+opt = ql.VarianceOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 0.05),
+    1.0, today, today + 540,
+)
+opt.set_integral_heston_pricing_engine(process)
+assert opt.NPV() == pytest.approx(0.9104619, abs=1e-7)
+```
+
+Standalone variance option on realized variance. Compat: `setIntegralHestonPricingEngine`,
+`isExpired`, `startDate`, `maturityDate`. Recovers `VarianceOptionTests::testIntegralHeston`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

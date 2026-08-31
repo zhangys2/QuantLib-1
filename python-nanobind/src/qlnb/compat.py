@@ -1051,6 +1051,16 @@ def _install_aliases() -> None:
                 VarianceSwap.set_mc_pricing_engine
             )
 
+    # Phase-110 variance-option aliases.
+    VarianceOption = getattr(_ql, "VarianceOption", None)
+    if VarianceOption is not None:
+        VarianceOption.setIntegralHestonPricingEngine = (  # type: ignore[attr-defined]
+            VarianceOption.set_integral_heston_pricing_engine
+        )
+        VarianceOption.isExpired = VarianceOption.is_expired  # type: ignore[attr-defined]
+        VarianceOption.startDate = VarianceOption.start_date  # type: ignore[attr-defined]
+        VarianceOption.maturityDate = VarianceOption.maturity_date  # type: ignore[attr-defined]
+
     # Phase-35 forward vanilla aliases.
     ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
     if ForwardVanillaOption is not None:
