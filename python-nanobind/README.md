@@ -524,6 +524,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `Cap` and `Floor` standalone wrappers (SWIG parity with Collar)
 - NPV matches `CapFloor` type wrapper; implied-vol round-trip (tol 1e-8)
 
+### Phase 109 (ConstNotionalCrossCurrencyBasisSwap)
+- `ConstNotionalCrossCurrencyBasisSwap` + cross-currency discounting engine
+- Ibor and overnight-index legs (OIS kwargs for Sonia/Sofr-style basis)
+- Recovers `ConstNotionalCrossCurrencyBasisSwapTest::testBasisXCCYSwapPricing` (tol 0.01)
+- Also recovers `testBasisONXCCYSwapPricing` (Sonia/Sofr OIS legs, tol 0.01)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

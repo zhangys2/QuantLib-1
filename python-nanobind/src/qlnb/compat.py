@@ -1414,6 +1414,33 @@ if ConstNotionalCrossCurrencyFixedVsFloatingSwap is not None:
         ConstNotionalCrossCurrencyFixedVsFloatingSwap.fair_spread
     )
 
+# Phase-109 cross-currency basis swap aliases.
+ConstNotionalCrossCurrencyBasisSwap = getattr(
+    _ql, "ConstNotionalCrossCurrencyBasisSwap", None
+)
+if ConstNotionalCrossCurrencyBasisSwap is not None:
+    ConstNotionalCrossCurrencyBasisSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.set_pricing_engine
+    )
+    ConstNotionalCrossCurrencyBasisSwap.legNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.leg_npv
+    )
+    ConstNotionalCrossCurrencyBasisSwap.legBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.leg_bps
+    )
+    ConstNotionalCrossCurrencyBasisSwap.inCcyLegNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.in_ccy_leg_npv
+    )
+    ConstNotionalCrossCurrencyBasisSwap.inCcyLegBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.in_ccy_leg_bps
+    )
+    ConstNotionalCrossCurrencyBasisSwap.fairPaySpread = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.fair_pay_spread
+    )
+    ConstNotionalCrossCurrencyBasisSwap.fairRecSpread = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.fair_rec_spread
+    )
+
 TRYCurrency = getattr(_ql, "TRYCurrency", None)
 Turkey = getattr(_ql, "Turkey", None)
 DiscountCurve = getattr(_ql, "DiscountCurve", None)
