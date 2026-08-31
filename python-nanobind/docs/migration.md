@@ -2930,6 +2930,25 @@ Attaches `FdHestonHullWhiteVanillaEngine`. Compat:
 `setFdHestonHullWhitePricingEngine` (compat-only). Recovers
 `HybridHestonHullWhiteProcessTests::testFdmHestonHullWhiteEngine`.
 
+## Phase-153 MC Heston + Hull–White
+
+```python
+joint = ql.HybridHestonHullWhiteProcess(heston, hw_fwd, corr)
+opt.set_mc_heston_hull_white_pricing_engine(
+    joint,
+    time_steps=1,
+    required_tolerance=0.05,
+    seed=42,
+    antithetic=True,
+    control_variate=True,
+)
+# Compare to AnalyticBSMHullWhiteEngine (testMcVanillaPricing).
+```
+
+Attaches `MCHestonHullWhiteEngine`. Compat:
+`setMcHestonHullWhitePricingEngine` (compat-only). Recovers
+`HybridHestonHullWhiteProcessTests::testMcVanillaPricing`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

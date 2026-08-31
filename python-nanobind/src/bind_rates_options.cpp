@@ -100,6 +100,17 @@ void bind_rates_options(nb::module_& m) {
         .def("a", &HullWhiteProcess::a)
         .def("sigma", &HullWhiteProcess::sigma);
 
+    nb::class_<HullWhiteForwardProcess>(m, "HullWhiteForwardProcess")
+        .def(nb::init<const Handle<YieldTermStructure>&, Real, Real>(),
+             nb::arg("term_structure"),
+             nb::arg("a"),
+             nb::arg("sigma"))
+        .def("set_forward_measure_time",
+             &HullWhiteForwardProcess::setForwardMeasureTime,
+             nb::arg("time"))
+        .def("a", &HullWhiteForwardProcess::a)
+        .def("sigma", &HullWhiteForwardProcess::sigma);
+
     // Gsr / Gaussian1dModel are MI-heavy — standalone concrete wrapper.
     nb::class_<Gsr>(m, "Gsr")
         .def(
