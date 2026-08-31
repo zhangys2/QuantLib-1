@@ -2235,6 +2235,23 @@ Standalone Instrument wrappers. `Stock` NPV tracks its quote;
 `Instrument` ownership (not value copies). Compat: `isExpired`.
 Recovers `InstrumentTests::testCompositeWhenShiftingDates`.
 
+## Phase-105 Gap / SuperFund / SuperShare payoffs
+
+```python
+today = ql.get_evaluation_date()
+process = ql.BlackScholesMertonProcess(...)
+opt = ql.EuropeanOption(
+    ql.GapPayoff(ql.OptionType.Call, 50.0, 57.0),
+    ql.EuropeanExercise(today + 180),
+)
+opt.set_pricing_engine(process)
+```
+
+Standalone binary payoffs (no Payoff MI hierarchy). `EuropeanOption`
+accepts `GapPayoff`, `SuperFundPayoff`, and `SuperSharePayoff`; analytic
+European pricing recovers `DigitalOptionTest::testGapEuropeanValues` for
+`GapPayoff` (tol 1e-4). Compat: `optionType`, `secondStrike`, `cashPayoff`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
