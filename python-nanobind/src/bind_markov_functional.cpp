@@ -73,17 +73,23 @@ void bind_markov_functional(nb::module_& m) {
             nb::rv_policy::reference_internal)
         .def(
             "with_adjustments",
-            &MF::ModelSettings::withAdjustments,
+            [](MF::ModelSettings& s, MF::ModelSettings::Adjustments a) {
+                return s.withAdjustments(static_cast<int>(a));
+            },
             nb::arg("a"),
             nb::rv_policy::reference_internal)
         .def(
             "add_adjustment",
-            &MF::ModelSettings::addAdjustment,
+            [](MF::ModelSettings& s, MF::ModelSettings::Adjustments a) {
+                return s.addAdjustment(static_cast<int>(a));
+            },
             nb::arg("a"),
             nb::rv_policy::reference_internal)
         .def(
             "remove_adjustment",
-            &MF::ModelSettings::removeAdjustment,
+            [](MF::ModelSettings& s, MF::ModelSettings::Adjustments a) {
+                return s.removeAdjustment(static_cast<int>(a));
+            },
             nb::arg("a"),
             nb::rv_policy::reference_internal)
         .def(
@@ -101,7 +107,11 @@ void bind_markov_functional(nb::module_& m) {
         .def_ro("market_call_premium", &MF::ModelOutputs::marketCallPremium_)
         .def_ro("market_put_premium", &MF::ModelOutputs::marketPutPremium_)
         .def_ro("market_raw_call_premium", &MF::ModelOutputs::marketRawCallPremium_)
-        .def_ro("market_raw_put_premium", &MF::ModelOutputs::marketRawPutPremium_);
+        .def_ro("market_raw_put_premium", &MF::ModelOutputs::marketRawPutPremium_)
+        .def_ro("market_zerorate", &MF::ModelOutputs::marketZerorate_)
+        .def_ro("model_zerorate", &MF::ModelOutputs::modelZerorate_)
+        .def_ro("model_call_premium", &MF::ModelOutputs::modelCallPremium_)
+        .def_ro("model_put_premium", &MF::ModelOutputs::modelPutPremium_);
 
     nb::class_<MarkovFunctional>(m, "MarkovFunctional")
         .def(
