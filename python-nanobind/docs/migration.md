@@ -2535,6 +2535,21 @@ Attaches `SuoWangDoubleBarrierEngine` (Wulin Suo / Yong Wang). Compat:
 `setSuoWangPricingEngine` (compat-only). Recovers Haug cases from
 `DoubleBarrierOptionTests::testEuropeanHaugValues`.
 
+## Phase-126 FFT vanilla (Black–Scholes)
+
+```python
+opt.set_fft_vanilla_pricing_engine(process)
+# or batch:
+engine = ql.FFTVanillaEngine(process)
+engine.precalculate(options)
+for opt in options:
+    opt.set_fft_vanilla_pricing_engine(engine)
+```
+
+Attaches `FFTVanillaEngine` (Carr–Madan FFT under BS). Compat:
+`setFftVanillaPricingEngine` (compat-only). Recovers
+`EuropeanOptionTests::testFFTEngines` consistency vs analytic (rel tol 1%).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -468,6 +468,10 @@ def _install_aliases() -> None:
         EuropeanOption.setFftVarianceGammaPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fft_variance_gamma_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_fft_vanilla_pricing_engine"):
+        EuropeanOption.setFftVanillaPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fft_vanilla_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_fd_bates_pricing_engine"):
         EuropeanOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_bates_pricing_engine

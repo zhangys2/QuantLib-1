@@ -56,6 +56,7 @@
 #include <ql/experimental/finitedifferences/fdsimpleextoustorageengine.hpp>
 #include <ql/experimental/processes/extendedornsteinuhlenbeckprocess.hpp>
 #include <ql/experimental/variancegamma/analyticvariancegammaengine.hpp>
+#include <ql/experimental/variancegamma/fftvanillaengine.hpp>
 #include <ql/experimental/variancegamma/fftvariancegammaengine.hpp>
 #include <ql/experimental/variancegamma/variancegammaprocess.hpp>
 #include <ql/instrument.hpp>
@@ -445,6 +446,31 @@ void bind_instruments(nb::module_& m) {
             },
             nb::arg("options"),
             "Batch FFT for options sharing expiries (VarianceGammaTests pattern).");
+
+    // --- Phase 126: FFTVanillaEngine ---
+    nb::class_<FFTVanillaEngine>(m, "FFTVanillaEngine")
+        .def(
+            "__init__",
+            [](FFTVanillaEngine* self,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Real log_strike_spacing) {
+                new (self) FFTVanillaEngine(process, log_strike_spacing);
+            },
+            nb::arg("process"),
+            nb::arg("log_strike_spacing") = 0.001)
+        .def(
+            "precalculate",
+            [](FFTVanillaEngine& engine,
+               const std::vector<EuropeanOption*>& options) {
+                std::vector<ext::shared_ptr<Instrument>> list;
+                list.reserve(options.size());
+                for (EuropeanOption* opt : options) {
+                    list.emplace_back(opt, [](Instrument*) {});
+                }
+                engine.precalculate(list);
+            },
+            nb::arg("options"),
+            "Batch FFT for options sharing expiries (Carr–Madan).");
 
     nb::enum_<Option::Type>(m, "OptionType")
         .value("Put", Option::Put)
@@ -1005,6 +1031,26 @@ void bind_instruments(nb::module_& m) {
             },
             nb::arg("engine"),
             "Attach a precalculated FFTVarianceGammaEngine.")
+        .def(
+            "set_fft_vanilla_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Real log_strike_spacing) {
+                opt.setPricingEngine(
+                    ext::make_shared<FFTVanillaEngine>(
+                        process, log_strike_spacing));
+            },
+            nb::arg("process"),
+            nb::arg("log_strike_spacing") = 0.001,
+            "Attach FFTVanillaEngine (single-option uncached path).")
+        .def(
+            "set_fft_vanilla_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<FFTVanillaEngine>& engine) {
+                opt.setPricingEngine(engine);
+            },
+            nb::arg("engine"),
+            "Attach a precalculated FFTVanillaEngine.")
         .def(
             "set_fd_bates_pricing_engine",
             [](EuropeanOption& opt,
