@@ -2249,6 +2249,9 @@ class VanillaOption:
     def set_digital_american_ko_pricing_engine(
         self, process: BlackScholesMertonProcess
     ) -> None: ...
+    def set_bjerksund_stensland_pricing_engine(
+        self, process: BlackScholesMertonProcess
+    ) -> None: ...
     def set_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -4288,6 +4291,9 @@ def DividendVector(
     dividends: Sequence[float],
 ) -> list[FixedDividend]: ...
 def BaroneAdesiWhaleyEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def BjerksundStenslandEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 def AnalyticDigitalAmericanEngine(

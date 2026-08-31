@@ -2670,6 +2670,21 @@ DiscretizedDoubleBarrierOption>`. Compat: `setBinomialPricingEngine`
 (compat-only). Recovers Haug cases from
 `DoubleBarrierOptionTests::testEuropeanHaugValues`.
 
+## Phase-134 Bjerksund–Stensland American
+
+```python
+opt = ql.VanillaOption(
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 40.0),
+    ql.AmericanExercise(today, today + 270),
+)
+opt.set_bjerksund_stensland_pricing_engine(process)
+assert opt.NPV() == pytest.approx(5.2704, abs=5e-5)
+```
+
+Attaches `BjerksundStenslandApproximationEngine`. Compat:
+`setBjerksundStenslandPricingEngine` (compat-only). Recovers Haug cases
+from `AmericanOptionTests::testBjerksundStenslandValues`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

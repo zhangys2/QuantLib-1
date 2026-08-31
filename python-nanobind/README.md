@@ -632,6 +632,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `DoubleBarrierOption.set_binomial_pricing_engine` → `BinomialDoubleBarrierEngine<CRR>`
 - Recovers representative Haug cases from `DoubleBarrierOptionTests::testEuropeanHaugValues` (tol 0.28)
 
+### Phase 134 (Bjerksund–Stensland American)
+- `set_bjerksund_stensland_pricing_engine` → `BjerksundStenslandApproximationEngine`
+- Recovers Haug / suite cases from `AmericanOptionTests::testBjerksundStenslandValues` (tol 5e-5)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

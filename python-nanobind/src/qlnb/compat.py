@@ -535,14 +535,18 @@ def _install_aliases() -> None:
         VanillaOption.setDigitalAmericanPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_digital_american_pricing_engine
         )
-    if hasattr(VanillaOption, "set_digital_american_ko_pricing_engine"):
-        VanillaOption.setDigitalAmericanKoPricingEngine = (  # type: ignore[attr-defined]
-            VanillaOption.set_digital_american_ko_pricing_engine
-        )
-    if hasattr(VanillaOption, "set_fd_pricing_engine"):
-        VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
-            VanillaOption.set_fd_pricing_engine
-        )
+        if hasattr(VanillaOption, "set_digital_american_ko_pricing_engine"):
+            VanillaOption.setDigitalAmericanKoPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_digital_american_ko_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_bjerksund_stensland_pricing_engine"):
+            VanillaOption.setBjerksundStenslandPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_bjerksund_stensland_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_fd_pricing_engine"):
+            VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_fd_pricing_engine
+            )
     if hasattr(VanillaOption, "set_heston_pricing_engine"):
         VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_heston_pricing_engine

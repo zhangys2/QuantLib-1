@@ -33,6 +33,7 @@
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/binomialengine.hpp>
+#include <ql/pricingengines/vanilla/bjerksundstenslandengine.hpp>
 #include <ql/pricingengines/vanilla/cashdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
@@ -302,6 +303,16 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("process"),
             "Attach AnalyticDigitalAmericanKOEngine (knock-out digital American).")
+        .def(
+            "set_bjerksund_stensland_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<BjerksundStenslandApproximationEngine>(
+                        process));
+            },
+            nb::arg("process"),
+            "Attach BjerksundStenslandApproximationEngine (American).")
         .def(
             "set_dividend_pricing_engine",
             [](VanillaOption& opt,
@@ -729,6 +740,15 @@ void bind_pricing(nb::module_& m) {
         },
         nb::arg("process"),
         "Factory alias: pass the returned process to VanillaOption.set_pricing_engine.");
+
+    m.def(
+        "BjerksundStenslandEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "VanillaOption.set_bjerksund_stensland_pricing_engine.");
 
     m.def(
         "AnalyticDigitalAmericanEngine",
