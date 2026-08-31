@@ -730,6 +730,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_analytic_cap_floor_pricing_engine` → `AnalyticCapFloorEngine` (Hull–White golden)
 - GSR cap NPV vs Hull–White analytic on constant parameters (tol 0.03)
 
+### Phase 156 (tree cap–floor)
+- `CapFloor` / `Cap` / `Floor` / `Collar.set_tree_pricing_engine` → `TreeCapFloorEngine`
+- Matches `AnalyticCapFloorEngine` on Hull–White (5Y cap, 200 steps, tol 0.05)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
