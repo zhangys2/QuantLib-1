@@ -65,10 +65,35 @@ def test_integral_heston_variance_option_put():
     assert opt.NPV() == pytest.approx(0.0466796, abs=1e-7)
 
 
+def test_native_variance_option_snake_case_only():
+    # Native qlnb exposes snake_case; camelCase aliases live in qlnb.compat.
+    import sys
+
+    assert hasattr(ql.VarianceOption, "set_integral_heston_pricing_engine")
+    assert hasattr(ql.VarianceOption, "is_expired")
+    assert hasattr(ql.VarianceOption, "start_date")
+    assert hasattr(ql.VarianceOption, "maturity_date")
+    if "qlnb.compat" in sys.modules:
+        pytest.skip("qlnb.compat already loaded; camelCase aliases mutate VarianceOption")
+    assert not hasattr(ql.VarianceOption, "setIntegralHestonPricingEngine")
+    assert not hasattr(ql.VarianceOption, "isExpired")
+    assert not hasattr(ql.VarianceOption, "startDate")
+    assert not hasattr(ql.VarianceOption, "maturityDate")
+
+
 def test_compat_phase110_aliases():
     import qlnb.compat as c
 
     assert c.VarianceOption is not None
     assert hasattr(c.VarianceOption, "setIntegralHestonPricingEngine")
     assert hasattr(c.VarianceOption, "isExpired")
+    assert hasattr(c.VarianceOption, "startDate")
+    assert hasattr(c.VarianceOption, "maturityDate")
     assert c.IntegralHestonVarianceOptionEngine is not None
+    assert (
+        c.VarianceOption.setIntegralHestonPricingEngine
+        is c.VarianceOption.set_integral_heston_pricing_engine
+    )
+    assert c.VarianceOption.isExpired is c.VarianceOption.is_expired
+    assert c.VarianceOption.startDate is c.VarianceOption.start_date
+    assert c.VarianceOption.maturityDate is c.VarianceOption.maturity_date
