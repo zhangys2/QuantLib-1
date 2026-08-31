@@ -3,7 +3,6 @@
 
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
-#include <nanobind/stl/vector.h>
 
 #include <ql/indexes/iborindex.hpp>
 #include <ql/indexes/swapindex.hpp>
