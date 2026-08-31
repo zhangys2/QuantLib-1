@@ -2799,6 +2799,17 @@ assert impl == pytest.approx(0.01, abs=1e-8)
 Attaches `BachelierSwaptionEngine` (normal vol). Compat:
 `setBachelierPricingEngine` (compat-only).
 
+## Phase-142 FD Black–Scholes Asian
+
+```python
+opt.set_fd_pricing_engine(process, t_grid=100, x_grid=100, a_grid=100)
+assert opt.NPV() == pytest.approx(1.3942835683, abs=2e-2)
+```
+
+Attaches `FdBlackScholesAsianEngine` (arithmetic average-price). Compat:
+`setFdPricingEngine` (compat-only). Recovers Levy cases from
+`AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 2e-2).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

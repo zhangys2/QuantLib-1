@@ -665,6 +665,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `Swaption.set_bachelier_pricing_engine` → `BachelierSwaptionEngine`
 - Normal-vol implied volatility round-trip from `SwaptionTest` market (tol 1e-8)
 
+### Phase 142 (FD Black–Scholes Asian)
+- `DiscreteAveragingAsianOption.set_fd_pricing_engine` → `FdBlackScholesAsianEngine`
+- Recovers Levy arithmetic Asian cases from `AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 2e-2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
