@@ -111,6 +111,7 @@
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/pricingengines/capfloor/bacheliercapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfloatinglookback.hpp>
@@ -3658,6 +3659,19 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             nb::arg("displacement") = 0.0)
         .def(
+            "set_bachelier_pricing_engine",
+            [](CapFloor& cf,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility volatility,
+               const DayCounter& day_counter) {
+                cf.setPricingEngine(ext::make_shared<BachelierCapFloorEngine>(
+                    discount_curve, volatility, day_counter));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("volatility"),
+            nb::arg("day_counter") = DayCounter(Actual365Fixed()),
+            "Attach BachelierCapFloorEngine (normal vol).")
+        .def(
             "implied_volatility",
             [](const CapFloor& cf,
                Real target_price,
@@ -3743,6 +3757,19 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             nb::arg("displacement") = 0.0)
         .def(
+            "set_bachelier_pricing_engine",
+            [](Collar& c,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility volatility,
+               const DayCounter& day_counter) {
+                c.setPricingEngine(ext::make_shared<BachelierCapFloorEngine>(
+                    discount_curve, volatility, day_counter));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("volatility"),
+            nb::arg("day_counter") = DayCounter(Actual365Fixed()),
+            "Attach BachelierCapFloorEngine (normal vol).")
+        .def(
             "implied_volatility",
             [](const Collar& c,
                Real target_price,
@@ -3823,6 +3850,19 @@ void bind_experimental(nb::module_& m) {
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             nb::arg("displacement") = 0.0)
         .def(
+            "set_bachelier_pricing_engine",
+            [](Cap& c,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility volatility,
+               const DayCounter& day_counter) {
+                c.setPricingEngine(ext::make_shared<BachelierCapFloorEngine>(
+                    discount_curve, volatility, day_counter));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("volatility"),
+            nb::arg("day_counter") = DayCounter(Actual365Fixed()),
+            "Attach BachelierCapFloorEngine (normal vol).")
+        .def(
             "implied_volatility",
             [](const Cap& c,
                Real target_price,
@@ -3901,6 +3941,19 @@ void bind_experimental(nb::module_& m) {
             nb::arg("volatility"),
             nb::arg("day_counter") = DayCounter(Actual365Fixed()),
             nb::arg("displacement") = 0.0)
+        .def(
+            "set_bachelier_pricing_engine",
+            [](Floor& c,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility volatility,
+               const DayCounter& day_counter) {
+                c.setPricingEngine(ext::make_shared<BachelierCapFloorEngine>(
+                    discount_curve, volatility, day_counter));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("volatility"),
+            nb::arg("day_counter") = DayCounter(Actual365Fixed()),
+            "Attach BachelierCapFloorEngine (normal vol).")
         .def(
             "implied_volatility",
             [](const Floor& c,
@@ -3986,6 +4039,16 @@ void bind_experimental(nb::module_& m) {
         nb::arg("day_counter") = DayCounter(Actual365Fixed()),
         nb::arg("displacement") = 0.0,
         "Documentation alias — use CapFloor.set_pricing_engine instead.");
+
+    m.def(
+        "BachelierCapFloorEngine",
+        [](const Handle<YieldTermStructure>& discount_curve,
+           Volatility volatility,
+           const DayCounter& day_counter) { return discount_curve; },
+        nb::arg("discount_curve"),
+        nb::arg("volatility"),
+        nb::arg("day_counter") = DayCounter(Actual365Fixed()),
+        "Documentation alias — use CapFloor.set_bachelier_pricing_engine.");
 
     // --- Phase 103: Extended OU process (constant b) for storage options ---
     nb::enum_<ExtendedOrnsteinUhlenbeckProcess::Discretization>(

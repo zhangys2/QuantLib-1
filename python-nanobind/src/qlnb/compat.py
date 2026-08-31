@@ -1224,6 +1224,10 @@ def _install_aliases() -> None:
         CapFloor.atmRate = CapFloor.atm_rate  # type: ignore[attr-defined]
         CapFloor.startDate = CapFloor.start_date  # type: ignore[attr-defined]
         CapFloor.maturityDate = CapFloor.maturity_date  # type: ignore[attr-defined]
+        if hasattr(CapFloor, "set_bachelier_pricing_engine"):
+            CapFloor.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_bachelier_pricing_engine
+            )
         if hasattr(CapFloor, "implied_volatility"):
             CapFloor.impliedVolatility = (  # type: ignore[attr-defined]
                 CapFloor.implied_volatility
@@ -1235,6 +1239,10 @@ def _install_aliases() -> None:
         Collar.atmRate = Collar.atm_rate  # type: ignore[attr-defined]
         Collar.startDate = Collar.start_date  # type: ignore[attr-defined]
         Collar.maturityDate = Collar.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Collar, "set_bachelier_pricing_engine"):
+            Collar.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_bachelier_pricing_engine
+            )
         if hasattr(Collar, "implied_volatility"):
             Collar.impliedVolatility = (  # type: ignore[attr-defined]
                 Collar.implied_volatility
@@ -1246,6 +1254,10 @@ def _install_aliases() -> None:
         Cap.atmRate = Cap.atm_rate  # type: ignore[attr-defined]
         Cap.startDate = Cap.start_date  # type: ignore[attr-defined]
         Cap.maturityDate = Cap.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Cap, "set_bachelier_pricing_engine"):
+            Cap.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_bachelier_pricing_engine
+            )
         if hasattr(Cap, "implied_volatility"):
             Cap.impliedVolatility = Cap.implied_volatility  # type: ignore[attr-defined]
 
@@ -1255,6 +1267,10 @@ def _install_aliases() -> None:
         Floor.atmRate = Floor.atm_rate  # type: ignore[attr-defined]
         Floor.startDate = Floor.start_date  # type: ignore[attr-defined]
         Floor.maturityDate = Floor.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Floor, "set_bachelier_pricing_engine"):
+            Floor.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_bachelier_pricing_engine
+            )
         if hasattr(Floor, "implied_volatility"):
             Floor.impliedVolatility = Floor.implied_volatility  # type: ignore[attr-defined]
 

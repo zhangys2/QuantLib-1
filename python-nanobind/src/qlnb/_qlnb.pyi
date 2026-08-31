@@ -3870,6 +3870,12 @@ class CapFloor:
         day_counter: DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
+    def set_bachelier_pricing_engine(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        volatility: float,
+        day_counter: DayCounter = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -3905,6 +3911,12 @@ class Collar:
         day_counter: DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
+    def set_bachelier_pricing_engine(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        volatility: float,
+        day_counter: DayCounter = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -3939,6 +3951,12 @@ class Cap:
         day_counter: DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
+    def set_bachelier_pricing_engine(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        volatility: float,
+        day_counter: DayCounter = ...,
+    ) -> None: ...
     def implied_volatility(
         self,
         target_price: float,
@@ -3972,6 +3990,12 @@ class Floor:
         volatility: float,
         day_counter: DayCounter = ...,
         displacement: float = ...,
+    ) -> None: ...
+    def set_bachelier_pricing_engine(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        volatility: float,
+        day_counter: DayCounter = ...,
     ) -> None: ...
     def implied_volatility(
         self,
@@ -4523,6 +4547,11 @@ def make_floor(
     nominal: float = ...,
     forward_start: Period = ...,
 ) -> CapFloor: ...
+def BachelierCapFloorEngine(
+    discount_curve: YieldTermStructureHandle,
+    volatility: float,
+    day_counter: DayCounter = ...,
+) -> YieldTermStructureHandle: ...
 def BlackCapFloorEngine(
     discount_curve: YieldTermStructureHandle,
     volatility: float,
