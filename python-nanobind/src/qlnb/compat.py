@@ -1644,6 +1644,10 @@ if ContinuousAveragingAsianOption is not None:
     ContinuousAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
         ContinuousAveragingAsianOption.set_pricing_engine
     )
+    if hasattr(ContinuousAveragingAsianOption, "set_heston_pricing_engine"):
+        ContinuousAveragingAsianOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousAveragingAsianOption.set_heston_pricing_engine
+        )
 if DiscreteAveragingAsianOption is not None:
     DiscreteAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
         DiscreteAveragingAsianOption.set_pricing_engine
@@ -1651,6 +1655,10 @@ if DiscreteAveragingAsianOption is not None:
     if hasattr(DiscreteAveragingAsianOption, "set_turnbull_wakeman_pricing_engine"):
         DiscreteAveragingAsianOption.setTurnbullWakemanPricingEngine = (  # type: ignore[attr-defined]
             DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine
+        )
+    if hasattr(DiscreteAveragingAsianOption, "set_heston_pricing_engine"):
+        DiscreteAveragingAsianOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_heston_pricing_engine
         )
     if hasattr(DiscreteAveragingAsianOption, "is_expired"):
         DiscreteAveragingAsianOption.isExpired = (  # type: ignore[attr-defined]

@@ -572,6 +572,14 @@ Experimental Python package that binds a focused QuantLib surface with
 - `FFTVarianceGammaEngine` + batch `precalculate`; `set_fft_variance_gamma_pricing_engine`
 - Recovers `VarianceGammaTests::testVarianceGamma` FFT NPVs (tol 0.01)
 
+### Phase 120 (Asian continuous geometric Heston)
+- `ContinuousAveragingAsianOption.set_heston_pricing_engine` → analytic Kim–Wee engine
+- Recovers `AsianOptionTests::testAnalyticContinuousGeometricAveragePriceHeston` (tol 1e-2)
+
+### Phase 121 (Asian discrete geometric Heston)
+- `DiscreteAveragingAsianOption.set_heston_pricing_engine` → analytic Kim–Kim–Kim–Wee engine
+- Recovers `AsianOptionTests::testAnalyticDiscreteGeometricAveragePriceHeston` (tols 1e-2–8e-2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
