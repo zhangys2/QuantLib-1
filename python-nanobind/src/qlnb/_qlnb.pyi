@@ -799,6 +799,35 @@ class ConstNotionalCrossCurrencyBasisSwap:
         rec_averaging_method: RateAveraging = ...,
         telescopic_value_dates: bool = ...,
     ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        pay_nominal: float,
+        pay_currency: Currency,
+        pay_schedule: Schedule,
+        pay_index: OvernightIndex,
+        pay_spread: float,
+        pay_gearing: float,
+        rec_nominal: float,
+        rec_currency: Currency,
+        rec_schedule: Schedule,
+        rec_index: OvernightIndex,
+        rec_spread: float,
+        rec_gearing: float,
+        pay_payment_lag: int = ...,
+        rec_payment_lag: int = ...,
+        pay_compound_spread: bool = ...,
+        pay_lookback_days: int | None = ...,
+        pay_observation_shift: bool = ...,
+        pay_lockout_days: int = ...,
+        pay_averaging_method: RateAveraging = ...,
+        rec_compound_spread: bool = ...,
+        rec_lookback_days: int | None = ...,
+        rec_observation_shift: bool = ...,
+        rec_lockout_days: int = ...,
+        rec_averaging_method: RateAveraging = ...,
+        telescopic_value_dates: bool = ...,
+    ) -> None: ...
     def NPV(self) -> float: ...
     def leg_npv(self, leg: int) -> float: ...
     def leg_bps(self, leg: int) -> float: ...
@@ -4181,6 +4210,10 @@ def Euribor1Y(handle: YieldTermStructureHandle) -> IborIndex: ...
 def Sofr() -> OvernightIndex: ...
 @overload
 def Sofr(handle: YieldTermStructureHandle) -> OvernightIndex: ...
+@overload
+def Sonia() -> OvernightIndex: ...
+@overload
+def Sonia(handle: YieldTermStructureHandle) -> OvernightIndex: ...
 @overload
 def Estr() -> OvernightIndex: ...
 @overload

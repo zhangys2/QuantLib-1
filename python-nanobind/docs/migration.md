@@ -2307,6 +2307,7 @@ Cross-currency floating-vs-floating basis swap. Reuses
 Optional OIS kwargs support overnight-index legs (Sonia/Sofr). Compat:
 `setPricingEngine`, `legNPV`, `legBPS`, `fairPaySpread`, `fairRecSpread`.
 Recovers `ConstNotionalCrossCurrencyBasisSwapTest::testBasisXCCYSwapPricing`.
+Also recovers `testBasisONXCCYSwapPricing` (Sonia/Sofr overnight legs).
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

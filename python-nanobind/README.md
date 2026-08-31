@@ -528,6 +528,7 @@ Experimental Python package that binds a focused QuantLib surface with
 - `ConstNotionalCrossCurrencyBasisSwap` + cross-currency discounting engine
 - Ibor and overnight-index legs (OIS kwargs for Sonia/Sofr-style basis)
 - Recovers `ConstNotionalCrossCurrencyBasisSwapTest::testBasisXCCYSwapPricing` (tol 0.01)
+- Also recovers `testBasisONXCCYSwapPricing` (Sonia/Sofr OIS legs, tol 0.01)
 
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)

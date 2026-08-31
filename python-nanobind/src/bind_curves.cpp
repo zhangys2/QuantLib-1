@@ -13,6 +13,7 @@
 #include <ql/indexes/ibor/euribor.hpp>
 #include <ql/indexes/ibor/gbplibor.hpp>
 #include <ql/indexes/ibor/sofr.hpp>
+#include <ql/indexes/ibor/sonia.hpp>
 #include <ql/indexes/ibor/usdlibor.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/interestrate.hpp>
@@ -537,6 +538,15 @@ void bind_curves(nb::module_& m) {
         "Sofr",
         [](const Handle<YieldTermStructure>& h) {
             return ext::shared_ptr<OvernightIndex>(ext::make_shared<Sofr>(h));
+        },
+        nb::arg("handle"));
+    m.def("Sonia", []() {
+        return ext::shared_ptr<OvernightIndex>(ext::make_shared<Sonia>());
+    });
+    m.def(
+        "Sonia",
+        [](const Handle<YieldTermStructure>& h) {
+            return ext::shared_ptr<OvernightIndex>(ext::make_shared<Sonia>(h));
         },
         nb::arg("handle"));
     m.def("Estr", []() {

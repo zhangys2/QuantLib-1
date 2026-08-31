@@ -183,6 +183,49 @@ def _make_basis_xccy_swap(spot_fx: float, gbp_spread: float):
     )
 
 
+def _make_on_basis_xccy_swap(spot_fx: float, gbp_spread: float):
+    gbp_nominal = 10_000_000.0
+    pay_calendar = ql.JointCalendar(
+        ql.UnitedStates(ql.UnitedStatesMarket.Settlement),
+        ql.UnitedKingdom(),
+    )
+
+    today = ql.get_evaluation_date()
+    reference_date = pay_calendar.adjust(today)
+    start = pay_calendar.advance(reference_date, 2, ql.TimeUnit.Days)
+    end = start + ql.Period(5, ql.TimeUnit.Years)
+    schedule = ql.Schedule(
+        start,
+        end,
+        ql.Period(3, ql.TimeUnit.Months),
+        pay_calendar,
+        ql.BusinessDayConvention.ModifiedFollowing,
+        ql.BusinessDayConvention.ModifiedFollowing,
+        ql.DateGeneration.Backward,
+        False,
+    )
+
+    sofr_index = ql.Sofr(_usd_projection_curve())
+    sonia_index = ql.Sonia(_gbp_projection_curve())
+
+    return ql.ConstNotionalCrossCurrencyBasisSwap(
+        gbp_nominal,
+        ql.GBPCurrency(),
+        schedule,
+        sonia_index,
+        gbp_spread,
+        1.0,
+        gbp_nominal * spot_fx,
+        ql.USDCurrency(),
+        schedule,
+        sofr_index,
+        0.0,
+        1.0,
+        pay_lockout_days=3,
+        rec_lockout_days=2,
+    )
+
+
 def test_basis_xccy_swap_pricing():
     # ConstNotionalCrossCurrencyBasisSwapTest::testBasisXCCYSwapPricing
     ql.set_evaluation_date(ql.Date(11, ql.Month.September, 2018))
@@ -201,6 +244,27 @@ def test_basis_xccy_swap_pricing():
 
     tol = 0.01
     assert swap.NPV() == pytest.approx(0.0, abs=tol)
+    assert swap.leg_bps(0) == pytest.approx(-4670.170509677384, abs=tol)
+
+
+def test_basis_on_xccy_swap_pricing():
+    # ConstNotionalCrossCurrencyBasisSwapTest::testBasisONXCCYSwapPricing
+    ql.set_evaluation_date(ql.Date(11, ql.Month.September, 2018))
+    spot_fx = 1.0
+    spread = 0.0
+    swap = _make_on_basis_xccy_swap(spot_fx, spread)
+
+    fx_quote = ql.make_quote_handle(spot_fx)
+    swap.set_pricing_engine(
+        ql.USDCurrency(),
+        _usd_discount_curve(),
+        ql.GBPCurrency(),
+        _gbp_discount_curve(),
+        fx_quote,
+    )
+
+    tol = 0.01
+    assert swap.NPV() == pytest.approx(0.26367734931409, abs=tol)
     assert swap.leg_bps(0) == pytest.approx(-4670.170509677384, abs=tol)
 
 
