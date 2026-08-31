@@ -2564,6 +2564,25 @@ Attaches `PerturbativeBarrierOptionEngine` (Recchioni). Compat:
 `setPerturbativePricingEngine` (compat-only). Recovers
 `BarrierOptionTests::testPerturbative` (orders 0 and 1).
 
+## Phase-128 Vanna/Volga barrier
+
+```python
+atm = ql.DeltaVolQuote(
+    ql.make_quote_handle(0.08925), ql.DeltaVolDeltaType.Fwd, 1.0,
+    ql.DeltaVolAtmType.AtmDeltaNeutral,
+)
+put25 = ql.DeltaVolQuote(-0.25, ql.make_quote_handle(0.10087), 1.0, ql.DeltaVolDeltaType.Fwd)
+call25 = ql.DeltaVolQuote(0.25, ql.make_quote_handle(0.08463), 1.0, ql.DeltaVolDeltaType.Fwd)
+opt.set_vanna_volga_pricing_engine(
+    atm, put25, call25, spot, domestic_ts, foreign_ts,
+    adapt_van_delta=True, bs_price_with_smile=bs_vanilla,
+)
+```
+
+Attaches `VannaVolgaBarrierEngine`. Compat: `setVannaVolgaPricingEngine`
+(compat-only). Recovers cases from
+`BarrierOptionTests::testVannaVolgaSimpleBarrierValues`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
