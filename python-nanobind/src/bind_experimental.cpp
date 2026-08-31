@@ -3271,6 +3271,90 @@ void bind_experimental(nb::module_& m) {
             nb::arg("displacement") = 0.0,
             "Implied Black/normal term volatility matching a target NPV.");
 
+    // --- Phase 107: Collar (standalone CapFloor wrapper) ---
+    nb::class_<Collar>(m, "Collar")
+        .def(
+            "__init__",
+            [](Collar* self,
+               const Schedule& schedule,
+               const ext::shared_ptr<IborIndex>& index,
+               Rate cap_strike,
+               Rate floor_strike,
+               Real nominal,
+               Natural fixing_days) {
+                const BusinessDayConvention conv = index->businessDayConvention();
+                Leg leg = IborLeg(schedule, index)
+                              .withNotionals(nominal)
+                              .withPaymentDayCounter(index->dayCounter())
+                              .withPaymentAdjustment(conv)
+                              .withFixingDays(fixing_days);
+                new (self) Collar(leg,
+                                  std::vector<Rate>(1, cap_strike),
+                                  std::vector<Rate>(1, floor_strike));
+            },
+            nb::arg("schedule"),
+            nb::arg("index"),
+            nb::arg("cap_strike"),
+            nb::arg("floor_strike"),
+            nb::arg("nominal") = 100.0,
+            nb::arg("fixing_days") = 2,
+            "Build a Collar from an Ibor schedule.")
+        .def("NPV", [](Collar& c) { return c.NPV(); })
+        .def(
+            "atm_rate",
+            [](const Collar& c, const Handle<YieldTermStructure>& discount) {
+                return c.atmRate(**discount);
+            },
+            nb::arg("discount_curve"))
+        .def("start_date", [](const Collar& c) { return c.startDate(); })
+        .def("maturity_date", [](const Collar& c) { return c.maturityDate(); })
+        .def("type", [](const Collar& c) { return c.type(); })
+        .def(
+            "set_pricing_engine",
+            [](Collar& c,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility volatility,
+               const DayCounter& day_counter,
+               Real displacement) {
+                c.setPricingEngine(ext::make_shared<BlackCapFloorEngine>(
+                    discount_curve, volatility, day_counter, displacement));
+            },
+            nb::arg("discount_curve"),
+            nb::arg("volatility"),
+            nb::arg("day_counter") = DayCounter(Actual365Fixed()),
+            nb::arg("displacement") = 0.0)
+        .def(
+            "implied_volatility",
+            [](const Collar& c,
+               Real target_price,
+               const Handle<YieldTermStructure>& discount_curve,
+               Volatility guess,
+               Real accuracy,
+               Natural max_evaluations,
+               Volatility min_vol,
+               Volatility max_vol,
+               VolatilityType vol_type,
+               Real displacement) {
+                return c.impliedVolatility(target_price,
+                                           discount_curve,
+                                           guess,
+                                           accuracy,
+                                           max_evaluations,
+                                           min_vol,
+                                           max_vol,
+                                           vol_type,
+                                           displacement);
+            },
+            nb::arg("target_price"),
+            nb::arg("discount_curve"),
+            nb::arg("guess") = 0.10,
+            nb::arg("accuracy") = 1.0e-4,
+            nb::arg("max_evaluations") = 100,
+            nb::arg("min_vol") = 1.0e-7,
+            nb::arg("max_vol") = 4.0,
+            nb::arg("vol_type") = ShiftedLognormal,
+            nb::arg("displacement") = 0.0);
+
     m.def(
         "make_cap",
         [](const Period& tenor,

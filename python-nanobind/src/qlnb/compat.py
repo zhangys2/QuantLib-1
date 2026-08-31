@@ -1110,6 +1110,17 @@ def _install_aliases() -> None:
                 CapFloor.implied_volatility
             )
 
+    Collar = getattr(_ql, "Collar", None)
+    if Collar is not None:
+        Collar.setPricingEngine = Collar.set_pricing_engine  # type: ignore[attr-defined]
+        Collar.atmRate = Collar.atm_rate  # type: ignore[attr-defined]
+        Collar.startDate = Collar.start_date  # type: ignore[attr-defined]
+        Collar.maturityDate = Collar.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Collar, "implied_volatility"):
+            Collar.impliedVolatility = (  # type: ignore[attr-defined]
+                Collar.implied_volatility
+            )
+
 
 _install_aliases()
 
