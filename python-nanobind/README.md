@@ -764,6 +764,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `Swaption.set_lfm_pricing_engine` → `LfmSwaptionEngine`
 - Forward swap rate vs `S_0` and swaption NPV from `LiborMarketModelTests::testSwaptionPricing`
 
+### Phase 162 (LMM calibration)
+- `LmExtLinearExponentialVolModel`, `LmLinearExponentialCorrelationModel`
+- `CapHelper`, `SwaptionHelper` with `set_lfm_pricing_engine`
+- `LiborForwardModel.calibrate`, `params`, `set_params`, `end_criteria`
+- Golden RMSE from `LiborMarketModelTests::testCalibration` (< 8e-3)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
