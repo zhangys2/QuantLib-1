@@ -1120,6 +1120,10 @@ def _install_aliases() -> None:
             ForwardVanillaOption.setPerformancePricingEngine = (  # type: ignore[attr-defined]
                 ForwardVanillaOption.set_performance_pricing_engine
             )
+        if hasattr(ForwardVanillaOption, "set_heston_forward_pricing_engine"):
+            ForwardVanillaOption.setHestonForwardPricingEngine = (  # type: ignore[attr-defined]
+                ForwardVanillaOption.set_heston_forward_pricing_engine
+            )
         ForwardVanillaOption.isExpired = (  # type: ignore[attr-defined]
             ForwardVanillaOption.is_expired
         )

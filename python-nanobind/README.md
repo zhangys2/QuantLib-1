@@ -589,6 +589,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_levy_pricing_engine` → `ContinuousArithmeticAsianLevyEngine`
 - Recovers `AsianOptionTests::testLevyEngine` Haug goldens (tol 1e-4)
 
+### Phase 124 (forward Heston analytic)
+- `ForwardVanillaOption.set_heston_forward_pricing_engine` → `AnalyticHestonForwardEuropeanEngine`
+- Recovers `ForwardOptionTests::testHestonMCPrices` T=0 analytic cross-check (tol 5e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

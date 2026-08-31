@@ -22,6 +22,7 @@
 #include <ql/instruments/complexchooseroption.hpp>
 #include <ql/instruments/compoundoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
+#include <ql/experimental/forward/analytichestonforwardeuropeanengine.hpp>
 #include <ql/instruments/forwardvanillaoption.hpp>
 #include <ql/instruments/doublebarriertype.hpp>
 #include <ql/instruments/lookbackoption.hpp>
@@ -2644,7 +2645,19 @@ void bind_experimental(nb::module_& m) {
                         AnalyticEuropeanEngine>>(process));
             },
             nb::arg("process"),
-            "Attach ForwardPerformanceVanillaEngine<AnalyticEuropeanEngine>.");
+            "Attach ForwardPerformanceVanillaEngine<AnalyticEuropeanEngine>.")
+        .def(
+            "set_heston_forward_pricing_engine",
+            [](ForwardVanillaOption& opt,
+               const ext::shared_ptr<HestonProcess>& process,
+               Size integration_order) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticHestonForwardEuropeanEngine>(
+                        process, integration_order));
+            },
+            nb::arg("process"),
+            nb::arg("integration_order") = Size(144),
+            "Attach AnalyticHestonForwardEuropeanEngine.");
 
     m.def(
         "ForwardVanillaEngine",

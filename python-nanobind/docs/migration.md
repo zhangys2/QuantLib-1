@@ -2507,6 +2507,20 @@ Attaches `ContinuousArithmeticAsianLevyEngine` for (seasoned) continuous
 arithmetic Asians. Compat: `setLevyPricingEngine` (compat-only). Recovers
 Haug cases from `AsianOptionTests::testLevyEngine`.
 
+## Phase-124 forward Heston analytic
+
+```python
+forward = ql.ForwardVanillaOption(
+    1.0, today, ql.PlainVanillaPayoff(ql.OptionType.Call, 0.0), exercise
+)
+forward.set_heston_forward_pricing_engine(heston_process, integration_order=96)
+assert forward.NPV() == pytest.approx(vanilla_heston_npv, rel=5e-4)
+```
+
+Attaches `AnalyticHestonForwardEuropeanEngine` for forward-start vanillas under
+Heston. Compat: `setHestonForwardPricingEngine` (compat-only). Recovers
+`ForwardOptionTests::testHestonMCPrices` T=0 analytic cross-check.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
