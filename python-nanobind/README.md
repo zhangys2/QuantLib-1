@@ -597,6 +597,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `DoubleBarrierOption.set_suo_wang_pricing_engine` → `SuoWangDoubleBarrierEngine`
 - Recovers Haug goldens from `DoubleBarrierOptionTests::testEuropeanHaugValues` (tol 1e-4)
 
+### Phase 126 (FFT vanilla BS)
+- `EuropeanOption.set_fft_vanilla_pricing_engine` + `FFTVanillaEngine.precalculate`
+- Recovers `EuropeanOptionTests::testFFTEngines` consistency vs analytic (rel tol 1%)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
