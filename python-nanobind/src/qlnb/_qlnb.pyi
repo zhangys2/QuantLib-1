@@ -4447,6 +4447,7 @@ class LiborForwardModelProcess:
     def fixing_times(self) -> list[float]: ...
     def fixing_dates(self) -> list[Date]: ...
     def index(self) -> IborIndex: ...
+    def set_covar_param(self, covar_param: LfmCovarianceProxy) -> None: ...
 
 class LmFixedVolatilityModel:
     def __init__(
@@ -4455,6 +4456,30 @@ class LmFixedVolatilityModel:
 
 class LmExponentialCorrelationModel:
     def __init__(self, size: int, rho: float) -> None: ...
+
+class LmLinearExponentialVolatilityModel:
+    def __init__(
+        self,
+        fixing_times: list[float],
+        a: float,
+        b: float,
+        c: float,
+        d: float,
+    ) -> None: ...
+
+class LfmCovarianceProxy:
+    @overload
+    def __init__(
+        self,
+        volatility_model: LmFixedVolatilityModel,
+        correlation_model: LmExponentialCorrelationModel,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        volatility_model: LmLinearExponentialVolatilityModel,
+        correlation_model: LmExponentialCorrelationModel,
+    ) -> None: ...
 
 class CapletVarianceCurve:
     def __init__(
@@ -4468,12 +4493,21 @@ class CapletVarianceCurve:
     ) -> None: ...
 
 class LiborForwardModel:
+    @overload
     def __init__(
         self,
         process: LiborForwardModelProcess,
         volatility_model: LmFixedVolatilityModel,
         correlation_model: LmExponentialCorrelationModel,
     ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        process: LiborForwardModelProcess,
+        volatility_model: LmLinearExponentialVolatilityModel,
+        correlation_model: LmExponentialCorrelationModel,
+    ) -> None: ...
+    def s_0(self, alpha: int, beta: int) -> float: ...
 
 class DefaultProbabilityTermStructureHandle:
     def empty(self) -> bool: ...
@@ -4676,6 +4710,11 @@ class Swaption:
     ) -> None: ...
     def set_g2_tree_pricing_engine(
         self, model: G2, time_steps: int = ...
+    ) -> None: ...
+    def set_lfm_pricing_engine(
+        self,
+        model: LiborForwardModel,
+        discount_curve: YieldTermStructureHandle,
     ) -> None: ...
 
 class NonstandardSwaption:
@@ -5183,6 +5222,7 @@ def FdHullWhiteSwaptionEngine(model: HullWhite) -> HullWhite: ...
 def G2SwaptionEngine(model: G2) -> G2: ...
 def FdG2SwaptionEngine(model: G2) -> G2: ...
 def G2TreeSwaptionEngine(model: G2) -> G2: ...
+def LfmSwaptionEngine(model: LiborForwardModel) -> LiborForwardModel: ...
 def AnalyticContinuousGeometricAveragePriceAsianEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...

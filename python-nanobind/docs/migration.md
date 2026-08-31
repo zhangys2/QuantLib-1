@@ -3045,6 +3045,19 @@ cap.set_libor_forward_pricing_engine(model, discount_curve=yts)
 Attaches `AnalyticCapFloorEngine` on `LiborForwardModel`. Compat:
 `setLiborForwardPricingEngine`.
 
+## Phase-161 LFM swaption engine
+
+```python
+vola = ql.LmLinearExponentialVolatilityModel(
+    process.fixing_times(), 0.291, 1.483, 0.116, 1e-5
+)
+process.set_covar_param(ql.LfmCovarianceProxy(vola, corr))
+model = ql.LiborForwardModel(process, vola, corr)
+swaption.set_lfm_pricing_engine(model, discount_curve=yts)
+```
+
+Recovers `LiborMarketModelTests::testSwaptionPricing`. Compat: `setLfmPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

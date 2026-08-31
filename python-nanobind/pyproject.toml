@@ -7,8 +7,13 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
+<<<<<<< HEAD
 version = "4.31.0"
 description = "Nanobind Python bindings for QuantLib (phase 160: LiborForwardModel cap pricing)"
+=======
+version = "4.32.0"
+description = "Nanobind Python bindings for QuantLib (phase 157: MCHullWhiteCapFloorEngine)"
+>>>>>>> ae1013845 (Phase 161: qlnb LfmSwaptionEngine (4.32.0))
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }
