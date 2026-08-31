@@ -2344,6 +2344,21 @@ exchange). Reuses `DiscountingConstNotionalCrossCurrencySwapEngine` from Phase 1
 Also adds `CHFCurrency` and `Switzerland`. Compat: `setPricingEngine`, `legNPV`,
 `legBPS`, `makeFixFixXCCYSwap`. Recovers `testFixFixXCCYSwapPricing`.
 
+## Phase-112 float/float XCCY factory
+
+```python
+swap = ql.make_float_float_xccy_swap(
+    125_000_000.0, 1.35, usd_projection, gbp_projection
+)
+swap.set_pricing_engine(
+    ql.USDCurrency(), usd_discount, ql.GBPCurrency(), gbp_discount, fx_quote
+)
+assert swap.NPV() == pytest.approx(0.0, abs=0.01)
+```
+
+Adds `make_float_float_xccy_swap` for USD/GBP Libor legs with notional exchange.
+Compat: `makeFloatFloatXCCYSwap`. Recovers `testFloatFloatXCCYSwapPricing`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
