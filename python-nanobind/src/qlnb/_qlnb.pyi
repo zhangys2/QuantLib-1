@@ -4306,6 +4306,14 @@ class DiscreteAveragingAsianOption:
         integration_lambda: float = ...,
         max_nr_integration_steps: int = ...,
     ) -> None: ...
+    def set_fd_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        a_grid: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def set_heston_pricing_engine(
         self, process: HestonProcess, xi_right_limit: float = ...
     ) -> None: ...
@@ -4318,6 +4326,14 @@ class DiscreteAveragingAsianOption:
         process: BlackScholesMertonProcess,
         integration_lambda: float = ...,
         max_nr_integration_steps: int = ...,
+    ) -> None: ...
+    def setFdPricingEngine(
+        self,
+        process: BlackScholesMertonProcess,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        a_grid: int = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def isExpired(self) -> bool: ...
 
@@ -4661,6 +4677,9 @@ def ChoiAsianEngine(
     process: BlackScholesMertonProcess,
     integration_lambda: float = ...,
     max_nr_integration_steps: int = ...,
+) -> BlackScholesMertonProcess: ...
+def FdBlackScholesAsianEngine(
+    process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 def uniform_1d_mesher_locations(
     start: float, end: float, size: int

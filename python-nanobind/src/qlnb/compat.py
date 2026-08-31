@@ -1748,6 +1748,10 @@ if DiscreteAveragingAsianOption is not None:
         DiscreteAveragingAsianOption.setChoiPricingEngine = (  # type: ignore[attr-defined]
             DiscreteAveragingAsianOption.set_choi_pricing_engine
         )
+    if hasattr(DiscreteAveragingAsianOption, "set_fd_pricing_engine"):
+        DiscreteAveragingAsianOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_fd_pricing_engine
+        )
     if hasattr(DiscreteAveragingAsianOption, "set_heston_pricing_engine"):
         DiscreteAveragingAsianOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             DiscreteAveragingAsianOption.set_heston_pricing_engine
