@@ -27,6 +27,7 @@
 #include <ql/position.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
+#include <ql/pricingengines/vanilla/analyticdigitalamericanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
@@ -243,6 +244,30 @@ void bind_pricing(nb::module_& m) {
             nb::arg("payoff"),
             nb::arg("exercise"),
             "Vanilla option with Bermudan exercise (FD / tree engines).")
+        .def(
+            "__init__",
+            [](VanillaOption* self,
+               const CashOrNothingPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) VanillaOption(
+                    ext::make_shared<CashOrNothingPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "American digital cash-or-nothing vanilla.")
+        .def(
+            "__init__",
+            [](VanillaOption* self,
+               const AssetOrNothingPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) VanillaOption(
+                    ext::make_shared<AssetOrNothingPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "American digital asset-or-nothing vanilla.")
         .def("NPV", [](VanillaOption& opt) { return opt.NPV(); })
         .def("error_estimate",
              [](VanillaOption& opt) { return opt.errorEstimate(); })
@@ -259,6 +284,15 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("process"),
             "Attach Barone-Adesi-Whaley approximation engine (American).")
+        .def(
+            "set_digital_american_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticDigitalAmericanEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticDigitalAmericanEngine (cash/asset digital American).")
         .def(
             "set_dividend_pricing_engine",
             [](VanillaOption& opt,
@@ -686,6 +720,15 @@ void bind_pricing(nb::module_& m) {
         },
         nb::arg("process"),
         "Factory alias: pass the returned process to VanillaOption.set_pricing_engine.");
+
+    m.def(
+        "AnalyticDigitalAmericanEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "VanillaOption.set_digital_american_pricing_engine.");
 
     nb::enum_<Position::Type>(m, "Position")
         .value("Long", Position::Long)
