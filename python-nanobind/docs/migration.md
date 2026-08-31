@@ -2771,6 +2771,20 @@ Attaches `ChoiAsianEngine` (Choi 2018 basket replication). Compat:
 `setChoiPricingEngine` (compat-only). Recovers Levy cases from
 `AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 3e-2).
 
+## Phase-140 Bachelier Cap/Floor
+
+```python
+cap.set_bachelier_pricing_engine(curve, 0.01, ql.Actual365Fixed())
+price = cap.NPV()
+impl = cap.implied_volatility(
+    price, curve, guess=0.005, accuracy=1e-8, vol_type=ql.VolatilityType.Normal
+)
+assert impl == pytest.approx(0.01, abs=1e-8)
+```
+
+Attaches `BachelierCapFloorEngine` (normal vol). Compat:
+`setBachelierPricingEngine` (compat-only). Also on Cap / Floor / Collar.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

@@ -657,6 +657,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_choi_pricing_engine` → `ChoiAsianEngine`
 - Recovers Levy arithmetic Asian cases from `AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 3e-2)
 
+### Phase 140 (Bachelier Cap/Floor)
+- `set_bachelier_pricing_engine` → `BachelierCapFloorEngine` on CapFloor / Cap / Floor / Collar
+- Normal-vol implied volatility round-trip from `CapFloorTest` market (tol 1e-8)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
