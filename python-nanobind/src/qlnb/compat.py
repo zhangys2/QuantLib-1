@@ -789,6 +789,51 @@ def _install_aliases() -> None:
         if hasattr(HestonModel, "end_criteria"):
             HestonModel.endCriteria = HestonModel.end_criteria  # type: ignore[attr-defined]
 
+    CapHelper = getattr(_ql, "CapHelper", None)
+    if CapHelper is not None:
+        if hasattr(CapHelper, "set_lfm_pricing_engine"):
+            CapHelper.setLfmPricingEngine = (  # type: ignore[attr-defined]
+                CapHelper.set_lfm_pricing_engine
+            )
+        if hasattr(CapHelper, "calibration_error"):
+            CapHelper.calibrationError = (  # type: ignore[attr-defined]
+                CapHelper.calibration_error
+            )
+        if hasattr(CapHelper, "market_value"):
+            CapHelper.marketValue = (  # type: ignore[attr-defined]
+                CapHelper.market_value
+            )
+        if hasattr(CapHelper, "model_value"):
+            CapHelper.modelValue = (  # type: ignore[attr-defined]
+                CapHelper.model_value
+            )
+
+    SwaptionHelper = getattr(_ql, "SwaptionHelper", None)
+    if SwaptionHelper is not None:
+        if hasattr(SwaptionHelper, "set_lfm_pricing_engine"):
+            SwaptionHelper.setLfmPricingEngine = (  # type: ignore[attr-defined]
+                SwaptionHelper.set_lfm_pricing_engine
+            )
+        if hasattr(SwaptionHelper, "calibration_error"):
+            SwaptionHelper.calibrationError = (  # type: ignore[attr-defined]
+                SwaptionHelper.calibration_error
+            )
+        if hasattr(SwaptionHelper, "market_value"):
+            SwaptionHelper.marketValue = (  # type: ignore[attr-defined]
+                SwaptionHelper.market_value
+            )
+        if hasattr(SwaptionHelper, "model_value"):
+            SwaptionHelper.modelValue = (  # type: ignore[attr-defined]
+                SwaptionHelper.model_value
+            )
+
+    LiborForwardModel = getattr(_ql, "LiborForwardModel", None)
+    if LiborForwardModel is not None:
+        if hasattr(LiborForwardModel, "set_params"):
+            LiborForwardModel.setParams = LiborForwardModel.set_params  # type: ignore[attr-defined]
+        if hasattr(LiborForwardModel, "end_criteria"):
+            LiborForwardModel.endCriteria = LiborForwardModel.end_criteria  # type: ignore[attr-defined]
+
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)
     if OvernightIndexedSwap is not None:
         OvernightIndexedSwap.fairRate = OvernightIndexedSwap.fair_rate  # type: ignore[attr-defined]

@@ -3058,6 +3058,33 @@ swaption.set_lfm_pricing_engine(model, discount_curve=yts)
 
 Recovers `LiborMarketModelTests::testSwaptionPricing`. Compat: `setLfmPricingEngine`.
 
+## Phase-162 LMM calibration
+
+```python
+vola = ql.LmExtLinearExponentialVolModel(process.fixing_times(), 0.5, 0.6, 0.1, 0.1)
+corr = ql.LmLinearExponentialCorrelationModel(size, 0.5, 0.8)
+model = ql.LiborForwardModel(process, vola, corr)
+
+cap_helper = ql.CapHelper(
+    maturity, vol, index, ql.Frequency.Annual, index.day_counter(),
+    True, yts, ql.CalibrationErrorType.ImpliedVolError,
+)
+cap_helper.set_lfm_pricing_engine(model, discount_curve=yts)
+
+swaption_helper = ql.SwaptionHelper(
+    maturity, length, vol, index, index.tenor(),
+    day_counter, index.day_counter(), yts,
+    ql.CalibrationErrorType.ImpliedVolError,
+)
+swaption_helper.set_lfm_pricing_engine(model, discount_curve=yts)
+
+model.calibrate(helpers, ql.LevenbergMarquardt(1e-6, 1e-6, 1e-6),
+                ql.EndCriteria(2000, 100, 1e-6, 1e-6, 1e-6))
+```
+
+Recovers `LiborMarketModelTests::testCalibration` (RMSE < 8e-3). Compat:
+`setLfmPricingEngine` on helpers.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
