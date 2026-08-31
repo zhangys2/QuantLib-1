@@ -704,6 +704,57 @@ def make_multiple_resets_swap(
     spread: float = ...,
 ) -> MultipleResetsSwap: ...
 
+class FloatFloatSwap:
+    def __init__(
+        self,
+        type: SwapType,
+        nominal1: float,
+        nominal2: float,
+        schedule1: Schedule,
+        index1: IborIndex,
+        day_count1: DayCounter,
+        schedule2: Schedule,
+        index2: IborIndex,
+        day_count2: DayCounter,
+        intermediate_capital_exchange: bool = ...,
+        final_capital_exchange: bool = ...,
+        gearing1: float = ...,
+        spread1: float = ...,
+        capped_rate1: float | None = ...,
+        floored_rate1: float | None = ...,
+        gearing2: float = ...,
+        spread2: float = ...,
+        capped_rate2: float | None = ...,
+        floored_rate2: float | None = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def type(self) -> SwapType: ...
+    def nominal1(self) -> list[float]: ...
+    def nominal2(self) -> list[float]: ...
+    def spread1(self) -> list[float]: ...
+    def spread2(self) -> list[float]: ...
+    def gearing1(self) -> list[float]: ...
+    def gearing2(self) -> list[float]: ...
+    def fair_spread1(self) -> float: ...
+    def fair_spread2(self) -> float: ...
+    def leg_NPV(self, i: int) -> float: ...
+    def leg_BPS(self, i: int) -> float: ...
+    def set_pricing_engine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+
+def make_float_float_swap(
+    type: SwapType,
+    nominal: float,
+    index1: IborIndex,
+    index2: IborIndex,
+    discount_curve: YieldTermStructureHandle,
+    spread1: float = ...,
+    spread2: float = ...,
+    length_in_years: int = ...,
+    settlement_days: int = ...,
+    calendar: Calendar = ...,
+) -> FloatFloatSwap: ...
+
 class EquityTotalReturnSwap:
     def __init__(
         self,

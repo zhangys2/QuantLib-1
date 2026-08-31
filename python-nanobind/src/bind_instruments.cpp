@@ -13,6 +13,7 @@
 #include <ql/cashflows/rateaveraging.hpp>
 #include <ql/instruments/assetswap.hpp>
 #include <ql/instruments/bond.hpp>
+#include <ql/instruments/floatfloatswap.hpp>
 #include <ql/instruments/makemultipleresetsswap.hpp>
 #include <ql/instruments/multipleresetsswap.hpp>
 #include <ql/instruments/perpetualfutures.hpp>
@@ -46,9 +47,11 @@
 #include <ql/pricingengines/vanilla/mceuropeanhestonengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
+#include <ql/settings.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
+#include <ql/time/calendars/target.hpp>
 #include <ql/time/daycounter.hpp>
 #include <ql/time/schedule.hpp>
 #include <ql/utilities/null.hpp>
@@ -1513,4 +1516,145 @@ void bind_instruments(nb::module_& m) {
         nb::arg("spread") = 0.0,
         "Build a MultipleResetsSwap via QuantLib MakeMultipleResetsSwap "
         "(value copy). Omit fixed_rate to use the fair rate (NPV 0).");
+
+    // FloatFloatSwap is Swap/Instrument (MI) — standalone concrete wrapper.
+    nb::class_<FloatFloatSwap>(m, "FloatFloatSwap")
+        .def(
+            "__init__",
+            [](FloatFloatSwap* self,
+               Swap::Type type,
+               Real nominal1,
+               Real nominal2,
+               const Schedule& schedule1,
+               const ext::shared_ptr<IborIndex>& index1,
+               const DayCounter& day_count1,
+               const Schedule& schedule2,
+               const ext::shared_ptr<IborIndex>& index2,
+               const DayCounter& day_count2,
+               bool intermediate_capital_exchange,
+               bool final_capital_exchange,
+               Real gearing1,
+               Real spread1,
+               std::optional<Real> capped_rate1,
+               std::optional<Real> floored_rate1,
+               Real gearing2,
+               Real spread2,
+               std::optional<Real> capped_rate2,
+               std::optional<Real> floored_rate2) {
+                new (self) FloatFloatSwap(
+                    type, nominal1, nominal2, schedule1,
+                    ext::static_pointer_cast<InterestRateIndex>(index1),
+                    day_count1, schedule2,
+                    ext::static_pointer_cast<InterestRateIndex>(index2),
+                    day_count2, intermediate_capital_exchange,
+                    final_capital_exchange, gearing1, spread1,
+                    capped_rate1.value_or(Null<Real>()),
+                    floored_rate1.value_or(Null<Real>()), gearing2, spread2,
+                    capped_rate2.value_or(Null<Real>()),
+                    floored_rate2.value_or(Null<Real>()));
+            },
+            nb::arg("type"),
+            nb::arg("nominal1"),
+            nb::arg("nominal2"),
+            nb::arg("schedule1"),
+            nb::arg("index1"),
+            nb::arg("day_count1"),
+            nb::arg("schedule2"),
+            nb::arg("index2"),
+            nb::arg("day_count2"),
+            nb::arg("intermediate_capital_exchange") = false,
+            nb::arg("final_capital_exchange") = false,
+            nb::arg("gearing1") = 1.0,
+            nb::arg("spread1") = 0.0,
+            nb::arg("capped_rate1") = nb::none(),
+            nb::arg("floored_rate1") = nb::none(),
+            nb::arg("gearing2") = 1.0,
+            nb::arg("spread2") = 0.0,
+            nb::arg("capped_rate2") = nb::none(),
+            nb::arg("floored_rate2") = nb::none())
+        .def("NPV", [](FloatFloatSwap& s) { return s.NPV(); })
+        .def("is_expired",
+             [](const FloatFloatSwap& s) { return s.isExpired(); })
+        .def("type", [](const FloatFloatSwap& s) { return s.type(); })
+        .def("nominal1", [](const FloatFloatSwap& s) { return s.nominal1(); })
+        .def("nominal2", [](const FloatFloatSwap& s) { return s.nominal2(); })
+        .def("spread1", [](const FloatFloatSwap& s) { return s.spread1(); })
+        .def("spread2", [](const FloatFloatSwap& s) { return s.spread2(); })
+        .def("gearing1", [](const FloatFloatSwap& s) { return s.gearing1(); })
+        .def("gearing2", [](const FloatFloatSwap& s) { return s.gearing2(); })
+        .def("fair_spread1",
+             [](FloatFloatSwap& s) { return s.fairSpread1(); })
+        .def("fair_spread2",
+             [](FloatFloatSwap& s) { return s.fairSpread2(); })
+        .def("leg_NPV",
+             [](FloatFloatSwap& s, Size i) { return s.legNPV(i); },
+             nb::arg("i"))
+        .def("leg_BPS",
+             [](FloatFloatSwap& s, Size i) { return s.legBPS(i); },
+             nb::arg("i"))
+        .def(
+            "set_pricing_engine",
+            [](FloatFloatSwap& s,
+               const Handle<YieldTermStructure>& discount_curve) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingSwapEngine>(discount_curve));
+                auto pricer = ext::make_shared<BlackIborCouponPricer>();
+                setCouponPricer(s.leg1(), pricer);
+                setCouponPricer(s.leg2(), pricer);
+            },
+            nb::arg("discount_curve"),
+            "Attach DiscountingSwapEngine and BlackIborCouponPricer on "
+            "both legs.");
+
+    m.def(
+        "make_float_float_swap",
+        [](Swap::Type type,
+           Real nominal,
+           const ext::shared_ptr<IborIndex>& index1,
+           const ext::shared_ptr<IborIndex>& index2,
+           const Handle<YieldTermStructure>& discount_curve,
+           Spread spread1,
+           Spread spread2,
+           Integer length_in_years,
+           Natural settlement_days,
+           const Calendar& calendar) {
+            Date today = calendar.adjust(Settings::instance().evaluationDate());
+            Date settlement =
+                calendar.advance(today, settlement_days, Days);
+            Date maturity = calendar.advance(settlement, length_in_years, Years,
+                                             ModifiedFollowing);
+
+            Schedule schedule1(settlement, maturity, index1->tenor(), calendar,
+                               ModifiedFollowing, ModifiedFollowing,
+                               DateGeneration::Forward, false);
+            Schedule schedule2(settlement, maturity, index2->tenor(), calendar,
+                               ModifiedFollowing, ModifiedFollowing,
+                               DateGeneration::Forward, false);
+
+            FloatFloatSwap swap(
+                type, nominal, nominal, schedule1,
+                ext::static_pointer_cast<InterestRateIndex>(index1),
+                index1->dayCounter(), schedule2,
+                ext::static_pointer_cast<InterestRateIndex>(index2),
+                index2->dayCounter(), false, false, 1.0, spread1, Null<Real>(),
+                Null<Real>(), 1.0, spread2, Null<Real>(), Null<Real>());
+            swap.setPricingEngine(
+                ext::make_shared<DiscountingSwapEngine>(discount_curve));
+            auto pricer = ext::make_shared<BlackIborCouponPricer>();
+            setCouponPricer(swap.leg1(), pricer);
+            setCouponPricer(swap.leg2(), pricer);
+            return swap;
+        },
+        nb::arg("type"),
+        nb::arg("nominal"),
+        nb::arg("index1"),
+        nb::arg("index2"),
+        nb::arg("discount_curve"),
+        nb::arg("spread1") = 0.0,
+        nb::arg("spread2") = 0.0,
+        nb::arg("length_in_years") = 10,
+        nb::arg("settlement_days") = 2,
+        nb::arg("calendar") = Calendar(TARGET()),
+        "Build a FloatFloatSwap matching FloatFloatSwapTests::CommonVars "
+        "(DiscountingSwapEngine + BlackIborCouponPricer).");
 }

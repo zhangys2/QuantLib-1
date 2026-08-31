@@ -109,9 +109,15 @@ def test_everest_absolute_tolerance():
 
 def test_native_everest_snake_case_only():
     # Native qlnb exposes snake_case; camelCase aliases live in qlnb.compat.
+    # Compat mutates the shared class, so negative camelCase checks only hold
+    # when compat has not been imported yet (full-suite order is not guaranteed).
+    import sys
+
     assert hasattr(ql.EverestOption, "set_mc_pricing_engine")
     assert hasattr(ql.EverestOption, "error_estimate")
     assert hasattr(ql.EverestOption, "is_expired")
+    if "qlnb.compat" in sys.modules:
+        pytest.skip("qlnb.compat already loaded; camelCase aliases mutate EverestOption")
     assert not hasattr(ql.EverestOption, "setMCPricingEngine")
     assert not hasattr(ql.EverestOption, "errorEstimate")
     assert not hasattr(ql.EverestOption, "isExpired")
