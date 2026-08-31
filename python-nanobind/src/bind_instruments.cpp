@@ -30,6 +30,7 @@
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
 #include <ql/instruments/compositeinstrument.hpp>
+#include <ql/instruments/constnotionalcrosscurrencybasisswap.hpp>
 #include <ql/instruments/constnotionalcrosscurrencyfixedvsfloatingswap.hpp>
 #include <ql/instruments/stock.hpp>
 #include <ql/pricingengines/bond/bondfunctions.hpp>
@@ -2417,6 +2418,146 @@ void bind_instruments(nb::module_& m) {
         .def(
             "set_pricing_engine",
             [](ConstNotionalCrossCurrencyFixedVsFloatingSwap& s,
+               const Currency& domestic_currency,
+               const Handle<YieldTermStructure>& domestic_discount,
+               const Currency& foreign_currency,
+               const Handle<YieldTermStructure>& foreign_discount,
+               const Handle<Quote>& spot_fx) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingConstNotionalCrossCurrencySwapEngine>(
+                        domestic_currency,
+                        domestic_discount,
+                        foreign_currency,
+                        foreign_discount,
+                        spot_fx));
+            },
+            nb::arg("domestic_currency"),
+            nb::arg("domestic_discount"),
+            nb::arg("foreign_currency"),
+            nb::arg("foreign_discount"),
+            nb::arg("spot_fx"),
+            "Attach DiscountingConstNotionalCrossCurrencySwapEngine.");
+
+    // --- Phase 109: ConstNotionalCrossCurrencyBasisSwap ---
+    nb::class_<ConstNotionalCrossCurrencyBasisSwap>(
+        m, "ConstNotionalCrossCurrencyBasisSwap")
+        .def(
+            "__init__",
+            [](ConstNotionalCrossCurrencyBasisSwap* self,
+               Real pay_nominal,
+               const Currency& pay_currency,
+               const Schedule& pay_schedule,
+               const ext::shared_ptr<IborIndex>& pay_index,
+               Spread pay_spread,
+               Real pay_gearing,
+               Real rec_nominal,
+               const Currency& rec_currency,
+               const Schedule& rec_schedule,
+               const ext::shared_ptr<IborIndex>& rec_index,
+               Spread rec_spread,
+               Real rec_gearing,
+               Integer pay_payment_lag,
+               Integer rec_payment_lag,
+               bool pay_compound_spread,
+               std::optional<Natural> pay_lookback_days,
+               bool pay_observation_shift,
+               Natural pay_lockout_days,
+               RateAveraging::Type pay_averaging_method,
+               bool rec_compound_spread,
+               std::optional<Natural> rec_lookback_days,
+               bool rec_observation_shift,
+               Natural rec_lockout_days,
+               RateAveraging::Type rec_averaging_method,
+               bool telescopic_value_dates) {
+                const Natural payLookback =
+                    pay_lookback_days ? *pay_lookback_days : Null<Natural>();
+                const Natural recLookback =
+                    rec_lookback_days ? *rec_lookback_days : Null<Natural>();
+                new (self) ConstNotionalCrossCurrencyBasisSwap(
+                    pay_nominal,
+                    pay_currency,
+                    pay_schedule,
+                    pay_index,
+                    pay_spread,
+                    pay_gearing,
+                    rec_nominal,
+                    rec_currency,
+                    rec_schedule,
+                    rec_index,
+                    rec_spread,
+                    rec_gearing,
+                    pay_payment_lag,
+                    rec_payment_lag,
+                    pay_compound_spread,
+                    payLookback,
+                    pay_observation_shift,
+                    pay_lockout_days,
+                    pay_averaging_method,
+                    rec_compound_spread,
+                    recLookback,
+                    rec_observation_shift,
+                    rec_lockout_days,
+                    rec_averaging_method,
+                    telescopic_value_dates);
+            },
+            nb::arg("pay_nominal"),
+            nb::arg("pay_currency"),
+            nb::arg("pay_schedule"),
+            nb::arg("pay_index"),
+            nb::arg("pay_spread"),
+            nb::arg("pay_gearing"),
+            nb::arg("rec_nominal"),
+            nb::arg("rec_currency"),
+            nb::arg("rec_schedule"),
+            nb::arg("rec_index"),
+            nb::arg("rec_spread"),
+            nb::arg("rec_gearing"),
+            nb::arg("pay_payment_lag") = 0,
+            nb::arg("rec_payment_lag") = 0,
+            nb::arg("pay_compound_spread") = false,
+            nb::arg("pay_lookback_days") = nb::none(),
+            nb::arg("pay_observation_shift") = false,
+            nb::arg("pay_lockout_days") = 0,
+            nb::arg("pay_averaging_method") = RateAveraging::Compound,
+            nb::arg("rec_compound_spread") = false,
+            nb::arg("rec_lookback_days") = nb::none(),
+            nb::arg("rec_observation_shift") = false,
+            nb::arg("rec_lockout_days") = 0,
+            nb::arg("rec_averaging_method") = RateAveraging::Compound,
+            nb::arg("telescopic_value_dates") = false)
+        .def("NPV",
+             [](ConstNotionalCrossCurrencyBasisSwap& s) { return s.NPV(); })
+        .def("leg_npv",
+             [](ConstNotionalCrossCurrencyBasisSwap& s, Size leg) {
+                 return s.legNPV(leg);
+             },
+             nb::arg("leg"))
+        .def("leg_bps",
+             [](ConstNotionalCrossCurrencyBasisSwap& s, Size leg) {
+                 return s.legBPS(leg);
+             },
+             nb::arg("leg"))
+        .def("in_ccy_leg_npv",
+             [](ConstNotionalCrossCurrencyBasisSwap& s, Size leg) {
+                 return s.inCcyLegNPV(leg);
+             },
+             nb::arg("leg"))
+        .def("in_ccy_leg_bps",
+             [](ConstNotionalCrossCurrencyBasisSwap& s, Size leg) {
+                 return s.inCcyLegBPS(leg);
+             },
+             nb::arg("leg"))
+        .def("fair_pay_spread",
+             [](ConstNotionalCrossCurrencyBasisSwap& s) {
+                 return s.fairPaySpread();
+             })
+        .def("fair_rec_spread",
+             [](ConstNotionalCrossCurrencyBasisSwap& s) {
+                 return s.fairRecSpread();
+             })
+        .def(
+            "set_pricing_engine",
+            [](ConstNotionalCrossCurrencyBasisSwap& s,
                const Currency& domestic_currency,
                const Handle<YieldTermStructure>& domestic_discount,
                const Currency& foreign_currency,

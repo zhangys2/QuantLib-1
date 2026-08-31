@@ -2288,6 +2288,26 @@ Standalone `Cap` / `Floor` wrappers matching SWIG class names. NPV agrees
 with `CapFloor(CapFloorType.Cap|Floor, …)`. Compat: `setPricingEngine`,
 `impliedVolatility`. Recovers `CapFloorTest::testImpliedVolatility` (tol 1e-8).
 
+## Phase-109 ConstNotionalCrossCurrencyBasisSwap
+
+```python
+swap = ql.ConstNotionalCrossCurrencyBasisSwap(
+    gbp_nominal, ql.GBPCurrency(), schedule, gbp_index, spread, 1.0,
+    usd_nominal, ql.USDCurrency(), schedule, usd_index, 0.0, 1.0,
+)
+swap.set_pricing_engine(
+    ql.USDCurrency(), usd_discount, ql.GBPCurrency(), gbp_discount, fx_quote
+)
+assert swap.NPV() == pytest.approx(0.0, abs=0.01)
+assert swap.leg_bps(0) == pytest.approx(-4670.17, abs=0.01)
+```
+
+Cross-currency floating-vs-floating basis swap. Reuses
+`DiscountingConstNotionalCrossCurrencySwapEngine` from Phase 106.
+Optional OIS kwargs support overnight-index legs (Sonia/Sofr). Compat:
+`setPricingEngine`, `legNPV`, `legBPS`, `fairPaySpread`, `fairRecSpread`.
+Recovers `ConstNotionalCrossCurrencyBasisSwapTest::testBasisXCCYSwapPricing`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
