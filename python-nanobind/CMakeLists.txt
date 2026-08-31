@@ -63,6 +63,7 @@ nanobind_add_module(
     src/bind_inflation.cpp
     src/bind_fx.cpp
     src/bind_heston.cpp
+    src/bind_lmm.cpp
     src/bind_experimental.cpp
 )
 
