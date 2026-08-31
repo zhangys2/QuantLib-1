@@ -534,6 +534,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VarianceOption` + `IntegralHestonVarianceOptionEngine`
 - Recovers `VarianceOptionTests::testIntegralHeston` call/put NPVs (tol 1e-7)
 
+### Phase 111 (ConstNotionalCrossCurrencySwap)
+- `ConstNotionalCrossCurrencySwap` + `make_fix_fix_xccy_swap` factory
+- Helpers: `CHFCurrency`, `Switzerland` calendar
+- Recovers `ConstNotionalCrossCurrencySwapTests::testFixFixXCCYSwapPricing` (tol 0.01)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
