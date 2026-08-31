@@ -2270,7 +2270,7 @@ Recovers `ConstNotionalCrossCurrencyFixedVsFloatingSwapTest` (tol 0.01).
 
 ```python
 collar = ql.Collar(schedule, index, cap_strike=0.05, floor_strike=0.03)
-collar.set_pricing_engine(curve, vol=0.20)
+collar.set_pricing_engine(curve, volatility=0.20)
 assert cap.NPV() - floor.NPV() == pytest.approx(collar.NPV(), abs=1e-10)
 ```
 
@@ -2281,7 +2281,7 @@ Standalone `Collar` wrapper (CapFloor MI avoided). Compat: `setPricingEngine`,
 
 ```python
 cap = ql.Cap(schedule, index, strike=0.07)
-cap.set_pricing_engine(curve, vol=0.20)
+cap.set_pricing_engine(curve, volatility=0.20)
 ```
 
 Standalone `Cap` / `Floor` wrappers matching SWIG class names. NPV agrees
