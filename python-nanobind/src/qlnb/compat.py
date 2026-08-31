@@ -1145,6 +1145,10 @@ def _install_aliases() -> None:
             DoubleBarrierOption.impliedVolatility = (  # type: ignore[attr-defined]
                 DoubleBarrierOption.implied_volatility
             )
+        if hasattr(DoubleBarrierOption, "set_suo_wang_pricing_engine"):
+            DoubleBarrierOption.setSuoWangPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_suo_wang_pricing_engine
+            )
         if hasattr(DoubleBarrierOption, "set_binary_pricing_engine"):
             DoubleBarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
                 DoubleBarrierOption.set_binary_pricing_engine

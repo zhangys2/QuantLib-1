@@ -35,6 +35,7 @@
 #include <ql/instruments/quantobarrieroption.hpp>
 #include <ql/experimental/barrieroption/mcdoublebarrierengine.hpp>
 #include <ql/experimental/barrieroption/quantodoublebarrieroption.hpp>
+#include <ql/experimental/barrieroption/suowangdoublebarrierengine.hpp>
 #include <ql/instruments/softbarrieroption.hpp>
 #include <ql/instruments/twoassetbarrieroption.hpp>
 #include <ql/instruments/twoassetcorrelationoption.hpp>
@@ -2840,6 +2841,18 @@ void bind_experimental(nb::module_& m) {
             nb::arg("process"),
             "Attach AnalyticDoubleBarrierEngine (Ikeda/Kunitomo).")
         .def(
+            "set_suo_wang_pricing_engine",
+            [](DoubleBarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               int series) {
+                opt.setPricingEngine(
+                    ext::make_shared<SuoWangDoubleBarrierEngine>(
+                        process, series));
+            },
+            nb::arg("process"),
+            nb::arg("series") = 5,
+            "Attach SuoWangDoubleBarrierEngine (Wulin Suo / Yong Wang).")
+        .def(
             "set_binary_pricing_engine",
             [](DoubleBarrierOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process) {
@@ -2911,6 +2924,15 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "DoubleBarrierOption.set_pricing_engine.");
+
+    m.def(
+        "SuoWangDoubleBarrierEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "DoubleBarrierOption.set_suo_wang_pricing_engine.");
 
     m.def(
         "AnalyticDoubleBarrierBinaryEngine",
