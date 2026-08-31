@@ -910,6 +910,7 @@ def _install_aliases() -> None:
             ("accrual_start_times", "accrualStartTimes"),
             ("accrual_end_times", "accrualEndTimes"),
             ("discount_bond", "discountBond"),
+            ("next_index_reset", "nextIndexReset"),
             ("covar_param", "covarParam"),
             ("set_covar_param", "setCovarParam"),
         ):

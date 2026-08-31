@@ -120,6 +120,11 @@ void bind_lmm(nb::module_& m) {
                  return p.index();
              })
         .def(
+            "next_index_reset",
+            &LiborForwardModelProcess::nextIndexReset,
+            nb::arg("t"),
+            "Index of the next Libor reset after time t.")
+        .def(
             "covariance",
             [](const LiborForwardModelProcess& p,
                Time t0,
