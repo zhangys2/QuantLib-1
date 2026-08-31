@@ -2603,6 +2603,15 @@ class BarrierOption:
         barrier_type: BarrierType,
         barrier: float,
         rebate: float,
+        payoff: PlainVanillaPayoff,
+        exercise: AmericanExercise,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        barrier_type: BarrierType,
+        barrier: float,
+        rebate: float,
         payoff: CashOrNothingPayoff,
         exercise: EuropeanExercise,
     ) -> None: ...
@@ -2659,6 +2668,12 @@ class BarrierOption:
     ) -> None: ...
     def set_binary_pricing_engine(
         self, process: BlackScholesMertonProcess
+    ) -> None: ...
+    def set_binomial_pricing_engine(
+        self,
+        process: BlackScholesMertonProcess,
+        time_steps: int = ...,
+        max_time_steps: int = ...,
     ) -> None: ...
     def set_fd_pricing_engine(
         self,
@@ -2762,6 +2777,9 @@ class BarrierOption:
     ) -> float: ...
 
 def FdBlackScholesBarrierEngine(
+    process: BlackScholesMertonProcess,
+) -> BlackScholesMertonProcess: ...
+def BinomialBarrierEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
 def FdHestonBarrierEngine(model: HestonModel) -> HestonModel: ...

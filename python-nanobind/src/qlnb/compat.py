@@ -915,6 +915,10 @@ def _install_aliases() -> None:
             BarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_binary_pricing_engine
             )
+        if hasattr(BarrierOption, "set_binomial_pricing_engine"):
+            BarrierOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_binomial_pricing_engine
+            )
         if hasattr(BarrierOption, "set_fd_heston_pricing_engine"):
             BarrierOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_fd_heston_pricing_engine

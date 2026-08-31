@@ -623,6 +623,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_digital_american_ko_pricing_engine` → `AnalyticDigitalAmericanKOEngine`
 - Recovers at-expiry knock-out Haug cases from `DigitalOptionTests` (tol 1e-4)
 
+### Phase 132 (binomial barrier)
+- `BarrierOption` PlainVanilla + American exercise ctor
+- `set_binomial_pricing_engine` → `BinomialBarrierEngine<CRR, DiscretizedBarrierOption>`
+- Recovers representative Haug cases from `BarrierOptionTests::testHaugValues` (tol 1.1e-2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
