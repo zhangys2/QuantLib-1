@@ -231,6 +231,18 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("payoff"),
             nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](VanillaOption* self,
+               const PlainVanillaPayoff& payoff,
+               const BermudanExercise& exercise) {
+                new (self) VanillaOption(
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<BermudanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Vanilla option with Bermudan exercise (FD / tree engines).")
         .def("NPV", [](VanillaOption& opt) { return opt.NPV(); })
         .def("error_estimate",
              [](VanillaOption& opt) { return opt.errorEstimate(); })
