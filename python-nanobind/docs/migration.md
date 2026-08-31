@@ -3152,6 +3152,16 @@ cap.set_gaussian1d_pricing_engine(mf)
 Recovers `MarkovFunctionalTests::testVanillaEngines` (flat baskets). Compat:
 `modelOutputs`, `withYGridPoints`, `ConstantOptionletVolatility`.
 
+## Phase-167 MarkovFunctional calibration diagnostics
+
+```python
+outputs = mf.model_outputs()
+outputs.market_zerorate[i]  # vs outputs.model_zerorate[i]
+outputs.market_call_premium[i][j]  # vs outputs.model_call_premium[i][j]
+```
+
+Recovers `MarkovFunctionalTests::testCalibrationOneInstrumentSet` (flat baskets 1–2).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
