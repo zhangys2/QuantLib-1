@@ -614,6 +614,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `DoubleBarrierOption.set_vanna_volga_pricing_engine` → `VannaVolgaDoubleBarrierEngine<SuoWang>`
 - Recovers representative `DoubleBarrierOptionTests::testVannaVolgaDoubleBarrierValues` (tol 1e-4)
 
+### Phase 130 (digital American)
+- `VanillaOption` cash/asset-or-nothing + American exercise ctors
+- `set_digital_american_pricing_engine` → `AnalyticDigitalAmericanEngine`
+- Recovers Haug cash/asset at-hit cases from `DigitalOptionTests` (tol 1e-4)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
