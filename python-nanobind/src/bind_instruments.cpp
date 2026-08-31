@@ -70,6 +70,7 @@
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/analytich1hwengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonhullwhiteengine.hpp>
 #include <ql/pricingengines/vanilla/batesengine.hpp>
 #include <ql/pricingengines/vanilla/cashdividendeuropeanengine.hpp>
@@ -731,6 +732,23 @@ void bind_instruments(nb::module_& m) {
             nb::arg("integration_order") = 144,
             "Attach AnalyticHestonHullWhiteEngine (Heston + 1F Hull–White).")
         .def(
+            "set_h1_hw_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<HestonModel>& heston_model,
+               const ext::shared_ptr<HullWhite>& hull_white_model,
+               Real equity_short_rate_correlation,
+               Size integration_order) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticH1HWEngine>(
+                        heston_model, hull_white_model,
+                        equity_short_rate_correlation, integration_order));
+            },
+            nb::arg("heston_model"),
+            nb::arg("hull_white_model"),
+            nb::arg("equity_short_rate_correlation"),
+            nb::arg("integration_order") = 144,
+            "Attach AnalyticH1HWEngine (H1–HW approximation).")
+        .def(
             "set_dividend_pricing_engine",
             [](EuropeanOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -1224,6 +1242,19 @@ void bind_instruments(nb::module_& m) {
         nb::arg("integration_order") = 144,
         "Factory alias: pass args to "
         "EuropeanOption.set_heston_hull_white_pricing_engine.");
+
+    m.def(
+        "AnalyticH1HWEngine",
+        [](const ext::shared_ptr<HestonModel>& heston_model,
+           const ext::shared_ptr<HullWhite>& /*hull_white_model*/,
+           Real /*equity_short_rate_correlation*/,
+           Size /*integration_order*/) { return heston_model; },
+        nb::arg("heston_model"),
+        nb::arg("hull_white_model"),
+        nb::arg("equity_short_rate_correlation"),
+        nb::arg("integration_order") = 144,
+        "Factory alias: pass args to "
+        "EuropeanOption.set_h1_hw_pricing_engine.");
 
     m.def(
         "AnalyticDividendEuropeanEngine",

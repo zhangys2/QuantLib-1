@@ -2843,6 +2843,19 @@ Attaches `AnalyticHestonHullWhiteEngine`. Compat:
 `setHestonHullWhitePricingEngine` (compat-only). Matches BSM–HW when Heston
 σ→0 (`testCompareBsmHWandHestonHW`).
 
+## Phase-146 H1–HW approximation
+
+```python
+opt.set_h1_hw_pricing_engine(
+    heston_model, hull_white, equity_short_rate_correlation=0.6, integration_order=144
+)
+impl = opt.implied_volatility(opt.NPV(), bs_process)
+```
+
+Attaches `AnalyticH1HWEngine` (Grzelak–Oosterlee H1–HW). Compat:
+`setH1HWPricingEngine` (compat-only). Recovers
+`HybridHestonHullWhiteProcessTests::testH1HWPricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
