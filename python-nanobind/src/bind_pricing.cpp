@@ -41,6 +41,7 @@
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
+#include <ql/pricingengines/vanilla/fdcevvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanhestonengine.hpp>
@@ -357,6 +358,42 @@ void bind_pricing(nb::module_& m) {
             nb::arg("beta"),
             nb::arg("discount_curve"),
             "Attach AnalyticCEVEngine (constant elasticity of variance).")
+        .def(
+            "set_fd_cev_pricing_engine",
+            [](VanillaOption& opt,
+               Real f0,
+               Real alpha,
+               Real beta,
+               const Handle<YieldTermStructure>& discount_curve,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               Real scaling_factor,
+               Real eps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(ext::make_shared<FdCEVVanillaEngine>(
+                    f0,
+                    alpha,
+                    beta,
+                    discount_curve,
+                    t_grid,
+                    x_grid,
+                    damping_steps,
+                    scaling_factor,
+                    eps,
+                    scheme_desc));
+            },
+            nb::arg("f0"),
+            nb::arg("alpha"),
+            nb::arg("beta"),
+            nb::arg("discount_curve"),
+            nb::arg("t_grid") = Size(50),
+            nb::arg("x_grid") = Size(400),
+            nb::arg("damping_steps") = Size(0),
+            nb::arg("scaling_factor") = 1.0,
+            nb::arg("eps") = 1e-4,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdCEVVanillaEngine (FD CEV; default Douglas).")
         .def(
             "set_dividend_pricing_engine",
             [](VanillaOption& opt,

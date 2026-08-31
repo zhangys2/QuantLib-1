@@ -2285,6 +2285,19 @@ class VanillaOption:
         beta: float,
         discount_curve: YieldTermStructureHandle,
     ) -> None: ...
+    def set_fd_cev_pricing_engine(
+        self,
+        f0: float,
+        alpha: float,
+        beta: float,
+        discount_curve: YieldTermStructureHandle,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        damping_steps: int = ...,
+        scaling_factor: float = ...,
+        eps: float = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def set_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,

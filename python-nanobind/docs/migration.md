@@ -2745,6 +2745,18 @@ Attaches `AnalyticCEVEngine` (`df = α f^β dW`). Compat: `setCevPricingEngine`
 (compat-only). Recovers the analytic CEV setup from `FdCEVTests`
 (finite-difference delta consistency across β).
 
+## Phase-138 FD CEV
+
+```python
+opt.set_fd_cev_pricing_engine(
+    2.1, 0.75, 0.45, discount, t_grid=100, x_grid=1000, damping_steps=1, eps=1e-6
+)
+assert opt.NPV() == pytest.approx(analytic_npv, abs=0.01)
+```
+
+Attaches `FdCEVVanillaEngine`. Compat: `setFdCevPricingEngine` (compat-only).
+Matches analytic CEV NPV/delta from `FdCEVTests` (tol 0.01).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
