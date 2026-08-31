@@ -73,6 +73,7 @@
 #include <ql/pricingengines/barrier/analyticpartialtimebarrieroptionengine.hpp>
 #include <ql/pricingengines/barrier/analyticsoftbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analytictwoassetbarrierengine.hpp>
+#include <ql/pricingengines/barrier/binomialbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdhestonbarrierengine.hpp>
@@ -546,6 +547,26 @@ void bind_experimental(nb::module_& m) {
                Barrier::Type barrier_type,
                Real barrier,
                Real rebate,
+               const PlainVanillaPayoff& payoff,
+               const AmericanExercise& exercise) {
+                new (self) BarrierOption(
+                    barrier_type,
+                    barrier,
+                    rebate,
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<AmericanExercise>(exercise));
+            },
+            nb::arg("barrier_type"),
+            nb::arg("barrier"),
+            nb::arg("rebate"),
+            nb::arg("payoff"),
+            nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](BarrierOption* self,
+               Barrier::Type barrier_type,
+               Real barrier,
+               Real rebate,
                const CashOrNothingPayoff& payoff,
                const EuropeanExercise& exercise) {
                 new (self) BarrierOption(
@@ -706,6 +727,23 @@ void bind_experimental(nb::module_& m) {
             "Attach AnalyticBinaryBarrierEngine (cash/asset-or-nothing; "
             "American exercise, Haug p.176).")
         .def(
+            "set_binomial_pricing_engine",
+            [](BarrierOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size time_steps,
+               Size max_time_steps) {
+                opt.setPricingEngine(
+                    ext::make_shared<
+                        BinomialBarrierEngine<CoxRossRubinstein,
+                                              DiscretizedBarrierOption>>(
+                        process, time_steps, max_time_steps));
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = Size(400),
+            nb::arg("max_time_steps") = Size(0),
+            "Attach BinomialBarrierEngine<CRR, DiscretizedBarrierOption> "
+            "(Boyle–Lau when max_time_steps==0).")
+        .def(
             "set_fd_pricing_engine",
             [](BarrierOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -853,6 +891,15 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "BarrierOption.set_binary_pricing_engine.");
+
+    m.def(
+        "BinomialBarrierEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "BarrierOption.set_binomial_pricing_engine.");
 
     m.def(
         "FdBlackScholesBarrierEngine",

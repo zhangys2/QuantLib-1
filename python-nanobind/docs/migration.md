@@ -2630,6 +2630,26 @@ Attaches `AnalyticDigitalAmericanKOEngine` for knock-out digital Americans
 `setDigitalAmericanKoPricingEngine` (compat-only). Recovers at-expiry KO
 Haug cases from `DigitalOptionTests`.
 
+## Phase-132 binomial barrier
+
+```python
+opt = ql.BarrierOption(
+    ql.BarrierType.DownOut,
+    95.0,
+    3.0,
+    ql.PlainVanillaPayoff(ql.OptionType.Call, 90.0),
+    ql.EuropeanExercise(today + 180),
+)
+opt.set_binomial_pricing_engine(process, time_steps=400)
+assert opt.NPV() == pytest.approx(9.0246, abs=1.1e-2)
+```
+
+Attaches `BinomialBarrierEngine<CoxRossRubinstein, DiscretizedBarrierOption>`
+(Boyle–Lau barrier adjustment when `max_time_steps==0`). Also adds
+`BarrierOption(..., PlainVanillaPayoff, AmericanExercise)`. Compat:
+`setBinomialPricingEngine` (compat-only). Recovers Haug cases from
+`BarrierOptionTests::testHaugValues`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
