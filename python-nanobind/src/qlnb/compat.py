@@ -408,6 +408,10 @@ def _install_aliases() -> None:
         EuropeanOption.setBsmHullWhitePricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_bsm_hull_white_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_heston_hull_white_pricing_engine"):
+        EuropeanOption.setHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_heston_hull_white_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_dividend_pricing_engine"):
         EuropeanOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_dividend_pricing_engine
