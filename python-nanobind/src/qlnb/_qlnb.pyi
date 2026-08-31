@@ -4529,6 +4529,9 @@ class MarkovFunctional:
         end_criteria: EndCriteria,
     ) -> None: ...
 
+def markov_functional_test_md0_yts() -> YieldTermStructureHandle: ...
+def markov_functional_test_md0_swaption_vts() -> SwaptionVolatilityStructureHandle: ...
+
 class G2:
     def __init__(
         self,
