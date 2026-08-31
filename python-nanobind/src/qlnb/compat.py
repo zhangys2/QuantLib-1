@@ -1213,6 +1213,73 @@ if hasattr(_ql, "IborIndex"):
     )
     _ql.IborIndex.endOfMonth = _ql.IborIndex.end_of_month  # type: ignore[attr-defined]
 
+# Phase-101 AmortizingFixedRateBond / AmortizingFloatingRateBond aliases.
+AmortizingFixedRateBond = getattr(_ql, "AmortizingFixedRateBond", None)
+AmortizingFloatingRateBond = getattr(_ql, "AmortizingFloatingRateBond", None)
+sinkingSchedule = getattr(_ql, "sinking_schedule", None)
+sinkingNotionals = getattr(_ql, "sinking_notionals", None)
+SinkingSchedule = sinkingSchedule
+SinkingNotionals = sinkingNotionals
+if AmortizingFixedRateBond is not None:
+    AmortizingFixedRateBond.cleanPrice = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.clean_price
+    )
+    AmortizingFixedRateBond.dirtyPrice = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.dirty_price
+    )
+    AmortizingFixedRateBond.settlementDate = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.settlement_date
+    )
+    AmortizingFixedRateBond.maturityDate = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.maturity_date
+    )
+    AmortizingFixedRateBond.settlementValue = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.settlement_value
+    )
+    AmortizingFixedRateBond.dayCounter = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.day_counter
+    )
+    AmortizingFixedRateBond.cashflowAmounts = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.cashflow_amounts
+    )
+    AmortizingFixedRateBond.setPricingEngine = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.set_pricing_engine
+    )
+    AmortizingFixedRateBond.bondYield = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.bond_yield
+    )
+    AmortizingFixedRateBond.accruedAmount = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.accrued_amount
+    )
+if AmortizingFloatingRateBond is not None:
+    AmortizingFloatingRateBond.cleanPrice = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.clean_price
+    )
+    AmortizingFloatingRateBond.dirtyPrice = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.dirty_price
+    )
+    AmortizingFloatingRateBond.settlementDate = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.settlement_date
+    )
+    AmortizingFloatingRateBond.maturityDate = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.maturity_date
+    )
+    AmortizingFloatingRateBond.settlementValue = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.settlement_value
+    )
+    AmortizingFloatingRateBond.cashflowAmounts = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.cashflow_amounts
+    )
+    AmortizingFloatingRateBond.setPricingEngine = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.set_pricing_engine
+    )
+    AmortizingFloatingRateBond.bondYield = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.bond_yield
+    )
+    AmortizingFloatingRateBond.accruedAmount = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.accrued_amount
+    )
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)

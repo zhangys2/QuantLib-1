@@ -484,6 +484,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - Engine: `set_pricing_engine` → `DiscountingSwapEngine`
 - Recovers piecewise BMA curve fair libor fractions (tol 1e-9)
 
+### Phase 101 (AmortizingFixedRateBond)
+- `AmortizingFixedRateBond` / `AmortizingFloatingRateBond` (standalone Bond wrappers)
+- Helpers: `sinking_schedule` / `sinking_notionals` (French amortization)
+- Engine: `set_pricing_engine` → `DiscountingBondEngine` (+ Black Ibor pricer on floating)
+- Recovers suite French-amortization pmt / coupon amounts (tol 1e-6)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
