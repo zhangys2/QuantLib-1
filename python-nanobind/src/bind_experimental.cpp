@@ -117,6 +117,7 @@
 #include <ql/pricingengines/capfloor/bacheliercapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/blackcapfloorengine.hpp>
 #include <ql/pricingengines/capfloor/gaussian1dcapfloorengine.hpp>
+#include <ql/pricingengines/capfloor/treecapfloorengine.hpp>
 #include <ql/models/model.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
@@ -3758,6 +3759,21 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
+            "set_tree_pricing_engine",
+            [](CapFloor& cf,
+               const ext::shared_ptr<HullWhite>& model,
+               Size time_steps,
+               const Handle<YieldTermStructure>& discount_curve) {
+                cf.setPricingEngine(ext::make_shared<TreeCapFloorEngine>(
+                    ext::static_pointer_cast<ShortRateModel>(model),
+                    time_steps,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("time_steps") = 100,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach TreeCapFloorEngine (Hull–White lattice).")
+        .def(
             "implied_volatility",
             [](const CapFloor& cf,
                Real target_price,
@@ -3892,6 +3908,21 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
+            "set_tree_pricing_engine",
+            [](Collar& c,
+               const ext::shared_ptr<HullWhite>& model,
+               Size time_steps,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<TreeCapFloorEngine>(
+                    ext::static_pointer_cast<ShortRateModel>(model),
+                    time_steps,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("time_steps") = 100,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach TreeCapFloorEngine (Hull–White lattice).")
+        .def(
             "implied_volatility",
             [](const Collar& c,
                Real target_price,
@@ -4021,6 +4052,21 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
+            "set_tree_pricing_engine",
+            [](Cap& c,
+               const ext::shared_ptr<HullWhite>& model,
+               Size time_steps,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<TreeCapFloorEngine>(
+                    ext::static_pointer_cast<ShortRateModel>(model),
+                    time_steps,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("time_steps") = 100,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach TreeCapFloorEngine (Hull–White lattice).")
+        .def(
             "implied_volatility",
             [](const Cap& c,
                Real target_price,
@@ -4149,6 +4195,21 @@ void bind_experimental(nb::module_& m) {
             nb::arg("discount_curve") = Handle<YieldTermStructure>(),
             "Attach AnalyticCapFloorEngine (Hull–White / affine short-rate).")
         .def(
+            "set_tree_pricing_engine",
+            [](Floor& c,
+               const ext::shared_ptr<HullWhite>& model,
+               Size time_steps,
+               const Handle<YieldTermStructure>& discount_curve) {
+                c.setPricingEngine(ext::make_shared<TreeCapFloorEngine>(
+                    ext::static_pointer_cast<ShortRateModel>(model),
+                    time_steps,
+                    discount_curve));
+            },
+            nb::arg("model"),
+            nb::arg("time_steps") = 100,
+            nb::arg("discount_curve") = Handle<YieldTermStructure>(),
+            "Attach TreeCapFloorEngine (Hull–White lattice).")
+        .def(
             "implied_volatility",
             [](const Floor& c,
                Real target_price,
@@ -4257,6 +4318,13 @@ void bind_experimental(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass model to CapFloor/Cap/Floor/Collar "
         "set_analytic_cap_floor_pricing_engine.");
+
+    m.def(
+        "TreeCapFloorEngine",
+        [](const ext::shared_ptr<HullWhite>& model) { return model; },
+        nb::arg("model"),
+        "Factory alias: pass model to CapFloor/Cap/Floor/Collar "
+        "set_tree_pricing_engine.");
 
     // --- Phase 103: Extended OU process (constant b) for storage options ---
     nb::enum_<ExtendedOrnsteinUhlenbeckProcess::Discretization>(
