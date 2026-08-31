@@ -834,6 +834,22 @@ def _install_aliases() -> None:
         if hasattr(LiborForwardModel, "end_criteria"):
             LiborForwardModel.endCriteria = LiborForwardModel.end_criteria  # type: ignore[attr-defined]
 
+    LmExponentialCorrelationModel = getattr(_ql, "LmExponentialCorrelationModel", None)
+    if LmExponentialCorrelationModel is not None:
+        if hasattr(LmExponentialCorrelationModel, "pseudo_sqrt"):
+            LmExponentialCorrelationModel.pseudoSqrt = (  # type: ignore[attr-defined]
+                LmExponentialCorrelationModel.pseudo_sqrt
+            )
+
+    LmLinearExponentialCorrelationModel = getattr(
+        _ql, "LmLinearExponentialCorrelationModel", None
+    )
+    if LmLinearExponentialCorrelationModel is not None:
+        if hasattr(LmLinearExponentialCorrelationModel, "pseudo_sqrt"):
+            LmLinearExponentialCorrelationModel.pseudoSqrt = (  # type: ignore[attr-defined]
+                LmLinearExponentialCorrelationModel.pseudo_sqrt
+            )
+
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)
     if OvernightIndexedSwap is not None:
         OvernightIndexedSwap.fairRate = OvernightIndexedSwap.fair_rate  # type: ignore[attr-defined]
