@@ -944,6 +944,10 @@ def _install_aliases() -> None:
 
     LfmHullWhiteParameterization = getattr(_ql, "LfmHullWhiteParameterization", None)
 
+    LinearRegression = getattr(_ql, "LinearRegression", None)
+    if LinearRegression is not None and hasattr(LinearRegression, "standard_errors"):
+        LinearRegression.standardErrors = LinearRegression.standard_errors  # type: ignore[attr-defined]
+
     LmExponentialCorrelationModel = getattr(_ql, "LmExponentialCorrelationModel", None)
     if LmExponentialCorrelationModel is not None:
         if hasattr(LmExponentialCorrelationModel, "pseudo_sqrt"):

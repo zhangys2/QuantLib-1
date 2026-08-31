@@ -19,3 +19,4 @@ void bind_lmm(nb::module_& m);
 void bind_smile(nb::module_& m);
 void bind_markov_functional(nb::module_& m);
 void bind_experimental(nb::module_& m);
+void bind_math(nb::module_& m);

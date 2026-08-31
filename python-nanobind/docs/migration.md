@@ -3291,6 +3291,17 @@ idx = process.next_index_reset(fixing_time)
 Recovers `LiborMarketModelProcessTests::testInitialisation`.
 Compat: `nextIndexReset`.
 
+## Phase-178 linear least-squares regression
+
+```python
+model = ql.LinearRegression(x, y)
+model.coefficients()
+model.standard_errors()
+```
+
+Recovers `LinearLeastSquaresRegressionTests::test1dLinearRegression`.
+Compat: `standardErrors`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
