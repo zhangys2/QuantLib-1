@@ -1156,6 +1156,24 @@ if FloatFloatSwap is not None:
         FloatFloatSwap.set_pricing_engine
     )
 
+# Phase-99 OvernightIndexFuture / SOFR futures aliases.
+OvernightIndexFuture = getattr(_ql, "OvernightIndexFuture", None)
+SofrFutureRateHelper = getattr(_ql, "SofrFutureRateHelper", None)
+PiecewiseLinearDiscountCurve = getattr(_ql, "PiecewiseLinearDiscountCurve", None)
+if OvernightIndexFuture is not None:
+    OvernightIndexFuture.isExpired = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.is_expired
+    )
+    OvernightIndexFuture.convexityAdjustment = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.convexity_adjustment
+    )
+    OvernightIndexFuture.valueDate = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.value_date
+    )
+    OvernightIndexFuture.maturityDate = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.maturity_date
+    )
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)
