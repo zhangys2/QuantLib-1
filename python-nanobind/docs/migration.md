@@ -3115,6 +3115,20 @@ sp.variance(0.0, 0.0, 1.5)
 
 Recovers `MarkovFunctionalTests::testMfStateProcess`. Compat: `stdDeviation`.
 
+## Phase-165 Kahale smile section
+
+```python
+sec = ql.LinearSmileSection(t, strikes, std_devs, atm)
+ksec = ql.KahaleSmileSection(
+    sec, atm, interpolate=False, moneyness_grid=[k / atm for k in strikes]
+)
+ksec.left_core_strike()
+ksec.option_price(strike)
+```
+
+Recovers `MarkovFunctionalTests::testKahaleSmileSection`. Compat: `leftCoreStrike`,
+`rightCoreStrike`, `digitalOptionPrice`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
