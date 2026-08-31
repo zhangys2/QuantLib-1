@@ -4457,7 +4457,20 @@ class LmFixedVolatilityModel:
 class LmExponentialCorrelationModel:
     def __init__(self, size: int, rho: float) -> None: ...
 
+class LmLinearExponentialCorrelationModel:
+    def __init__(self, size: int, rho: float, beta: float) -> None: ...
+
 class LmLinearExponentialVolatilityModel:
+    def __init__(
+        self,
+        fixing_times: list[float],
+        a: float,
+        b: float,
+        c: float,
+        d: float,
+    ) -> None: ...
+
+class LmExtLinearExponentialVolModel:
     def __init__(
         self,
         fixing_times: list[float],
@@ -4479,6 +4492,12 @@ class LfmCovarianceProxy:
         self,
         volatility_model: LmLinearExponentialVolatilityModel,
         correlation_model: LmExponentialCorrelationModel,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        volatility_model: LmExtLinearExponentialVolModel,
+        correlation_model: LmLinearExponentialCorrelationModel,
     ) -> None: ...
 
 class CapletVarianceCurve:
@@ -4507,7 +4526,72 @@ class LiborForwardModel:
         volatility_model: LmLinearExponentialVolatilityModel,
         correlation_model: LmExponentialCorrelationModel,
     ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        process: LiborForwardModelProcess,
+        volatility_model: LmExtLinearExponentialVolModel,
+        correlation_model: LmLinearExponentialCorrelationModel,
+    ) -> None: ...
     def s_0(self, alpha: int, beta: int) -> float: ...
+    def params(self) -> list[float]: ...
+    def set_params(self, params: list[float]) -> None: ...
+    def end_criteria(self) -> int: ...
+    def calibrate(
+        self,
+        helpers: list[CapHelper | SwaptionHelper],
+        method: LevenbergMarquardt,
+        end_criteria: EndCriteria,
+    ) -> None: ...
+
+class CapHelper:
+    def __init__(
+        self,
+        length: Period,
+        volatility: QuoteHandle,
+        index: IborIndex,
+        fixed_leg_frequency: Frequency,
+        fixed_leg_day_counter: DayCounter,
+        include_first_swaplet: bool,
+        term_structure: YieldTermStructureHandle,
+        error_type: CalibrationErrorType = ...,
+        vol_type: VolatilityType = ...,
+        shift: float = ...,
+    ) -> None: ...
+    def calibration_error(self) -> float: ...
+    def market_value(self) -> float: ...
+    def model_value(self) -> float: ...
+    def set_lfm_pricing_engine(
+        self,
+        model: LiborForwardModel,
+        discount_curve: YieldTermStructureHandle = ...,
+    ) -> None: ...
+
+class SwaptionHelper:
+    def __init__(
+        self,
+        maturity: Period,
+        length: Period,
+        volatility: QuoteHandle,
+        index: IborIndex,
+        fixed_leg_tenor: Period,
+        fixed_leg_day_counter: DayCounter,
+        floating_leg_day_counter: DayCounter,
+        term_structure: YieldTermStructureHandle,
+        error_type: CalibrationErrorType = ...,
+        strike: float = ...,
+        nominal: float = ...,
+        vol_type: VolatilityType = ...,
+        shift: float = ...,
+    ) -> None: ...
+    def calibration_error(self) -> float: ...
+    def market_value(self) -> float: ...
+    def model_value(self) -> float: ...
+    def set_lfm_pricing_engine(
+        self,
+        model: LiborForwardModel,
+        discount_curve: YieldTermStructureHandle = ...,
+    ) -> None: ...
 
 class DefaultProbabilityTermStructureHandle:
     def empty(self) -> bool: ...
