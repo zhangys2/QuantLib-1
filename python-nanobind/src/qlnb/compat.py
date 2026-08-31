@@ -902,6 +902,32 @@ def _install_aliases() -> None:
         if hasattr(LiborForwardModel, "end_criteria"):
             LiborForwardModel.endCriteria = LiborForwardModel.end_criteria  # type: ignore[attr-defined]
 
+    LiborForwardModelProcess = getattr(_ql, "LiborForwardModelProcess", None)
+    if LiborForwardModelProcess is not None:
+        for snake, camel in (
+            ("fixing_times", "fixingTimes"),
+            ("fixing_dates", "fixingDates"),
+            ("accrual_start_times", "accrualStartTimes"),
+            ("accrual_end_times", "accrualEndTimes"),
+            ("discount_bond", "discountBond"),
+            ("set_covar_param", "setCovarParam"),
+        ):
+            if hasattr(LiborForwardModelProcess, snake):
+                setattr(
+                    LiborForwardModelProcess,
+                    camel,
+                    getattr(LiborForwardModelProcess, snake),
+                )
+
+    GeneralStatistics = getattr(_ql, "GeneralStatistics", None)
+    if GeneralStatistics is not None and hasattr(GeneralStatistics, "error_estimate"):
+        GeneralStatistics.errorEstimate = (  # type: ignore[attr-defined]
+            GeneralStatistics.error_estimate
+        )
+
+    MultiPathGenerator = getattr(_ql, "MultiPathGenerator", None)
+    TimeGrid = getattr(_ql, "TimeGrid", None)
+
     LmExponentialCorrelationModel = getattr(_ql, "LmExponentialCorrelationModel", None)
     if LmExponentialCorrelationModel is not None:
         if hasattr(LmExponentialCorrelationModel, "pseudo_sqrt"):
