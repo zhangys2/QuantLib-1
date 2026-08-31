@@ -2408,6 +2408,21 @@ Wraps a standard `Swaption` as `NonstandardSwaption`; prices with
 `Gaussian1dNonstandardSwaptionEngine`. Compat: `NonstandardSwaption`,
 `setGaussian1dPricingEngine`. Recovers `GsrTests::testGsrModel` NPV check.
 
+## Phase-117 NonstandardSwap
+
+```python
+nonstd_swap = ql.NonstandardSwap(vanilla_swap)
+nonstd_swap.set_pricing_engine(curve)
+assert nonstd_swap.NPV() == pytest.approx(vanilla_swap.NPV(), abs=1e-12)
+
+nonstd_swaption = ql.NonstandardSwaption(nonstd_swap, exercise)
+```
+
+Vanilla swap with per-period nominals and fixed rates; wraps from
+`VanillaSwap` or explicit vectors. `NonstandardSwaption` also accepts
+`(NonstandardSwap, exercise)`. Compat: `NonstandardSwap`, `setPricingEngine`,
+inspector camelCase aliases. Discounting NPV parity with source vanilla swap.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

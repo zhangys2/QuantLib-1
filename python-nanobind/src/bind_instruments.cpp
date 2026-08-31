@@ -47,6 +47,7 @@
 #include <ql/instruments/dividendschedule.hpp>
 #include <ql/instruments/europeanoption.hpp>
 #include <ql/instruments/payoffs.hpp>
+#include <ql/instruments/nonstandardswap.hpp>
 #include <ql/instruments/swap.hpp>
 #include <ql/instruments/vanillaswap.hpp>
 #include <ql/instruments/vanillaswingoption.hpp>
@@ -1565,6 +1566,96 @@ void bind_instruments(nb::module_& m) {
         .def(
             "set_pricing_engine",
             [](VanillaSwap& s, const Handle<YieldTermStructure>& discount_curve) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingSwapEngine>(discount_curve));
+            },
+            nb::arg("discount_curve"));
+
+    // --- Phase 117: NonstandardSwap (period-dependent nominal / strike) ---
+    nb::class_<NonstandardSwap>(m, "NonstandardSwap")
+        .def(
+            "__init__",
+            [](NonstandardSwap* self, const VanillaSwap& from_vanilla) {
+                new (self) NonstandardSwap(from_vanilla);
+            },
+            nb::arg("vanilla_swap"),
+            "Build from a vanilla FixedVsFloatingSwap (per-period nominals/rates).")
+        .def(
+            "__init__",
+            [](NonstandardSwap* self,
+               Swap::Type type,
+               const std::vector<Real>& fixed_nominal,
+               const std::vector<Real>& floating_nominal,
+               const Schedule& fixed_schedule,
+               const std::vector<Real>& fixed_rate,
+               const DayCounter& fixed_day_count,
+               const Schedule& floating_schedule,
+               const ext::shared_ptr<IborIndex>& ibor_index,
+               Real gearing,
+               Spread spread,
+               const DayCounter& floating_day_count,
+               bool intermediate_capital_exchange,
+               bool final_capital_exchange) {
+                new (self) NonstandardSwap(type,
+                                           fixed_nominal,
+                                           floating_nominal,
+                                           fixed_schedule,
+                                           fixed_rate,
+                                           fixed_day_count,
+                                           floating_schedule,
+                                           ibor_index,
+                                           gearing,
+                                           spread,
+                                           floating_day_count,
+                                           intermediate_capital_exchange,
+                                           final_capital_exchange);
+            },
+            nb::arg("type"),
+            nb::arg("fixed_nominal"),
+            nb::arg("floating_nominal"),
+            nb::arg("fixed_schedule"),
+            nb::arg("fixed_rate"),
+            nb::arg("fixed_day_count"),
+            nb::arg("floating_schedule"),
+            nb::arg("ibor_index"),
+            nb::arg("gearing"),
+            nb::arg("spread"),
+            nb::arg("floating_day_count"),
+            nb::arg("intermediate_capital_exchange") = false,
+            nb::arg("final_capital_exchange") = false)
+        .def("NPV", [](NonstandardSwap& s) { return s.NPV(); })
+        .def("type", [](const NonstandardSwap& s) { return s.type(); })
+        .def("fixed_nominal",
+             [](const NonstandardSwap& s) { return s.fixedNominal(); })
+        .def("floating_nominal",
+             [](const NonstandardSwap& s) { return s.floatingNominal(); })
+        .def("fixed_rate",
+             [](const NonstandardSwap& s) { return s.fixedRate(); })
+        .def("spread", [](const NonstandardSwap& s) { return s.spread(); })
+        .def("gearing", [](const NonstandardSwap& s) { return s.gearing(); })
+        .def("fixed_schedule",
+             [](const NonstandardSwap& s) -> const Schedule& { return s.fixedSchedule(); },
+             nb::rv_policy::reference_internal)
+        .def("floating_schedule",
+             [](const NonstandardSwap& s) -> const Schedule& { return s.floatingSchedule(); },
+             nb::rv_policy::reference_internal)
+        .def("ibor_index",
+             [](const NonstandardSwap& s) { return s.iborIndex(); })
+        .def("fixed_day_count",
+             [](const NonstandardSwap& s) -> const DayCounter& {
+                 return s.fixedDayCount();
+             },
+             nb::rv_policy::reference_internal)
+        .def("floating_day_count",
+             [](const NonstandardSwap& s) -> const DayCounter& {
+                 return s.floatingDayCount();
+             },
+             nb::rv_policy::reference_internal)
+        .def("payment_convention",
+             [](const NonstandardSwap& s) { return s.paymentConvention(); })
+        .def(
+            "set_pricing_engine",
+            [](NonstandardSwap& s, const Handle<YieldTermStructure>& discount_curve) {
                 s.setPricingEngine(
                     ext::make_shared<DiscountingSwapEngine>(discount_curve));
             },

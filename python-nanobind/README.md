@@ -559,6 +559,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `NonstandardSwaption` wrapper from `Swaption` + `Gaussian1dNonstandardSwaptionEngine`
 - Recovers `GsrTests::testGsrModel` Jamshidian vs nonstandard GSR NPV (tol 5e-5)
 
+### Phase 117 (NonstandardSwap)
+- `NonstandardSwap` from `VanillaSwap` or per-period nominals/rates
+- `NonstandardSwaption(NonstandardSwap, exercise)` direct constructor
+- Discounting NPV matches equivalent `VanillaSwap` (tol 1e-12)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
