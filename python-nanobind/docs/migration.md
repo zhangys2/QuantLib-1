@@ -2436,6 +2436,20 @@ Variance-gamma process and analytic integral engine for European options.
 Compat: `setVarianceGammaPricingEngine`. Recovers
 `VarianceGammaTests::testVarianceGamma` goldens (tol 0.01).
 
+## Phase-119 FFTVarianceGamma
+
+```python
+engine = ql.FFTVarianceGammaEngine(process)
+engine.precalculate(options)
+for opt in options:
+    opt.set_fft_variance_gamma_pricing_engine(engine)
+assert opt.NPV() == pytest.approx(687.2032, abs=0.01)
+```
+
+FFT batch engine for variance-gamma Europeans; single-option uncached path
+also supported. Compat: `setFftVarianceGammaPricingEngine`. Recovers
+`VarianceGammaTests::testVarianceGamma` FFT values (tol 0.01).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

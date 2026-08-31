@@ -56,7 +56,9 @@
 #include <ql/experimental/finitedifferences/fdsimpleextoustorageengine.hpp>
 #include <ql/experimental/processes/extendedornsteinuhlenbeckprocess.hpp>
 #include <ql/experimental/variancegamma/analyticvariancegammaengine.hpp>
+#include <ql/experimental/variancegamma/fftvariancegammaengine.hpp>
 #include <ql/experimental/variancegamma/variancegammaprocess.hpp>
+#include <ql/instrument.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/pricingengines/swap/discountingconstnotionalcrosscurrencyswapengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
@@ -424,6 +426,25 @@ void bind_instruments(nb::module_& m) {
         .def("nu", [](const VarianceGammaProcess& p) { return p.nu(); })
         .def("theta", [](const VarianceGammaProcess& p) { return p.theta(); })
         .def("x0", [](const VarianceGammaProcess& p) { return p.x0(); });
+
+    // --- Phase 119: FFTVarianceGammaEngine ---
+    nb::class_<FFTVarianceGammaEngine>(m, "FFTVarianceGammaEngine")
+        .def(nb::init<ext::shared_ptr<VarianceGammaProcess>, Real>(),
+             nb::arg("process"),
+             nb::arg("log_strike_spacing") = 0.001)
+        .def(
+            "precalculate",
+            [](FFTVarianceGammaEngine& engine,
+               const std::vector<EuropeanOption*>& options) {
+                std::vector<ext::shared_ptr<Instrument>> list;
+                list.reserve(options.size());
+                for (EuropeanOption* opt : options) {
+                    list.emplace_back(opt, [](Instrument*) {});
+                }
+                engine.precalculate(list);
+            },
+            nb::arg("options"),
+            "Batch FFT for options sharing expiries (VarianceGammaTests pattern).");
 
     nb::enum_<Option::Type>(m, "OptionType")
         .value("Put", Option::Put)
@@ -964,6 +985,26 @@ void bind_instruments(nb::module_& m) {
             nb::arg("process"),
             nb::arg("absolute_error") = 1e-5,
             "Attach VarianceGammaEngine (analytic integral VG).")
+        .def(
+            "set_fft_variance_gamma_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<VarianceGammaProcess>& process,
+               Real log_strike_spacing) {
+                opt.setPricingEngine(
+                    ext::make_shared<FFTVarianceGammaEngine>(
+                        process, log_strike_spacing));
+            },
+            nb::arg("process"),
+            nb::arg("log_strike_spacing") = 0.001,
+            "Attach FFTVarianceGammaEngine (single-option uncached path).")
+        .def(
+            "set_fft_variance_gamma_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<FFTVarianceGammaEngine>& engine) {
+                opt.setPricingEngine(engine);
+            },
+            nb::arg("engine"),
+            "Attach a precalculated FFTVarianceGammaEngine.")
         .def(
             "set_fd_bates_pricing_engine",
             [](EuropeanOption& opt,

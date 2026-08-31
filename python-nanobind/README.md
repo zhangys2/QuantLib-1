@@ -568,6 +568,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VarianceGammaProcess` + `EuropeanOption.set_variance_gamma_pricing_engine`
 - Recovers `VarianceGammaTests::testVarianceGamma` analytic NPVs (tol 0.01)
 
+### Phase 119 (FFTVarianceGamma)
+- `FFTVarianceGammaEngine` + batch `precalculate`; `set_fft_variance_gamma_pricing_engine`
+- Recovers `VarianceGammaTests::testVarianceGamma` FFT NPVs (tol 0.01)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
