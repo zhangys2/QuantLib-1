@@ -2278,6 +2278,13 @@ class VanillaOption:
         relative_accuracy: float = ...,
         max_iterations: int = ...,
     ) -> None: ...
+    def set_cev_pricing_engine(
+        self,
+        f0: float,
+        alpha: float,
+        beta: float,
+        discount_curve: YieldTermStructureHandle,
+    ) -> None: ...
     def set_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,

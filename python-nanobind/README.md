@@ -645,6 +645,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - European cash-or-nothing `VanillaOption` ctor for digital PDF pricing
 - Matches `HestonModelTests::testAnalyticPDFHestonEngine` vs Laguerre (tol 3e-6)
 
+### Phase 137 (Analytic CEV)
+- `set_cev_pricing_engine` → `AnalyticCEVEngine`
+- Recovers `FdCEVTests` analytic CEV setup (finite-diff delta consistency)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

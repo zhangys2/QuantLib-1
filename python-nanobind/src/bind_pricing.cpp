@@ -29,6 +29,7 @@
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticdigitalamericanengine.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/analyticcevengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
 #include <ql/pricingengines/vanilla/analyticpdfhestonengine.hpp>
 #include <ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp>
@@ -341,6 +342,21 @@ void bind_pricing(nb::module_& m) {
             nb::arg("relative_accuracy") = 1e-4,
             nb::arg("max_iterations") = Size(100),
             "Attach JumpDiffusionEngine (Merton 1976).")
+        .def(
+            "set_cev_pricing_engine",
+            [](VanillaOption& opt,
+               Real f0,
+               Real alpha,
+               Real beta,
+               const Handle<YieldTermStructure>& discount_curve) {
+                opt.setPricingEngine(ext::make_shared<AnalyticCEVEngine>(
+                    f0, alpha, beta, discount_curve));
+            },
+            nb::arg("f0"),
+            nb::arg("alpha"),
+            nb::arg("beta"),
+            nb::arg("discount_curve"),
+            "Attach AnalyticCEVEngine (constant elasticity of variance).")
         .def(
             "set_dividend_pricing_engine",
             [](VanillaOption& opt,
