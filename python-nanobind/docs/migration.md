@@ -2550,6 +2550,20 @@ Attaches `FFTVanillaEngine` (Carr–Madan FFT under BS). Compat:
 `setFftVanillaPricingEngine` (compat-only). Recovers
 `EuropeanOptionTests::testFFTEngines` consistency vs analytic (rel tol 1%).
 
+## Phase-127 perturbative barrier
+
+```python
+opt = ql.BarrierOption(
+    ql.BarrierType.UpOut, 101.0, 0.0, payoff, exercise
+)
+opt.set_perturbative_pricing_engine(process, order=0, zero_gamma=False)
+assert opt.NPV() == pytest.approx(0.897365, abs=1e-6)
+```
+
+Attaches `PerturbativeBarrierOptionEngine` (Recchioni). Compat:
+`setPerturbativePricingEngine` (compat-only). Recovers
+`BarrierOptionTests::testPerturbative` (orders 0 and 1).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

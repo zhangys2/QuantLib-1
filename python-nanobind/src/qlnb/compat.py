@@ -895,6 +895,10 @@ def _install_aliases() -> None:
     )
     if BarrierOption is not None:
         BarrierOption.setPricingEngine = BarrierOption.set_pricing_engine  # type: ignore[attr-defined]
+        if hasattr(BarrierOption, "set_perturbative_pricing_engine"):
+            BarrierOption.setPerturbativePricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_perturbative_pricing_engine
+            )
         if hasattr(BarrierOption, "set_binary_pricing_engine"):
             BarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
                 BarrierOption.set_binary_pricing_engine
