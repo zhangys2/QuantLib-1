@@ -41,6 +41,7 @@
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
+#include <ql/pricingengines/vanilla/fdblackscholesshoutengine.hpp>
 #include <ql/pricingengines/vanilla/fdcevvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdbatesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonvanillaengine.hpp>
@@ -460,6 +461,24 @@ void bind_pricing(nb::module_& m) {
             nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
             "Attach FdBlackScholesVanillaEngine (default Douglas scheme).")
         .def(
+            "set_fd_shout_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size t_grid,
+               Size x_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdBlackScholesShoutEngine>(
+                        process, t_grid, x_grid, damping_steps, scheme_desc));
+            },
+            nb::arg("process"),
+            nb::arg("t_grid") = 100,
+            nb::arg("x_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdBlackScholesShoutEngine (American shout option).")
+        .def(
             "set_fd_dividend_pricing_engine",
             [](VanillaOption& opt,
                const ext::shared_ptr<BlackScholesMertonProcess>& process,
@@ -868,6 +887,18 @@ void bind_pricing(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "VanillaOption.set_digital_american_ko_pricing_engine.");
+
+    m.def(
+        "FdBlackScholesShoutEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process,
+           Size /*t_grid*/,
+           Size /*x_grid*/,
+           Size /*damping_steps*/) { return process; },
+        nb::arg("process"),
+        nb::arg("t_grid") = 100,
+        nb::arg("x_grid") = 100,
+        nb::arg("damping_steps") = 0,
+        "Factory alias: pass args to VanillaOption.set_fd_shout_pricing_engine.");
 
     nb::enum_<Position::Type>(m, "Position")
         .value("Long", Position::Long)
