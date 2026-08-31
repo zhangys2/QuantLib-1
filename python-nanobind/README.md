@@ -474,6 +474,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - Engine: `set_pricing_engine` → `DiscountingSwapEngine` + `BlackIborCouponPricer`
 - Recovers suite fair-spread NPV-zeroing / payer–receiver symmetry (tol 1e-10)
 
+### Phase 99 (OvernightIndexFuture)
+- `OvernightIndexFuture` (self-priced Instrument) + `SofrFutureRateHelper`
+- `PiecewiseLinearDiscountCurve` (`PiecewiseYieldCurve<Discount, Linear>`)
+- Recovers SOFR futures suite bootstrap NPV **97.44 / 87.44** (tol 1e-9) and Juneteenth **97.220**
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

@@ -2078,6 +2078,32 @@ with `BlackIborCouponPricer` on both legs (attached by
 `fairSpread2`, `legNPV`, `setPricingEngine`, `makeFloatFloatSwap`. Recovers
 suite fair-spread NPV-zeroing and payer/receiver symmetry (tol 1e-10).
 
+## Phase-99 OvernightIndexFuture
+
+```python
+today = ql.Date(26, ql.Month.October, 2018)
+ql.set_evaluation_date(today)
+# ... add SOFR fixings, build SofrFutureRateHelper list ...
+curve = ql.PiecewiseLinearDiscountCurve(today, helpers, ql.Actual365Fixed())
+sofr = ql.Sofr(curve)
+conv = ql.SimpleQuote(0.0)
+fut = ql.OvernightIndexFuture(
+    sofr,
+    ql.Date(20, ql.Month.March, 2019),
+    ql.Date(19, ql.Month.June, 2019),
+    ql.QuoteHandle(conv),
+)
+assert abs(fut.NPV() - 97.44) < 1e-9
+conv.set_value(0.1)
+assert abs(fut.NPV() - 87.44) < 1e-9  # 100*(1-(0.0256+0.1))
+```
+
+Self-priced Instrument (no external engine). Bootstrap helpers:
+`SofrFutureRateHelper` + `PiecewiseLinearDiscountCurve`. Compat:
+`isExpired`, `convexityAdjustment`, `valueDate`, `maturityDate`. Recovers
+`SofrFuturesTests::testBootstrap` (97.44 / 87.44) and
+`testBootstrapWithJuneteenth` (97.220), tol 1e-9.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

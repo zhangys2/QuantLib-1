@@ -16,8 +16,10 @@
 #include <ql/instruments/floatfloatswap.hpp>
 #include <ql/instruments/makemultipleresetsswap.hpp>
 #include <ql/instruments/multipleresetsswap.hpp>
+#include <ql/instruments/overnightindexfuture.hpp>
 #include <ql/instruments/perpetualfutures.hpp>
 #include <ql/instruments/zerocouponswap.hpp>
+#include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
 #include <ql/pricingengines/futures/discountingperpetualfuturesengine.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/bonds/floatingratebond.hpp>
@@ -1657,4 +1659,55 @@ void bind_instruments(nb::module_& m) {
         nb::arg("calendar") = Calendar(TARGET()),
         "Build a FloatFloatSwap matching FloatFloatSwapTests::CommonVars "
         "(DiscountingSwapEngine + BlackIborCouponPricer).");
+
+    // OvernightIndexFuture is Instrument (no MI) — self-priced from the
+    // overnight index curve + optional convexity quote.
+    nb::class_<OvernightIndexFuture>(m, "OvernightIndexFuture")
+        .def(
+            "__init__",
+            [](OvernightIndexFuture* self,
+               const ext::shared_ptr<OvernightIndex>& overnight_index,
+               const Date& value_date,
+               const Date& maturity_date,
+               const Handle<Quote>& convexity_adjustment,
+               RateAveraging::Type averaging_method) {
+                new (self) OvernightIndexFuture(
+                    overnight_index, value_date, maturity_date,
+                    convexity_adjustment, averaging_method);
+            },
+            nb::arg("overnight_index"),
+            nb::arg("value_date"),
+            nb::arg("maturity_date"),
+            nb::arg("convexity_adjustment") = Handle<Quote>(),
+            nb::arg("averaging_method") = RateAveraging::Compound)
+        .def("NPV", [](OvernightIndexFuture& f) { return f.NPV(); })
+        .def("is_expired",
+             [](const OvernightIndexFuture& f) { return f.isExpired(); })
+        .def("convexity_adjustment",
+             [](const OvernightIndexFuture& f) {
+                 return f.convexityAdjustment();
+             })
+        .def("value_date",
+             [](const OvernightIndexFuture& f) { return f.valueDate(); })
+        .def("maturity_date",
+             [](const OvernightIndexFuture& f) { return f.maturityDate(); });
+
+    m.def(
+        "SofrFutureRateHelper",
+        [](Real price,
+           Month reference_month,
+           Year reference_year,
+           Frequency reference_freq,
+           Real convexity_adjustment) {
+            return ext::shared_ptr<RateHelper>(
+                ext::make_shared<SofrFutureRateHelper>(
+                    price, reference_month, reference_year, reference_freq,
+                    convexity_adjustment));
+        },
+        nb::arg("price"),
+        nb::arg("reference_month"),
+        nb::arg("reference_year"),
+        nb::arg("reference_freq"),
+        nb::arg("convexity_adjustment") = 0.0,
+        "CME SOFR futures rate helper (compounds third-Wed to third-Wed).");
 }

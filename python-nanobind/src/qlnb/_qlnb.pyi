@@ -755,6 +755,29 @@ def make_float_float_swap(
     calendar: Calendar = ...,
 ) -> FloatFloatSwap: ...
 
+class OvernightIndexFuture:
+    def __init__(
+        self,
+        overnight_index: OvernightIndex,
+        value_date: Date,
+        maturity_date: Date,
+        convexity_adjustment: QuoteHandle = ...,
+        averaging_method: RateAveraging = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def is_expired(self) -> bool: ...
+    def convexity_adjustment(self) -> float: ...
+    def value_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+
+def SofrFutureRateHelper(
+    price: float,
+    reference_month: Month,
+    reference_year: int,
+    reference_freq: Frequency,
+    convexity_adjustment: float = ...,
+) -> RateHelper: ...
+
 class EquityTotalReturnSwap:
     def __init__(
         self,
@@ -3541,6 +3564,11 @@ def SwapRateHelper(
     ibor_index: IborIndex,
 ) -> RateHelper: ...
 def PiecewiseLogLinearDiscountCurve(
+    reference_date: Date,
+    helpers: Iterable[RateHelper],
+    day_counter: DayCounter,
+) -> YieldTermStructureHandle: ...
+def PiecewiseLinearDiscountCurve(
     reference_date: Date,
     helpers: Iterable[RateHelper],
     day_counter: DayCounter,

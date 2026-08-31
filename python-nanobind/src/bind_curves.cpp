@@ -112,6 +112,7 @@ Handle<YieldTermStructure> make_zero_curve(
 }
 
 using DiscountLogLinearCurve = PiecewiseYieldCurve<Discount, LogLinear>;
+using DiscountLinearCurve = PiecewiseYieldCurve<Discount, Linear>;
 
 } // namespace
 
@@ -364,6 +365,20 @@ void bind_curves(nb::module_& m) {
         nb::arg("reference_date"),
         nb::arg("helpers"),
         nb::arg("day_counter"));
+
+    m.def(
+        "PiecewiseLinearDiscountCurve",
+        [](const Date& reference_date,
+           const std::vector<ext::shared_ptr<RateHelper>>& helpers,
+           const DayCounter& day_counter) {
+            return Handle<YieldTermStructure>(
+                ext::make_shared<DiscountLinearCurve>(
+                    reference_date, helpers, day_counter));
+        },
+        nb::arg("reference_date"),
+        nb::arg("helpers"),
+        nb::arg("day_counter"),
+        "PiecewiseYieldCurve<Discount, Linear> (SOFR futures suite default).");
 
     // Ibor indexes as opaque shared_ptrs.
     nb::class_<IborIndex>(m, "IborIndex")
