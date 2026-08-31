@@ -599,9 +599,17 @@ def _install_aliases() -> None:
             VanillaOption.setFdHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
                 VanillaOption.set_fd_heston_hull_white_pricing_engine
             )
+        if hasattr(VanillaOption, "set_mc_heston_hull_white_pricing_engine"):
+            VanillaOption.setMcHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_mc_heston_hull_white_pricing_engine
+            )
     if hasattr(EuropeanOption, "set_fd_heston_hull_white_pricing_engine"):
         EuropeanOption.setFdHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_fd_heston_hull_white_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_mc_heston_hull_white_pricing_engine"):
+        EuropeanOption.setMcHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_mc_heston_hull_white_pricing_engine
         )
     if hasattr(VanillaOption, "set_heston_pricing_engine"):
         VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]

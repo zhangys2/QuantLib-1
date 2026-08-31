@@ -715,6 +715,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - `EuropeanOption.set_fd_heston_hull_white_pricing_engine` (same engine)
 - Recovers NPV/delta/gamma vs `AnalyticBSMHullWhiteEngine` in BSM limit (`testFdmHestonHullWhiteEngine`, tol 0.01 / 0.001)
 
+### Phase 153 (MC Heston + Hull–White)
+- `HullWhiteForwardProcess`, `HybridHestonHullWhiteProcess`
+- `VanillaOption.set_mc_heston_hull_white_pricing_engine` → `MCHestonHullWhiteEngine`
+- `EuropeanOption.set_mc_heston_hull_white_pricing_engine` (same engine)
+- Recovers MC vs `AnalyticBSMHullWhiteEngine` (`testMcVanillaPricing`, 3σ / 1e-4 at ρ=0)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

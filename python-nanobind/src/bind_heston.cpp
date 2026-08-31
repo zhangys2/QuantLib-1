@@ -29,6 +29,8 @@
 #include <ql/processes/batesprocess.hpp>
 #include <ql/processes/gjrgarchprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
+#include <ql/processes/hullwhiteprocess.hpp>
+#include <ql/processes/hybridhestonhullwhiteprocess.hpp>
 #include <ql/quote.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/calendar.hpp>
@@ -118,6 +120,24 @@ void bind_heston(nb::module_& m) {
         .def("theta", &HestonProcess::theta)
         .def("sigma", &HestonProcess::sigma)
         .def("rho", &HestonProcess::rho);
+
+    nb::enum_<HybridHestonHullWhiteProcess::Discretization>(
+        m, "HybridHestonHullWhiteDiscretization")
+        .value("Euler", HybridHestonHullWhiteProcess::Euler)
+        .value("BSMHullWhite", HybridHestonHullWhiteProcess::BSMHullWhite);
+
+    nb::class_<HybridHestonHullWhiteProcess>(m, "HybridHestonHullWhiteProcess")
+        .def(
+            nb::init<
+                const ext::shared_ptr<HestonProcess>&,
+                const ext::shared_ptr<HullWhiteForwardProcess>&,
+                Real,
+                HybridHestonHullWhiteProcess::Discretization>(),
+            nb::arg("heston_process"),
+            nb::arg("hull_white_process"),
+            nb::arg("equity_short_rate_correlation"),
+            nb::arg("discretization") =
+                HybridHestonHullWhiteProcess::BSMHullWhite);
 
     // --- Phase 49: ComplexLogFormula (needed by exp-fitting engine args) ----
     nb::enum_<AnalyticHestonEngine::ComplexLogFormula>(

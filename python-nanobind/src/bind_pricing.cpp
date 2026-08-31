@@ -47,6 +47,7 @@
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
 #include <ql/pricingengines/vanilla/fdhestonhullwhitevanillaengine.hpp>
+#include <ql/pricingengines/vanilla/mchestonhullwhiteengine.hpp>
 #include <ql/pricingengines/vanilla/fdcirvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesshoutengine.hpp>
@@ -63,6 +64,7 @@
 #include <ql/processes/coxingersollrossprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/processes/hullwhiteprocess.hpp>
+#include <ql/processes/hybridhestonhullwhiteprocess.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
 
@@ -700,6 +702,49 @@ void bind_pricing(nb::module_& m) {
             nb::arg("control_variate") = true,
             nb::arg("scheme_desc") = FdmSchemeDesc::Hundsdorfer(),
             "Attach FdHestonHullWhiteVanillaEngine (Heston + 1F Hull–White).")
+        .def(
+            "set_mc_heston_hull_white_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<HybridHestonHullWhiteProcess>& process,
+               std::optional<Size> time_steps,
+               std::optional<Size> steps_per_year,
+               std::optional<Size> required_samples,
+               std::optional<Real> required_tolerance,
+               unsigned long seed,
+               bool antithetic,
+               bool control_variate) {
+                QL_REQUIRE(!(time_steps.has_value() && steps_per_year.has_value()),
+                           "set only one of time_steps or steps_per_year");
+                QL_REQUIRE(
+                    !(required_samples.has_value() && required_tolerance.has_value()),
+                    "set only one of required_samples or required_tolerance");
+                auto maker = MakeMCHestonHullWhiteEngine<PseudoRandom>(process)
+                                 .withSeed(seed)
+                                 .withAntitheticVariate(antithetic)
+                                 .withControlVariate(control_variate);
+                if (time_steps.has_value())
+                    maker.withSteps(*time_steps);
+                else if (steps_per_year.has_value())
+                    maker.withStepsPerYear(*steps_per_year);
+                else
+                    maker.withSteps(Size(1));
+                if (required_samples.has_value())
+                    maker.withSamples(*required_samples);
+                else if (required_tolerance.has_value())
+                    maker.withAbsoluteTolerance(*required_tolerance);
+                else
+                    maker.withAbsoluteTolerance(Real(0.05));
+                opt.setPricingEngine(maker);
+            },
+            nb::arg("process"),
+            nb::arg("time_steps") = nb::none(),
+            nb::arg("steps_per_year") = nb::none(),
+            nb::arg("required_samples") = nb::none(),
+            nb::arg("required_tolerance") = nb::none(),
+            nb::arg("seed") = 42UL,
+            nb::arg("antithetic") = true,
+            nb::arg("control_variate") = false,
+            "Attach MakeMCHestonHullWhiteEngine<PseudoRandom>.")
         .def(
             "set_pdf_heston_pricing_engine",
             [](VanillaOption& opt,
