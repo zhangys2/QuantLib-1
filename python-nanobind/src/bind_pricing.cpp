@@ -46,6 +46,7 @@
 #include <ql/pricingengines/vanilla/jumpdiffusionengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
+#include <ql/pricingengines/vanilla/fdcirvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesshoutengine.hpp>
 #include <ql/pricingengines/vanilla/fdcevvanillaengine.hpp>
@@ -58,6 +59,7 @@
 
 #include <optional>
 #include <ql/processes/blackscholesprocess.hpp>
+#include <ql/processes/coxingersollrossprocess.hpp>
 #include <ql/processes/hestonprocess.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
@@ -208,6 +210,17 @@ GridArray fdm_black_scholes_values(
 } // namespace
 
 void bind_pricing(nb::module_& m) {
+    nb::class_<CoxIngersollRossProcess>(m, "CoxIngersollRossProcess")
+        .def(nb::init<Real, Volatility, Real, Real>(),
+             nb::arg("speed"),
+             nb::arg("volatility"),
+             nb::arg("x0") = 0.0,
+             nb::arg("level") = 0.0)
+        .def("x0", &CoxIngersollRossProcess::x0)
+        .def("speed", &CoxIngersollRossProcess::speed)
+        .def("volatility", &CoxIngersollRossProcess::volatility)
+        .def("level", &CoxIngersollRossProcess::level);
+
     nb::class_<AmericanExercise>(m, "AmericanExercise")
         .def(nb::init<const Date&, const Date&, bool>(),
              nb::arg("earliest_date"),
@@ -484,6 +497,35 @@ void bind_pricing(nb::module_& m) {
             nb::arg("damping_steps") = 0,
             nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
             "Attach FdBlackScholesShoutEngine (American shout option).")
+        .def(
+            "set_fd_cir_pricing_engine",
+            [](VanillaOption& opt,
+               const ext::shared_ptr<CoxIngersollRossProcess>& cir_process,
+               const ext::shared_ptr<BlackScholesMertonProcess>& bs_process,
+               Real equity_rate_correlation,
+               Size t_grid,
+               Size x_grid,
+               Size r_grid,
+               Size damping_steps,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    MakeFdCIRVanillaEngine(
+                        cir_process, bs_process, equity_rate_correlation)
+                        .withTGrid(t_grid)
+                        .withXGrid(x_grid)
+                        .withRGrid(r_grid)
+                        .withDampingSteps(damping_steps)
+                        .withFdmSchemeDesc(scheme_desc));
+            },
+            nb::arg("cir_process"),
+            nb::arg("bs_process"),
+            nb::arg("equity_rate_correlation"),
+            nb::arg("t_grid") = 10,
+            nb::arg("x_grid") = 100,
+            nb::arg("r_grid") = 100,
+            nb::arg("damping_steps") = 0,
+            nb::arg("scheme_desc") = FdmSchemeDesc::ModifiedHundsdorfer(),
+            "Attach FdCIRVanillaEngine (equity + CIR short rate).")
         .def(
             "set_fd_dividend_pricing_engine",
             [](VanillaOption& opt,
@@ -943,6 +985,16 @@ void bind_pricing(nb::module_& m) {
         nb::arg("x_grid") = 100,
         nb::arg("damping_steps") = 0,
         "Factory alias: pass args to VanillaOption.set_fd_shout_pricing_engine.");
+
+    m.def(
+        "FdCIRVanillaEngine",
+        [](const ext::shared_ptr<CoxIngersollRossProcess>& cir_process,
+           const ext::shared_ptr<BlackScholesMertonProcess>& bs_process,
+           Real /*equity_rate_correlation*/) { return cir_process; },
+        nb::arg("cir_process"),
+        nb::arg("bs_process"),
+        nb::arg("equity_rate_correlation"),
+        "Factory alias: pass args to VanillaOption.set_fd_cir_pricing_engine.");
 
     nb::enum_<Position::Type>(m, "Position")
         .value("Long", Position::Long)

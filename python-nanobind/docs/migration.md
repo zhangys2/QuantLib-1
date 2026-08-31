@@ -2903,6 +2903,17 @@ assert opt.NPV() == pytest.approx(heston_npv, abs=1e-7)
 Attaches `AnalyticPTDHestonEngine`. Compat: `setPtdHestonPricingEngine`
 (compat-only). Matches `HestonModelTests::testAnalyticPiecewiseTimeDependent`.
 
+## Phase-151 FD CIR + equity
+
+```python
+cir = ql.CoxIngersollRossProcess(new_speed, cir_sigma, initial_rate, new_level)
+opt.set_fd_cir_pricing_engine(cir, bsm, equity_rate_correlation=rho)
+assert opt.NPV() == pytest.approx(4.275, abs=3e-4)
+```
+
+Attaches `FdCIRVanillaEngine`. Compat: `setFdCirPricingEngine` (compat-only).
+Recovers `FdCIRTests::testFdmCIRConvergence`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
