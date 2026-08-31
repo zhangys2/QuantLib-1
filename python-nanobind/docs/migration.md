@@ -2277,6 +2277,17 @@ assert cap.NPV() - floor.NPV() == pytest.approx(collar.NPV(), abs=1e-10)
 Standalone `Collar` wrapper (CapFloor MI avoided). Compat: `setPricingEngine`,
 `impliedVolatility`. Recovers `CapFloorTest::testConsistency` (tol 1e-10).
 
+## Phase-108 Ibor Cap / Floor
+
+```python
+cap = ql.Cap(schedule, index, strike=0.07)
+cap.set_pricing_engine(curve, vol=0.20)
+```
+
+Standalone `Cap` / `Floor` wrappers matching SWIG class names. NPV agrees
+with `CapFloor(CapFloorType.Cap|Floor, …)`. Compat: `setPricingEngine`,
+`impliedVolatility`. Recovers `CapFloorTest::testImpliedVolatility` (tol 1e-8).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

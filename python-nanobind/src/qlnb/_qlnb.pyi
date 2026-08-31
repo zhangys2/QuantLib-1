@@ -3442,6 +3442,74 @@ class Collar:
         displacement: float = ...,
     ) -> float: ...
 
+class Cap:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: IborIndex,
+        strike: float,
+        nominal: float = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def type(self) -> CapFloorType: ...
+    def set_pricing_engine(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        volatility: float,
+        day_counter: DayCounter = ...,
+        displacement: float = ...,
+    ) -> None: ...
+    def implied_volatility(
+        self,
+        target_price: float,
+        discount_curve: YieldTermStructureHandle,
+        guess: float = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+        vol_type: VolatilityType = ...,
+        displacement: float = ...,
+    ) -> float: ...
+
+class Floor:
+    def __init__(
+        self,
+        schedule: Schedule,
+        index: IborIndex,
+        strike: float,
+        nominal: float = ...,
+        fixing_days: int = ...,
+    ) -> None: ...
+    def NPV(self) -> float: ...
+    def atm_rate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def start_date(self) -> Date: ...
+    def maturity_date(self) -> Date: ...
+    def type(self) -> CapFloorType: ...
+    def set_pricing_engine(
+        self,
+        discount_curve: YieldTermStructureHandle,
+        volatility: float,
+        day_counter: DayCounter = ...,
+        displacement: float = ...,
+    ) -> None: ...
+    def implied_volatility(
+        self,
+        target_price: float,
+        discount_curve: YieldTermStructureHandle,
+        guess: float = ...,
+        accuracy: float = ...,
+        max_evaluations: int = ...,
+        min_vol: float = ...,
+        max_vol: float = ...,
+        vol_type: VolatilityType = ...,
+        displacement: float = ...,
+    ) -> float: ...
+
 class BermudanExercise:
     def __init__(
         self, dates: Sequence[Date], payoff_at_expiry: bool = ...
