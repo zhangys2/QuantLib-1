@@ -699,6 +699,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `EuropeanOption.set_rough_heston_pricing_engine` → `AnalyticRoughHestonEngine`
 - Recovers reference prices from `RoughHestonModelTests::testKnownReferenceValues` (tol 5e-4; 0.25y uses 0.01)
 
+### Phase 150 (piecewise time-dependent Heston)
+- `PiecewiseTimeDependentHestonModel`
+- `EuropeanOption.set_ptd_heston_pricing_engine` → `AnalyticPTDHestonEngine`
+- Matches `AnalyticHestonEngine` on constant parameters (`testAnalyticPiecewiseTimeDependent`, tol 1e-7)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
