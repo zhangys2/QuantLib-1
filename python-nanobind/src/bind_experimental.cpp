@@ -99,6 +99,7 @@
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancesurface.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
+#include <ql/pricingengines/cliquet/analyticperformanceengine.hpp>
 #include <ql/pricingengines/exotic/analyticamericanmargrabeengine.hpp>
 #include <ql/pricingengines/exotic/analyticcomplexchooserengine.hpp>
 #include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
@@ -2800,7 +2801,16 @@ void bind_experimental(nb::module_& m) {
                     ext::make_shared<AnalyticCliquetEngine>(process));
             },
             nb::arg("process"),
-            "Attach AnalyticCliquetEngine.");
+            "Attach AnalyticCliquetEngine.")
+        .def(
+            "set_performance_pricing_engine",
+            [](CliquetOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticPerformanceEngine>(process));
+            },
+            nb::arg("process"),
+            "Attach AnalyticPerformanceEngine.");
 
     m.def(
         "AnalyticCliquetEngine",
@@ -2810,6 +2820,15 @@ void bind_experimental(nb::module_& m) {
         nb::arg("process"),
         "Factory alias: pass the returned process to "
         "CliquetOption.set_pricing_engine.");
+
+    m.def(
+        "AnalyticPerformanceEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process) {
+            return process;
+        },
+        nb::arg("process"),
+        "Factory alias: pass the returned process to "
+        "CliquetOption.set_performance_pricing_engine.");
 
     // --- Phase 35: forward vanilla options (standalone; OneAssetOption MI) ---
     nb::class_<ForwardVanillaOption>(m, "ForwardVanillaOption")

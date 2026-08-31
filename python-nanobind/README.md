@@ -669,6 +669,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `DiscreteAveragingAsianOption.set_fd_pricing_engine` → `FdBlackScholesAsianEngine`
 - Recovers Levy arithmetic Asian cases from `AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 2e-2)
 
+### Phase 143 (Analytic performance / cliquet)
+- `CliquetOption.set_performance_pricing_engine` → `AnalyticPerformanceEngine`
+- FD delta consistency + NPV vs AnalyticCliquetEngine from `CliquetOptionTests`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
