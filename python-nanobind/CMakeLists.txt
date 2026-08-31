@@ -66,6 +66,7 @@ nanobind_add_module(
     src/bind_lmm.cpp
     src/bind_smile.cpp
     src/bind_markov_functional.cpp
+    src/markov_functional_test_market.cpp
     src/bind_experimental.cpp
 )
 

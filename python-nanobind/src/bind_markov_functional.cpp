@@ -1,4 +1,5 @@
 #include "bindings.hpp"
+#include "markov_functional_test_market.hpp"
 
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/vector.h>
@@ -224,4 +225,14 @@ void bind_markov_functional(nb::module_& m) {
             nb::arg("end_criteria"),
             "Secondary calibration of piecewise vols to CapHelper/"
             "SwaptionHelper instruments.");
+
+    m.def(
+        "markov_functional_test_md0_yts",
+        &qlnb::markov_functional_test_md0_yts,
+        "MarkovFunctionalTests md0 yield curve (14-Nov-2012 market).");
+
+    m.def(
+        "markov_functional_test_md0_swaption_vts",
+        &qlnb::markov_functional_test_md0_swaption_vts,
+        "MarkovFunctionalTests md0 swaption vol cube (14-Nov-2012 market).");
 }

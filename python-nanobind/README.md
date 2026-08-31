@@ -802,6 +802,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `make_swaption`, `Swaption.vega`
 - Golden checks from `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (flat basket)
 
+### Phase 169 (MarkovFunctional Bermudan swaption)
+- `markov_functional_test_md0_yts`, `markov_functional_test_md0_swaption_vts` test fixtures
+- Golden checks from `MarkovFunctionalTests::testBermudanSwaption` (real md0 market)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

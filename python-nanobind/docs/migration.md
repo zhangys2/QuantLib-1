@@ -3178,6 +3178,22 @@ swaption.set_gaussian1d_pricing_engine(mf)
 Recovers `MarkovFunctionalTests::testCalibrationTwoInstrumentSets` (flat basket).
 Compat: `setGaussian1dPricingEngine` on `SwaptionHelper`, `makeSwaption`.
 
+## Phase-169 MarkovFunctional Bermudan swaption
+
+```python
+yts = ql.markov_functional_test_md0_yts()
+swaption_vol = ql.markov_functional_test_md0_swaption_vts()
+mf = ql.MarkovFunctional(yts, 0.01, [], [1.0], swaption_vol, expiries, tenors, swap_index, settings)
+underlying = ql.make_vanilla_swap(
+    ql.Period(10, ql.TimeUnit.Years), ibor, 0.03, effective_date
+)
+swaption = ql.Swaption(underlying, ql.BermudanExercise(exercise_dates))
+swaption.set_gaussian1d_pricing_engine(mf)
+```
+
+Recovers `MarkovFunctionalTests::testBermudanSwaption` (md0 market, coterminal basket 3).
+Compat: `markovFunctionalTestMd0Yts`, `markovFunctionalTestMd0SwaptionVts`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
