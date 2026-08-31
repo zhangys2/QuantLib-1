@@ -1779,6 +1779,36 @@ class GJRGARCHModel:
 
 def AnalyticGJRGARCHEngine(model: GJRGARCHModel) -> GJRGARCHModel: ...
 
+class RoughHestonApproximation:
+    AdamsPredictorCorrector: RoughHestonApproximation
+    Pade: RoughHestonApproximation
+
+class RoughHestonModel:
+    def __init__(
+        self,
+        risk_free_rate: YieldTermStructureHandle,
+        dividend_yield: YieldTermStructureHandle,
+        s0: QuoteHandle,
+        v0: float,
+        kappa: float,
+        theta: float,
+        sigma: float,
+        rho: float,
+        hurst: float,
+    ) -> None: ...
+    def v0(self) -> float: ...
+    def kappa(self) -> float: ...
+    def theta(self) -> float: ...
+    def sigma(self) -> float: ...
+    def rho(self) -> float: ...
+    def hurst(self) -> float: ...
+
+def AnalyticRoughHestonEngine(
+    model: RoughHestonModel,
+    integration_order: int = ...,
+    time_steps: int = ...,
+) -> RoughHestonModel: ...
+
 class FdmSchemeType:
     Hundsdorfer: FdmSchemeType
     Douglas: FdmSchemeType
@@ -2115,6 +2145,13 @@ class EuropeanOption:
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
     def set_gjr_garch_pricing_engine(self, model: GJRGARCHModel) -> None: ...
+    def set_rough_heston_pricing_engine(
+        self,
+        model: RoughHestonModel,
+        integration_order: int = ...,
+        time_steps: int = ...,
+        approximation: RoughHestonApproximation = ...,
+    ) -> None: ...
     def set_cos_heston_pricing_engine(
         self, model: HestonModel, L: float = ..., N: int = ...
     ) -> None: ...
@@ -2469,6 +2506,13 @@ class VanillaOption:
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
     def set_gjr_garch_pricing_engine(self, model: GJRGARCHModel) -> None: ...
+    def set_rough_heston_pricing_engine(
+        self,
+        model: RoughHestonModel,
+        integration_order: int = ...,
+        time_steps: int = ...,
+        approximation: RoughHestonApproximation = ...,
+    ) -> None: ...
     def set_pdf_heston_pricing_engine(
         self,
         model: HestonModel,

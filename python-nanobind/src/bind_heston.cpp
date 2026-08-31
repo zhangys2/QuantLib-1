@@ -15,8 +15,10 @@
 #include <ql/models/equity/gjrgarchmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/models/equity/hestonmodelhelper.hpp>
+#include <ql/models/equity/roughhestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticgjrgarchengine.hpp>
 #include <ql/pricingengines/vanilla/analytichestonengine.hpp>
+#include <ql/pricingengines/vanilla/analyticroughhestonengine.hpp>
 #include <ql/pricingengines/vanilla/analyticpdfhestonengine.hpp>
 #include <ql/pricingengines/vanilla/coshestonengine.hpp>
 #include <ql/pricingengines/vanilla/exponentialfittinghestonengine.hpp>
@@ -669,4 +671,47 @@ void bind_heston(nb::module_& m) {
         nb::arg("model"),
         "Factory alias: pass the returned model to "
         "VanillaOption/EuropeanOption.set_gjr_garch_pricing_engine.");
+
+    // --- Phase 149: rough Heston --------------------------------------------
+    nb::class_<RoughHestonModel>(m, "RoughHestonModel")
+        .def(nb::init<Handle<YieldTermStructure>,
+                      Handle<YieldTermStructure>,
+                      Handle<Quote>,
+                      Real,
+                      Real,
+                      Real,
+                      Real,
+                      Real,
+                      Real>(),
+             nb::arg("risk_free_rate"),
+             nb::arg("dividend_yield"),
+             nb::arg("s0"),
+             nb::arg("v0"),
+             nb::arg("kappa"),
+             nb::arg("theta"),
+             nb::arg("sigma"),
+             nb::arg("rho"),
+             nb::arg("hurst"))
+        .def("v0", &RoughHestonModel::v0)
+        .def("kappa", &RoughHestonModel::kappa)
+        .def("theta", &RoughHestonModel::theta)
+        .def("sigma", &RoughHestonModel::sigma)
+        .def("rho", &RoughHestonModel::rho)
+        .def("hurst", &RoughHestonModel::hurst);
+
+    nb::enum_<AnalyticRoughHestonEngine::Approximation>(m, "RoughHestonApproximation")
+        .value("AdamsPredictorCorrector",
+               AnalyticRoughHestonEngine::Approximation::AdamsPredictorCorrector)
+        .value("Pade", AnalyticRoughHestonEngine::Approximation::Pade);
+
+    m.def(
+        "AnalyticRoughHestonEngine",
+        [](const ext::shared_ptr<RoughHestonModel>& model,
+           Size /*integration_order*/,
+           Size /*time_steps*/) { return model; },
+        nb::arg("model"),
+        nb::arg("integration_order") = 128,
+        nb::arg("time_steps") = 256,
+        "Factory alias: pass args to "
+        "VanillaOption/EuropeanOption.set_rough_heston_pricing_engine.");
 }

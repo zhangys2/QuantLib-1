@@ -66,6 +66,8 @@
 #include <ql/pricingengines/vanilla/fdsimplebsswingengine.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/gjrgarchmodel.hpp>
+#include <ql/pricingengines/vanilla/analyticroughhestonengine.hpp>
+#include <ql/models/equity/roughhestonmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticbsmhullwhiteengine.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
@@ -945,6 +947,23 @@ void bind_instruments(nb::module_& m) {
             },
             nb::arg("model"),
             "Attach AnalyticGJRGARCHEngine (GJR-GARCH analytic).")
+        .def(
+            "set_rough_heston_pricing_engine",
+            [](EuropeanOption& opt,
+               const ext::shared_ptr<RoughHestonModel>& model,
+               Size integration_order,
+               Size time_steps,
+               AnalyticRoughHestonEngine::Approximation approximation) {
+                opt.setPricingEngine(
+                    ext::make_shared<AnalyticRoughHestonEngine>(
+                        model, integration_order, time_steps, approximation));
+            },
+            nb::arg("model"),
+            nb::arg("integration_order") = 128,
+            nb::arg("time_steps") = 256,
+            nb::arg("approximation") =
+                AnalyticRoughHestonEngine::Approximation::AdamsPredictorCorrector,
+            "Attach AnalyticRoughHestonEngine (fractional Riccati / Fourier).")
         .def(
             "set_cos_heston_pricing_engine",
             [](EuropeanOption& opt,

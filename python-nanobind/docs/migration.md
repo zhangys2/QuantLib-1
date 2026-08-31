@@ -2879,6 +2879,17 @@ assert opt.NPV() == pytest.approx(expected, abs=0.15)
 Attaches `AnalyticGJRGARCHEngine`. Compat: `setGjrGarchPricingEngine`
 (compat-only). Recovers `GJRGARCHModelTests::testEngines`.
 
+## Phase-149 rough Heston analytic engine
+
+```python
+model = ql.RoughHestonModel(r_ts, q_ts, spot, v0, kappa, theta, sigma, rho, hurst)
+opt.set_rough_heston_pricing_engine(model, integration_order=128, time_steps=512)
+assert opt.NPV() == pytest.approx(expected, abs=5e-4)
+```
+
+Attaches `AnalyticRoughHestonEngine`. Compat: `setRoughHestonPricingEngine`
+(compat-only). Recovers `RoughHestonModelTests::testKnownReferenceValues`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
