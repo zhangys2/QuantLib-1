@@ -2997,6 +2997,18 @@ cap.set_mc_hull_white_pricing_engine(
 
 Attaches `MCHullWhiteCapFloorEngine`. Compat: `setMcHullWhitePricingEngine`.
 
+## Phase-158 G2 swaption engines
+
+```python
+g2 = ql.G2(yts, a=0.1, sigma=0.01, b=0.2, eta=0.013, rho=-0.5)
+swaption.set_fd_g2_pricing_engine(g2, t_grid=50, x_grid=75, y_grid=75, inv_eps=1e-3)
+swaption.set_g2_tree_pricing_engine(g2, time_steps=50)
+# European: swaption.set_g2_pricing_engine(g2, range=7.0, intervals=64)
+```
+
+Attaches `G2SwaptionEngine`, `FdG2SwaptionEngine`, and G2 `TreeSwaptionEngine`.
+Compat: `setG2PricingEngine`, `setFdG2PricingEngine`, `setG2TreePricingEngine`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
