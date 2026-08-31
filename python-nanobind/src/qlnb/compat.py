@@ -927,6 +927,9 @@ def _install_aliases() -> None:
         )
 
     MultiPathGenerator = getattr(_ql, "MultiPathGenerator", None)
+    LowDiscrepancyMultiPathGenerator = getattr(
+        _ql, "LowDiscrepancyMultiPathGenerator", None
+    )
     TimeGrid = getattr(_ql, "TimeGrid", None)
 
     LfmCovarianceParameterization = getattr(

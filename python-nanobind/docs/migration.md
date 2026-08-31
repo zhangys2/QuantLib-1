@@ -3271,6 +3271,16 @@ base = ql.lfm_base_integrated_covariance(param, t)
 Recovers `LiborMarketModelProcessTests::testLambdaBootstrapping`.
 Compat: `covarParam`, `integratedCovariance`.
 
+## Phase-176 LMM LowDiscrepancy MC caplet pricing
+
+```python
+gen = ql.LowDiscrepancyMultiPathGenerator(process, grid, seed=42)
+path = gen.next()
+```
+
+Recovers `LiborMarketModelProcessTests::testMonteCarloCapletPricing`
+(one- and three-factor Hull–White LMM caplet / ratchet MC).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

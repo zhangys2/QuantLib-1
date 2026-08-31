@@ -44,16 +44,17 @@ using namespace QuantLib;
 namespace {
 
 using LfmPrRsg = PseudoRandom::rsg_type;
+using LfmLdRsg = LowDiscrepancy::rsg_type;
 
-struct LfmMultiPathGeneratorHandle {
-    MultiPathGenerator<LfmPrRsg> generator;
+template <typename RSG>
+struct LfmMultiPathGeneratorImpl {
+    MultiPathGenerator<RSG> generator;
 
-    explicit LfmMultiPathGeneratorHandle(
-        MultiPathGenerator<LfmPrRsg> generator_)
+    explicit LfmMultiPathGeneratorImpl(MultiPathGenerator<RSG> generator_)
         : generator(std::move(generator_)) {}
 
     static std::vector<std::vector<Real>> to_matrix(
-        const MultiPathGenerator<LfmPrRsg>::sample_type& sample) {
+        const typename MultiPathGenerator<RSG>::sample_type& sample) {
         const MultiPath& path = sample.value;
         const Size n_assets = path.assetNumber();
         const Size n_times = path.pathSize();
@@ -74,6 +75,9 @@ struct LfmMultiPathGeneratorHandle {
         return to_matrix(generator.antithetic());
     }
 };
+
+using LfmMultiPathGeneratorHandle = LfmMultiPathGeneratorImpl<LfmPrRsg>;
+using LfmLdMultiPathGeneratorHandle = LfmMultiPathGeneratorImpl<LfmLdRsg>;
 
 } // namespace
 
@@ -185,6 +189,28 @@ void bind_lmm(nb::module_& m) {
             "PseudoRandom MultiPathGenerator for LiborForwardModelProcess.")
         .def("next", &LfmMultiPathGeneratorHandle::next)
         .def("antithetic", &LfmMultiPathGeneratorHandle::antithetic);
+
+    nb::class_<LfmLdMultiPathGeneratorHandle>(m, "LowDiscrepancyMultiPathGenerator")
+        .def(
+            "__init__",
+            [](LfmLdMultiPathGeneratorHandle* self,
+               const ext::shared_ptr<LiborForwardModelProcess>& process,
+               const TimeGrid& grid,
+               BigNatural seed,
+               bool brownian_bridge) {
+                auto rsg = LowDiscrepancy::make_sequence_generator(
+                    process->factors() * (grid.size() - 1), seed);
+                new (self) LfmLdMultiPathGeneratorHandle(
+                    MultiPathGenerator<LfmLdRsg>(
+                        process, grid, rsg, brownian_bridge));
+            },
+            nb::arg("process"),
+            nb::arg("grid"),
+            nb::arg("seed") = BigNatural(42),
+            nb::arg("brownian_bridge") = false,
+            "LowDiscrepancy MultiPathGenerator for LiborForwardModelProcess.")
+        .def("next", &LfmLdMultiPathGeneratorHandle::next)
+        .def("antithetic", &LfmLdMultiPathGeneratorHandle::antithetic);
 
     nb::class_<GeneralStatistics>(m, "GeneralStatistics")
         .def(nb::init<>())
