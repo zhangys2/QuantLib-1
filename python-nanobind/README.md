@@ -776,6 +776,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `LfmCovarianceProxy.covariance`, `diffusion`
 - Golden checks from `LiborMarketModelTests::testSimpleCovarianceModels`
 
+### Phase 164 (Markov functional state process)
+- `MfStateProcess` with `drift`, `diffusion`, `expectation`, `std_deviation`, `variance`
+- Golden checks from `MarkovFunctionalTests::testMfStateProcess`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

@@ -421,6 +421,10 @@ def _install_aliases() -> None:
     if Gsr is not None and hasattr(Gsr, "numeraire_time"):
         Gsr.numeraireTime = Gsr.numeraire_time  # type: ignore[attr-defined]
 
+    MfStateProcess = getattr(_ql, "MfStateProcess", None)
+    if MfStateProcess is not None and hasattr(MfStateProcess, "std_deviation"):
+        MfStateProcess.stdDeviation = MfStateProcess.std_deviation  # type: ignore[attr-defined]
+
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
     EuropeanOption.impliedVolatility = EuropeanOption.implied_volatility  # type: ignore[attr-defined]

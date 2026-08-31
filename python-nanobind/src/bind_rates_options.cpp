@@ -28,6 +28,7 @@
 #include <ql/pricingengines/swaption/gaussian1dswaptionengine.hpp>
 #include <ql/pricingengines/swaption/jamshidianswaptionengine.hpp>
 #include <ql/legacy/libormarketmodels/lfmswaptionengine.hpp>
+#include <ql/processes/mfstateprocess.hpp>
 #include <ql/pricingengines/swaption/treeswaptionengine.hpp>
 #include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -116,6 +117,48 @@ void bind_rates_options(nb::module_& m) {
              nb::arg("time"))
         .def("a", &HullWhiteForwardProcess::a)
         .def("sigma", &HullWhiteForwardProcess::sigma);
+
+    nb::class_<MfStateProcess>(m, "MfStateProcess")
+        .def(
+            "__init__",
+            [](MfStateProcess* self,
+               Real reversion,
+               const std::vector<Real>& times,
+               const std::vector<Real>& vols) {
+                new (self) MfStateProcess(
+                    reversion,
+                    Array(times.begin(), times.end()),
+                    Array(vols.begin(), vols.end()));
+            },
+            nb::arg("reversion"),
+            nb::arg("times"),
+            nb::arg("vols"),
+            "Markov-functional state process dx = sigma(t) exp(a t) dW.")
+        .def("x0", &MfStateProcess::x0)
+        .def("drift", &MfStateProcess::drift, nb::arg("t"), nb::arg("x"))
+        .def(
+            "diffusion",
+            &MfStateProcess::diffusion,
+            nb::arg("t"),
+            nb::arg("x"))
+        .def(
+            "expectation",
+            &MfStateProcess::expectation,
+            nb::arg("t0"),
+            nb::arg("x0"),
+            nb::arg("dt"))
+        .def(
+            "std_deviation",
+            &MfStateProcess::stdDeviation,
+            nb::arg("t0"),
+            nb::arg("x0"),
+            nb::arg("dt"))
+        .def(
+            "variance",
+            &MfStateProcess::variance,
+            nb::arg("t0"),
+            nb::arg("x0"),
+            nb::arg("dt"));
 
     // G2 is MI-heavy (TwoFactorModel + AffineModel) — concrete wrapper only.
     nb::class_<G2>(m, "G2")
