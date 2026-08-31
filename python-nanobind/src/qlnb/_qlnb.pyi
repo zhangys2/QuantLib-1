@@ -4039,6 +4039,18 @@ class ContinuousAveragingAsianOption:
     def delta(self) -> float: ...
     def gamma(self) -> float: ...
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
+    def set_heston_pricing_engine(
+        self,
+        process: HestonProcess,
+        summation_cutoff: int = ...,
+        xi_right_limit: float = ...,
+    ) -> None: ...
+    def setHestonPricingEngine(
+        self,
+        process: HestonProcess,
+        summation_cutoff: int = ...,
+        xi_right_limit: float = ...,
+    ) -> None: ...
 
 class DiscreteAveragingAsianOption:
     def __init__(
