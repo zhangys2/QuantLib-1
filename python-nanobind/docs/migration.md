@@ -3281,6 +3281,16 @@ path = gen.next()
 Recovers `LiborMarketModelProcessTests::testMonteCarloCapletPricing`
 (one- and three-factor Hull–White LMM caplet / ratchet MC).
 
+## Phase-177 LMM process next-index-reset
+
+```python
+process = ql.LiborForwardModelProcess(60, index)
+idx = process.next_index_reset(fixing_time)
+```
+
+Recovers `LiborMarketModelProcessTests::testInitialisation`.
+Compat: `nextIndexReset`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

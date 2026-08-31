@@ -835,6 +835,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `LowDiscrepancyMultiPathGenerator` for Hull–White LMM processes
 - Golden checks from `LiborMarketModelProcessTests::testMonteCarloCapletPricing`
 
+### Phase 177 (LMM process next-index-reset)
+- `LiborForwardModelProcess.next_index_reset`
+- Golden check from `LiborMarketModelProcessTests::testInitialisation`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
