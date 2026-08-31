@@ -30,6 +30,11 @@
 #include <ql/instruments/bonds/floatingratebond.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
 #include <ql/instruments/compositeinstrument.hpp>
+#include <ql/currencies/america.hpp>
+#include <ql/currencies/europe.hpp>
+#include <ql/cashflows/fixedratecoupon.hpp>
+#include <ql/cashflows/simplecashflow.hpp>
+#include <ql/instruments/constnotionalcrosscurrencyswap.hpp>
 #include <ql/instruments/constnotionalcrosscurrencybasisswap.hpp>
 #include <ql/instruments/constnotionalcrosscurrencyfixedvsfloatingswap.hpp>
 #include <ql/instruments/stock.hpp>
@@ -69,7 +74,9 @@
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/calendars/jointcalendar.hpp>
+#include <ql/time/calendars/switzerland.hpp>
 #include <ql/time/calendars/target.hpp>
+#include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/daycounter.hpp>
 #include <ql/time/daycounters/actualactual.hpp>
 #include <ql/time/schedule.hpp>
@@ -2718,4 +2725,118 @@ void bind_instruments(nb::module_& m) {
             nb::arg("foreign_discount"),
             nb::arg("spot_fx"),
             "Attach DiscountingConstNotionalCrossCurrencySwapEngine.");
+
+    // --- Phase 111: ConstNotionalCrossCurrencySwap ---
+    nb::class_<ConstNotionalCrossCurrencySwap>(
+        m, "ConstNotionalCrossCurrencySwap")
+        .def("NPV",
+             [](ConstNotionalCrossCurrencySwap& s) { return s.NPV(); })
+        .def("is_expired",
+             [](const ConstNotionalCrossCurrencySwap& s) {
+                 return s.isExpired();
+             })
+        .def("leg_npv",
+             [](ConstNotionalCrossCurrencySwap& s, Size leg) {
+                 return s.legNPV(leg);
+             },
+             nb::arg("leg"))
+        .def("leg_bps",
+             [](ConstNotionalCrossCurrencySwap& s, Size leg) {
+                 return s.legBPS(leg);
+             },
+             nb::arg("leg"))
+        .def("in_ccy_leg_npv",
+             [](ConstNotionalCrossCurrencySwap& s, Size leg) {
+                 return s.inCcyLegNPV(leg);
+             },
+             nb::arg("leg"))
+        .def("in_ccy_leg_bps",
+             [](ConstNotionalCrossCurrencySwap& s, Size leg) {
+                 return s.inCcyLegBPS(leg);
+             },
+             nb::arg("leg"))
+        .def("leg_currency",
+             [](const ConstNotionalCrossCurrencySwap& s, Size leg) {
+                 return s.legCurrency(leg);
+             },
+             nb::arg("leg"))
+        .def(
+            "set_pricing_engine",
+            [](ConstNotionalCrossCurrencySwap& s,
+               const Currency& domestic_currency,
+               const Handle<YieldTermStructure>& domestic_discount,
+               const Currency& foreign_currency,
+               const Handle<YieldTermStructure>& foreign_discount,
+               const Handle<Quote>& spot_fx) {
+                s.setPricingEngine(
+                    ext::make_shared<DiscountingConstNotionalCrossCurrencySwapEngine>(
+                        domestic_currency,
+                        domestic_discount,
+                        foreign_currency,
+                        foreign_discount,
+                        spot_fx));
+            },
+            nb::arg("domestic_currency"),
+            nb::arg("domestic_discount"),
+            nb::arg("foreign_currency"),
+            nb::arg("foreign_discount"),
+            nb::arg("spot_fx"),
+            "Attach DiscountingConstNotionalCrossCurrencySwapEngine.");
+
+    m.def(
+        "make_fix_fix_xccy_swap",
+        [](Real usd_nominal, Rate spot_fx) {
+            Calendar payCalendar = JointCalendar(
+                UnitedStates(UnitedStates::Settlement), Switzerland());
+            const Date today = Settings::instance().evaluationDate();
+            const Date startDate = payCalendar.advance(today, Period(2, Days));
+            const Date endDate = payCalendar.advance(today, Period(5, Years));
+            const BusinessDayConvention convention = Following;
+            const DayCounter dc = Actual365Fixed();
+
+            Schedule schedule(
+                startDate,
+                endDate,
+                Period(3, Months),
+                payCalendar,
+                convention,
+                convention,
+                DateGeneration::Forward,
+                false);
+
+            const Rate usdRate = 0.0575;
+            const Rate chfRate = 0.0201;
+
+            Leg usdLeg = FixedRateLeg(schedule)
+                             .withNotionals(usd_nominal)
+                             .withCouponRates(usdRate, dc)
+                             .withPaymentAdjustment(convention)
+                             .withPaymentCalendar(payCalendar);
+            const Date exchangeDate =
+                payCalendar.adjust(schedule.dates().front(), convention);
+            usdLeg.insert(
+                usdLeg.begin(),
+                ext::make_shared<SimpleCashFlow>(-usd_nominal, exchangeDate));
+            usdLeg.push_back(ext::make_shared<SimpleCashFlow>(
+                usd_nominal, usdLeg.back()->date()));
+
+            const Real chfNominal = usd_nominal * spot_fx;
+            Leg chfLeg = FixedRateLeg(schedule)
+                             .withNotionals(chfNominal)
+                             .withCouponRates(chfRate, dc)
+                             .withPaymentAdjustment(convention)
+                             .withPaymentCalendar(payCalendar);
+            chfLeg.insert(
+                chfLeg.begin(),
+                ext::make_shared<SimpleCashFlow>(-chfNominal, exchangeDate));
+            chfLeg.push_back(ext::make_shared<SimpleCashFlow>(
+                chfNominal, chfLeg.back()->date()));
+
+            return ConstNotionalCrossCurrencySwap(
+                usdLeg, USDCurrency(), chfLeg, CHFCurrency());
+        },
+        nb::arg("usd_nominal"),
+        nb::arg("spot_fx"),
+        "Build fix/fix XCCY swap matching "
+        "ConstNotionalCrossCurrencySwapTests::makeFixFixXCCYSwap.");
 }
