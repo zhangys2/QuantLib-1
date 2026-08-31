@@ -425,6 +425,21 @@ def _install_aliases() -> None:
     if MfStateProcess is not None and hasattr(MfStateProcess, "std_deviation"):
         MfStateProcess.stdDeviation = MfStateProcess.std_deviation  # type: ignore[attr-defined]
 
+    KahaleSmileSection = getattr(_ql, "KahaleSmileSection", None)
+    if KahaleSmileSection is not None:
+        if hasattr(KahaleSmileSection, "left_core_strike"):
+            KahaleSmileSection.leftCoreStrike = (  # type: ignore[attr-defined]
+                KahaleSmileSection.left_core_strike
+            )
+        if hasattr(KahaleSmileSection, "right_core_strike"):
+            KahaleSmileSection.rightCoreStrike = (  # type: ignore[attr-defined]
+                KahaleSmileSection.right_core_strike
+            )
+        if hasattr(KahaleSmileSection, "digital_option_price"):
+            KahaleSmileSection.digitalOptionPrice = (  # type: ignore[attr-defined]
+                KahaleSmileSection.digital_option_price
+            )
+
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
     EuropeanOption.impliedVolatility = EuropeanOption.implied_volatility  # type: ignore[attr-defined]

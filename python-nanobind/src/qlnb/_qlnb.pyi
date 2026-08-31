@@ -4436,6 +4436,32 @@ class MfStateProcess:
     def std_deviation(self, t0: float, x0: float, dt: float) -> float: ...
     def variance(self, t0: float, x0: float, dt: float) -> float: ...
 
+class LinearSmileSection:
+    def __init__(
+        self,
+        expiry_time: float,
+        strikes: list[float],
+        std_devs: list[float],
+        atm_level: float,
+    ) -> None: ...
+    def option_price(self, strike: float) -> float: ...
+    def atm_level(self) -> float: ...
+
+class KahaleSmileSection:
+    def __init__(
+        self,
+        source: LinearSmileSection,
+        atm: float | None = ...,
+        interpolate: bool = ...,
+        exponential_extrapolation: bool = ...,
+        delete_arbitrage_points: bool = ...,
+        moneyness_grid: list[float] = ...,
+    ) -> None: ...
+    def left_core_strike(self) -> float: ...
+    def right_core_strike(self) -> float: ...
+    def option_price(self, strike: float) -> float: ...
+    def digital_option_price(self, strike: float) -> float: ...
+
 class G2:
     def __init__(
         self,
@@ -5325,6 +5351,25 @@ def G2SwaptionEngine(model: G2) -> G2: ...
 def FdG2SwaptionEngine(model: G2) -> G2: ...
 def G2TreeSwaptionEngine(model: G2) -> G2: ...
 def LfmSwaptionEngine(model: LiborForwardModel) -> LiborForwardModel: ...
+def black_formula(
+    option_type: OptionType,
+    strike: float,
+    forward: float,
+    std_dev: float,
+    discount: float = ...,
+    displacement: float = ...,
+) -> float: ...
+def black_formula_implied_std_dev(
+    option_type: OptionType,
+    strike: float,
+    forward: float,
+    black_price: float,
+    discount: float = ...,
+    displacement: float = ...,
+    guess: float = ...,
+    accuracy: float = ...,
+    max_iterations: int = ...,
+) -> float: ...
 def AnalyticContinuousGeometricAveragePriceAsianEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...

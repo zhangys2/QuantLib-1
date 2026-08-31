@@ -780,6 +780,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `MfStateProcess` with `drift`, `diffusion`, `expectation`, `std_deviation`, `variance`
 - Golden checks from `MarkovFunctionalTests::testMfStateProcess`
 
+### Phase 165 (Kahale smile section)
+- `LinearSmileSection`, `KahaleSmileSection`
+- `black_formula`, `black_formula_implied_std_dev`
+- Golden checks from `MarkovFunctionalTests::testKahaleSmileSection`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
