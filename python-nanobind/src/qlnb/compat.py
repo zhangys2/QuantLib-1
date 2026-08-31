@@ -452,6 +452,10 @@ def _install_aliases() -> None:
         EuropeanOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_heston_pricing_engine
         )
+    if hasattr(EuropeanOption, "set_gjr_garch_pricing_engine"):
+        EuropeanOption.setGjrGarchPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_gjr_garch_pricing_engine
+        )
     if hasattr(EuropeanOption, "set_mc_heston_pricing_engine"):
         EuropeanOption.setMcHestonPricingEngine = (  # type: ignore[attr-defined]
             EuropeanOption.set_mc_heston_pricing_engine
@@ -582,6 +586,10 @@ def _install_aliases() -> None:
     if hasattr(VanillaOption, "set_heston_pricing_engine"):
         VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_gjr_garch_pricing_engine"):
+        VanillaOption.setGjrGarchPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_gjr_garch_pricing_engine
         )
     if hasattr(VanillaOption, "set_pdf_heston_pricing_engine"):
         VanillaOption.setPdfHestonPricingEngine = (  # type: ignore[attr-defined]

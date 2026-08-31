@@ -2867,6 +2867,18 @@ assert opt.NPV() == pytest.approx(expected, abs=2e-2)
 Attaches `FdBlackScholesShoutEngine`. Compat: `setFdShoutPricingEngine`
 (compat-only). Recovers `AmericanOptionTests::testFDShoutNPV`.
 
+## Phase-148 GJR-GARCH analytic engine
+
+```python
+process = ql.GJRGARCHProcess(r_ts, q_ts, spot, v0, omega, alpha, beta, gamma, lam, 365.0)
+model = ql.GJRGARCHModel(process)
+opt.set_gjr_garch_pricing_engine(model)
+assert opt.NPV() == pytest.approx(expected, abs=0.15)
+```
+
+Attaches `AnalyticGJRGARCHEngine`. Compat: `setGjrGarchPricingEngine`
+(compat-only). Recovers `GJRGARCHModelTests::testEngines`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

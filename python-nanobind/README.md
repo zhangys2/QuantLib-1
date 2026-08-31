@@ -689,6 +689,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `VanillaOption.set_fd_shout_pricing_engine` → `FdBlackScholesShoutEngine`
 - Recovers NPV table from `AmericanOptionTests::testFDShoutNPV` (tol 2e-2)
 
+### Phase 148 (GJR-GARCH analytic)
+- `GJRGARCHProcess`, `GJRGARCHModel`
+- `VanillaOption.set_gjr_garch_pricing_engine` → `AnalyticGJRGARCHEngine`
+- Recovers NPV table from `GJRGARCHModelTests::testEngines` (tol 0.15)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
