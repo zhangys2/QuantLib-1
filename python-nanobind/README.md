@@ -580,6 +580,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `DiscreteAveragingAsianOption.set_heston_pricing_engine` → analytic Kim–Kim–Kim–Wee engine
 - Recovers `AsianOptionTests::testAnalyticDiscreteGeometricAveragePriceHeston` (tols 1e-2–8e-2)
 
+### Phase 122 (Asian Vecer continuous arithmetic)
+- `ContinuousAveragingAsianOption.set_vecer_pricing_engine` → `ContinuousArithmeticAsianVecerEngine`
+- Recovers `AsianOptionTests::testVecerEngine` NPVs (suite tols)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
