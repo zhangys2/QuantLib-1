@@ -2192,6 +2192,19 @@ class EuropeanOption:
         model: PiecewiseTimeDependentHestonModel,
         integration_order: int = ...,
     ) -> None: ...
+    def set_fd_heston_hull_white_pricing_engine(
+        self,
+        heston_model: HestonModel,
+        hw_process: HullWhiteProcess,
+        equity_short_rate_correlation: float,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        r_grid: int = ...,
+        damping_steps: int = ...,
+        control_variate: bool = ...,
+        scheme_desc: FdmSchemeDesc = ...,
+    ) -> None: ...
     def set_cos_heston_pricing_engine(
         self, model: HestonModel, L: float = ..., N: int = ...
     ) -> None: ...
@@ -2568,6 +2581,19 @@ class VanillaOption:
         self,
         model: PiecewiseTimeDependentHestonModel,
         integration_order: int = ...,
+    ) -> None: ...
+    def set_fd_heston_hull_white_pricing_engine(
+        self,
+        heston_model: HestonModel,
+        hw_process: HullWhiteProcess,
+        equity_short_rate_correlation: float,
+        t_grid: int = ...,
+        x_grid: int = ...,
+        v_grid: int = ...,
+        r_grid: int = ...,
+        damping_steps: int = ...,
+        control_variate: bool = ...,
+        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
     def set_pdf_heston_pricing_engine(
         self,
@@ -4203,6 +4229,16 @@ class HullWhite:
         sigma: float = ...,
     ) -> None: ...
 
+class HullWhiteProcess:
+    def __init__(
+        self,
+        term_structure: YieldTermStructureHandle,
+        a: float,
+        sigma: float,
+    ) -> None: ...
+    def a(self) -> float: ...
+    def sigma(self) -> float: ...
+
 class DefaultProbabilityTermStructureHandle:
     def empty(self) -> bool: ...
     def survival_probability(
@@ -4600,6 +4636,11 @@ def FdCIRVanillaEngine(
     bs_process: BlackScholesMertonProcess,
     equity_rate_correlation: float,
 ) -> CoxIngersollRossProcess: ...
+def FdHestonHullWhiteVanillaEngine(
+    heston_model: HestonModel,
+    hw_process: HullWhiteProcess,
+    equity_short_rate_correlation: float,
+) -> HestonModel: ...
 class FixedDividend:
     def __init__(self, amount: float, date: Date) -> None: ...
     def amount(self) -> float: ...
