@@ -490,6 +490,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - Engine: `set_pricing_engine` → `DiscountingBondEngine` (+ Black Ibor pricer on floating)
 - Recovers suite French-amortization pmt / coupon amounts (tol 1e-6)
 
+### Phase 102 (VanillaSwingOption)
+- `SwingExercise`, `VanillaForwardPayoff`, `VanillaSwingOption`
+- Engine: `set_fd_pricing_engine` → `FdSimpleBSSwingEngine`
+- `VanillaOption` BermudanExercise constructor (FD upper-bound checks)
+- Recovers suite BS swing upper/lower bounds (tol 0.01 / 4e-2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

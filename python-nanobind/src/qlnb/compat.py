@@ -1280,6 +1280,28 @@ if AmortizingFloatingRateBond is not None:
         AmortizingFloatingRateBond.accrued_amount
     )
 
+# Phase-102 VanillaSwingOption aliases.
+SwingExercise = getattr(_ql, "SwingExercise", None)
+VanillaForwardPayoff = getattr(_ql, "VanillaForwardPayoff", None)
+VanillaSwingOption = getattr(_ql, "VanillaSwingOption", None)
+FdSimpleBSSwingEngine = getattr(_ql, "FdSimpleBSSwingEngine", None)
+if SwingExercise is not None:
+    SwingExercise.lastDate = SwingExercise.last_date  # type: ignore[attr-defined]
+if VanillaForwardPayoff is not None:
+    VanillaForwardPayoff.optionType = (  # type: ignore[attr-defined]
+        VanillaForwardPayoff.option_type
+    )
+if VanillaSwingOption is not None:
+    VanillaSwingOption.isExpired = (  # type: ignore[attr-defined]
+        VanillaSwingOption.is_expired
+    )
+    VanillaSwingOption.setPricingEngine = (  # type: ignore[attr-defined]
+        VanillaSwingOption.set_fd_pricing_engine
+    )
+    VanillaSwingOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+        VanillaSwingOption.set_fd_pricing_engine
+    )
+
 # Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
 USDLibor = getattr(_ql, "USDLibor", None)
 EquityIndex = getattr(_ql, "EquityIndex", None)
