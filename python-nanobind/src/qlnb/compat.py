@@ -1207,6 +1207,28 @@ if BMASwap is not None:
     BMASwap.setPricingEngine = (  # type: ignore[attr-defined]
         BMASwap.set_pricing_engine
     )
+
+# Phase-101 VanillaSwingOption aliases.
+SwingExercise = getattr(_ql, "SwingExercise", None)
+VanillaForwardPayoff = getattr(_ql, "VanillaForwardPayoff", None)
+VanillaSwingOption = getattr(_ql, "VanillaSwingOption", None)
+FdSimpleBSSwingEngine = getattr(_ql, "FdSimpleBSSwingEngine", None)
+if SwingExercise is not None:
+    SwingExercise.lastDate = SwingExercise.last_date  # type: ignore[attr-defined]
+if VanillaForwardPayoff is not None:
+    VanillaForwardPayoff.optionType = (  # type: ignore[attr-defined]
+        VanillaForwardPayoff.option_type
+    )
+if VanillaSwingOption is not None:
+    VanillaSwingOption.isExpired = (  # type: ignore[attr-defined]
+        VanillaSwingOption.is_expired
+    )
+    VanillaSwingOption.setPricingEngine = (  # type: ignore[attr-defined]
+        VanillaSwingOption.set_fd_pricing_engine
+    )
+    VanillaSwingOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+        VanillaSwingOption.set_fd_pricing_engine
+    )
 if hasattr(_ql, "IborIndex"):
     _ql.IborIndex.businessDayConvention = (  # type: ignore[attr-defined]
         _ql.IborIndex.business_day_convention

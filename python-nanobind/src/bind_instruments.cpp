@@ -33,9 +33,12 @@
 #include <ql/instruments/payoffs.hpp>
 #include <ql/instruments/swap.hpp>
 #include <ql/instruments/vanillaswap.hpp>
+#include <ql/instruments/vanillaswingoption.hpp>
 #include <ql/option.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
+#include <ql/pricingengines/vanilla/fdsimplebsswingengine.hpp>
+#include <ql/methods/finitedifferences/solvers/fdmbackwardsolver.hpp>
 #include <ql/models/equity/batesmodel.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
 #include <ql/pricingengines/vanilla/analyticdividendeuropeanengine.hpp>
@@ -1856,4 +1859,88 @@ void bind_instruments(nb::module_& m) {
         nb::arg("bma_index"),
         nb::arg("ibor_index"),
         "Rate helper for bootstrapping over BMA swap libor fractions.");
+
+    // --- Phase 101: VanillaSwingOption (standalone; OneAssetOption MI) ---
+    nb::class_<SwingExercise>(m, "SwingExercise")
+        .def(
+            "__init__",
+            [](SwingExercise* self, const std::vector<Date>& dates) {
+                new (self) SwingExercise(dates);
+            },
+            nb::arg("dates"),
+            "Swing exercise on a fixed list of dates (seconds default 0).")
+        .def(
+            "__init__",
+            [](SwingExercise* self,
+               const Date& from_date,
+               const Date& to_date,
+               Size step_size_secs) {
+                new (self) SwingExercise(from_date, to_date, step_size_secs);
+            },
+            nb::arg("from_date"),
+            nb::arg("to_date"),
+            nb::arg("step_size_secs"),
+            "Swing exercise on a uniform date-time grid.")
+        .def("dates", [](const SwingExercise& e) { return e.dates(); })
+        .def("last_date", [](const SwingExercise& e) { return e.lastDate(); })
+        .def("seconds", [](const SwingExercise& e) { return e.seconds(); });
+
+    nb::class_<VanillaForwardPayoff>(m, "VanillaForwardPayoff")
+        .def(nb::init<Option::Type, Real>(),
+             nb::arg("type"),
+             nb::arg("strike"))
+        .def("strike",
+             [](const VanillaForwardPayoff& p) { return p.strike(); })
+        .def("option_type",
+             [](const VanillaForwardPayoff& p) { return p.optionType(); })
+        .def("name", [](const VanillaForwardPayoff& p) { return p.name(); });
+
+    nb::class_<VanillaSwingOption>(m, "VanillaSwingOption")
+        .def(
+            "__init__",
+            [](VanillaSwingOption* self,
+               const VanillaForwardPayoff& payoff,
+               const SwingExercise& exercise,
+               Size min_exercise_rights,
+               Size max_exercise_rights) {
+                new (self) VanillaSwingOption(
+                    ext::make_shared<VanillaForwardPayoff>(payoff),
+                    ext::make_shared<SwingExercise>(exercise),
+                    min_exercise_rights,
+                    max_exercise_rights);
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            nb::arg("min_exercise_rights"),
+            nb::arg("max_exercise_rights"),
+            "Vanilla swing option with multiple exercise rights.")
+        .def("NPV", [](VanillaSwingOption& opt) { return opt.NPV(); })
+        .def("is_expired",
+             [](const VanillaSwingOption& opt) { return opt.isExpired(); })
+        .def(
+            "set_fd_pricing_engine",
+            [](VanillaSwingOption& opt,
+               const ext::shared_ptr<BlackScholesMertonProcess>& process,
+               Size t_grid,
+               Size x_grid,
+               const FdmSchemeDesc& scheme_desc) {
+                opt.setPricingEngine(
+                    ext::make_shared<FdSimpleBSSwingEngine>(
+                        process, t_grid, x_grid, scheme_desc));
+            },
+            nb::arg("process"),
+            nb::arg("t_grid") = 50,
+            nb::arg("x_grid") = 100,
+            nb::arg("scheme_desc") = FdmSchemeDesc::Douglas(),
+            "Attach FdSimpleBSSwingEngine.");
+    m.def(
+        "FdSimpleBSSwingEngine",
+        [](const ext::shared_ptr<BlackScholesMertonProcess>& process,
+           Size /*t_grid*/,
+           Size /*x_grid*/) { return process; },
+        nb::arg("process"),
+        nb::arg("t_grid") = 50,
+        nb::arg("x_grid") = 100,
+        "Documentation alias — use "
+        "VanillaSwingOption.set_fd_pricing_engine instead.");
 }

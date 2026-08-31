@@ -134,14 +134,7 @@ void bind_rates_options(nb::module_& m) {
         .def("numeraire_time",
              [](const Gsr& model) { return model.numeraireTime(); });
 
-    nb::class_<BermudanExercise>(m, "BermudanExercise")
-        .def(nb::init<const std::vector<Date>&, bool>(),
-             nb::arg("dates"),
-             nb::arg("payoff_at_expiry") = false)
-        .def("dates",
-             [](const BermudanExercise& e) { return e.dates(); })
-        .def("last_date",
-             [](const BermudanExercise& e) { return e.lastDate(); });
+    // BermudanExercise is registered in bind_pricing (needed by VanillaOption).
 
     // Swaption is MI-heavy (Option/Instrument) — standalone wrapper.
     nb::class_<Swaption>(m, "Swaption")

@@ -2127,6 +2127,38 @@ Standalone Swap/Instrument wrapper + `BMAIndex`, `BMASwapRateHelper`,
 `setPricingEngine`, `makeBMASwap`. Recovers piecewise BMA curve fair libor
 fractions from `PiecewiseYieldCurve` BMA consistency (tol 1e-9).
 
+## Phase-101 VanillaSwingOption
+
+```python
+today = ql.Date(15, ql.Month.January, 2020)
+ql.set_evaluation_date(today)
+dc = ql.ActualActual(ql.ActualActualConvention.ISDA)
+process = ql.BlackScholesMertonProcess(
+    ql.make_quote_handle(30.0),
+    ql.FlatForward(today, 0.02, dc),
+    ql.FlatForward(today, 0.14, dc),
+    ql.BlackConstantVol(today, ql.NullCalendar(), 0.4, dc),
+)
+dates = []
+d = today + ql.Period(1, ql.TimeUnit.Months)
+maturity = today + ql.Period(12, ql.TimeUnit.Months)
+while d <= maturity:
+    dates.append(d)
+    d = d + ql.Period(1, ql.TimeUnit.Months)
+swing = ql.SwingExercise(dates)
+opt = ql.VanillaSwingOption(
+    ql.VanillaForwardPayoff(ql.OptionType.Put, 30.0), swing, 0, 2
+)
+opt.set_fd_pricing_engine(process, t_grid=50, x_grid=200)
+print(opt.NPV())
+```
+
+Standalone OneAssetOption wrapper + `SwingExercise` /
+`VanillaForwardPayoff`. Engine is `FdSimpleBSSwingEngine`. Also adds
+`VanillaOption(BermudanExercise)` for suite upper-bound checks. Compat:
+`isExpired`, `setPricingEngine` → `set_fd_pricing_engine`. Recovers
+`SwingOptionTest::testFdBSSwingOption` upper/lower bounds.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

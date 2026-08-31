@@ -206,6 +206,15 @@ void bind_pricing(nb::module_& m) {
         .def("last_date",
              [](const AmericanExercise& e) { return e.lastDate(); });
 
+    nb::class_<BermudanExercise>(m, "BermudanExercise")
+        .def(nb::init<const std::vector<Date>&, bool>(),
+             nb::arg("dates"),
+             nb::arg("payoff_at_expiry") = false)
+        .def("dates",
+             [](const BermudanExercise& e) { return e.dates(); })
+        .def("last_date",
+             [](const BermudanExercise& e) { return e.lastDate(); });
+
     // Standalone VanillaOption — American (BAW default) plus tree/FD engines.
     // Not declared as a Python subclass of Instrument/OneAssetOption (MI).
     nb::class_<VanillaOption>(m, "VanillaOption")
@@ -231,6 +240,18 @@ void bind_pricing(nb::module_& m) {
             },
             nb::arg("payoff"),
             nb::arg("exercise"))
+        .def(
+            "__init__",
+            [](VanillaOption* self,
+               const PlainVanillaPayoff& payoff,
+               const BermudanExercise& exercise) {
+                new (self) VanillaOption(
+                    ext::make_shared<PlainVanillaPayoff>(payoff),
+                    ext::make_shared<BermudanExercise>(exercise));
+            },
+            nb::arg("payoff"),
+            nb::arg("exercise"),
+            "Vanilla option with Bermudan exercise (FD / tree engines).")
         .def("NPV", [](VanillaOption& opt) { return opt.NPV(); })
         .def("error_estimate",
              [](VanillaOption& opt) { return opt.errorEstimate(); })
