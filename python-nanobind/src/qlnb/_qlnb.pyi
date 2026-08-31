@@ -4488,6 +4488,10 @@ class MarkovFunctionalModelOutputs:
     market_put_premium: list[list[float]]
     market_raw_call_premium: list[list[float]]
     market_raw_put_premium: list[list[float]]
+    market_zerorate: list[float]
+    model_zerorate: list[float]
+    model_call_premium: list[list[float]]
+    model_put_premium: list[list[float]]
 
 class MarkovFunctional:
     def __init__(
