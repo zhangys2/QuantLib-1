@@ -2685,6 +2685,30 @@ Attaches `BjerksundStenslandApproximationEngine`. Compat:
 `setBjerksundStenslandPricingEngine` (compat-only). Recovers Haug cases
 from `AmericanOptionTests::testBjerksundStenslandValues`.
 
+## Phase-135 Merton 76 jump diffusion
+
+```python
+j_vol = 0.25 * math.sqrt(0.25 / 1.0)
+diff_vol = 0.25 * math.sqrt(1.0 - 0.25)
+mean_log = math.log(1.0) - 0.5 * j_vol * j_vol
+process = ql.Merton76Process(
+    ql.make_quote_handle(100.0),
+    ql.FlatForward(today, 0.0, dc),
+    ql.FlatForward(today, 0.08, dc),
+    ql.BlackConstantVol(today, ql.NullCalendar(), diff_vol, dc),
+    ql.make_quote_handle(1.0),
+    ql.make_quote_handle(mean_log),
+    ql.make_quote_handle(j_vol),
+)
+opt.set_jump_diffusion_pricing_engine(process)
+assert opt.NPV() == pytest.approx(20.67, abs=1e-2)
+```
+
+Adds `Merton76Process` and `JumpDiffusionEngine` (via
+`set_jump_diffusion_pricing_engine`). Compat:
+`setJumpDiffusionPricingEngine` (compat-only). Recovers Haug Merton cases
+from `JumpDiffusionTests::testMerton76`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
