@@ -79,6 +79,7 @@
 #include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/calendars/switzerland.hpp>
 #include <ql/time/calendars/target.hpp>
+#include <ql/time/calendars/turkey.hpp>
 #include <ql/time/calendars/unitedkingdom.hpp>
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/daycounter.hpp>
@@ -2903,4 +2904,78 @@ void bind_instruments(nb::module_& m) {
         nb::arg("gbp_projection"),
         "Build float/float XCCY swap matching "
         "ConstNotionalCrossCurrencySwapTests::makeFloatFloatXCCYSwap.");
+
+    // --- Phase 113: fix/float XCCY factory ---
+    m.def(
+        "make_fix_float_xccy_swap",
+        [](Real usd_nominal,
+           Rate spot_fx,
+           const Handle<YieldTermStructure>& usd_projection) {
+            Calendar payCalendar = JointCalendar(
+                JointCalendar(UnitedStates(UnitedStates::Settlement),
+                              UnitedKingdom()),
+                Turkey());
+            const Date today = Settings::instance().evaluationDate();
+            const Date startDate = payCalendar.advance(today, Period(2, Days));
+            const Date endDate = payCalendar.advance(today, Period(5, Years));
+            const BusinessDayConvention convention = ModifiedFollowing;
+            const BusinessDayConvention payConvention = Following;
+            const DayCounter dc = Actual365Fixed();
+
+            Schedule floatSchedule(
+                startDate,
+                endDate,
+                Period(3, Months),
+                payCalendar,
+                convention,
+                convention,
+                DateGeneration::Backward,
+                false);
+            Schedule fixSchedule(
+                startDate,
+                endDate,
+                Period(1, Years),
+                payCalendar,
+                convention,
+                convention,
+                DateGeneration::Backward,
+                false);
+
+            const Rate tryRate = 0.249;
+            const Real tryNominal = usd_nominal * spot_fx;
+            Leg tryLeg = FixedRateLeg(fixSchedule)
+                             .withNotionals(tryNominal)
+                             .withCouponRates(tryRate, dc)
+                             .withPaymentAdjustment(payConvention)
+                             .withPaymentCalendar(payCalendar);
+            Date exchangeDate =
+                payCalendar.adjust(fixSchedule.dates().front(), convention);
+            tryLeg.insert(
+                tryLeg.begin(),
+                ext::make_shared<SimpleCashFlow>(-tryNominal, exchangeDate));
+            tryLeg.push_back(ext::make_shared<SimpleCashFlow>(
+                tryNominal, tryLeg.back()->date()));
+
+            auto usdLibor3M = ext::make_shared<USDLibor>(
+                Period(3, Months), usd_projection);
+            Leg usdLeg = IborLeg(floatSchedule, usdLibor3M)
+                             .withNotionals(usd_nominal)
+                             .withPaymentAdjustment(payConvention)
+                             .withPaymentCalendar(payCalendar);
+            exchangeDate =
+                payCalendar.adjust(floatSchedule.dates().front(), convention);
+            usdLeg.insert(
+                usdLeg.begin(),
+                ext::make_shared<SimpleCashFlow>(-usd_nominal, exchangeDate));
+            usdLeg.push_back(ext::make_shared<SimpleCashFlow>(
+                usd_nominal, usdLeg.back()->date()));
+
+            return ConstNotionalCrossCurrencySwap(
+                tryLeg, TRYCurrency(), usdLeg, USDCurrency());
+        },
+        nb::arg("usd_nominal"),
+        nb::arg("spot_fx"),
+        nb::arg("usd_projection"),
+        "Build fix/float XCCY swap matching "
+        "ConstNotionalCrossCurrencySwapTests::makeFixFloatXCCYSwap.");
 }

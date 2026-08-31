@@ -2359,6 +2359,19 @@ assert swap.NPV() == pytest.approx(0.0, abs=0.01)
 Adds `make_float_float_xccy_swap` for USD/GBP Libor legs with notional exchange.
 Compat: `makeFloatFloatXCCYSwap`. Recovers `testFloatFloatXCCYSwapPricing`.
 
+## Phase-113 fix/float XCCY factory
+
+```python
+swap = ql.make_fix_float_xccy_swap(10_000_000.0, 6.4304, usd_projection)
+swap.set_pricing_engine(
+    ql.USDCurrency(), usd_discount, ql.TRYCurrency(), try_discount, fx_quote
+)
+assert swap.NPV() == pytest.approx(218961.99, abs=0.01)  # or 218981.99
+```
+
+Adds `make_fix_float_xccy_swap` for TRY fixed vs USD 3M Libor float legs.
+Compat: `makeFixFloatXCCYSwap`. Recovers `testFloatFixXCCYSwapPricing`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
