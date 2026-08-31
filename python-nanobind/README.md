@@ -653,6 +653,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `set_fd_cev_pricing_engine` → `FdCEVVanillaEngine`
 - Matches analytic CEV NPV/delta from `FdCEVTests` (tol 0.01)
 
+### Phase 139 (Choi arithmetic Asian)
+- `set_choi_pricing_engine` → `ChoiAsianEngine`
+- Recovers Levy arithmetic Asian cases from `AsianOptionTests::testMCDiscreteArithmeticAveragePrice` (tol 3e-2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
