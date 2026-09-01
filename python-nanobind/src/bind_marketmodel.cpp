@@ -10,6 +10,7 @@
 #include <ql/models/marketmodels/models/abcdvol.hpp>
 #include <ql/models/marketmodels/models/flatvol.hpp>
 #include <ql/models/marketmodels/piecewiseconstantcorrelation.hpp>
+#include <ql/models/marketmodels/utilities.hpp>
 
 using namespace QuantLib;
 
@@ -239,4 +240,13 @@ void bind_marketmodel(nb::module_& m) {
         nb::arg("numeraires"),
         nb::arg("offset") = 1,
         "True if numeraires define the offset money-market measure.");
+    m.def(
+        "is_in_subset",
+        [](const std::vector<Time>& set, const std::vector<Time>& subset) {
+            const std::valarray<bool> result = isInSubset(set, subset);
+            return std::vector<bool>(std::begin(result), std::end(result));
+        },
+        nb::arg("set"),
+        nb::arg("subset"),
+        "For each element of set, whether it appears in subset (both strictly increasing).");
 }
