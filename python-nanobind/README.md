@@ -860,6 +860,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `FlatVol`, `AbcdVol` with `covariance`
 - Golden checks from `MarketModelTests::testCovariance`
 
+### Phase 183 (market-model pseudo-root)
+- `FlatVol.pseudo_root`, `AbcdVol.pseudo_root`, model size accessors
+- Golden checks that `pseudo_root @ pseudo_root.T` reconstructs `covariance`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

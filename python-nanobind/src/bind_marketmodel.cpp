@@ -95,7 +95,17 @@ void bind_marketmodel(nb::module_& m) {
                 return Matrix(model.covariance(step));
             },
             nb::arg("step"),
-            "Covariance matrix for the given evolution step.");
+            "Covariance matrix for the given evolution step.")
+        .def(
+            "pseudo_root",
+            [](const FlatVol& model, Size step) {
+                return Matrix(model.pseudoRoot(step));
+            },
+            nb::arg("step"),
+            "Pseudo-square-root of the covariance at the given step.")
+        .def("number_of_rates", &FlatVol::numberOfRates)
+        .def("number_of_factors", &FlatVol::numberOfFactors)
+        .def("number_of_steps", &FlatVol::numberOfSteps);
 
     nb::class_<AbcdVol>(m, "AbcdVol")
         .def(
@@ -140,5 +150,15 @@ void bind_marketmodel(nb::module_& m) {
                 return Matrix(model.covariance(step));
             },
             nb::arg("step"),
-            "Covariance matrix for the given evolution step.");
+            "Covariance matrix for the given evolution step.")
+        .def(
+            "pseudo_root",
+            [](const AbcdVol& model, Size step) {
+                return Matrix(model.pseudoRoot(step));
+            },
+            nb::arg("step"),
+            "Pseudo-square-root of the covariance at the given step.")
+        .def("number_of_rates", &AbcdVol::numberOfRates)
+        .def("number_of_factors", &AbcdVol::numberOfFactors)
+        .def("number_of_steps", &AbcdVol::numberOfSteps);
 }
