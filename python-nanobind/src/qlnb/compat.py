@@ -969,6 +969,8 @@ def _install_aliases() -> None:
         for snake, camel in (
             ("rate_times", "rateTimes"),
             ("evolution_times", "evolutionTimes"),
+            ("rate_taus", "rateTaus"),
+            ("first_alive_rate", "firstAliveRate"),
             ("number_of_rates", "numberOfRates"),
             ("number_of_steps", "numberOfSteps"),
         ):
@@ -990,6 +992,15 @@ def _install_aliases() -> None:
         ):
             if hasattr(cls, snake):
                 setattr(cls, camel, getattr(cls, snake))
+
+    LMMDriftCalculator = getattr(_ql, "LMMDriftCalculator", None)
+    if LMMDriftCalculator is not None:
+        for snake, camel in (
+            ("compute_plain", "computePlain"),
+            ("compute_reduced", "computeReduced"),
+        ):
+            if hasattr(LMMDriftCalculator, snake):
+                setattr(LMMDriftCalculator, camel, getattr(LMMDriftCalculator, snake))
 
     PiecewiseConstantCorrelationHandle = getattr(
         _ql, "PiecewiseConstantCorrelationHandle", None
@@ -1684,6 +1695,8 @@ def _install_aliases() -> None:
 
 
 _install_aliases()
+
+LMMDriftCalculator = getattr(_ql, "LMMDriftCalculator", None)  # noqa: N816
 
 terminalMeasure = getattr(_ql, "terminal_measure", None)  # noqa: N816
 moneyMarketMeasure = getattr(_ql, "money_market_measure", None)  # noqa: N816

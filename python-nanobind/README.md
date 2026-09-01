@@ -869,6 +869,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `is_in_terminal_measure`, `is_in_money_market_measure`, `is_in_money_market_plus_measure`
 - Golden checks from `MarketModelTests::testDriftCalculator` evolution schedule
 
+### Phase 185 (LMM drift calculator)
+- `LMMDriftCalculator` with `compute_plain` / `compute_reduced`
+- `EvolutionDescription.rate_taus`, `first_alive_rate`; `FlatVol.displacements`, `AbcdVol.displacements`
+- Golden checks from `MarketModelTests::testDriftCalculator`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

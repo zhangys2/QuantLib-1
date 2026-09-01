@@ -3363,6 +3363,20 @@ assert ql.is_in_money_market_plus_measure(evolution, numeraires, 5)
 
 Recovers numeraire schedules used in `MarketModelTests::testDriftCalculator`.
 
+## Phase-185 LMM drift calculator
+
+```python
+calc = ql.LMMDriftCalculator(
+    model.pseudo_root(step), model.displacements(),
+    evolution.rate_taus(), numeraire, alive,
+)
+plain = calc.compute_plain(forwards)
+reduced = calc.compute_reduced(forwards)
+assert all(abs(p - r) <= 1e-16 for p, r in zip(plain, reduced))
+```
+
+Recovers `MarketModelTests::testDriftCalculator` (FlatVol and AbcdVol).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

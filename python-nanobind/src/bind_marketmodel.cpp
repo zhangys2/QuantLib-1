@@ -5,6 +5,7 @@
 
 #include <ql/models/marketmodels/correlations/expcorrelations.hpp>
 #include <ql/models/marketmodels/correlations/timehomogeneousforwardcorrelation.hpp>
+#include <ql/models/marketmodels/driftcomputation/lmmdriftcalculator.hpp>
 #include <ql/models/marketmodels/evolutiondescription.hpp>
 #include <ql/models/marketmodels/models/abcdvol.hpp>
 #include <ql/models/marketmodels/models/flatvol.hpp>
@@ -61,8 +62,47 @@ void bind_marketmodel(nb::module_& m) {
             "Market-model evolution description.")
         .def("rate_times", &EvolutionDescription::rateTimes)
         .def("evolution_times", &EvolutionDescription::evolutionTimes)
+        .def("rate_taus", &EvolutionDescription::rateTaus)
+        .def("first_alive_rate", &EvolutionDescription::firstAliveRate)
         .def("number_of_rates", &EvolutionDescription::numberOfRates)
         .def("number_of_steps", &EvolutionDescription::numberOfSteps);
+
+    nb::class_<LMMDriftCalculator>(m, "LMMDriftCalculator")
+        .def(
+            "__init__",
+            [](LMMDriftCalculator* self,
+               const Matrix& pseudo,
+               const std::vector<Spread>& displacements,
+               const std::vector<Time>& taus,
+               Size numeraire,
+               Size alive) {
+                new (self) LMMDriftCalculator(
+                    pseudo, displacements, taus, numeraire, alive);
+            },
+            nb::arg("pseudo"),
+            nb::arg("displacements"),
+            nb::arg("taus"),
+            nb::arg("numeraire"),
+            nb::arg("alive"),
+            "Drift calculator for log-normal Libor market models.")
+        .def(
+            "compute_plain",
+            [](const LMMDriftCalculator& calc, const std::vector<Rate>& fwds) {
+                std::vector<Real> drifts(fwds.size());
+                calc.computePlain(fwds, drifts);
+                return drifts;
+            },
+            nb::arg("forwards"),
+            "Drifts without factor reduction (covariance matrix).")
+        .def(
+            "compute_reduced",
+            [](const LMMDriftCalculator& calc, const std::vector<Rate>& fwds) {
+                std::vector<Real> drifts(fwds.size());
+                calc.computeReduced(fwds, drifts);
+                return drifts;
+            },
+            nb::arg("forwards"),
+            "Drifts with factor reduction (pseudo square root).");
 
     nb::class_<FlatVol>(m, "FlatVol")
         .def(
@@ -105,7 +145,8 @@ void bind_marketmodel(nb::module_& m) {
             "Pseudo-square-root of the covariance at the given step.")
         .def("number_of_rates", &FlatVol::numberOfRates)
         .def("number_of_factors", &FlatVol::numberOfFactors)
-        .def("number_of_steps", &FlatVol::numberOfSteps);
+        .def("number_of_steps", &FlatVol::numberOfSteps)
+        .def("displacements", &FlatVol::displacements);
 
     nb::class_<AbcdVol>(m, "AbcdVol")
         .def(
@@ -160,7 +201,8 @@ void bind_marketmodel(nb::module_& m) {
             "Pseudo-square-root of the covariance at the given step.")
         .def("number_of_rates", &AbcdVol::numberOfRates)
         .def("number_of_factors", &AbcdVol::numberOfFactors)
-        .def("number_of_steps", &AbcdVol::numberOfSteps);
+        .def("number_of_steps", &AbcdVol::numberOfSteps)
+        .def("displacements", &AbcdVol::displacements);
 
     m.def(
         "terminal_measure",
