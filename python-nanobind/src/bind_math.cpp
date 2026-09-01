@@ -41,6 +41,22 @@ void bind_math(nb::module_& m) {
             nb::arg("intercept") = 1.0,
             "Simple linear regression y ~ intercept + x (1D Real samples).")
         .def(
+            "__init__",
+            [](LinearRegression* self,
+               const std::vector<std::vector<Real>>& x,
+               const std::vector<Real>& y,
+               Real intercept) {
+                std::vector<Array> samples;
+                samples.reserve(x.size());
+                for (const auto& row : x)
+                    samples.emplace_back(row.begin(), row.end());
+                new (self) LinearRegression(samples, y, intercept);
+            },
+            nb::arg("x"),
+            nb::arg("y"),
+            nb::arg("intercept") = 1.0,
+            "Multi-dimensional regression y ~ intercept + x_0 + ... + x_{m-1}.")
+        .def(
             "coefficients",
             [](const LinearRegression& regression) {
                 const Array& a = regression.coefficients();

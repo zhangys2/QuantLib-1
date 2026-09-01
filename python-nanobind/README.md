@@ -847,6 +847,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `AbcdFunction` with integrated `covariance` and volatility helpers
 - Golden checks from `MarketModelTests::testAbcdDegenerateCases`
 
+### Phase 180 (multi-dimensional linear regression)
+- `LinearRegression` overload for matrix-shaped `x` samples
+- Golden check from `LinearLeastSquaresRegressionTests::testMultiDimRegression` (intercept path)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
