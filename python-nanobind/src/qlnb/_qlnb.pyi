@@ -4630,6 +4630,10 @@ class LinearRegression:
     def dim(self) -> int: ...
     def size(self) -> int: ...
 
+def linear_regression_with_basis(
+    x: list[float], y: list[float], basis: list[str]
+) -> LinearRegression: ...
+
 class AbcdFunction:
     def __init__(
         self,
