@@ -979,6 +979,18 @@ def _install_aliases() -> None:
 
     FlatVol = getattr(_ql, "FlatVol", None)
     AbcdVol = getattr(_ql, "AbcdVol", None)
+    for cls in (FlatVol, AbcdVol):
+        if cls is None:
+            continue
+        for snake, camel in (
+            ("pseudo_root", "pseudoRoot"),
+            ("number_of_rates", "numberOfRates"),
+            ("number_of_factors", "numberOfFactors"),
+            ("number_of_steps", "numberOfSteps"),
+        ):
+            if hasattr(cls, snake):
+                setattr(cls, camel, getattr(cls, snake))
+
     PiecewiseConstantCorrelationHandle = getattr(
         _ql, "PiecewiseConstantCorrelationHandle", None
     )

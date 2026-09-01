@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "4.53.0"
-description = "Nanobind Python bindings for QuantLib (phase 182: market-model covariance)"
+version = "4.54.0"
+description = "Nanobind Python bindings for QuantLib (phase 183: market-model pseudo-root)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }

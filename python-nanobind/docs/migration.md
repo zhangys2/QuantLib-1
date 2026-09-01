@@ -3343,6 +3343,16 @@ cov = model.covariance(step)
 
 Recovers `MarketModelTests::testCovariance` (FlatVol and AbcdVol).
 
+## Phase-183 market-model pseudo-root
+
+```python
+root = model.pseudo_root(step)
+cov = model.covariance(step)
+assert np.allclose(root @ root.T, cov)
+```
+
+Verifies `pseudoRoot(i) @ pseudoRoot(i).T == covariance(i)` for `FlatVol` and `AbcdVol`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
