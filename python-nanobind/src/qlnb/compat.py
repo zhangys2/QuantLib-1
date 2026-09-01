@@ -1722,6 +1722,7 @@ isInMoneyMarketMeasure = getattr(_ql, "is_in_money_market_measure", None)  # noq
 isInMoneyMarketPlusMeasure = getattr(  # noqa: N816
     _ql, "is_in_money_market_plus_measure", None
 )
+isInSubset = getattr(_ql, "is_in_subset", None)  # noqa: N816
 
 # Convenience aliases matching common SWIG free functions / names.
 setEvaluationDate = _ql.set_evaluation_date  # noqa: N816

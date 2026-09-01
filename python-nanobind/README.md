@@ -890,6 +890,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `AbcdCalibration` with `compute`, `error`, fitted `a`/`b`/`c`/`d`, and `k` adjustment factors
 - Golden checks from `MarketModelTests::testAbcdVolatilityFit`
 
+### Phase 190 (market-model subset utility)
+- `is_in_subset`
+- Golden checks from `MarketModelTests::testIsInSubset`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

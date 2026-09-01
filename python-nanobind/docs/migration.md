@@ -3417,6 +3417,14 @@ ks = cal.k(fixing_times, black_vols)
 
 Recovers `MarketModelTests::testAbcdVolatilityFit`.
 
+## Phase-190 market-model subset utility
+
+```python
+result = ql.is_in_subset(times, subset)
+```
+
+Recovers `MarketModelTests::testIsInSubset`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
