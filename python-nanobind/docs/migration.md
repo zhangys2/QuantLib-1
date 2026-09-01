@@ -3377,6 +3377,15 @@ assert all(abs(p - r) <= 1e-16 for p, r in zip(plain, reduced))
 
 Recovers `MarketModelTests::testDriftCalculator` (FlatVol and AbcdVol).
 
+## Phase-186 AbcdFunction variance
+
+```python
+f = ql.AbcdFunction(a, b, c, d)
+assert f.variance(x_min, x_max, T) == f.covariance(x_min, x_max, T, T)
+```
+
+Recovers the `T1 == T2` branch of `MarketModelTests::testAbcdVolatilityIntegration`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
