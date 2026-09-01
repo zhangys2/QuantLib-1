@@ -874,6 +874,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `EvolutionDescription.rate_taus`, `first_alive_rate`; `FlatVol.displacements`, `AbcdVol.displacements`
 - Golden checks from `MarketModelTests::testDriftCalculator`
 
+### Phase 186 (AbcdFunction variance)
+- `AbcdFunction.variance`
+- Golden checks from `MarketModelTests::testAbcdVolatilityIntegration` (T1 == T2)
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
