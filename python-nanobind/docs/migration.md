@@ -3405,6 +3405,18 @@ assert vol * vol * (t_max - t_min) == f.variance(t_min, t_max, T)
 
 Supports average-volatility checks in `MarketModelTests::testAbcdVolatilityFit`.
 
+## Phase-189 Abcd calibration
+
+```python
+cal = ql.AbcdCalibration(fixing_times, black_vols)
+error0 = cal.error()
+cal.compute()
+assert cal.error() < error0
+ks = cal.k(fixing_times, black_vols)
+```
+
+Recovers `MarketModelTests::testAbcdVolatilityFit`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

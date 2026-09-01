@@ -886,6 +886,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `AbcdFunction.volatility`
 - Golden check that `volatility**2 * (t_max - t_min) == variance` (used in `testAbcdVolatilityFit`)
 
+### Phase 189 (Abcd calibration)
+- `AbcdCalibration` with `compute`, `error`, fitted `a`/`b`/`c`/`d`, and `k` adjustment factors
+- Golden checks from `MarketModelTests::testAbcdVolatilityFit`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
