@@ -8,6 +8,7 @@
 
 #include <ql/math/linearleastsquaresregression.hpp>
 #include <ql/termstructures/volatility/abcd.hpp>
+#include <ql/termstructures/volatility/abcdcalibration.hpp>
 
 using namespace QuantLib;
 
@@ -73,6 +74,41 @@ void bind_math(nb::module_& m) {
         .def("maximum_volatility", &AbcdFunction::maximumVolatility)
         .def("short_term_volatility", &AbcdFunction::shortTermVolatility)
         .def("long_term_volatility", &AbcdFunction::longTermVolatility);
+
+    nb::class_<AbcdCalibration>(m, "AbcdCalibration")
+        .def(
+            "__init__",
+            [](AbcdCalibration* self,
+               const std::vector<Real>& times,
+               const std::vector<Real>& black_vols,
+               Real a_guess,
+               Real b_guess,
+               Real c_guess,
+               Real d_guess) {
+                new (self) AbcdCalibration(times, black_vols, a_guess, b_guess, c_guess, d_guess);
+            },
+            nb::arg("times"),
+            nb::arg("black_vols"),
+            nb::arg("a_guess") = -0.06,
+            nb::arg("b_guess") = 0.17,
+            nb::arg("c_guess") = 0.54,
+            nb::arg("d_guess") = 0.17,
+            "Calibrate Abcd parameters to a caplet/floor Black-volatility vector.")
+        .def("compute", &AbcdCalibration::compute, "Run the calibration.")
+        .def("error", &AbcdCalibration::error, "Root-mean-square calibration error.")
+        .def("a", &AbcdCalibration::a)
+        .def("b", &AbcdCalibration::b)
+        .def("c", &AbcdCalibration::c)
+        .def("d", &AbcdCalibration::d)
+        .def(
+            "k",
+            [](const AbcdCalibration& cal,
+               const std::vector<Real>& times,
+               const std::vector<Real>& black_vols) { return cal.k(times, black_vols); },
+            nb::arg("times"),
+            nb::arg("black_vols"),
+            "Per-tenor adjustment factors to match Black volatilities.")
+        .def("end_criteria", &AbcdCalibration::endCriteria);
 
     nb::class_<LinearRegression>(m, "LinearRegression")
         .def(

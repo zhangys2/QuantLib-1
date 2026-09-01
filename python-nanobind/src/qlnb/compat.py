@@ -1016,6 +1016,11 @@ def _install_aliases() -> None:
             if hasattr(AbcdFunction, snake):
                 setattr(AbcdFunction, camel, getattr(AbcdFunction, snake))
 
+    AbcdCalibration = getattr(_ql, "AbcdCalibration", None)
+    if AbcdCalibration is not None:
+        if hasattr(AbcdCalibration, "end_criteria"):
+            AbcdCalibration.endCriteria = AbcdCalibration.end_criteria  # type: ignore[attr-defined]
+
     LmExponentialCorrelationModel = getattr(_ql, "LmExponentialCorrelationModel", None)
     if LmExponentialCorrelationModel is not None:
         if hasattr(LmExponentialCorrelationModel, "pseudo_sqrt"):
@@ -1702,6 +1707,10 @@ def _install_aliases() -> None:
 
 
 _install_aliases()
+
+AbcdCalibration = getattr(_ql, "AbcdCalibration", None)  # noqa: N816
+if AbcdCalibration is not None and hasattr(AbcdCalibration, "end_criteria"):
+    AbcdCalibration.endCriteria = AbcdCalibration.end_criteria  # type: ignore[attr-defined]
 
 LMMDriftCalculator = getattr(_ql, "LMMDriftCalculator", None)  # noqa: N816
 
