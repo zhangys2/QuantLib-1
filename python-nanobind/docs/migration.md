@@ -3353,6 +3353,16 @@ assert np.allclose(root @ root.T, cov)
 
 Verifies `pseudoRoot(i) @ pseudoRoot(i).T == covariance(i)` for `FlatVol` and `AbcdVol`.
 
+## Phase-184 market-model numeraire measures
+
+```python
+evolution = ql.EvolutionDescription(rate_times, evolution_times)
+numeraires = ql.money_market_plus_measure(evolution, offset=5)
+assert ql.is_in_money_market_plus_measure(evolution, numeraires, 5)
+```
+
+Recovers numeraire schedules used in `MarketModelTests::testDriftCalculator`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
