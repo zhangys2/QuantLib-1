@@ -4634,6 +4634,59 @@ def linear_regression_with_basis(
     x: list[float], y: list[float], basis: list[str]
 ) -> LinearRegression: ...
 
+def exponential_correlations(
+    rate_times: list[float],
+    long_term_corr: float = ...,
+    beta: float = ...,
+    gamma: float = ...,
+    time: float = ...,
+) -> Matrix: ...
+
+def time_homogeneous_forward_correlation(
+    fwd_correlation: Matrix, rate_times: list[float]
+) -> PiecewiseConstantCorrelationHandle: ...
+
+class PiecewiseConstantCorrelationHandle: ...
+
+class EvolutionDescription:
+    def __init__(
+        self,
+        rate_times: list[float],
+        evolution_times: list[float] = ...,
+    ) -> None: ...
+    def rate_times(self) -> list[float]: ...
+    def evolution_times(self) -> list[float]: ...
+    def number_of_rates(self) -> int: ...
+    def number_of_steps(self) -> int: ...
+
+class FlatVol:
+    def __init__(
+        self,
+        volatilities: list[float],
+        correlation: PiecewiseConstantCorrelationHandle,
+        evolution: EvolutionDescription,
+        number_of_factors: int,
+        initial_rates: list[float],
+        displacements: list[float],
+    ) -> None: ...
+    def covariance(self, step: int) -> Matrix: ...
+
+class AbcdVol:
+    def __init__(
+        self,
+        a: float,
+        b: float,
+        c: float,
+        d: float,
+        ks: list[float],
+        correlation: PiecewiseConstantCorrelationHandle,
+        evolution: EvolutionDescription,
+        number_of_factors: int,
+        initial_rates: list[float],
+        displacements: list[float],
+    ) -> None: ...
+    def covariance(self, step: int) -> Matrix: ...
+
 class AbcdFunction:
     def __init__(
         self,
