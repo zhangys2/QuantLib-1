@@ -71,6 +71,31 @@ void bind_math(nb::module_& m) {
             nb::arg("t_max"),
             nb::arg("T"),
             "Average volatility of the T-fixing rate between t_min and t_max.")
+        .def(
+            "instantaneous_volatility",
+            [](const AbcdFunction& f, Time t, Time T) {
+                return f.instantaneousVolatility(t, T);
+            },
+            nb::arg("t"),
+            nb::arg("T"),
+            "Instantaneous volatility at time t of the T-fixing rate.")
+        .def(
+            "instantaneous_variance",
+            [](const AbcdFunction& f, Time t, Time T) {
+                return f.instantaneousVariance(t, T);
+            },
+            nb::arg("t"),
+            nb::arg("T"),
+            "Instantaneous variance at time t of the T-fixing rate.")
+        .def(
+            "instantaneous_covariance",
+            [](const AbcdFunction& f, Time u, Time T, Time S) {
+                return f.instantaneousCovariance(u, T, S);
+            },
+            nb::arg("u"),
+            nb::arg("T"),
+            nb::arg("S"),
+            "Instantaneous covariance at time u between T and S fixing rates.")
         .def("maximum_volatility", &AbcdFunction::maximumVolatility)
         .def("short_term_volatility", &AbcdFunction::shortTermVolatility)
         .def("long_term_volatility", &AbcdFunction::longTermVolatility);
