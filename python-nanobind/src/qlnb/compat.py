@@ -948,6 +948,10 @@ def _install_aliases() -> None:
     if LinearRegression is not None and hasattr(LinearRegression, "standard_errors"):
         LinearRegression.standardErrors = LinearRegression.standard_errors  # type: ignore[attr-defined]
 
+    linear_regression_with_basis = getattr(_ql, "linear_regression_with_basis", None)
+    if linear_regression_with_basis is not None:
+        linearRegressionWithBasis = linear_regression_with_basis  # noqa: N816
+
     AbcdFunction = getattr(_ql, "AbcdFunction", None)
     if AbcdFunction is not None:
         for snake, camel in (
