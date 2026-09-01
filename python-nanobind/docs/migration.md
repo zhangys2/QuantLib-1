@@ -3396,6 +3396,15 @@ assert lm.integrated_variance(i, j, t) == abcd.covariance(0, t, rate_times[i], r
 
 Recovers `MarketModelTests::testAbcdVolatilityCompare` for `T < min(rateTimes[i1], rateTimes[i2])`.
 
+## Phase-188 AbcdFunction volatility
+
+```python
+vol = f.volatility(t_min, t_max, T)
+assert vol * vol * (t_max - t_min) == f.variance(t_min, t_max, T)
+```
+
+Supports average-volatility checks in `MarketModelTests::testAbcdVolatilityFit`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
