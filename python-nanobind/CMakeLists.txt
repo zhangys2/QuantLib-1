@@ -69,6 +69,7 @@ nanobind_add_module(
     src/markov_functional_test_market.cpp
     src/bind_experimental.cpp
     src/bind_math.cpp
+    src/bind_marketmodel.cpp
 )
 
 target_link_libraries(_qlnb PRIVATE ${QLNB_QUANTLIB_TARGET})
