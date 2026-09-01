@@ -864,6 +864,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `FlatVol.pseudo_root`, `AbcdVol.pseudo_root`, model size accessors
 - Golden checks that `pseudo_root @ pseudo_root.T` reconstructs `covariance`
 
+### Phase 184 (market-model numeraire measures)
+- `terminal_measure`, `money_market_measure`, `money_market_plus_measure`
+- `is_in_terminal_measure`, `is_in_money_market_measure`, `is_in_money_market_plus_measure`
+- Golden checks from `MarketModelTests::testDriftCalculator` evolution schedule
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

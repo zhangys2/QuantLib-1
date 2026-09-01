@@ -161,4 +161,40 @@ void bind_marketmodel(nb::module_& m) {
         .def("number_of_rates", &AbcdVol::numberOfRates)
         .def("number_of_factors", &AbcdVol::numberOfFactors)
         .def("number_of_steps", &AbcdVol::numberOfSteps);
+
+    m.def(
+        "terminal_measure",
+        &terminalMeasure,
+        nb::arg("evolution"),
+        "Terminal measure numeraires (last bond at each step).");
+    m.def(
+        "money_market_measure",
+        &moneyMarketMeasure,
+        nb::arg("evolution"),
+        "Discretely compounded money-market measure numeraires.");
+    m.def(
+        "money_market_plus_measure",
+        &moneyMarketPlusMeasure,
+        nb::arg("evolution"),
+        nb::arg("offset") = 1,
+        "Offsetted money-market measure numeraires.");
+    m.def(
+        "is_in_terminal_measure",
+        &isInTerminalMeasure,
+        nb::arg("evolution"),
+        nb::arg("numeraires"),
+        "True if numeraires define the terminal measure.");
+    m.def(
+        "is_in_money_market_measure",
+        &isInMoneyMarketMeasure,
+        nb::arg("evolution"),
+        nb::arg("numeraires"),
+        "True if numeraires define the money-market measure.");
+    m.def(
+        "is_in_money_market_plus_measure",
+        &isInMoneyMarketPlusMeasure,
+        nb::arg("evolution"),
+        nb::arg("numeraires"),
+        nb::arg("offset") = 1,
+        "True if numeraires define the offset money-market measure.");
 }
