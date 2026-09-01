@@ -894,6 +894,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `is_in_subset`
 - Golden checks from `MarketModelTests::testIsInSubset`
 
+### Phase 191 (market-model time utilities)
+- `merge_times`, `check_increasing_times_and_calculate_taus`
+- Golden checks for merged evolution schedules and rate taus
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

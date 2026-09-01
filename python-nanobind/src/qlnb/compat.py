@@ -1723,6 +1723,10 @@ isInMoneyMarketPlusMeasure = getattr(  # noqa: N816
     _ql, "is_in_money_market_plus_measure", None
 )
 isInSubset = getattr(_ql, "is_in_subset", None)  # noqa: N816
+mergeTimes = getattr(_ql, "merge_times", None)  # noqa: N816
+checkIncreasingTimesAndCalculateTaus = getattr(  # noqa: N816
+    _ql, "check_increasing_times_and_calculate_taus", None
+)
 
 # Convenience aliases matching common SWIG free functions / names.
 setEvaluationDate = _ql.set_evaluation_date  # noqa: N816
