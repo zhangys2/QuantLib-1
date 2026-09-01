@@ -3386,6 +3386,16 @@ assert f.variance(x_min, x_max, T) == f.covariance(x_min, x_max, T, T)
 
 Recovers the `T1 == T2` branch of `MarketModelTests::testAbcdVolatilityIntegration`.
 
+## Phase-187 Lm integrated variance
+
+```python
+lm = ql.LmExtLinearExponentialVolModel(rate_times, b, c, d, a)
+abcd = ql.AbcdFunction(a, b, c, d)
+assert lm.integrated_variance(i, j, t) == abcd.covariance(0, t, rate_times[i], rate_times[j])
+```
+
+Recovers `MarketModelTests::testAbcdVolatilityCompare` for `T < min(rateTimes[i1], rateTimes[i2])`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
