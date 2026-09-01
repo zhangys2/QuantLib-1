@@ -878,6 +878,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `AbcdFunction.variance`
 - Golden checks from `MarketModelTests::testAbcdVolatilityIntegration` (T1 == T2)
 
+### Phase 187 (Lm integrated variance)
+- `LmExtLinearExponentialVolModel.integrated_variance`
+- Golden checks from `MarketModelTests::testAbcdVolatilityCompare`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

@@ -1023,6 +1023,13 @@ def _install_aliases() -> None:
                 LmExponentialCorrelationModel.pseudo_sqrt
             )
 
+    LmExtLinearExponentialVolModel = getattr(_ql, "LmExtLinearExponentialVolModel", None)
+    if LmExtLinearExponentialVolModel is not None:
+        if hasattr(LmExtLinearExponentialVolModel, "integrated_variance"):
+            LmExtLinearExponentialVolModel.integratedVariance = (  # type: ignore[attr-defined]
+                LmExtLinearExponentialVolModel.integrated_variance
+            )
+
     LmLinearExponentialCorrelationModel = getattr(
         _ql, "LmLinearExponentialCorrelationModel", None
     )

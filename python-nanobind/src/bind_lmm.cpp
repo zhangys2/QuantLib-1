@@ -320,7 +320,16 @@ void bind_lmm(nb::module_& m) {
             nb::arg("a"),
             nb::arg("b"),
             nb::arg("c"),
-            nb::arg("d"));
+            nb::arg("d"))
+        .def(
+            "integrated_variance",
+            [](const LmExtLinearExponentialVolModel& model, Size i, Size j, Time u) {
+                return model.integratedVariance(i, j, u);
+            },
+            nb::arg("i"),
+            nb::arg("j"),
+            nb::arg("u"),
+            "Integrated variance between forwards i and j up to time u.");
 
     nb::class_<LfmCovarianceParameterization>(m, "LfmCovarianceParameterization")
         .def("size", &LfmCovarianceParameterization::size)
