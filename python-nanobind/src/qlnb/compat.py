@@ -1012,6 +1012,9 @@ def _install_aliases() -> None:
             ("maximum_volatility", "maximumVolatility"),
             ("short_term_volatility", "shortTermVolatility"),
             ("long_term_volatility", "longTermVolatility"),
+            ("instantaneous_volatility", "instantaneousVolatility"),
+            ("instantaneous_variance", "instantaneousVariance"),
+            ("instantaneous_covariance", "instantaneousCovariance"),
         ):
             if hasattr(AbcdFunction, snake):
                 setattr(AbcdFunction, camel, getattr(AbcdFunction, snake))
