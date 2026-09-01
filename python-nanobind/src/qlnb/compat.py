@@ -952,6 +952,37 @@ def _install_aliases() -> None:
     if linear_regression_with_basis is not None:
         linearRegressionWithBasis = linear_regression_with_basis  # noqa: N816
 
+    exponential_correlations = getattr(_ql, "exponential_correlations", None)
+    if exponential_correlations is not None:
+        exponentialCorrelations = exponential_correlations  # noqa: N816
+
+    time_homogeneous_forward_correlation = getattr(
+        _ql, "time_homogeneous_forward_correlation", None
+    )
+    if time_homogeneous_forward_correlation is not None:
+        timeHomogeneousForwardCorrelation = (  # noqa: N816
+            time_homogeneous_forward_correlation
+        )
+
+    EvolutionDescription = getattr(_ql, "EvolutionDescription", None)
+    if EvolutionDescription is not None:
+        for snake, camel in (
+            ("rate_times", "rateTimes"),
+            ("evolution_times", "evolutionTimes"),
+            ("number_of_rates", "numberOfRates"),
+            ("number_of_steps", "numberOfSteps"),
+        ):
+            if hasattr(EvolutionDescription, snake):
+                setattr(
+                    EvolutionDescription, camel, getattr(EvolutionDescription, snake)
+                )
+
+    FlatVol = getattr(_ql, "FlatVol", None)
+    AbcdVol = getattr(_ql, "AbcdVol", None)
+    PiecewiseConstantCorrelationHandle = getattr(
+        _ql, "PiecewiseConstantCorrelationHandle", None
+    )
+
     AbcdFunction = getattr(_ql, "AbcdFunction", None)
     if AbcdFunction is not None:
         for snake, camel in (
