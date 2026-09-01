@@ -1685,6 +1685,14 @@ def _install_aliases() -> None:
 
 _install_aliases()
 
+terminalMeasure = getattr(_ql, "terminal_measure", None)  # noqa: N816
+moneyMarketMeasure = getattr(_ql, "money_market_measure", None)  # noqa: N816
+moneyMarketPlusMeasure = getattr(_ql, "money_market_plus_measure", None)  # noqa: N816
+isInTerminalMeasure = getattr(_ql, "is_in_terminal_measure", None)  # noqa: N816
+isInMoneyMarketMeasure = getattr(_ql, "is_in_money_market_measure", None)  # noqa: N816
+isInMoneyMarketPlusMeasure = getattr(  # noqa: N816
+    _ql, "is_in_money_market_plus_measure", None
+)
 
 # Convenience aliases matching common SWIG free functions / names.
 setEvaluationDate = _ql.set_evaluation_date  # noqa: N816
