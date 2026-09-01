@@ -855,6 +855,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `linear_regression_with_basis` for named 1D basis functions (`const`, `x`, `x2`, `sin`)
 - Golden checks from `LinearLeastSquaresRegressionTests::testRegression`
 
+### Phase 182 (market-model covariance)
+- `exponential_correlations`, `time_homogeneous_forward_correlation`, `EvolutionDescription`
+- `FlatVol`, `AbcdVol` with `covariance`
+- Golden checks from `MarketModelTests::testCovariance`
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

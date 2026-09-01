@@ -3331,6 +3331,18 @@ model = ql.linear_regression_with_basis(
 
 Recovers `LinearLeastSquaresRegressionTests::testRegression`.
 
+## Phase-182 market-model covariance
+
+```python
+corr = ql.time_homogeneous_forward_correlation(
+    ql.exponential_correlations(rate_times), rate_times
+)
+model = ql.FlatVol(vols, corr, evolution, n - 1, rates, displ)
+cov = model.covariance(step)
+```
+
+Recovers `MarketModelTests::testCovariance` (FlatVol and AbcdVol).
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
