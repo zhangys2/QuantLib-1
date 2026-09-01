@@ -1,11 +1,38 @@
 #include "bindings.hpp"
 
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+
+#include <cmath>
+#include <functional>
 
 #include <ql/math/linearleastsquaresregression.hpp>
 #include <ql/termstructures/volatility/abcd.hpp>
 
 using namespace QuantLib;
+
+namespace {
+
+std::vector<std::function<Real(Real)>>
+make_real_basis_functions(const std::vector<std::string>& basis) {
+    std::vector<std::function<Real(Real)>> functions;
+    functions.reserve(basis.size());
+    for (const std::string& name : basis) {
+        if (name == "const")
+            functions.emplace_back([](Real) { return 1.0; });
+        else if (name == "x")
+            functions.emplace_back([](Real x) { return x; });
+        else if (name == "x2")
+            functions.emplace_back([](Real x) { return x * x; });
+        else if (name == "sin")
+            functions.emplace_back([](Real x) { return std::sin(x); });
+        else
+            QL_FAIL("unknown basis function: " << name);
+    }
+    return functions;
+}
+
+} // namespace
 
 void bind_math(nb::module_& m) {
     nb::class_<AbcdFunction>(m, "AbcdFunction")
@@ -72,4 +99,18 @@ void bind_math(nb::module_& m) {
             "Standard errors of the regression coefficients.")
         .def("dim", &LinearRegression::dim, "Number of regression parameters.")
         .def("size", &LinearRegression::size, "Number of sample points.");
+
+    m.def(
+        "linear_regression_with_basis",
+        [](const std::vector<Real>& x,
+           const std::vector<Real>& y,
+           const std::vector<std::string>& basis) {
+            const auto functions = make_real_basis_functions(basis);
+            return LinearRegression(x, y, functions);
+        },
+        nb::arg("x"),
+        nb::arg("y"),
+        nb::arg("basis"),
+        "Linear regression with named 1D basis functions "
+        "(const, x, x2, sin).");
 }

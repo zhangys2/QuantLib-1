@@ -7,8 +7,8 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "4.51.0"
-description = "Nanobind Python bindings for QuantLib (phase 180: multi-dim linear regression)"
+version = "4.52.0"
+description = "Nanobind Python bindings for QuantLib (phase 181: custom-basis linear regression)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD-3-Clause" }

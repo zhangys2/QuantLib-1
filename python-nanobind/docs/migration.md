@@ -3321,6 +3321,16 @@ model = ql.LinearRegression(x_rows, y, intercept=1.0)
 Recovers the intercept-based path in
 `LinearLeastSquaresRegressionTests::testMultiDimRegression`.
 
+## Phase-181 custom-basis linear regression
+
+```python
+model = ql.linear_regression_with_basis(
+    x, y, basis=["const", "x", "x2", "sin"]
+)
+```
+
+Recovers `LinearLeastSquaresRegressionTests::testRegression`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
