@@ -122,3 +122,8 @@ nbproject
 Build.props
 Directory.Build.props
 .venv-qlnb/
+
+# clangd index cache and compilation database symlink
+# (generated via CMAKE_EXPORT_COMPILE_COMMANDS=ON)
+.cache/
+compile_commands.json
