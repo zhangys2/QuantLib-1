@@ -1956,6 +1956,23 @@ BOOST_AUTO_TEST_CASE(testZeroVolatility) {
     check( 100.0,   Option::Put,      99.0,   Barrier::DownIn,     4.0,   0.01,   0.04,   2.926039459684483);  // hit
     check(  91.0,  Option::Call,      93.0,   Barrier::DownIn,     4.0,   0.01,   0.04,   3.960199334996672);  // not hit
     check(  95.0,  Option::Call,     100.0,  Barrier::DownOut,     4.0,   0.03,    0.0,   4.0);                // spot on the barrier
+
+    // A non-flat dividend curve can push the deterministic forward through the
+    // barrier and back before maturity; the crossing still knocks the option out.
+    std::vector<Date> dates{today, today + 180, maturity};
+    std::vector<Rate> dividendRates{0.0, -0.6, 0.1};
+    auto nonFlatDividend = ext::make_shared<ZeroCurve>(dates, dividendRates, dc);
+    auto zeroRate = ext::make_shared<FlatForward>(today, 0.0, dc);
+    auto nonFlatProcess = ext::make_shared<BlackScholesMertonProcess>(
+        s0, Handle<YieldTermStructure>(nonFlatDividend),
+        Handle<YieldTermStructure>(zeroRate), volTS);
+    BarrierOption crossedBarrier(
+        Barrier::UpOut, 110.0, 4.0,
+        ext::make_shared<PlainVanillaPayoff>(Option::Call, 200.0),
+        ext::make_shared<EuropeanExercise>(maturity));
+    crossedBarrier.setPricingEngine(
+        ext::make_shared<AnalyticBarrierEngine>(nonFlatProcess));
+    QL_CHECK_SMALL(crossedBarrier.NPV() - 4.0, 1.0e-10);
 }
 
 Real perturbativeBarrierOptionValue(Natural order, Size npoint = 1000,

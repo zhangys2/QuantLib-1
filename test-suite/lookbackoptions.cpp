@@ -670,8 +670,8 @@ BOOST_AUTO_TEST_CASE(testPartialLookbackZeroCarryBoundaryLimits) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(testPartialLookbackZeroCarryContinuity) {
-    BOOST_TEST_MESSAGE("Testing partial-lookback continuity at zero carry...");
+BOOST_AUTO_TEST_CASE(testLookbackZeroCarryContinuity) {
+    BOOST_TEST_MESSAGE("Testing lookback continuity at zero carry...");
 
     const Date today(20, October, 2026);
     Settings::instance().evaluationDate() = today;
@@ -754,6 +754,13 @@ BOOST_AUTO_TEST_CASE(testPartialLookbackZeroCarryContinuity) {
                 }
             }
         }
+
+        ContinuousFloatingLookbackOption full(
+            type == Option::Call ? 90.0 : 110.0,
+            ext::make_shared<FloatingTypePayoff>(type), exercise);
+        full.setPricingEngine(
+            ext::make_shared<AnalyticContinuousFloatingLookbackEngine>(process));
+        checkContinuity(full);
     }
 }
 
