@@ -23,6 +23,7 @@
 
 #include <ql/exercise.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
+#include <algorithm>
 #include <cmath>
 #include <utility>
 
@@ -93,21 +94,52 @@ namespace QuantLib {
         Real variance = process_->blackVolatility()->blackVariance(
             arguments_.exercise->lastDate(), strike);
         if (variance < QL_EPSILON) {
-            // the underlying follows its forward, and hits the barrier (if at
-            // all) when the forward reaches it; a spot on the barrier hits it now
+            // With zero variance, the stock follows the deterministic forward
+            // curve, which need not be monotone for non-flat term structures.
+            const bool down = barrierType == Barrier::DownIn ||
+                              barrierType == Barrier::DownOut;
+            const Time maturity =
+                process_->time(arguments_.exercise->lastDate());
+            auto logDistance = [&](Time t) {
+                return std::log(spot * process_->dividendYield()->discount(t) /
+                                process_->riskFreeRate()->discount(t) / barrier());
+            };
+            auto breached = [&](Real distance) {
+                return down ? distance <= 0.0 : distance >= 0.0;
+            };
+
+            bool hit = breached(logDistance(0.0));
+            Time hitTime = 0.0;
+            Time left = 0.0;
+            const Size steps = std::max<Size>(
+                1, static_cast<Size>(std::ceil(maturity * 1000.0)));
+            for (Size i = 1; !hit && i <= steps; ++i) {
+                Time right = maturity * i / steps;
+                Real rightDistance = logDistance(right);
+                if (breached(rightDistance)) {
+                    // Locate the first crossing in this interval.
+                    Time lo = left, hi = right;
+                    for (Size j = 0; j < 60; ++j) {
+                        Time mid = 0.5 * (lo + hi);
+                        if (breached(logDistance(mid)))
+                            hi = mid;
+                        else
+                            lo = mid;
+                    }
+                    hit = true;
+                    hitTime = hi;
+                } else {
+                    left = right;
+                }
+            }
+
             Real forward = spot * dividendDiscount() / riskFreeDiscount();
-            bool down = (barrierType == Barrier::DownIn || barrierType == Barrier::DownOut);
-            bool hit = (spot == barrier()) ||
-                       (down ? forward <= barrier() : forward >= barrier());
             Real vanilla = riskFreeDiscount() * (*payoff)(forward);
             if (barrierType == Barrier::DownIn || barrierType == Barrier::UpIn) {
                 results_.value = hit ? vanilla : rebate() * riskFreeDiscount();
             } else if (hit) {
-                // a knock-out rebate is paid when the barrier is hit
-                Real logHS = std::log(barrier() / spot);
-                Time hitTime = (logHS == 0.0) ? Time(0.0)
-                                              : Time(logHS / (riskFreeRate() - dividendYield()));
-                results_.value = rebate() * std::exp(-riskFreeRate() * hitTime);
+                // A knock-out rebate is paid at the first barrier crossing.
+                results_.value = rebate() * process_->riskFreeRate()->discount(hitTime);
             } else {
                 results_.value = vanilla;
             }

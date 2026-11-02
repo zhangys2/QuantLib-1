@@ -144,7 +144,7 @@ namespace QuantLib {
         result = std::exp(-result*(n+1.0/6.0));
         Real root = std::sqrt(1.0-result);
         // 0.5*(1.0-root) rewritten to keep its digits as root nears 1
-        if (z > 0.0)
+        if (z >= 0.0)
             return 0.5*(1.0+root);
         else
             return 0.5*result/(1.0+root);
