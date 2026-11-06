@@ -113,8 +113,7 @@ struct CommonVars {
         return result;
     }
 
-    ext::shared_ptr<PricingEngine> makeEngine(
-                                              Volatility volatility,
+    ext::shared_ptr<PricingEngine> makeEngine(Volatility volatility,
                                               BlackSwaptionEngine::CashAnnuityModel model = BlackSwaptionEngine::SwapRate) const {
         Handle<Quote> h(ext::make_shared<SimpleQuote>(volatility));
         return ext::make_shared<BlackSwaptionEngine>(termStructure, h, Actual365Fixed(), 0.0, model);
@@ -136,8 +135,7 @@ struct CommonVars {
         floatingConvention = index->businessDayConvention();
         floatingTenor = index->tenor();
         calendar = index->fixingCalendar();
-        today = calendar.adjust(Date::todaysDate());
-        Settings::instance().evaluationDate() = today;
+        today = Settings::instance().evaluationDate();
         settlement = calendar.advance(today,settlementDays,Days);
         termStructure.linkTo(flatRate(settlement,0.05,Actual365Fixed()));
     }
@@ -740,11 +738,10 @@ BOOST_AUTO_TEST_CASE(testCashSettledSwaptions) {
 
             if (std::fabs(annuity_ratio_u360-npv_ratio_u360)>1e-10 ) {
                 BOOST_ERROR("\n"
-                            << "    The npv's ratio must be equal to "
-                            << " annuities ratio"
+                            << "    The npv's ratio must be equal to annuities ratio"
                             << "\n"
                                "    Swaption "
-                            << exercises[i].units() << "y x " << length.units() << "y"
+                            << exercise << " x " << length
                             << " (underlying swap fixed leg Unadjusted, 30/360)"
                             << "\n"
                             << "    Today           : " << vars.today << "\n"
@@ -762,11 +759,10 @@ BOOST_AUTO_TEST_CASE(testCashSettledSwaptions) {
             }
             if (std::fabs(annuity_ratio_a365-npv_ratio_a365)>1e-10) {
                 BOOST_ERROR("\n"
-                            << "    The npv's ratio must be equal to "
-                            << " annuities ratio"
+                            << "    The npv's ratio must be equal to annuities ratio"
                             << "\n"
                                "    Swaption "
-                            << exercises[i].units() << "y x " << length.units() << "y"
+                            << exercise << " x " << length
                             << " (underlying swap fixed leg Modified Following, act/365"
                             << "\n"
                             << "    Today           : " << vars.today << "\n"
@@ -784,11 +780,10 @@ BOOST_AUTO_TEST_CASE(testCashSettledSwaptions) {
                 }
             if (std::fabs(annuity_ratio_a360-npv_ratio_a360)>1e-10) {
                 BOOST_ERROR("\n"
-                            << "    The npv's ratio must be equal to "
-                            << " annuities ratio"
+                            << "    The npv's ratio must be equal to annuities ratio"
                             << "\n"
                                "    Swaption "
-                            << exercises[i].units() << "y x " << length.units() << "y"
+                            << exercise << " x " << length
                             << " (underlying swap fixed leg Unadjusted, 30/360)"
                             << "\n"
                             << "    Today           : " << vars.today << "\n"
@@ -806,11 +801,10 @@ BOOST_AUTO_TEST_CASE(testCashSettledSwaptions) {
             }
             if (std::fabs(annuity_ratio_u365-npv_ratio_u365)>1e-10) {
                 BOOST_ERROR("\n"
-                            << "    The npv's ratio must be equal to "
-                            << " annuities ratio"
+                            << "    The npv's ratio must be equal to annuities ratio"
                             << "\n"
                                "    Swaption "
-                            << exercises[i].units() << "y x " << length.units() << "y"
+                            << exercise << " x " << length
                             << " (underlying swap fixed leg Unadjusted, act/365)"
                             << "\n"
                             << "    Today           : " << vars.today << "\n"
@@ -1200,6 +1194,29 @@ BOOST_AUTO_TEST_CASE(testMakeSwaptionWithExerciseCalendar) {
             .withExerciseCalendar(usCalendar)
             .withExerciseDate(explicitDate);
     BOOST_CHECK_EQUAL(explicitSwaption.exercise()->dates().front(), explicitDate);
+}
+
+BOOST_AUTO_TEST_CASE(testMakeSwaptionFixingDateNominal) {
+
+    BOOST_TEST_MESSAGE("Testing MakeSwaption nominal with fixing-date-based constructor...");
+
+    Date today(9, October, 2015);
+    Settings::instance().evaluationDate() = today;
+    RelinkableHandle<YieldTermStructure> termStructure;
+    termStructure.linkTo(flatRate(today, 0.05, Actual365Fixed()));
+
+    auto swapIndex = ext::make_shared<EuriborSwapIsdaFixA>(5*Years, termStructure);
+    Date fixingDate = swapIndex->fixingCalendar().advance(today, 1*Years);
+
+    // The fixingDate-based constructor should default the nominal to 1.0,
+    // just like the optionTenor-based constructor does.
+    Swaption swaption = MakeSwaption(swapIndex, fixingDate, 0.05);
+    BOOST_CHECK_EQUAL(swaption.underlying()->nominal(), 1.0);
+
+    // withNominal should still override the default.
+    Swaption customNominalSwaption =
+        MakeSwaption(swapIndex, fixingDate, 0.05).withNominal(1234.0);
+    BOOST_CHECK_EQUAL(customNominalSwaption.underlying()->nominal(), 1234.0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

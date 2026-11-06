@@ -25,9 +25,12 @@
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/functional.hpp>
 #include <ql/math/integrals/gausslobattointegral.hpp>
+#include <ql/math/integrals/expsinhintegral.hpp>
+#include <ql/math/integrals/tanhsinhintegral.hpp>
 #include <ql/math/optimization/differentialevolution.hpp>
 #include <ql/math/optimization/levenbergmarquardt.hpp>
 #include <ql/math/randomnumbers/rngtraits.hpp>
+#include <ql/methods/finitedifferences/meshers/concentrating1dmesher.hpp>
 #include <ql/methods/finitedifferences/operators/numericaldifferentiation.hpp>
 #include <ql/methods/montecarlo/pathgenerator.hpp>
 #include <ql/models/equity/hestonmodel.hpp>
@@ -825,7 +828,7 @@ BOOST_AUTO_TEST_CASE(testKahlJaeckelCase) {
         { HestonProcess::NonCentralChiSquareVariance, 10,
           "NonCentralChiSquareVariance" },
         { HestonProcess::QuadraticExponentialMartingale, 100,
-          "QuadraticExponentialMartingale" },
+          "QuadraticExponentialMartingale" }
     };
 
     const Real tolerance = 0.2;
@@ -860,21 +863,33 @@ BOOST_AUTO_TEST_CASE(testKahlJaeckelCase) {
         }
     }
 
-    option.setPricingEngine(
-        MakeMCEuropeanHestonEngine<LowDiscrepancy>(
-            ext::make_shared<HestonProcess>(
+    const HestonProcessDiscretizationDesc qmcDescriptions[] = {
+        { HestonProcess::BroadieKayaExactSchemeLaguerre, 1,
+          "BroadieKayaExactSchemeLaguerre" },
+        { HestonProcess::BroadieKayaExactSchemeTrapezoidal, 1,
+          "BroadieKayaExactSchemeTrapezoidal" },
+        { HestonProcess::BroadieKayaExactSchemeLobatto, 1,
+          "BroadieKayaExactSchemeLobatto" },
+    };
+    
+    for (const auto& description : qmcDescriptions) {
+        option.setPricingEngine(
+            MakeMCEuropeanHestonEngine<LowDiscrepancy>(
+                ext::make_shared<HestonProcess>(
                     riskFreeTS, dividendTS, s0, v0, kappa, theta, sigma, rho,
-                    HestonProcess::BroadieKayaExactSchemeLaguerre))
-        .withSteps(1)
-        .withSamples(1023));
+                    description.discretization))
+            .withSteps(description.nSteps)
+            .withSamples(1023)
+        );
 
-    Real calculated = option.NPV();
-    if (std::fabs(calculated - expected) > 0.5*tolerance) {
-        BOOST_ERROR("Failed to reproduce cached price with MC engine"
-                    << "\n    discretization: BroadieKayaExactSchemeLobatto"
-                    << "\n    calculated:     " << calculated
-                    << "\n    expected:       " << expected
-                    << "\n    tolerance:      " << tolerance);
+        Real calculated = option.NPV();
+        if (std::fabs(calculated - expected) > 0.5*tolerance) {
+            BOOST_ERROR("Failed to reproduce cached price with MC engine"
+                        << "\n    discretization: " << description.name
+                        << "\n    calculated:     " << calculated
+                        << "\n    expected:       " << expected
+                        << "\n    tolerance:      " << 0.5*tolerance);
+        }
     }
 
 
@@ -887,7 +902,7 @@ BOOST_AUTO_TEST_CASE(testKahlJaeckelCase) {
     option.setPricingEngine(
         ext::make_shared<FdHestonVanillaEngine>(hestonModel, 200, 401, 101));
 
-    calculated = option.NPV();
+    Real calculated = option.NPV();
     Real error = std::fabs(calculated - expected);
     if (error > 5.0e-2) {
         BOOST_FAIL("failed to reproduce cached price with FD engine"
@@ -1785,6 +1800,14 @@ BOOST_AUTO_TEST_CASE(testAllIntegrationMethods) {
         "exp-sinh integration with angled contour shift integral");
 #endif
 
+#ifdef QL_BOOST_HAS_TANH_SINH
+    // Angled contour shift integral with tanhSinh
+    reportOnIntegrationMethodTest(option, model,
+        AnalyticHestonEngine::Integration::tanhSinh(),
+        AnalyticHestonEngine::AngledContour,
+        true, expected, 1e-8, Null<Size>(),
+        "tanh-sinh integration with angled contour shift integral");
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(testCosHestonCumulants) {
@@ -3384,6 +3407,127 @@ BOOST_AUTO_TEST_CASE(testHestonBlackVolSurfaceAtmLevel) {
                        << "\n   tolerance:  " << tol);
     }
 }
+
+BOOST_AUTO_TEST_CASE(testAsymptoticCVwithDifferentAlpha) {
+    BOOST_TEST_MESSAGE("Testing optimal asymptotic "
+        "control variate with different alphas...");
+    const Date settlementDate(29, September, 2026);
+    Settings::instance().evaluationDate() = settlementDate;
+
+    const DayCounter dayCounter = Actual365Fixed();
+    const Handle<YieldTermStructure> riskFreeTS(flatRate(0.07, dayCounter));
+    const Handle<YieldTermStructure> dividendTS(flatRate(0.185, dayCounter));
+
+    const Handle<Quote> s0(ext::make_shared<SimpleQuote>(100.0));
+
+    const Real v0    = 0.1;
+    const Real sigma = 2.0;
+    const std::vector<Real> strikes = {50, 75, 100, 125, 200};
+    const std::vector<Real> rhos {-0.9, -0.5, 0.0, 0.9};
+    const std::vector<Real> kappas {1.0, 0.5, 0.3};
+    const std::vector<Real> thetas { 0.01, 0.3, 0.5 };
+    
+    for (Real strike: strikes) {
+        for (Real rho: rhos) {
+            for (Real kappa: kappas) {
+                for (Real theta: thetas) {
+        
+                    const ext::shared_ptr<HestonModel> model =
+                        ext::make_shared<HestonModel>(
+                            ext::make_shared<HestonProcess>(
+                                riskFreeTS, dividendTS, s0, v0, kappa, theta, sigma, rho
+                            )
+                        );
+                
+                    const Date maturityDate(5, July, 2027);
+                    
+                    VanillaOption option(
+                        ext::make_shared<PlainVanillaPayoff>(Option::Call, strike),
+                        ext::make_shared<EuropeanExercise>(maturityDate)
+                    );
+                
+                    const ext::shared_ptr<AnalyticHestonEngine> engine = 
+                        ext::make_shared<AnalyticHestonEngine>(
+                            model,
+                            AnalyticHestonEngine::AngledContour,
+                            FourierIntegration::expSinh(1e-12) 
+                        );
+                        
+                    option.setPricingEngine(engine);
+                    const Real expected = option.NPV();
+                    
+                    const AnalyticHestonEngine::OptimalAlpha optimalAlpha(
+                        dayCounter.yearFraction(settlementDate, maturityDate),
+                        engine.get()
+                    );
+                    const Real alphaMin = 0.75*optimalAlpha.alphaMin(strike);
+                    const Real alphaMax = 0.75*optimalAlpha.alphaMax(strike);
+                    const Concentrating1dMesher mesher(
+                        alphaMin, alphaMax, 5, std::make_pair(-0.5, 0.1), true
+                    );
+    
+                    for (Real alpha: mesher.locations()) {
+                        const std::vector<std::pair<std::string, ext::shared_ptr<AnalyticHestonEngine> > > engines = {
+                            {
+                                "AngledContour", 
+                                ext::make_shared<AnalyticHestonEngine>(
+                                    model,
+                                    AnalyticHestonEngine::AngledContour,
+                                    FourierIntegration::expSinh(1e-8), 
+                                    1e-25, alpha 
+                                )
+                            },                            
+                            {
+                                "AngledContourNoCV",
+                                ext::make_shared<AnalyticHestonEngine>(
+                                    model,
+                                    AnalyticHestonEngine::AngledContourNoCV,
+                                    FourierIntegration::expSinh(1e-8), 
+                                    1e-25, alpha 
+                                )
+                            },
+                            {
+                                "AsymptoticChF",
+                                ext::make_shared<AnalyticHestonEngine>(
+                                    model,
+                                    AnalyticHestonEngine::AsymptoticChF,
+                                    FourierIntegration::expSinh(1e-12), 
+                                    1e-25, alpha 
+                                )
+                            }
+                        }; 
+
+                        for (const auto& engine: engines) {                            
+                            option.setPricingEngine(engine.second);
+                                                        
+                            const Real calculated = option.NPV();
+                            const Real diff = std::abs(calculated - expected);
+                            const Real tol = (engine.first != "AsymptoticChF")? 1e-6: 1e-10;
+                            
+                            if (diff > tol) {
+                                BOOST_ERROR("failed to reproduce Heston option values with "
+                                            "AsymptoticChF "
+                                        << "\n  calculated: " << calculated
+                                        << "\n  expected  : " << expected
+                                        << "\n  difference: " << diff
+                                        << "\n  tolerance : " << tol
+                                        << "\n  engine    : " << engine.first
+                                        << "\n  strike    : " << strike
+                                        << "\n  alpha     : " << alpha
+                                        << "\n  theta     : " << theta
+                                        << "\n  kappa     : " << kappa
+                                        << "\n  rho       : " << rho);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(HestonModelExperimentalTest)
