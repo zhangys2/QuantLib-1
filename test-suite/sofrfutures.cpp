@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(testPillarDates) {
 
 BOOST_AUTO_TEST_CASE(testOvernightIndexFutureRateHelperNotification) {
     BOOST_TEST_MESSAGE(
-        "Testing OvernightIndexRateFutureHelper is not notified via curve build");
+        "Testing that OvernightIndexRateFutureHelper is not notified during bootstrap...");
     Date today(26, October, 2018);
     Settings::instance().evaluationDate() = today;
     auto futHelper = ext::make_shared<OvernightIndexFutureRateHelper>(
@@ -265,6 +265,54 @@ BOOST_AUTO_TEST_CASE(testOvernightIndexFutureRateHelperNotification) {
     curve->nodes();  // force evaluation
     BOOST_ASSERT(!f.isUp());
 }
+
+BOOST_AUTO_TEST_CASE(testHelperFuture) {
+    BOOST_TEST_MESSAGE("Testing the future underlying a SOFR futures helper...");
+
+    Date today = Date(26, October, 2018);
+    Settings::instance().evaluationDate() = today;
+
+    SofrFutureRateHelper helper(97.8175, Oct, 2018, Monthly);
+
+    auto future = helper.future();
+    BOOST_REQUIRE(future);
+    BOOST_CHECK_EQUAL(future->valueDate(), Date(1, October, 2018));
+    BOOST_CHECK_EQUAL(future->maturityDate(), Date(1, November, 2018));
+    BOOST_CHECK_EQUAL(future->valueDate(), helper.earliestDate());
+    BOOST_CHECK_EQUAL(future->overnightIndex()->name(), Sofr().name());
+}
+
+BOOST_AUTO_TEST_CASE(testForwardCurveStartingAfterEvaluationDate) {
+    BOOST_TEST_MESSAGE(
+        "Testing SOFR futures with a forwarding curve starting after the evaluation date...");
+
+    Date today(18, June, 2024);
+    Settings::instance().evaluationDate() = today;
+
+    // the next business day, since June 19th is Juneteenth
+    Date curveStart(20, June, 2024);
+    Handle<YieldTermStructure> curve(
+        ext::make_shared<FlatForward>(curveStart, 0.05, Actual360()));
+    auto sofr = ext::make_shared<Sofr>(curve);
+    sofr->addFixing(Date(17, June, 2024), 0.05);
+
+    Date valueDate(17, June, 2024);
+    Date maturityDate(17, July, 2024);
+    OvernightIndexFuture averaged(sofr, valueDate, maturityDate, {}, RateAveraging::Simple);
+    OvernightIndexFuture compounded(sofr, valueDate, maturityDate, {}, RateAveraging::Compound);
+
+    // today's rate is neither fixed nor covered by the curve
+    BOOST_CHECK_EXCEPTION(averaged.NPV(), Error,
+                          ExpectedErrorMessage("the forwarding term structure starts on"));
+    BOOST_CHECK_EXCEPTION(compounded.NPV(), Error,
+                          ExpectedErrorMessage("the forwarding term structure starts on"));
+
+    // once it is fixed, the curve covers the rest of the period
+    sofr->addFixing(today, 0.05);
+    BOOST_CHECK_NO_THROW(averaged.NPV());
+    BOOST_CHECK_NO_THROW(compounded.NPV());
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
 
