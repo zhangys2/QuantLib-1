@@ -37,7 +37,8 @@ class DummyOptimizationMethod : public OptimizationMethod {
   public:
     EndCriteria::Type minimize(Problem& P, const EndCriteria& endCriteria) override {
         P.setFunctionValue(P.value(P.currentValue()));
-        return EndCriteria::None;
+        // report a success criterion: calibrate_r2() rejects non-convergence
+        return EndCriteria::StationaryPoint;
     }
 };
 

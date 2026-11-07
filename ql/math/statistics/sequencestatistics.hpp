@@ -53,7 +53,7 @@ namespace QuantLib {
         typedef StatisticsType statistics_type;
         typedef std::vector<typename StatisticsType::value_type> value_type;
         // constructor
-        GenericSequenceStatistics(Size dimension = 0);
+        explicit GenericSequenceStatistics(Size dimension = 0);
         //! \name inspectors
         //@{
         Size size() const { return dimension_; }
@@ -132,8 +132,13 @@ namespace QuantLib {
                        " required, " << std::distance(begin, end) <<
                        " provided");
 
-            quadraticSum_ += weight * outerProduct(begin, end,
-                                                   begin, end);
+            // in place, without the temporary matrix of outerProduct
+            Iterator xi = begin;
+            for (Size i=0; i<dimension_; ++xi, ++i) {
+                Iterator xj = begin;
+                for (Size j=0; j<dimension_; ++xj, ++j)
+                    quadraticSum_[i][j] += weight * ((*xi) * (*xj));
+            }
 
             for (Size i=0; i<dimension_; ++begin, ++i)
                 stats_[i].add(*begin, weight);

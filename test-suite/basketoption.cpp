@@ -40,6 +40,7 @@
 #include <ql/experimental/volatility/svismilesection.hpp>
 #include <ql/termstructures/volatility/equityfx/piecewiseblackvariancesurface.hpp>
 #include <ql/pricingengines/basket/stulzengine.hpp>
+#include <ql/pricingengines/blackformula.hpp>
 #include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/processes/stochasticprocessarray.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -1154,7 +1155,7 @@ BOOST_AUTO_TEST_CASE(testOperatorSplittingSpreadEngine) {
 
     const DayCounter dc = Actual365Fixed();
     const Date today = Date(1, March, 2025);
-    const Date maturity = yearFractionToDate(dc, today, 1.0);
+    const Date maturity = roundToDayStart(yearFractionToDate(dc, today, 1.0));
 
     const Handle<YieldTermStructure> r
         = Handle<YieldTermStructure>(flatRate(today, 0.05, dc));
@@ -1284,7 +1285,7 @@ BOOST_AUTO_TEST_CASE(testStrangSplittingSpreadEngineVsMathematica) {
     for (const auto& testCase: testCases) {
         const Real rho = testCase.rho;;
         const Real strike = testCase.K;
-        const Date maturityDate = yearFractionToDate(dc, today, testCase.T);
+        const Date maturityDate = roundToDayStart(yearFractionToDate(dc, today, testCase.T));
         const auto volTS1 = Handle<BlackVolTermStructure>(flatVol(today, testCase.vol1, dc));
 
         BasketOption option(
@@ -2350,7 +2351,7 @@ BOOST_AUTO_TEST_CASE(testSpreadAndBasketBenchmarks) {
                             rho[i][j] = (i == j) ? 1.0 : cor[0][0];
 
                 for (Real t: b.maturities) {
-                    const Date maturityDate = yearFractionToDate(dc, today, t);
+                    const Date maturityDate = roundToDayStart(yearFractionToDate(dc, today, t));
                     const ext::shared_ptr<Exercise> exercise =
                         ext::make_shared<EuropeanExercise>(maturityDate);
 
@@ -2696,6 +2697,94 @@ BOOST_AUTO_TEST_CASE(testPearsonSpreadEngine) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(testPearsonSpreadEngineNegativeStrikes) {
+    BOOST_TEST_MESSAGE("Testing Pearson spread engine with negative strikes...");
+
+    const Date today(25, October, 2026);
+    Settings::instance().evaluationDate() = today;
+    const DayCounter dc = Actual365Fixed();
+    const Date maturity = today + 365;
+    const auto exercise = ext::make_shared<EuropeanExercise>(maturity);
+    const Handle<YieldTermStructure> r(flatRate(today, 0.05, dc));
+    const Real f1 = 100.0, f2 = 100.0;
+    const Volatility vol = 0.3;
+    const auto makeProcess = [&](Real forward) {
+        return ext::make_shared<BlackProcess>(
+            Handle<Quote>(ext::make_shared<SimpleQuote>(forward)), r,
+            Handle<BlackVolTermStructure>(flatVol(today, vol, dc)));
+    };
+    const auto engine = ext::make_shared<PearsonSpreadEngine>(
+        makeProcess(f1), makeProcess(f2), 0.5);
+    const DiscountFactor df = r->discount(maturity);
+    const Real stdDev = vol * std::sqrt(dc.yearFraction(today, maturity));
+    // Allow for quadrature error and normal-tail truncation at eight standard deviations.
+    const Real tolerance = 1e-8;
+
+    for (Real strike : {-5.0, -20.0, -50.0, -80.0, -130.0}) {
+        BasketOption call(ext::make_shared<SpreadBasketPayoff>(
+                              ext::make_shared<PlainVanillaPayoff>(Option::Call, strike)),
+                          exercise);
+        BasketOption put(ext::make_shared<SpreadBasketPayoff>(
+                             ext::make_shared<PlainVanillaPayoff>(Option::Put, strike)),
+                         exercise);
+        call.setPricingEngine(engine);
+        put.setPricingEngine(engine);
+        const Real callNPV = call.NPV();
+        const Real putNPV = put.NPV();
+        const Real parityPut = callNPV - df * (f1 - f2 - strike);
+        BOOST_CHECK_MESSAGE(std::abs(putNPV - parityPut) <= tolerance,
+                            "put-call parity failed for strike " << strike
+                            << ": put " << putNPV << ", expected " << parityPut);
+
+        // (K + F2 - F1)^+ <= (F2 - |K|)^+ since F1 is positive and K is negative.
+        const Real upperBound = df * blackFormula(Option::Call, -strike, f2, stdDev);
+        BOOST_CHECK_MESSAGE(putNPV <= upperBound + tolerance,
+                            "put exceeds upper bound for strike " << strike
+                            << ": put " << putNPV << ", upper bound " << upperBound);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testPearsonSpreadEngineVanillaLimit) {
+    BOOST_TEST_MESSAGE("Testing Pearson spread engine with a deterministic second underlying...");
+
+    const Date today(25, October, 2026);
+    Settings::instance().evaluationDate() = today;
+    const DayCounter dc = Actual365Fixed();
+    const Date maturity = today + 365;
+    const auto exercise = ext::make_shared<EuropeanExercise>(maturity);
+    const Handle<YieldTermStructure> r(flatRate(today, 0.05, dc));
+    const Real f1 = 100.0, f2 = 100.0;
+    const Volatility vol = 0.3;
+    const auto makeProcess = [&](Real forward, Volatility volatility) {
+        return ext::make_shared<BlackProcess>(
+            Handle<Quote>(ext::make_shared<SimpleQuote>(forward)), r,
+            Handle<BlackVolTermStructure>(flatVol(today, volatility, dc)));
+    };
+    const auto engine = ext::make_shared<PearsonSpreadEngine>(
+        makeProcess(f1, vol), makeProcess(f2, 0.0), 0.5);
+    const DiscountFactor df = r->discount(maturity);
+    const Real stdDev = vol * std::sqrt(dc.yearFraction(today, maturity));
+    const Real tolerance = 1e-8;
+
+    // A deterministic F2 reduces the spread payoff to a vanilla payoff on F1.
+    for (Real strike : {-130.0, -100.0, -80.0, 5.0, 80.0}) {
+        for (Option::Type type : {Option::Call, Option::Put}) {
+            BasketOption option(ext::make_shared<SpreadBasketPayoff>(
+                                    ext::make_shared<PlainVanillaPayoff>(type, strike)),
+                                exercise);
+            option.setPricingEngine(engine);
+            const Real vanillaStrike = f2 + strike;
+            const Real expected = vanillaStrike > 0.0
+                ? Real(df * blackFormula(type, vanillaStrike, f1, stdDev))
+                : (type == Option::Call ? Real(df * (f1 - vanillaStrike)) : Real(0.0));
+            const Real calculated = option.NPV();
+            BOOST_CHECK_MESSAGE(std::abs(calculated - expected) <= tolerance,
+                                "vanilla limit failed for " << type << " with strike " << strike
+                                << ": calculated " << calculated << ", expected " << expected);
+        }
+    }
+}
+
 BOOST_AUTO_TEST_CASE(testGaussianCopulaSpreadEngineFlatVol) {
     BOOST_TEST_MESSAGE("Testing Gaussian Copula spread engine "
                        "with flat volatility...");
@@ -2865,6 +2954,81 @@ BOOST_AUTO_TEST_CASE(testGaussianCopulaSpreadEngineSVI) {
                        << "\n    2D PDE     : " << pdeNPV
                        << "\n    rel error  : " << relError
                        << "\n    tolerance  : " << tol);
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testGaussianCopulaSpreadEngineParityAcrossVols) {
+    BOOST_TEST_MESSAGE("Testing Gaussian Copula spread engine put-call parity "
+                       "across volatility levels...");
+
+    // Parity only needs each marginal to price its own forward. A smile with fat
+    // wings is where that marginal construction is actually stressed.
+    const DayCounter dc = Actual365Fixed();
+    const Date today = Date(1, March, 2025);
+    const Date maturity = today + Period(12, Months);
+    const Time T = dc.yearFraction(today, maturity);
+
+    const ext::shared_ptr<EuropeanExercise> exercise
+        = ext::make_shared<EuropeanExercise>(maturity);
+
+    const Real rho = 0.5, strike = 20.0;
+    const Real f1 = 50.0, f2 = 30.0;
+    const Handle<YieldTermStructure> rTS(flatRate(today, 0.0, dc));
+
+    constexpr double parityRelTol = 1e-4;
+
+    for (Real c : { 0.7, 1.0, 1.5, 2.0 }) {
+        const std::vector<Real> svi1 = { c * c * 0.1125, c * c * 0.10,
+                                         0.10, 0.525, 0.0 };
+        const std::vector<Real> svi2 = { c * c * 0.08, c * c * 0.10,
+                                         0.10, 0.18, 0.0 };
+
+        const auto smile1 = ext::make_shared<SviSmileSection>(T, f1, svi1);
+        const auto smile2 = ext::make_shared<SviSmileSection>(T, f2, svi2);
+
+        const Handle<BlackVolTermStructure> volTS1(
+            ext::make_shared<PiecewiseBlackVarianceSurface>(
+                today, maturity, smile1, dc));
+        const Handle<BlackVolTermStructure> volTS2(
+            ext::make_shared<PiecewiseBlackVarianceSurface>(
+                today, maturity, smile2, dc));
+
+        const ext::shared_ptr<BlackProcess> p1 =
+            ext::make_shared<BlackProcess>(
+                Handle<Quote>(ext::make_shared<SimpleQuote>(f1)), rTS, volTS1);
+        const ext::shared_ptr<BlackProcess> p2 =
+            ext::make_shared<BlackProcess>(
+                Handle<Quote>(ext::make_shared<SimpleQuote>(f2)), rTS, volTS2);
+
+        const ext::shared_ptr<PricingEngine> engine
+            = ext::make_shared<GaussianCopulaSpreadEngine>(p1, p2, rho);
+
+        BasketOption callOption(ext::make_shared<SpreadBasketPayoff>(
+                ext::make_shared<PlainVanillaPayoff>(Option::Call, strike)),
+            exercise);
+        callOption.setPricingEngine(engine);
+
+        BasketOption putOption(ext::make_shared<SpreadBasketPayoff>(
+                ext::make_shared<PlainVanillaPayoff>(Option::Put, strike)),
+            exercise);
+        putOption.setPricingEngine(engine);
+
+        const Real fwd = (callOption.NPV() - putOption.NPV())
+            / rTS->discount(maturity);
+        const Real expectedFwd = f1 - f2 - strike;
+        const Real relError = std::fabs(fwd - expectedFwd) / f1;
+
+        if (relError > parityRelTol) {
+            BOOST_FAIL("failed to reproduce call-put parity using the "
+                       "Gaussian Copula spread engine with an SVI smile."
+                       << std::fixed << std::setprecision(8)
+                       << "\n    vol scale     : " << c
+                       << "\n    atm vol leg 1 : " << smile1->volatility(f1)
+                       << "\n    calculated fwd: " << fwd
+                       << "\n    expected fwd  : " << expectedFwd
+                       << "\n    rel error     : " << relError
+                       << "\n    tolerance     : " << parityRelTol);
         }
     }
 }

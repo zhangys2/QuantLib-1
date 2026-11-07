@@ -428,10 +428,9 @@ namespace CdsTests {
 }
 
 BOOST_AUTO_TEST_CASE(testCDS2015Convention) {
+    BOOST_TEST_MESSAGE("Testing CDS2015 semi-annual rolling convention...");
 
     using CdsTests::makeCdsSchedule;
-
-    BOOST_TEST_MESSAGE("Testing CDS2015 semi-annual rolling convention...");
 
     DateGeneration::Rule rule = DateGeneration::CDS2015;
     Period tenor(5, Years);
@@ -485,12 +484,12 @@ BOOST_AUTO_TEST_CASE(testCDS2015Convention) {
 }
 
 BOOST_AUTO_TEST_CASE(testCDS2015ConventionGrid) {
+    BOOST_TEST_MESSAGE("Testing CDS2015 convention against ISDA doc...");
 
     using CdsTests::InputData;
 
     // Testing against section 11 of ISDA doc FAQs Amending when Single Name CDS roll to new on-the-run contracts
     // December 20, 2015 Go-Live
-    BOOST_TEST_MESSAGE("Testing CDS2015 convention against ISDA doc...");
 
     // Test inputs and expected outputs
     // The map key is a pair with 1st element equal to trade date and 2nd element equal to CDS tenor.
@@ -570,12 +569,12 @@ BOOST_AUTO_TEST_CASE(testCDS2015ConventionGrid) {
 }
 
 BOOST_AUTO_TEST_CASE(testCDSConventionGrid) {
+    BOOST_TEST_MESSAGE("Testing CDS convention against ISDA doc...");
 
     using CdsTests::InputData;
 
     // Testing against section 11 of ISDA doc FAQs Amending when Single Name CDS roll to new on-the-run contracts
     // December 20, 2015 Go-Live. Amended the dates in the doc to the pre-2015 expected maturity dates.
-    BOOST_TEST_MESSAGE("Testing CDS convention against ISDA doc...");
 
     // Test inputs and expected outputs
     // The map key is a pair with 1st element equal to trade date and 2nd element equal to CDS tenor.
@@ -661,12 +660,12 @@ BOOST_AUTO_TEST_CASE(testCDSConventionGrid) {
 }
 
 BOOST_AUTO_TEST_CASE(testOldCDSConventionGrid) {
+    BOOST_TEST_MESSAGE("Testing old CDS convention...");
 
     using CdsTests::InputData;
 
     // Testing against section 11 of ISDA doc FAQs Amending when Single Name CDS roll to new on-the-run contracts
     // December 20, 2015 Go-Live. Amended the dates in the doc to the pre-2009 expected start and maturity dates.
-    BOOST_TEST_MESSAGE("Testing old CDS convention...");
 
     // Test inputs and expected outputs
     // The map key is a pair with 1st element equal to trade date and 2nd element equal to CDS tenor.
@@ -1146,6 +1145,42 @@ BOOST_AUTO_TEST_CASE(testNextToLastDateOnStart) {
         .backwards();
 
     check_dates(schedule, expected);
+}
+
+BOOST_AUTO_TEST_CASE(testThirdWednesdayInclusiveWithStubDates) {
+    BOOST_TEST_MESSAGE(
+        "Testing ThirdWednesdayInclusive schedule with first and next-to-last dates...");
+
+    // Regression test for the ThirdWednesdayInclusive rule being reported as
+    // "unknown rule" by the firstDate/nextToLastDate validation switches in
+    // the Schedule constructor (the rule is handled by the generation switch
+    // but was missing from the two validation switches).
+
+    Date effectiveDate(15, January, 2025);
+    Date terminationDate(17, December, 2025);
+    Date thirdWednesday(19, March, 2025); // third Wednesday of March 2025
+
+    // with a first date
+    Schedule withFirstDate;
+    BOOST_CHECK_NO_THROW(
+        withFirstDate = Schedule(effectiveDate, terminationDate, Period(3, Months),
+                                 TARGET(), Following, Following,
+                                 DateGeneration::ThirdWednesdayInclusive, false,
+                                 thirdWednesday));
+    for (const auto& d : withFirstDate.dates())
+        BOOST_CHECK_MESSAGE(d == Date::nthWeekday(3, Wednesday, d.month(), d.year()),
+                            "date " << d << " is not a third Wednesday");
+
+    // with a next-to-last date
+    Schedule withNextToLast;
+    BOOST_CHECK_NO_THROW(
+        withNextToLast = Schedule(effectiveDate, terminationDate, Period(3, Months),
+                                  TARGET(), Following, Following,
+                                  DateGeneration::ThirdWednesdayInclusive, false,
+                                  Date(), thirdWednesday));
+    for (const auto& d : withNextToLast.dates())
+        BOOST_CHECK_MESSAGE(d == Date::nthWeekday(3, Wednesday, d.month(), d.year()),
+                            "date " << d << " is not a third Wednesday");
 }
 
 BOOST_AUTO_TEST_CASE(testTruncation) {

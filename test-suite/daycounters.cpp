@@ -39,6 +39,7 @@
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/schedule.hpp>
 #include <ql/math/comparison.hpp>
+#include <ql/math/randomnumbers/mt19937uniformrng.hpp>
 #include <ql/time/calendars/china.hpp>
 #include <ql/time/daycounters/yearfractiontodate.hpp>
 
@@ -638,6 +639,23 @@ BOOST_AUTO_TEST_CASE(testActualActualWithSchedule) {
                    << "    calculated: " << t_total << "\n"
                    << "    expected:   " << t_no_reference+t2);
     }
+}
+
+BOOST_AUTO_TEST_CASE(testActualActualWithLongFirstAndShortLastCoupon) {
+    BOOST_TEST_MESSAGE("Testing actual/actual (ISMA) with long first and short last coupons...");
+
+    const Schedule schedule(
+        {Date(6, December, 2024), Date(15, June, 2025),
+         Date(15, December, 2025), Date(15, June, 2026),
+         Date(15, October, 2026)},
+        NullCalendar(), Unadjusted, Unadjusted, Period(6, Months),
+        DateGeneration::Backward, false, {false, true, true, false});
+    const ActualActual dayCounter(ActualActual::ISMA, schedule);
+
+    BOOST_CHECK_CLOSE(dayCounter.yearFraction(Date(15, December, 2025),
+                                             Date(15, June, 2026)), 0.5, 1.0e-10);
+    BOOST_CHECK_CLOSE(dayCounter.yearFraction(Date(15, June, 2026),
+                                             Date(15, October, 2026)), 1.0 / 3.0, 1.0e-10);
 }
 
 BOOST_AUTO_TEST_CASE(testSimple) {
@@ -1368,7 +1386,7 @@ BOOST_AUTO_TEST_CASE(testYearFraction2DateRounding) {
     BOOST_TEST_MESSAGE("Testing YearFractionToDate rounding to closer date...");
 
     const std::vector<DayCounter> dayCounters
-        = {Thirty360(Thirty360::USA), Actual360()};
+        = {Thirty360(Thirty360::USA), Actual360(true)};
     const Date d1(1, February, 2023), d2(17, February, 2124);
 
     for (const DayCounter& dc : dayCounters) {
@@ -1382,6 +1400,65 @@ BOOST_AUTO_TEST_CASE(testYearFraction2DateRounding) {
         }
     }
 }
+
+
+#ifdef QL_HIGH_RESOLUTION_DATE
+BOOST_AUTO_TEST_CASE(testYearFractionToDateForLinearDayCounter) {
+    BOOST_TEST_MESSAGE("Testing YearFractionToDate for linear day counter...");
+
+    const MersenneTwisterUniformRng rng(12345UL);
+
+    const std::vector<DayCounter> dcs = {
+        Actual365Fixed(), Actual366(), Actual364(), Actual36525(), Actual360(),
+        Thirty365()
+    };
+
+    const auto rngDate = [&rng]() -> Date {
+        const Integer year = 1901 + rng.nextInt32() % 298;
+        const Month month = static_cast<Month>(1 + rng.nextInt32() % 12);
+        const Day day = 1 + rng.nextInt32() % (Date::endOfMonth(Date(1, month, year)).dayOfMonth());
+        return Date(
+            day, month, year,
+            rng.nextInt32() % 24, rng.nextInt32() % 60, rng.nextInt32() % 60,
+            rng.nextInt32() % 1000, rng.nextInt32() % 1000
+        );
+    };
+
+    for (Size i=0; i < 1000; ++i)
+        for (const auto& dc: dcs) {
+            const Date d1 = rngDate();
+            const Date d2 = rngDate();
+
+            const Time t = dc.yearFraction(d1, d2);
+            const Date calculated = yearFractionToDate(dc, d1, t);
+
+            if (dc.name() == Thirty365().name() || dc.name() == Actual366(true).name()) {
+                BOOST_CHECK_EQUAL(d1.fractionOfDay(), calculated.fractionOfDay());
+                const Time db = std::abs(dc.yearFraction(d2, calculated));
+                QL_CHECK_SMALL(db, 10*QL_EPSILON);
+            }
+            else {
+                const boost::posix_time::time_duration td
+                    = d2.dateTime() - calculated.dateTime();
+                const long diff = long(std::abs(td.total_microseconds()));
+                // rounding errors: 1us plus 1us every 10 years
+                const long tol = long(1 + 0.1*std::abs(t));
+
+                if (diff > tol) {
+                    BOOST_FAIL("\nFailed to reproduce date for linear day counter:\n"
+                        << "\n first date     : " << io::iso_datetime(d1)
+                        << "\n second date    : " << io::iso_datetime(d2)
+                        << "\n calculated date: " << io::iso_datetime(calculated)
+                        << "\n diff (in us)   : " << diff
+                        << "\n tol (in us)    : " << tol
+                        << "\n day counter    : " << dc.name()
+                    );
+                }
+            }
+        }
+}
+
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
 
