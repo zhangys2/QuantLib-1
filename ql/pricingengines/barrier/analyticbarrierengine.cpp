@@ -65,6 +65,81 @@ namespace QuantLib {
             return std::exp(logPower + logN);
         }
 
+        // Risk-free year fraction of the first time the deterministic spot
+        // crosses the barrier.  Each curve is discounted on its own day-count
+        // time: one shared year fraction is past a curve's max time when the
+        // counters differ, and it reads that curve on the wrong date.
+        bool deterministicBarrierHit(const YieldTermStructure& dividendCurve,
+                                     const YieldTermStructure& riskFreeCurve,
+                                     Real spot,
+                                     Real barrierLevel,
+                                     bool down,
+                                     const Date& start,
+                                     const Date& maturity,
+                                     Time& hitTime) {
+            auto distance = [&](const Date& left, const Date& right, Real alpha) {
+                const Time dividendTime =
+                    dividendCurve.timeFromReference(left) * (1.0 - alpha) +
+                    dividendCurve.timeFromReference(right) * alpha;
+                const Time riskFreeTime =
+                    riskFreeCurve.timeFromReference(left) * (1.0 - alpha) +
+                    riskFreeCurve.timeFromReference(right) * alpha;
+                return std::log(spot * dividendCurve.discount(dividendTime) /
+                                riskFreeCurve.discount(riskFreeTime) / barrierLevel);
+            };
+            auto breached = [&](Real d) { return down ? d <= 0.0 : d >= 0.0; };
+            auto bisect = [&](const Date& left, const Date& right, Real lo, Real hi) {
+                for (Size j = 0; j < 60; ++j) {
+                    const Real mid = 0.5 * (lo + hi);
+                    if (breached(distance(left, right, mid)))
+                        hi = mid;
+                    else
+                        lo = mid;
+                }
+                return hi;
+            };
+
+            if (breached(distance(start, start, 0.0))) {
+                hitTime = riskFreeCurve.timeFromReference(start);
+                return true;
+            }
+
+            for (Date left = start; left < maturity; ++left) {
+                const Date right = std::min(left + 1, maturity);
+                const Real sign = down ? -1.0 : 1.0;
+                const Real g0 = sign * distance(left, right, 0.0);
+                const Real gm = sign * distance(left, right, 0.5);
+                const Real g1 = sign * distance(left, right, 1.0);
+                // Log-spot is quadratic in the day fraction for a flat forward
+                // and for a linearly interpolated zero curve.  The vertex catches
+                // a crossing that returns to the safe side before the next date.
+                const Real curvature = 2.0 * g0 + 2.0 * g1 - 4.0 * gm;
+                const Real slope = (g1 - g0) - curvature;
+
+                Real alpha = 0.0;
+                bool crossed = false;
+                if (g0 >= 0.0) {
+                    crossed = true;
+                } else if (g1 >= 0.0) {
+                    alpha = bisect(left, right, 0.0, 1.0);
+                    crossed = true;
+                } else if (curvature < -1.0e-12) {
+                    const Real vertex = -slope / (2.0 * curvature);
+                    if (vertex > 0.0 && vertex < 1.0 &&
+                        breached(distance(left, right, vertex))) {
+                        alpha = bisect(left, right, 0.0, vertex);
+                        crossed = true;
+                    }
+                }
+                if (crossed) {
+                    hitTime = riskFreeCurve.timeFromReference(left) * (1.0 - alpha) +
+                              riskFreeCurve.timeFromReference(right) * alpha;
+                    return true;
+                }
+            }
+            return false;
+        }
+
     }
 
     AnalyticBarrierEngine::AnalyticBarrierEngine(
@@ -94,44 +169,17 @@ namespace QuantLib {
         Real variance = process_->blackVolatility()->blackVariance(
             arguments_.exercise->lastDate(), strike);
         if (variance < QL_EPSILON) {
-            // With zero variance, the stock follows the deterministic forward
-            // curve, which need not be monotone for non-flat term structures.
+            // With zero variance the spot follows the deterministic forward,
+            // which need not be monotone for non-flat term structures.
             const bool down = barrierType == Barrier::DownIn ||
                               barrierType == Barrier::DownOut;
-            const Time maturity =
-                process_->time(arguments_.exercise->lastDate());
-            auto logDistance = [&](Time t) {
-                return std::log(spot * process_->dividendYield()->discount(t) /
-                                process_->riskFreeRate()->discount(t) / barrier());
-            };
-            auto breached = [&](Real distance) {
-                return down ? distance <= 0.0 : distance >= 0.0;
-            };
-
-            bool hit = breached(logDistance(0.0));
+            const Date start = process_->riskFreeRate()->referenceDate();
+            const Date maturity = arguments_.exercise->lastDate();
             Time hitTime = 0.0;
-            Time left = 0.0;
-            const Size steps = std::max<Size>(
-                1, static_cast<Size>(std::ceil(maturity * 1000.0)));
-            for (Size i = 1; !hit && i <= steps; ++i) {
-                Time right = maturity * i / steps;
-                Real rightDistance = logDistance(right);
-                if (breached(rightDistance)) {
-                    // Locate the first crossing in this interval.
-                    Time lo = left, hi = right;
-                    for (Size j = 0; j < 60; ++j) {
-                        Time mid = 0.5 * (lo + hi);
-                        if (breached(logDistance(mid)))
-                            hi = mid;
-                        else
-                            lo = mid;
-                    }
-                    hit = true;
-                    hitTime = hi;
-                } else {
-                    left = right;
-                }
-            }
+            const bool hit = deterministicBarrierHit(
+                *process_->dividendYield().currentLink(),
+                *process_->riskFreeRate().currentLink(), spot, barrier(), down, start, maturity,
+                hitTime);
 
             Real forward = spot * dividendDiscount() / riskFreeDiscount();
             Real vanilla = riskFreeDiscount() * (*payoff)(forward);

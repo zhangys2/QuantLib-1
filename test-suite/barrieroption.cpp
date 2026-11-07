@@ -2037,22 +2037,113 @@ BOOST_AUTO_TEST_CASE(testZeroVolatility) {
     check(  91.0,  Option::Call,      93.0,   Barrier::DownIn,     4.0,   0.01,   0.04,   3.960199334996672);  // not hit
     check(  95.0,  Option::Call,     100.0,  Barrier::DownOut,     4.0,   0.03,    0.0,   4.0);                // spot on the barrier
 
-    // A non-flat dividend curve can push the deterministic forward through the
-    // barrier and back before maturity; the crossing still knocks the option out.
-    std::vector<Date> dates{today, today + 180, maturity};
+    // Rebate paid at the first root of log(S(t)/barrier) = 0.  On each segment
+    // the input zeros are linear in that curve's own time, so the root is
+    // quadratic in the segment fraction.  This is independent of the engine.
+    auto knockOutRebate = [](Real spotValue, Real barrierLevel, Real rebate,
+                             const YieldTermStructure& dividendCurve,
+                             const YieldTermStructure& riskFreeCurve,
+                             const std::vector<Date>& knots,
+                             const std::vector<Rate>& dividendRates,
+                             const std::vector<Rate>& riskFreeRates) -> Real {
+        for (Size i = 1; i < knots.size(); ++i) {
+            const Time tq0 = dividendCurve.timeFromReference(knots[i - 1]);
+            const Time tq1 = dividendCurve.timeFromReference(knots[i]);
+            const Time tr0 = riskFreeCurve.timeFromReference(knots[i - 1]);
+            const Time tr1 = riskFreeCurve.timeFromReference(knots[i]);
+            const Rate zq0 = dividendRates[i - 1], zq1 = dividendRates[i];
+            const Rate zr0 = riskFreeRates[i - 1], zr1 = riskFreeRates[i];
+            const Real dtq = tq1 - tq0, dtr = tr1 - tr0;
+            const Real dzq = zq1 - zq0, dzr = zr1 - zr0;
+            const Real gap0 = std::log(spotValue / barrierLevel) - zq0 * tq0 + zr0 * tr0;
+            const Real slope = -(zq0 * dtq + dzq * tq0) + (zr0 * dtr + dzr * tr0);
+            const Real curve = -dzq * dtq + dzr * dtr;
+            auto gap = [&](Real alpha) {
+                return (curve * alpha + slope) * alpha + gap0;
+            };
+            if (i == 1 && gap(0.0) >= 0.0)
+                return rebate * std::exp(-zr0 * tr0);
+
+            Real first = -1.0, second = -1.0;
+            if (std::fabs(curve) < 1.0e-14) {
+                if (std::fabs(slope) > 1.0e-14)
+                    first = -gap0 / slope;
+            } else {
+                const Real discriminant = slope * slope - 4.0 * curve * gap0;
+                if (discriminant >= 0.0) {
+                    const Real root = std::sqrt(discriminant);
+                    first = (-slope - root) / (2.0 * curve);
+                    second = (-slope + root) / (2.0 * curve);
+                }
+            }
+            for (Real alpha : {first, second}) {
+                if (alpha < 0.0 || alpha > 1.0)
+                    continue;
+                if (gap(0.0) < 0.0 && gap(std::min(1.0, alpha + 1.0e-8)) >= -1.0e-9) {
+                    const Real hitTime = tr0 + alpha * dtr;
+                    const Real hitRate = zr0 + alpha * dzr;
+                    return rebate * std::exp(-hitRate * hitTime);
+                }
+            }
+        }
+        return Null<Real>();
+    };
+
+    auto priceUpOut = [&](const ext::shared_ptr<YieldTermStructure>& dividendCurve,
+                          const ext::shared_ptr<YieldTermStructure>& riskFreeCurve,
+                          Real barrierLevel, Real strike) {
+        auto nonFlatProcess = ext::make_shared<BlackScholesMertonProcess>(
+            s0, Handle<YieldTermStructure>(dividendCurve),
+            Handle<YieldTermStructure>(riskFreeCurve), volTS);
+        BarrierOption option(
+            Barrier::UpOut, barrierLevel, 4.0,
+            ext::make_shared<PlainVanillaPayoff>(Option::Call, strike),
+            ext::make_shared<EuropeanExercise>(maturity));
+        option.setPricingEngine(ext::make_shared<AnalyticBarrierEngine>(nonFlatProcess));
+        return option.NPV();
+    };
+
+    // The forward is pushed through 110 and finishes below it.  A flat zero
+    // risk-free curve would pay 4 at every hitting time, so the curve here is
+    // not flat and the rebate is discounted to the crossing.
+    std::vector<Date> knots{today, today + 180, maturity};
     std::vector<Rate> dividendRates{0.0, -0.6, 0.1};
-    auto nonFlatDividend = ext::make_shared<ZeroCurve>(dates, dividendRates, dc);
-    auto zeroRate = ext::make_shared<FlatForward>(today, 0.0, dc);
-    auto nonFlatProcess = ext::make_shared<BlackScholesMertonProcess>(
-        s0, Handle<YieldTermStructure>(nonFlatDividend),
-        Handle<YieldTermStructure>(zeroRate), volTS);
-    BarrierOption crossedBarrier(
-        Barrier::UpOut, 110.0, 4.0,
-        ext::make_shared<PlainVanillaPayoff>(Option::Call, 200.0),
-        ext::make_shared<EuropeanExercise>(maturity));
-    crossedBarrier.setPricingEngine(
-        ext::make_shared<AnalyticBarrierEngine>(nonFlatProcess));
-    QL_CHECK_SMALL(crossedBarrier.NPV() - 4.0, 1.0e-10);
+    std::vector<Rate> riskFreeRates{0.02, 0.08, 0.03};
+    auto dividendCurve = ext::make_shared<ZeroCurve>(knots, dividendRates, dc);
+    auto riskFreeCurve = ext::make_shared<ZeroCurve>(knots, riskFreeRates, dc);
+    const Real terminalForward =
+        spot * dividendCurve->discount(maturity) / riskFreeCurve->discount(maturity);
+    if (!(terminalForward < 110.0))
+        BOOST_ERROR("setup must finish below the barrier, forward " << terminalForward);
+    const Real crossed = priceUpOut(dividendCurve, riskFreeCurve, 110.0, 200.0);
+    const Real crossedExpected = knockOutRebate(
+        spot, 110.0, 4.0, *dividendCurve, *riskFreeCurve, knots, dividendRates, riskFreeRates);
+    if (crossedExpected == Null<Real>())
+        BOOST_ERROR("forward did not cross 110 on the shared day counter");
+    QL_CHECK_SMALL(crossed - crossedExpected, 1.0e-10);
+
+    // Actual/360 risk-free time runs past an Actual/365 Fixed dividend curve
+    // that ends on the same maturity date.  Pricing must use each curve's own
+    // year fraction and must agree with the same quadratic root.
+    DayCounter actual360 = Actual360();
+    std::vector<Rate> mixedRiskFreeRates{0.02, 0.05, 0.04};
+    auto mixedDividend = ext::make_shared<ZeroCurve>(knots, dividendRates, dc);
+    auto mixedRiskFree = ext::make_shared<ZeroCurve>(knots, mixedRiskFreeRates, actual360);
+    const Real mixedHit = priceUpOut(mixedDividend, mixedRiskFree, 110.0, 200.0);
+    const Real mixedHitExpected = knockOutRebate(spot, 110.0, 4.0, *mixedDividend, *mixedRiskFree,
+                                                 knots, dividendRates, mixedRiskFreeRates);
+    if (mixedHitExpected == Null<Real>())
+        BOOST_ERROR("forward did not cross 110 when day counters differ");
+    QL_CHECK_SMALL(mixedHit - mixedHitExpected, 1.0e-10);
+
+    // No crossing: the search has to walk all the way to maturity without
+    // asking the dividend curve for the risk-free year fraction.
+    const Real missed = priceUpOut(mixedDividend, mixedRiskFree, 1000.0, 80.0);
+    const Real missedForward =
+        spot * mixedDividend->discount(maturity) / mixedRiskFree->discount(maturity);
+    const Real missedExpected =
+        mixedRiskFree->discount(maturity) * std::max(missedForward - 80.0, 0.0);
+    QL_CHECK_SMALL(missed - missedExpected, 1.0e-10);
 }
 
 Real perturbativeBarrierOptionValue(Natural order, Size npoint = 1000,
