@@ -173,7 +173,10 @@ namespace QuantLib {
             // which need not be monotone for non-flat term structures.
             const bool down = barrierType == Barrier::DownIn ||
                               barrierType == Barrier::DownOut;
-            const Date start = process_->riskFreeRate()->referenceDate();
+            // Start at the later reference date so that both curves are read at a
+            // non-negative time, whichever curve is anchored later.
+            const Date start = std::max(process_->riskFreeRate()->referenceDate(),
+                                        process_->dividendYield()->referenceDate());
             const Date maturity = arguments_.exercise->lastDate();
             Time hitTime = 0.0;
             const bool hit = deterministicBarrierHit(

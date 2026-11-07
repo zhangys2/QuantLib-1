@@ -529,7 +529,7 @@ namespace QuantLib {
         Garch11CostFunction cost(r2);
         auto problem = ext::make_shared<Problem>(cost, constraints, initGuess);
         EndCriteria::Type result = method.minimize(*problem, endCriteria);
-        QL_REQUIRE(EndCriteria::succeeded(result) || result == EndCriteria::None,
+        QL_REQUIRE(EndCriteria::succeeded(result),
                    "GARCH(1,1) calibration did not converge: optimizer "
                    "stopped with end criterion " << result);
         const Array &optimum = problem->currentValue();
