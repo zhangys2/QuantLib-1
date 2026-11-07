@@ -24,6 +24,11 @@ struct PiecewiseConstantCorrelationHandle {
         : impl(std::move(impl_)) {}
 };
 
+struct MergeTimesResult {
+    std::vector<Time> merged_times;
+    std::vector<std::vector<bool>> is_present;
+};
+
 } // namespace
 
 void bind_marketmodel(nb::module_& m) {
@@ -249,4 +254,32 @@ void bind_marketmodel(nb::module_& m) {
         nb::arg("set"),
         nb::arg("subset"),
         "For each element of set, whether it appears in subset (both strictly increasing).");
+
+    nb::class_<MergeTimesResult>(m, "MergeTimesResult")
+        .def_ro("merged_times", &MergeTimesResult::merged_times)
+        .def_ro("is_present", &MergeTimesResult::is_present);
+
+    m.def(
+        "merge_times",
+        [](const std::vector<std::vector<Time>>& times) {
+            MergeTimesResult result;
+            std::vector<std::valarray<bool>> is_present;
+            mergeTimes(times, result.merged_times, is_present);
+            result.is_present.reserve(is_present.size());
+            for (const auto& row : is_present) {
+                result.is_present.emplace_back(std::begin(row), std::end(row));
+            }
+            return result;
+        },
+        nb::arg("times"),
+        "Merge sorted unique evolution times and mark source membership.");
+    m.def(
+        "check_increasing_times_and_calculate_taus",
+        [](const std::vector<Time>& times) {
+            std::vector<Time> taus;
+            checkIncreasingTimesAndCalculateTaus(times, taus);
+            return taus;
+        },
+        nb::arg("times"),
+        "Validate strictly increasing positive times and return successive taus.");
 }

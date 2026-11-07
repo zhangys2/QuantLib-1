@@ -238,7 +238,7 @@ void bind_inflation(nb::module_& m) {
                const ext::shared_ptr<Seasonality>& seasonality) {
                 h->setSeasonality(seasonality);
             },
-            nb::arg("seasonality") = ext::shared_ptr<Seasonality>(),
+            nb::arg("seasonality").none() = ext::shared_ptr<Seasonality>(),
             "Attach or clear (default/None) multiplicative seasonality.");
 
     nb::class_<RelinkableHandle<ZeroInflationTermStructure>>(
@@ -277,7 +277,7 @@ void bind_inflation(nb::module_& m) {
                const ext::shared_ptr<Seasonality>& seasonality) {
                 h->setSeasonality(seasonality);
             },
-            nb::arg("seasonality") = ext::shared_ptr<Seasonality>(),
+            nb::arg("seasonality").none() = ext::shared_ptr<Seasonality>(),
             "Attach or clear (default/None) multiplicative seasonality.");
 
     // ZeroInflationIndex is MI-heavy — opaque shared_ptr holder.
@@ -523,7 +523,7 @@ void bind_inflation(nb::module_& m) {
                const ext::shared_ptr<Seasonality>& seasonality) {
                 h->setSeasonality(seasonality);
             },
-            nb::arg("seasonality") = ext::shared_ptr<Seasonality>(),
+            nb::arg("seasonality").none() = ext::shared_ptr<Seasonality>(),
             "Attach or clear (default/None) multiplicative seasonality.");
 
     nb::class_<RelinkableHandle<YoYInflationTermStructure>>(
@@ -562,7 +562,7 @@ void bind_inflation(nb::module_& m) {
                const ext::shared_ptr<Seasonality>& seasonality) {
                 h->setSeasonality(seasonality);
             },
-            nb::arg("seasonality") = ext::shared_ptr<Seasonality>(),
+            nb::arg("seasonality").none() = ext::shared_ptr<Seasonality>(),
             "Attach or clear (default/None) multiplicative seasonality.");
 
     // YoYInflationIndex is MI-heavy — opaque shared_ptr holder.

@@ -3425,6 +3425,25 @@ result = ql.is_in_subset(times, subset)
 
 Recovers `MarketModelTests::testIsInSubset`.
 
+## Phase-191 market-model time utilities
+
+```python
+result = ql.merge_times([[1.0, 2.0], [2.0, 3.0]])
+taus = ql.check_increasing_times_and_calculate_taus([1.0, 2.5, 4.0])
+```
+
+Supports composite-product evolution merging and rate-tenor validation.
+
+## Phase-192 Abcd instantaneous volatility
+
+```python
+vol = f.instantaneous_volatility(t, T)
+var = f.instantaneous_variance(t, T)
+cov = f.instantaneous_covariance(u, T, S)
+```
+
+Completes the instantaneous AbcdFunction surface used by market-model volatility tests.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python
