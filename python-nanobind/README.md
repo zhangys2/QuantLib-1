@@ -927,6 +927,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - `GJRGARCHProcess.lambda_`, `GJRGARCHModel.lambda_` and `IsdaCdsNumericalFix.None_`: attribute-syntax spellings of the Python-keyword names `lambda` and `None` (the old spellings still work through `getattr`)
 - `_qlnb.pyi` and `compat.pyi` now parse as Python; a test enforces it
 
+### Phase 197 (builds against current QuantLib master)
+- `RoughHestonModel(process, hurst)` and `RoughHestonModel.process()`, following QuantLib's uniform Heston / rough Heston interface; the nine-argument constructor still works
+- Goldens follow upstream corrections: Margrabe `gamma` / `theta` for quantities other than one, and complex chooser maturities measured from the evaluation date
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

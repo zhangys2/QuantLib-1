@@ -62,3 +62,21 @@ def test_compat_phase149_aliases():
     assert hasattr(cql.VanillaOption, "setRoughHestonPricingEngine")
     assert cql.AnalyticRoughHestonEngine is not None
     assert cql.RoughHestonModel is not None
+
+
+def test_rough_heston_model_from_process_matches_nine_argument_form():
+    today = ql.Date(15, ql.Month.May, 1998)
+    ql.set_evaluation_date(today)
+    dc = ql.Actual365Fixed()
+    r_ts = ql.FlatForward(today, 0.03, dc)
+    q_ts = ql.FlatForward(today, 0.01, dc)
+    spot = ql.make_quote_handle(100.0)
+
+    flat = ql.RoughHestonModel(r_ts, q_ts, spot, 0.04, 1.5, 0.05, 0.3, -0.6, 0.1)
+    process = ql.HestonProcess(r_ts, q_ts, spot, 0.04, 1.5, 0.05, 0.3, -0.6)
+    from_process = ql.RoughHestonModel(process, 0.1)
+
+    for name in ("v0", "kappa", "theta", "sigma", "rho", "hurst"):
+        assert getattr(from_process, name)() == getattr(flat, name)(), name
+    assert flat.process().v0() == 0.04
+    assert from_process.process().kappa() == 1.5

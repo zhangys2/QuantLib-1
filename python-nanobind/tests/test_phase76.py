@@ -45,8 +45,9 @@ def test_complex_chooser_haug():
         choosing,
         55.0,
         48.0,
-        ql.EuropeanExercise(choosing + 180),
-        ql.EuropeanExercise(choosing + 210),
+        # QuantLib measures the call and put maturities from the evaluation date.
+        ql.EuropeanExercise(today + 180),
+        ql.EuropeanExercise(today + 210),
     )
     opt.set_pricing_engine(_bsm(today, 50.0, 0.05, 0.10, 0.35))
     assert opt.NPV() == pytest.approx(6.0508, abs=1.0e-4)

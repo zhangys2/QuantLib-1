@@ -703,24 +703,42 @@ void bind_heston(nb::module_& m) {
 
     // --- Phase 149: rough Heston --------------------------------------------
     nb::class_<RoughHestonModel>(m, "RoughHestonModel")
-        .def(nb::init<Handle<YieldTermStructure>,
-                      Handle<YieldTermStructure>,
-                      Handle<Quote>,
-                      Real,
-                      Real,
-                      Real,
-                      Real,
-                      Real,
-                      Real>(),
-             nb::arg("risk_free_rate"),
-             nb::arg("dividend_yield"),
-             nb::arg("s0"),
-             nb::arg("v0"),
-             nb::arg("kappa"),
-             nb::arg("theta"),
-             nb::arg("sigma"),
-             nb::arg("rho"),
-             nb::arg("hurst"))
+        // QuantLib builds the model from a HestonProcess and the Hurst exponent.
+        // The nine-argument form below builds that process internally, so the
+        // original qlnb signature keeps working.
+        .def(
+            "__init__",
+            [](RoughHestonModel* self,
+               const Handle<YieldTermStructure>& risk_free_rate,
+               const Handle<YieldTermStructure>& dividend_yield,
+               const Handle<Quote>& s0,
+               Real v0,
+               Real kappa,
+               Real theta,
+               Real sigma,
+               Real rho,
+               Real hurst) {
+                auto process = ext::make_shared<HestonProcess>(
+                    risk_free_rate, dividend_yield, s0, v0, kappa, theta, sigma, rho);
+                new (self) RoughHestonModel(process, hurst);
+            },
+            nb::arg("risk_free_rate"),
+            nb::arg("dividend_yield"),
+            nb::arg("s0"),
+            nb::arg("v0"),
+            nb::arg("kappa"),
+            nb::arg("theta"),
+            nb::arg("sigma"),
+            nb::arg("rho"),
+            nb::arg("hurst"))
+        .def(
+            "__init__",
+            [](RoughHestonModel* self,
+               const ext::shared_ptr<HestonProcess>& process,
+               Real hurst) { new (self) RoughHestonModel(process, hurst); },
+            nb::arg("process"),
+            nb::arg("hurst"))
+        .def("process", &RoughHestonModel::process)
         .def("v0", &RoughHestonModel::v0)
         .def("kappa", &RoughHestonModel::kappa)
         .def("theta", &RoughHestonModel::theta)
