@@ -2,8 +2,18 @@ name: Mac OS build
 on:
   push:
     branches:
-      - '**'
+      - master
+      - cursor/nanobind-python-phase186-clean
+    paths-ignore:
+      - 'python-nanobind/**'
+      - '.github/workflows/qlnb-wheels.yml'
   pull_request:
+    paths-ignore:
+      - 'python-nanobind/**'
+      - '.github/workflows/qlnb-wheels.yml'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 jobs:
   build:
     runs-on: ${{ matrix.os }}

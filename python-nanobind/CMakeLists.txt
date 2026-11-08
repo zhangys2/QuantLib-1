@@ -57,7 +57,22 @@ nanobind_add_module(
     src/bind_instruments.cpp
     src/bind_pricing.cpp
     src/bind_rates_options.cpp
+    src/bind_callable.cpp
+    src/bind_credit.cpp
+    src/bind_cms.cpp
+    src/bind_inflation.cpp
+    src/bind_fx.cpp
+    src/bind_heston.cpp
+    src/bind_lmm.cpp
+    src/bind_smile.cpp
+    src/bind_markov_functional.cpp
+    src/markov_functional_test_market.cpp
     src/bind_experimental.cpp
+    src/bind_math.cpp
+    src/bind_marketmodel.cpp
+    src/bind_arrays.cpp
+    src/bind_random.cpp
+    src/bind_statistics.cpp
 )
 
 target_link_libraries(_qlnb PRIVATE ${QLNB_QUANTLIB_TARGET})

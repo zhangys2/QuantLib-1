@@ -1,0 +1,110 @@
+"""Phase-130 tests: AnalyticDigitalAmericanEngine."""
+
+from __future__ import annotations
+
+import math
+import sys
+
+import pytest
+
+import qlnb as ql
+
+
+def test_version_is_phase130():
+    parts = tuple(int(x) for x in ql.__version__.split(".")[:2])
+    assert parts >= (4, 1)
+
+
+def _time_to_days(t: float) -> int:
+    return int(math.floor(t * 360 + 0.5))
+
+
+def _bsm(today, spot, q, r, vol):
+    dc = ql.Actual360()
+    return ql.BlackScholesMertonProcess(
+        ql.make_quote_handle(spot),
+        ql.FlatForward(today, q, dc),
+        ql.FlatForward(today, r, dc),
+        ql.BlackConstantVol(today, ql.NullCalendar(), vol, dc),
+    )
+
+
+# DigitalOptionTests::testCashAtHitOrNothingAmericanValues (Haug p.95).
+_CASH_CASES = [
+    (ql.OptionType.Put, 100.0, 105.0, 0.0, 0.10, 0.5, 0.20, 9.7264),
+    (ql.OptionType.Call, 100.0, 95.0, 0.0, 0.10, 0.5, 0.20, 11.6553),
+    (ql.OptionType.Put, 100.0, 105.0, 0.20, 0.10, 0.5, 0.20, 12.2715),
+    (ql.OptionType.Call, 100.0, 95.0, 0.20, 0.10, 0.5, 0.20, 8.9109),
+]
+
+
+@pytest.mark.parametrize(
+    "option_type,strike,spot,q,r,t,vol,expected",
+    _CASH_CASES,
+)
+def test_cash_at_hit_american(option_type, strike, spot, q, r, t, vol, expected):
+    today = ql.Date.todays_date()
+    ql.set_evaluation_date(today)
+    process = _bsm(today, spot, q, r, vol)
+    opt = ql.VanillaOption(
+        ql.CashOrNothingPayoff(option_type, strike, 15.0),
+        ql.AmericanExercise(today, today + _time_to_days(t)),
+    )
+    opt.set_digital_american_pricing_engine(process)
+    assert opt.NPV() == pytest.approx(expected, abs=1.0e-4)
+
+
+# DigitalOptionTests::testAssetAtHitOrNothingAmericanValues (Haug / suite).
+_ASSET_CASES = [
+    (ql.OptionType.Put, 100.0, 105.0, 0.0, 0.10, 0.5, 0.20, 64.8426),
+    (ql.OptionType.Call, 100.0, 95.0, 0.0, 0.10, 0.5, 0.20, 77.7017),
+    (ql.OptionType.Put, 100.0, 105.0, 0.01, 0.10, 0.5, 0.20, 65.7811),
+    (ql.OptionType.Call, 100.0, 95.0, 0.01, 0.10, 0.5, 0.20, 76.8858),
+]
+
+
+@pytest.mark.parametrize(
+    "option_type,strike,spot,q,r,t,vol,expected",
+    _ASSET_CASES,
+)
+def test_asset_at_hit_american(option_type, strike, spot, q, r, t, vol, expected):
+    today = ql.Date.todays_date()
+    ql.set_evaluation_date(today)
+    process = _bsm(today, spot, q, r, vol)
+    opt = ql.VanillaOption(
+        ql.AssetOrNothingPayoff(option_type, strike),
+        ql.AmericanExercise(today, today + _time_to_days(t)),
+    )
+    opt.set_digital_american_pricing_engine(process)
+    assert opt.NPV() == pytest.approx(expected, abs=1.0e-4)
+
+
+def test_digital_american_factory_alias():
+    today = ql.Date.todays_date()
+    ql.set_evaluation_date(today)
+    process = _bsm(today, 105.0, 0.0, 0.10, 0.20)
+    opt = ql.VanillaOption(
+        ql.CashOrNothingPayoff(ql.OptionType.Put, 100.0, 15.0),
+        ql.AmericanExercise(today, today + _time_to_days(0.5)),
+    )
+    opt.set_digital_american_pricing_engine(
+        ql.AnalyticDigitalAmericanEngine(process)
+    )
+    assert opt.NPV() == pytest.approx(9.7264, abs=1.0e-4)
+
+
+def test_native_digital_american_snake_case_only():
+    assert hasattr(ql.VanillaOption, "set_digital_american_pricing_engine")
+    assert hasattr(ql, "AnalyticDigitalAmericanEngine")
+    if "qlnb.compat" in sys.modules:
+        pytest.skip("qlnb.compat already loaded; camelCase aliases mutate VanillaOption")
+    assert not hasattr(ql.VanillaOption, "setDigitalAmericanPricingEngine")
+
+
+def test_compat_phase130_aliases():
+    import qlnb.compat as c
+
+    assert hasattr(c.VanillaOption, "setDigitalAmericanPricingEngine")
+    assert c.VanillaOption.setDigitalAmericanPricingEngine is (
+        ql.VanillaOption.set_digital_american_pricing_engine
+    )

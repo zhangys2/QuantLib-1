@@ -28,6 +28,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lock_check:
+    name: uv.lock is up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check python-nanobind/uv.lock matches pyproject.toml
+        working-directory: python-nanobind
+        run: |
+          python3 -m pip install uv==0.12.21
+          uv lock --check
+
   build_wheels:
     name: cibuildwheel (manylinux x86_64)
     runs-on: ubuntu-latest
@@ -47,7 +60,7 @@ jobs:
           CIBW_BUILD: cp312-manylinux_x86_64
           CIBW_SKIP: pp* *-musllinux_*
           CIBW_BUILD_VERBOSITY: 1
-          CIBW_ENVIRONMENT: CMAKE_BUILD_PARALLEL_LEVEL=2
+          CIBW_ENVIRONMENT: CMAKE_BUILD_PARALLEL_LEVEL=4
           # manylinux2014 ships Boost 1.53; QuantLib needs >= 1.58.
           # manylinux_2_28 (AlmaLinux 8) provides a new-enough Boost via dnf.
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
@@ -101,7 +114,7 @@ jobs:
   build_wheels_macos:
     name: cibuildwheel (macOS, optional)
     if: false
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4

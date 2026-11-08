@@ -151,7 +151,20 @@ def _install_aliases() -> None:
     FixedRateBond.dirtyPrice = FixedRateBond.dirty_price  # type: ignore[attr-defined]
     FixedRateBond.settlementDate = FixedRateBond.settlement_date  # type: ignore[attr-defined]
     FixedRateBond.maturityDate = FixedRateBond.maturity_date  # type: ignore[attr-defined]
+    if hasattr(FixedRateBond, "settlement_value"):
+        FixedRateBond.settlementValue = (  # type: ignore[attr-defined]
+            FixedRateBond.settlement_value
+        )
     FixedRateBond.setPricingEngine = FixedRateBond.set_pricing_engine  # type: ignore[attr-defined]
+    if hasattr(FixedRateBond, "bond_yield"):
+        FixedRateBond.bondYield = FixedRateBond.bond_yield  # type: ignore[attr-defined]
+        FixedRateBond.zSpread = FixedRateBond.z_spread  # type: ignore[attr-defined]
+        FixedRateBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+            FixedRateBond.clean_price_from_z_spread
+        )
+        FixedRateBond.accruedAmount = (  # type: ignore[attr-defined]
+            FixedRateBond.accrued_amount
+        )
 
     ZeroCouponBond = getattr(_ql, "ZeroCouponBond", None)
     if ZeroCouponBond is not None:
@@ -159,7 +172,20 @@ def _install_aliases() -> None:
         ZeroCouponBond.dirtyPrice = ZeroCouponBond.dirty_price  # type: ignore[attr-defined]
         ZeroCouponBond.settlementDate = ZeroCouponBond.settlement_date  # type: ignore[attr-defined]
         ZeroCouponBond.maturityDate = ZeroCouponBond.maturity_date  # type: ignore[attr-defined]
+        if hasattr(ZeroCouponBond, "settlement_value"):
+            ZeroCouponBond.settlementValue = (  # type: ignore[attr-defined]
+                ZeroCouponBond.settlement_value
+            )
         ZeroCouponBond.setPricingEngine = ZeroCouponBond.set_pricing_engine  # type: ignore[attr-defined]
+        if hasattr(ZeroCouponBond, "bond_yield"):
+            ZeroCouponBond.bondYield = ZeroCouponBond.bond_yield  # type: ignore[attr-defined]
+            ZeroCouponBond.zSpread = ZeroCouponBond.z_spread  # type: ignore[attr-defined]
+            ZeroCouponBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+                ZeroCouponBond.clean_price_from_z_spread
+            )
+            ZeroCouponBond.accruedAmount = (  # type: ignore[attr-defined]
+                ZeroCouponBond.accrued_amount
+            )
 
     FloatingRateBond = getattr(_ql, "FloatingRateBond", None)
     if FloatingRateBond is not None:
@@ -167,14 +193,101 @@ def _install_aliases() -> None:
         FloatingRateBond.dirtyPrice = FloatingRateBond.dirty_price  # type: ignore[attr-defined]
         FloatingRateBond.settlementDate = FloatingRateBond.settlement_date  # type: ignore[attr-defined]
         FloatingRateBond.maturityDate = FloatingRateBond.maturity_date  # type: ignore[attr-defined]
+        if hasattr(FloatingRateBond, "settlement_value"):
+            FloatingRateBond.settlementValue = (  # type: ignore[attr-defined]
+                FloatingRateBond.settlement_value
+            )
         FloatingRateBond.setPricingEngine = (  # type: ignore[attr-defined]
             FloatingRateBond.set_pricing_engine
         )
+        if hasattr(FloatingRateBond, "bond_yield"):
+            FloatingRateBond.bondYield = (  # type: ignore[attr-defined]
+                FloatingRateBond.bond_yield
+            )
+            FloatingRateBond.zSpread = (  # type: ignore[attr-defined]
+                FloatingRateBond.z_spread
+            )
+            FloatingRateBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+                FloatingRateBond.clean_price_from_z_spread
+            )
+            FloatingRateBond.accruedAmount = (  # type: ignore[attr-defined]
+                FloatingRateBond.accrued_amount
+            )
 
     VanillaSwap = _ql.VanillaSwap
     VanillaSwap.fairRate = VanillaSwap.fair_rate  # type: ignore[attr-defined]
     VanillaSwap.fairSpread = VanillaSwap.fair_spread  # type: ignore[attr-defined]
     VanillaSwap.setPricingEngine = VanillaSwap.set_pricing_engine  # type: ignore[attr-defined]
+
+    NonstandardSwap = getattr(_ql, "NonstandardSwap", None)
+    if NonstandardSwap is not None:
+        NonstandardSwap.setPricingEngine = (  # type: ignore[attr-defined]
+            NonstandardSwap.set_pricing_engine
+        )
+        NonstandardSwap.fixedNominal = NonstandardSwap.fixed_nominal  # type: ignore[attr-defined]
+        NonstandardSwap.floatingNominal = (  # type: ignore[attr-defined]
+            NonstandardSwap.floating_nominal
+        )
+        NonstandardSwap.fixedRate = NonstandardSwap.fixed_rate  # type: ignore[attr-defined]
+        NonstandardSwap.fixedSchedule = NonstandardSwap.fixed_schedule  # type: ignore[attr-defined]
+        NonstandardSwap.floatingSchedule = (  # type: ignore[attr-defined]
+            NonstandardSwap.floating_schedule
+        )
+        NonstandardSwap.iborIndex = NonstandardSwap.ibor_index  # type: ignore[attr-defined]
+        NonstandardSwap.fixedDayCount = NonstandardSwap.fixed_day_count  # type: ignore[attr-defined]
+        NonstandardSwap.floatingDayCount = (  # type: ignore[attr-defined]
+            NonstandardSwap.floating_day_count
+        )
+        NonstandardSwap.paymentConvention = (  # type: ignore[attr-defined]
+            NonstandardSwap.payment_convention
+        )
+
+    AssetSwap = getattr(_ql, "AssetSwap", None)
+    if AssetSwap is not None:
+        AssetSwap.fairSpread = AssetSwap.fair_spread  # type: ignore[attr-defined]
+        AssetSwap.fairCleanPrice = AssetSwap.fair_clean_price  # type: ignore[attr-defined]
+        AssetSwap.fairNonParRepayment = (  # type: ignore[attr-defined]
+            AssetSwap.fair_non_par_repayment
+        )
+        AssetSwap.floatingLegBPS = AssetSwap.floating_leg_BPS  # type: ignore[attr-defined]
+        AssetSwap.floatingLegNPV = AssetSwap.floating_leg_NPV  # type: ignore[attr-defined]
+        AssetSwap.parSwap = AssetSwap.par_swap  # type: ignore[attr-defined]
+        AssetSwap.cleanPrice = AssetSwap.clean_price  # type: ignore[attr-defined]
+        AssetSwap.nonParRepayment = (  # type: ignore[attr-defined]
+            AssetSwap.non_par_repayment
+        )
+        AssetSwap.payBondCoupon = AssetSwap.pay_bond_coupon  # type: ignore[attr-defined]
+        AssetSwap.isExpired = AssetSwap.is_expired  # type: ignore[attr-defined]
+        AssetSwap.setPricingEngine = AssetSwap.set_pricing_engine  # type: ignore[attr-defined]
+
+    ZeroCouponSwap = getattr(_ql, "ZeroCouponSwap", None)
+    if ZeroCouponSwap is not None:
+        ZeroCouponSwap.baseNominal = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.base_nominal
+        )
+        ZeroCouponSwap.startDate = ZeroCouponSwap.start_date  # type: ignore[attr-defined]
+        ZeroCouponSwap.maturityDate = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.maturity_date
+        )
+        ZeroCouponSwap.fixedPayment = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fixed_payment
+        )
+        ZeroCouponSwap.fixedLegNPV = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fixed_leg_NPV
+        )
+        ZeroCouponSwap.floatingLegNPV = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.floating_leg_NPV
+        )
+        ZeroCouponSwap.fairFixedPayment = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fair_fixed_payment
+        )
+        ZeroCouponSwap.fairFixedRate = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.fair_fixed_rate
+        )
+        ZeroCouponSwap.isExpired = ZeroCouponSwap.is_expired  # type: ignore[attr-defined]
+        ZeroCouponSwap.setPricingEngine = (  # type: ignore[attr-defined]
+            ZeroCouponSwap.set_pricing_engine
+        )
 
     Swaption = getattr(_ql, "Swaption", None)
     if Swaption is not None:
@@ -182,21 +295,757 @@ def _install_aliases() -> None:
         Swaption.settlementType = Swaption.settlement_type  # type: ignore[attr-defined]
         Swaption.settlementMethod = Swaption.settlement_method  # type: ignore[attr-defined]
         Swaption.isExpired = Swaption.is_expired  # type: ignore[attr-defined]
+        if hasattr(Swaption, "implied_volatility"):
+            Swaption.impliedVolatility = (  # type: ignore[attr-defined]
+                Swaption.implied_volatility
+            )
+        if hasattr(Swaption, "set_bachelier_pricing_engine"):
+            Swaption.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_bachelier_pricing_engine
+            )
+        if hasattr(Swaption, "set_tree_pricing_engine"):
+            Swaption.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_tree_pricing_engine
+            )
+        if hasattr(Swaption, "set_jamshidian_pricing_engine"):
+            Swaption.setJamshidianPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_jamshidian_pricing_engine
+            )
+        if hasattr(Swaption, "set_gaussian1d_pricing_engine"):
+            Swaption.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Swaption, "set_gaussian1d_jamshidian_pricing_engine"):
+            Swaption.setGaussian1dJamshidianPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_gaussian1d_jamshidian_pricing_engine
+            )
+        if hasattr(Swaption, "set_fd_hullwhite_pricing_engine"):
+            Swaption.setFdHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_fd_hullwhite_pricing_engine
+            )
+        if hasattr(Swaption, "set_g2_pricing_engine"):
+            Swaption.setG2PricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_g2_pricing_engine
+            )
+        if hasattr(Swaption, "set_fd_g2_pricing_engine"):
+            Swaption.setFdG2PricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_fd_g2_pricing_engine
+            )
+        if hasattr(Swaption, "set_g2_tree_pricing_engine"):
+            Swaption.setG2TreePricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_g2_tree_pricing_engine
+            )
+        if hasattr(Swaption, "set_lfm_pricing_engine"):
+            Swaption.setLfmPricingEngine = (  # type: ignore[attr-defined]
+                Swaption.set_lfm_pricing_engine
+            )
+
+    NonstandardSwaption = getattr(_ql, "NonstandardSwaption", None)
+    if NonstandardSwaption is not None:
+        NonstandardSwaption.settlementType = (  # type: ignore[attr-defined]
+            NonstandardSwaption.settlement_type
+        )
+        NonstandardSwaption.settlementMethod = (  # type: ignore[attr-defined]
+            NonstandardSwaption.settlement_method
+        )
+        NonstandardSwaption.isExpired = (  # type: ignore[attr-defined]
+            NonstandardSwaption.is_expired
+        )
+        NonstandardSwaption.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+            NonstandardSwaption.set_gaussian1d_pricing_engine
+        )
+        NonstandardSwaption.underlyingSwap = (  # type: ignore[attr-defined]
+            NonstandardSwaption.underlying_swap
+        )
+
+    CreditDefaultSwap = getattr(_ql, "CreditDefaultSwap", None)
+    if CreditDefaultSwap is not None:
+        CreditDefaultSwap.fairSpread = CreditDefaultSwap.fair_spread  # type: ignore[attr-defined]
+        CreditDefaultSwap.fairUpfront = CreditDefaultSwap.fair_upfront  # type: ignore[attr-defined]
+        CreditDefaultSwap.couponLegNPV = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.coupon_leg_NPV
+        )
+        CreditDefaultSwap.defaultLegNPV = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.default_leg_NPV
+        )
+        CreditDefaultSwap.runningSpread = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.running_spread
+        )
+        CreditDefaultSwap.setPricingEngine = (  # type: ignore[attr-defined]
+            CreditDefaultSwap.set_pricing_engine
+        )
+        CreditDefaultSwap.isExpired = CreditDefaultSwap.is_expired  # type: ignore[attr-defined]
+        if hasattr(CreditDefaultSwap, "set_isda_pricing_engine"):
+            CreditDefaultSwap.setIsdaPricingEngine = (  # type: ignore[attr-defined]
+                CreditDefaultSwap.set_isda_pricing_engine
+            )
+
+    CdsOption = getattr(_ql, "CdsOption", None)
+    if CdsOption is not None:
+        CdsOption.setPricingEngine = CdsOption.set_pricing_engine  # type: ignore[attr-defined]
+        CdsOption.isExpired = CdsOption.is_expired  # type: ignore[attr-defined]
+        CdsOption.atmRate = CdsOption.atm_rate  # type: ignore[attr-defined]
+        CdsOption.riskyAnnuity = CdsOption.risky_annuity  # type: ignore[attr-defined]
+        if hasattr(CdsOption, "implied_volatility"):
+            CdsOption.impliedVolatility = (  # type: ignore[attr-defined]
+                CdsOption.implied_volatility
+            )
+
+    BermudanExercise = getattr(_ql, "BermudanExercise", None)
+    if BermudanExercise is not None:
+        BermudanExercise.lastDate = BermudanExercise.last_date  # type: ignore[attr-defined]
+
+    DefaultProbabilityTermStructureHandle = getattr(
+        _ql, "DefaultProbabilityTermStructureHandle", None
+    )
+    if DefaultProbabilityTermStructureHandle is not None:
+        DefaultProbabilityTermStructureHandle.survivalProbability = (  # type: ignore[attr-defined]
+            DefaultProbabilityTermStructureHandle.survival_probability
+        )
+        DefaultProbabilityTermStructureHandle.hazardRate = (  # type: ignore[attr-defined]
+            DefaultProbabilityTermStructureHandle.hazard_rate
+        )
+        DefaultProbabilityTermStructureHandle.referenceDate = (  # type: ignore[attr-defined]
+            DefaultProbabilityTermStructureHandle.reference_date
+        )
+        if hasattr(DefaultProbabilityTermStructureHandle, "default_probability"):
+            DefaultProbabilityTermStructureHandle.defaultProbability = (  # type: ignore[attr-defined]
+                DefaultProbabilityTermStructureHandle.default_probability
+            )
+        if hasattr(DefaultProbabilityTermStructureHandle, "max_date"):
+            DefaultProbabilityTermStructureHandle.maxDate = (  # type: ignore[attr-defined]
+                DefaultProbabilityTermStructureHandle.max_date
+            )
+
+    Gsr = getattr(_ql, "Gsr", None)
+    if Gsr is not None and hasattr(Gsr, "numeraire_time"):
+        Gsr.numeraireTime = Gsr.numeraire_time  # type: ignore[attr-defined]
+
+    MfStateProcess = getattr(_ql, "MfStateProcess", None)
+    if MfStateProcess is not None and hasattr(MfStateProcess, "std_deviation"):
+        MfStateProcess.stdDeviation = MfStateProcess.std_deviation  # type: ignore[attr-defined]
+
+    KahaleSmileSection = getattr(_ql, "KahaleSmileSection", None)
+    if KahaleSmileSection is not None:
+        if hasattr(KahaleSmileSection, "left_core_strike"):
+            KahaleSmileSection.leftCoreStrike = (  # type: ignore[attr-defined]
+                KahaleSmileSection.left_core_strike
+            )
+        if hasattr(KahaleSmileSection, "right_core_strike"):
+            KahaleSmileSection.rightCoreStrike = (  # type: ignore[attr-defined]
+                KahaleSmileSection.right_core_strike
+            )
+        if hasattr(KahaleSmileSection, "digital_option_price"):
+            KahaleSmileSection.digitalOptionPrice = (  # type: ignore[attr-defined]
+                KahaleSmileSection.digital_option_price
+            )
+
+    SmileSectionUtils = getattr(_ql, "SmileSectionUtils", None)
+    if SmileSectionUtils is not None:
+        if hasattr(SmileSectionUtils, "arbitragefree_indices"):
+            SmileSectionUtils.arbitragefreeIndices = (  # type: ignore[attr-defined]
+                SmileSectionUtils.arbitragefree_indices
+            )
+        if hasattr(SmileSectionUtils, "arbitragefree_region"):
+            SmileSectionUtils.arbitragefreeRegion = (  # type: ignore[attr-defined]
+                SmileSectionUtils.arbitragefree_region
+            )
+        if hasattr(SmileSectionUtils, "atm_level"):
+            SmileSectionUtils.atmLevel = SmileSectionUtils.atm_level  # type: ignore[attr-defined]
+
+    MarkovFunctionalModelSettings = getattr(_ql, "MarkovFunctionalModelSettings", None)
+    if MarkovFunctionalModelSettings is not None:
+        for snake, camel in (
+            ("with_y_grid_points", "withYGridPoints"),
+            ("with_y_std_devs", "withYStdDevs"),
+            ("with_gauss_hermite_points", "withGaussHermitePoints"),
+            ("with_digital_gap", "withDigitalGap"),
+            ("with_market_rate_accuracy", "withMarketRateAccuracy"),
+            ("with_upper_rate_bound", "withUpperRateBound"),
+            ("with_lower_rate_bound", "withLowerRateBound"),
+            ("with_adjustments", "withAdjustments"),
+            ("add_adjustment", "addAdjustment"),
+            ("remove_adjustment", "removeAdjustment"),
+            ("with_smile_moneyness_checkpoints", "withSmileMoneynessCheckpoints"),
+        ):
+            if hasattr(MarkovFunctionalModelSettings, snake):
+                setattr(  # type: ignore[attr-defined]
+                    MarkovFunctionalModelSettings,
+                    camel,
+                    getattr(MarkovFunctionalModelSettings, snake),
+                )
+
+    MarkovFunctional = getattr(_ql, "MarkovFunctional", None)
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "model_outputs"):
+        MarkovFunctional.modelOutputs = MarkovFunctional.model_outputs  # type: ignore[attr-defined]
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "model_settings"):
+        MarkovFunctional.modelSettings = MarkovFunctional.model_settings  # type: ignore[attr-defined]
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "numeraire_date"):
+        MarkovFunctional.numeraireDate = MarkovFunctional.numeraire_date  # type: ignore[attr-defined]
+    if MarkovFunctional is not None and hasattr(MarkovFunctional, "numeraire_time"):
+        MarkovFunctional.numeraireTime = MarkovFunctional.numeraire_time  # type: ignore[attr-defined]
 
     EuropeanOption = _ql.EuropeanOption
     EuropeanOption.setPricingEngine = EuropeanOption.set_pricing_engine  # type: ignore[attr-defined]
     EuropeanOption.impliedVolatility = EuropeanOption.implied_volatility  # type: ignore[attr-defined]
+    if hasattr(EuropeanOption, "set_bsm_hull_white_pricing_engine"):
+        EuropeanOption.setBsmHullWhitePricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bsm_hull_white_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_heston_hull_white_pricing_engine"):
+        EuropeanOption.setHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_heston_hull_white_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_h1_hw_pricing_engine"):
+        EuropeanOption.setH1HWPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_h1_hw_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_dividend_pricing_engine"):
+        EuropeanOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_cash_dividend_pricing_engine"):
+        EuropeanOption.setCashDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_cash_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_dividend_pricing_engine"):
+        EuropeanOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_quanto_pricing_engine"):
+        EuropeanOption.setFdQuantoPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_quanto_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_quanto_dividend_pricing_engine"):
+        EuropeanOption.setFdQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_quanto_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_heston_dividend_pricing_engine"):
+        EuropeanOption.setFdHestonDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_heston_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_heston_quanto_pricing_engine"):
+        EuropeanOption.setFdHestonQuantoPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_heston_quanto_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_heston_quanto_dividend_pricing_engine"):
+        EuropeanOption.setFdHestonQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_heston_quanto_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_heston_pricing_engine"):
+        EuropeanOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_gjr_garch_pricing_engine"):
+        EuropeanOption.setGjrGarchPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_gjr_garch_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_rough_heston_pricing_engine"):
+        EuropeanOption.setRoughHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_rough_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_ptd_heston_pricing_engine"):
+        EuropeanOption.setPtdHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_ptd_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_mc_heston_pricing_engine"):
+        EuropeanOption.setMcHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_mc_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "error_estimate"):
+        EuropeanOption.errorEstimate = (  # type: ignore[attr-defined]
+            EuropeanOption.error_estimate
+        )
+    if hasattr(EuropeanOption, "set_cos_heston_pricing_engine"):
+        EuropeanOption.setCosHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_cos_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_exponential_fitting_heston_pricing_engine"):
+        EuropeanOption.setExponentialFittingHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_exponential_fitting_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_heston_pricing_engine"):
+        EuropeanOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_heston_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_bates_pricing_engine"):
+        EuropeanOption.setBatesPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_variance_gamma_pricing_engine"):
+        EuropeanOption.setVarianceGammaPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_variance_gamma_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fft_variance_gamma_pricing_engine"):
+        EuropeanOption.setFftVarianceGammaPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fft_variance_gamma_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fft_vanilla_pricing_engine"):
+        EuropeanOption.setFftVanillaPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fft_vanilla_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_bates_pricing_engine"):
+        EuropeanOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_bates_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_fd_bates_dividend_pricing_engine"):
+        EuropeanOption.setFdBatesDividendPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_bates_dividend_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_bates_det_jump_pricing_engine"):
+        EuropeanOption.setBatesDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_det_jump_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_bates_double_exp_pricing_engine"):
+        EuropeanOption.setBatesDoubleExpPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_double_exp_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_bates_double_exp_det_jump_pricing_engine"):
+        EuropeanOption.setBatesDoubleExpDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_bates_double_exp_det_jump_pricing_engine
+        )
 
     VanillaOption = _ql.VanillaOption
     VanillaOption.setPricingEngine = VanillaOption.set_pricing_engine  # type: ignore[attr-defined]
+    if hasattr(VanillaOption, "set_dividend_pricing_engine"):
+        VanillaOption.setDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_cash_dividend_pricing_engine"):
+        VanillaOption.setCashDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_cash_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_dividend_pricing_engine"):
+        VanillaOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_quanto_pricing_engine"):
+        VanillaOption.setFdQuantoPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_quanto_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_quanto_dividend_pricing_engine"):
+        VanillaOption.setFdQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_quanto_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_heston_dividend_pricing_engine"):
+        VanillaOption.setFdHestonDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_heston_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_heston_quanto_pricing_engine"):
+        VanillaOption.setFdHestonQuantoPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_heston_quanto_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_heston_quanto_dividend_pricing_engine"):
+        VanillaOption.setFdHestonQuantoDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_heston_quanto_dividend_pricing_engine
+        )
     if hasattr(VanillaOption, "set_binomial_pricing_engine"):
         VanillaOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]
             VanillaOption.set_binomial_pricing_engine
         )
-    if hasattr(VanillaOption, "set_fd_pricing_engine"):
-        VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
-            VanillaOption.set_fd_pricing_engine
+    if hasattr(VanillaOption, "set_digital_american_pricing_engine"):
+        VanillaOption.setDigitalAmericanPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_digital_american_pricing_engine
         )
+        if hasattr(VanillaOption, "set_digital_american_ko_pricing_engine"):
+            VanillaOption.setDigitalAmericanKoPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_digital_american_ko_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_bjerksund_stensland_pricing_engine"):
+            VanillaOption.setBjerksundStenslandPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_bjerksund_stensland_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_jump_diffusion_pricing_engine"):
+            VanillaOption.setJumpDiffusionPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_jump_diffusion_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_cev_pricing_engine"):
+            VanillaOption.setCevPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_cev_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_fd_cev_pricing_engine"):
+            VanillaOption.setFdCevPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_fd_cev_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_fd_pricing_engine"):
+            VanillaOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_fd_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_fd_shout_pricing_engine"):
+            VanillaOption.setFdShoutPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_fd_shout_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_fd_cir_pricing_engine"):
+            VanillaOption.setFdCirPricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_fd_cir_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_fd_heston_hull_white_pricing_engine"):
+            VanillaOption.setFdHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_fd_heston_hull_white_pricing_engine
+            )
+        if hasattr(VanillaOption, "set_mc_heston_hull_white_pricing_engine"):
+            VanillaOption.setMcHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                VanillaOption.set_mc_heston_hull_white_pricing_engine
+            )
+    if hasattr(EuropeanOption, "set_fd_heston_hull_white_pricing_engine"):
+        EuropeanOption.setFdHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_fd_heston_hull_white_pricing_engine
+        )
+    if hasattr(EuropeanOption, "set_mc_heston_hull_white_pricing_engine"):
+        EuropeanOption.setMcHestonHullWhitePricingEngine = (  # type: ignore[attr-defined]
+            EuropeanOption.set_mc_heston_hull_white_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_heston_pricing_engine"):
+        VanillaOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_gjr_garch_pricing_engine"):
+        VanillaOption.setGjrGarchPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_gjr_garch_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_rough_heston_pricing_engine"):
+        VanillaOption.setRoughHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_rough_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_ptd_heston_pricing_engine"):
+        VanillaOption.setPtdHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_ptd_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_pdf_heston_pricing_engine"):
+        VanillaOption.setPdfHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_pdf_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_mc_heston_pricing_engine"):
+        VanillaOption.setMcHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_mc_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "error_estimate"):
+        VanillaOption.errorEstimate = (  # type: ignore[attr-defined]
+            VanillaOption.error_estimate
+        )
+    if hasattr(VanillaOption, "set_cos_heston_pricing_engine"):
+        VanillaOption.setCosHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_cos_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_exponential_fitting_heston_pricing_engine"):
+        VanillaOption.setExponentialFittingHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_exponential_fitting_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_heston_pricing_engine"):
+        VanillaOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_heston_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_bates_pricing_engine"):
+        VanillaOption.setBatesPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_bates_pricing_engine"):
+        VanillaOption.setFdBatesPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_bates_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_fd_bates_dividend_pricing_engine"):
+        VanillaOption.setFdBatesDividendPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_fd_bates_dividend_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_bates_det_jump_pricing_engine"):
+        VanillaOption.setBatesDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_det_jump_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_bates_double_exp_pricing_engine"):
+        VanillaOption.setBatesDoubleExpPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_double_exp_pricing_engine
+        )
+    if hasattr(VanillaOption, "set_bates_double_exp_det_jump_pricing_engine"):
+        VanillaOption.setBatesDoubleExpDetJumpPricingEngine = (  # type: ignore[attr-defined]
+            VanillaOption.set_bates_double_exp_det_jump_pricing_engine
+        )
+
+    # Phase-39 / Phase-46 Bates aliases.
+    BatesDetJumpModel = getattr(_ql, "BatesDetJumpModel", None)
+    if BatesDetJumpModel is not None:
+        if hasattr(BatesDetJumpModel, "jump_intensity"):
+            BatesDetJumpModel.jumpIntensity = (  # type: ignore[attr-defined]
+                BatesDetJumpModel.jump_intensity
+            )
+        if hasattr(BatesDetJumpModel, "kappa_lambda"):
+            BatesDetJumpModel.kappaLambda = (  # type: ignore[attr-defined]
+                BatesDetJumpModel.kappa_lambda
+            )
+        if hasattr(BatesDetJumpModel, "theta_lambda"):
+            BatesDetJumpModel.thetaLambda = (  # type: ignore[attr-defined]
+                BatesDetJumpModel.theta_lambda
+            )
+    BatesDoubleExpModel = getattr(_ql, "BatesDoubleExpModel", None)
+    if BatesDoubleExpModel is not None:
+        if hasattr(BatesDoubleExpModel, "jump_intensity"):
+            BatesDoubleExpModel.jumpIntensity = (  # type: ignore[attr-defined]
+                BatesDoubleExpModel.jump_intensity
+            )
+        if hasattr(BatesDoubleExpModel, "nu_up"):
+            BatesDoubleExpModel.nuUp = BatesDoubleExpModel.nu_up  # type: ignore[attr-defined]
+        if hasattr(BatesDoubleExpModel, "nu_down"):
+            BatesDoubleExpModel.nuDown = (  # type: ignore[attr-defined]
+                BatesDoubleExpModel.nu_down
+            )
+    BatesDoubleExpDetJumpModel = getattr(_ql, "BatesDoubleExpDetJumpModel", None)
+    if BatesDoubleExpDetJumpModel is not None:
+        if hasattr(BatesDoubleExpDetJumpModel, "jump_intensity"):
+            BatesDoubleExpDetJumpModel.jumpIntensity = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.jump_intensity
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "nu_up"):
+            BatesDoubleExpDetJumpModel.nuUp = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.nu_up
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "nu_down"):
+            BatesDoubleExpDetJumpModel.nuDown = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.nu_down
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "kappa_lambda"):
+            BatesDoubleExpDetJumpModel.kappaLambda = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.kappa_lambda
+            )
+        if hasattr(BatesDoubleExpDetJumpModel, "theta_lambda"):
+            BatesDoubleExpDetJumpModel.thetaLambda = (  # type: ignore[attr-defined]
+                BatesDoubleExpDetJumpModel.theta_lambda
+            )
+
+    # Phase-39 Bates aliases.
+    BatesProcess = getattr(_ql, "BatesProcess", None)
+    if BatesProcess is not None and hasattr(BatesProcess, "jump_intensity"):
+        BatesProcess.jumpIntensity = BatesProcess.jump_intensity  # type: ignore[attr-defined]
+    BatesModel = getattr(_ql, "BatesModel", None)
+    if BatesModel is not None and hasattr(BatesModel, "jump_intensity"):
+        BatesModel.jumpIntensity = BatesModel.jump_intensity  # type: ignore[attr-defined]
+
+    # Phase-48 Heston calibration aliases.
+    HestonModelHelper = getattr(_ql, "HestonModelHelper", None)
+    if HestonModelHelper is not None:
+        HestonModelHelper.setPricingEngine = (  # type: ignore[attr-defined]
+            HestonModelHelper.set_pricing_engine
+        )
+        if hasattr(HestonModelHelper, "set_cos_heston_pricing_engine"):
+            HestonModelHelper.setCosHestonPricingEngine = (  # type: ignore[attr-defined]
+                HestonModelHelper.set_cos_heston_pricing_engine
+            )
+        if hasattr(
+            HestonModelHelper, "set_exponential_fitting_heston_pricing_engine"
+        ):
+            HestonModelHelper.setExponentialFittingHestonPricingEngine = (  # type: ignore[attr-defined]
+                HestonModelHelper.set_exponential_fitting_heston_pricing_engine
+            )
+        if hasattr(HestonModelHelper, "calibration_error"):
+            HestonModelHelper.calibrationError = (  # type: ignore[attr-defined]
+                HestonModelHelper.calibration_error
+            )
+        if hasattr(HestonModelHelper, "market_value"):
+            HestonModelHelper.marketValue = (  # type: ignore[attr-defined]
+                HestonModelHelper.market_value
+            )
+        if hasattr(HestonModelHelper, "model_value"):
+            HestonModelHelper.modelValue = (  # type: ignore[attr-defined]
+                HestonModelHelper.model_value
+            )
+    HestonModel = getattr(_ql, "HestonModel", None)
+    if HestonModel is not None:
+        if hasattr(HestonModel, "set_params"):
+            HestonModel.setParams = HestonModel.set_params  # type: ignore[attr-defined]
+        if hasattr(HestonModel, "end_criteria"):
+            HestonModel.endCriteria = HestonModel.end_criteria  # type: ignore[attr-defined]
+
+    CapHelper = getattr(_ql, "CapHelper", None)
+    if CapHelper is not None:
+        if hasattr(CapHelper, "set_lfm_pricing_engine"):
+            CapHelper.setLfmPricingEngine = (  # type: ignore[attr-defined]
+                CapHelper.set_lfm_pricing_engine
+            )
+        if hasattr(CapHelper, "calibration_error"):
+            CapHelper.calibrationError = (  # type: ignore[attr-defined]
+                CapHelper.calibration_error
+            )
+        if hasattr(CapHelper, "market_value"):
+            CapHelper.marketValue = (  # type: ignore[attr-defined]
+                CapHelper.market_value
+            )
+        if hasattr(CapHelper, "model_value"):
+            CapHelper.modelValue = (  # type: ignore[attr-defined]
+                CapHelper.model_value
+            )
+
+    SwaptionHelper = getattr(_ql, "SwaptionHelper", None)
+    if SwaptionHelper is not None:
+        if hasattr(SwaptionHelper, "set_lfm_pricing_engine"):
+            SwaptionHelper.setLfmPricingEngine = (  # type: ignore[attr-defined]
+                SwaptionHelper.set_lfm_pricing_engine
+            )
+        if hasattr(SwaptionHelper, "set_gaussian1d_pricing_engine"):
+            SwaptionHelper.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                SwaptionHelper.set_gaussian1d_pricing_engine
+            )
+        if hasattr(SwaptionHelper, "calibration_error"):
+            SwaptionHelper.calibrationError = (  # type: ignore[attr-defined]
+                SwaptionHelper.calibration_error
+            )
+        if hasattr(SwaptionHelper, "market_value"):
+            SwaptionHelper.marketValue = (  # type: ignore[attr-defined]
+                SwaptionHelper.market_value
+            )
+        if hasattr(SwaptionHelper, "model_value"):
+            SwaptionHelper.modelValue = (  # type: ignore[attr-defined]
+                SwaptionHelper.model_value
+            )
+
+    LiborForwardModel = getattr(_ql, "LiborForwardModel", None)
+    if LiborForwardModel is not None:
+        if hasattr(LiborForwardModel, "set_params"):
+            LiborForwardModel.setParams = LiborForwardModel.set_params  # type: ignore[attr-defined]
+        if hasattr(LiborForwardModel, "end_criteria"):
+            LiborForwardModel.endCriteria = LiborForwardModel.end_criteria  # type: ignore[attr-defined]
+
+    LiborForwardModelProcess = getattr(_ql, "LiborForwardModelProcess", None)
+    if LiborForwardModelProcess is not None:
+        for snake, camel in (
+            ("fixing_times", "fixingTimes"),
+            ("fixing_dates", "fixingDates"),
+            ("accrual_start_times", "accrualStartTimes"),
+            ("accrual_end_times", "accrualEndTimes"),
+            ("discount_bond", "discountBond"),
+            ("next_index_reset", "nextIndexReset"),
+            ("covar_param", "covarParam"),
+            ("set_covar_param", "setCovarParam"),
+        ):
+            if hasattr(LiborForwardModelProcess, snake):
+                setattr(
+                    LiborForwardModelProcess,
+                    camel,
+                    getattr(LiborForwardModelProcess, snake),
+                )
+
+    GeneralStatistics = getattr(_ql, "GeneralStatistics", None)
+    if GeneralStatistics is not None and hasattr(GeneralStatistics, "error_estimate"):
+        GeneralStatistics.errorEstimate = (  # type: ignore[attr-defined]
+            GeneralStatistics.error_estimate
+        )
+
+    MultiPathGenerator = getattr(_ql, "MultiPathGenerator", None)
+    LowDiscrepancyMultiPathGenerator = getattr(
+        _ql, "LowDiscrepancyMultiPathGenerator", None
+    )
+    TimeGrid = getattr(_ql, "TimeGrid", None)
+
+    LfmCovarianceParameterization = getattr(
+        _ql, "LfmCovarianceParameterization", None
+    )
+    if LfmCovarianceParameterization is not None:
+        if hasattr(LfmCovarianceParameterization, "integrated_covariance"):
+            LfmCovarianceParameterization.integratedCovariance = (  # type: ignore[attr-defined]
+                LfmCovarianceParameterization.integrated_covariance
+            )
+
+    LfmHullWhiteParameterization = getattr(_ql, "LfmHullWhiteParameterization", None)
+
+    LinearRegression = getattr(_ql, "LinearRegression", None)
+    if LinearRegression is not None and hasattr(LinearRegression, "standard_errors"):
+        LinearRegression.standardErrors = LinearRegression.standard_errors  # type: ignore[attr-defined]
+
+    linear_regression_with_basis = getattr(_ql, "linear_regression_with_basis", None)
+    if linear_regression_with_basis is not None:
+        linearRegressionWithBasis = linear_regression_with_basis  # noqa: N816
+
+    exponential_correlations = getattr(_ql, "exponential_correlations", None)
+    if exponential_correlations is not None:
+        exponentialCorrelations = exponential_correlations  # noqa: N816
+
+    time_homogeneous_forward_correlation = getattr(
+        _ql, "time_homogeneous_forward_correlation", None
+    )
+    if time_homogeneous_forward_correlation is not None:
+        timeHomogeneousForwardCorrelation = (  # noqa: N816
+            time_homogeneous_forward_correlation
+        )
+
+    EvolutionDescription = getattr(_ql, "EvolutionDescription", None)
+    if EvolutionDescription is not None:
+        for snake, camel in (
+            ("rate_times", "rateTimes"),
+            ("evolution_times", "evolutionTimes"),
+            ("rate_taus", "rateTaus"),
+            ("first_alive_rate", "firstAliveRate"),
+            ("number_of_rates", "numberOfRates"),
+            ("number_of_steps", "numberOfSteps"),
+        ):
+            if hasattr(EvolutionDescription, snake):
+                setattr(
+                    EvolutionDescription, camel, getattr(EvolutionDescription, snake)
+                )
+
+    FlatVol = getattr(_ql, "FlatVol", None)
+    AbcdVol = getattr(_ql, "AbcdVol", None)
+    for cls in (FlatVol, AbcdVol):
+        if cls is None:
+            continue
+        for snake, camel in (
+            ("pseudo_root", "pseudoRoot"),
+            ("number_of_rates", "numberOfRates"),
+            ("number_of_factors", "numberOfFactors"),
+            ("number_of_steps", "numberOfSteps"),
+        ):
+            if hasattr(cls, snake):
+                setattr(cls, camel, getattr(cls, snake))
+
+    LMMDriftCalculator = getattr(_ql, "LMMDriftCalculator", None)
+    if LMMDriftCalculator is not None:
+        for snake, camel in (
+            ("compute_plain", "computePlain"),
+            ("compute_reduced", "computeReduced"),
+        ):
+            if hasattr(LMMDriftCalculator, snake):
+                setattr(LMMDriftCalculator, camel, getattr(LMMDriftCalculator, snake))
+
+    PiecewiseConstantCorrelationHandle = getattr(
+        _ql, "PiecewiseConstantCorrelationHandle", None
+    )
+
+    AbcdFunction = getattr(_ql, "AbcdFunction", None)
+    if AbcdFunction is not None:
+        for snake, camel in (
+            ("maximum_volatility", "maximumVolatility"),
+            ("short_term_volatility", "shortTermVolatility"),
+            ("long_term_volatility", "longTermVolatility"),
+            ("instantaneous_volatility", "instantaneousVolatility"),
+            ("instantaneous_variance", "instantaneousVariance"),
+            ("instantaneous_covariance", "instantaneousCovariance"),
+        ):
+            if hasattr(AbcdFunction, snake):
+                setattr(AbcdFunction, camel, getattr(AbcdFunction, snake))
+
+    AbcdCalibration = getattr(_ql, "AbcdCalibration", None)
+    if AbcdCalibration is not None:
+        if hasattr(AbcdCalibration, "end_criteria"):
+            AbcdCalibration.endCriteria = AbcdCalibration.end_criteria  # type: ignore[attr-defined]
+
+    LmExponentialCorrelationModel = getattr(_ql, "LmExponentialCorrelationModel", None)
+    if LmExponentialCorrelationModel is not None:
+        if hasattr(LmExponentialCorrelationModel, "pseudo_sqrt"):
+            LmExponentialCorrelationModel.pseudoSqrt = (  # type: ignore[attr-defined]
+                LmExponentialCorrelationModel.pseudo_sqrt
+            )
+
+    LmExtLinearExponentialVolModel = getattr(_ql, "LmExtLinearExponentialVolModel", None)
+    if LmExtLinearExponentialVolModel is not None:
+        if hasattr(LmExtLinearExponentialVolModel, "integrated_variance"):
+            LmExtLinearExponentialVolModel.integratedVariance = (  # type: ignore[attr-defined]
+                LmExtLinearExponentialVolModel.integrated_variance
+            )
+
+    LmLinearExponentialCorrelationModel = getattr(
+        _ql, "LmLinearExponentialCorrelationModel", None
+    )
+    if LmLinearExponentialCorrelationModel is not None:
+        if hasattr(LmLinearExponentialCorrelationModel, "pseudo_sqrt"):
+            LmLinearExponentialCorrelationModel.pseudoSqrt = (  # type: ignore[attr-defined]
+                LmLinearExponentialCorrelationModel.pseudo_sqrt
+            )
 
     OvernightIndexedSwap = getattr(_ql, "OvernightIndexedSwap", None)
     if OvernightIndexedSwap is not None:
@@ -224,6 +1073,137 @@ def _install_aliases() -> None:
     PlainVanillaPayoff = _ql.PlainVanillaPayoff
     PlainVanillaPayoff.optionType = PlainVanillaPayoff.option_type  # type: ignore[attr-defined]
 
+    CashOrNothingPayoff = getattr(_ql, "CashOrNothingPayoff", None)
+    if CashOrNothingPayoff is not None:
+        CashOrNothingPayoff.optionType = (  # type: ignore[attr-defined]
+            CashOrNothingPayoff.option_type
+        )
+        CashOrNothingPayoff.cashPayoff = (  # type: ignore[attr-defined]
+            CashOrNothingPayoff.cash_payoff
+        )
+
+    AssetOrNothingPayoff = getattr(_ql, "AssetOrNothingPayoff", None)
+    if AssetOrNothingPayoff is not None:
+        AssetOrNothingPayoff.optionType = (  # type: ignore[attr-defined]
+            AssetOrNothingPayoff.option_type
+        )
+
+    GapPayoff = getattr(_ql, "GapPayoff", None)
+    if GapPayoff is not None:
+        GapPayoff.optionType = GapPayoff.option_type  # type: ignore[attr-defined]
+        GapPayoff.secondStrike = GapPayoff.second_strike  # type: ignore[attr-defined]
+
+    SuperFundPayoff = getattr(_ql, "SuperFundPayoff", None)
+    if SuperFundPayoff is not None:
+        SuperFundPayoff.optionType = (  # type: ignore[attr-defined]
+            SuperFundPayoff.option_type
+        )
+        SuperFundPayoff.secondStrike = (  # type: ignore[attr-defined]
+            SuperFundPayoff.second_strike
+        )
+
+    SuperSharePayoff = getattr(_ql, "SuperSharePayoff", None)
+    if SuperSharePayoff is not None:
+        SuperSharePayoff.optionType = (  # type: ignore[attr-defined]
+            SuperSharePayoff.option_type
+        )
+        SuperSharePayoff.secondStrike = (  # type: ignore[attr-defined]
+            SuperSharePayoff.second_strike
+        )
+        SuperSharePayoff.cashPayoff = (  # type: ignore[attr-defined]
+            SuperSharePayoff.cash_payoff
+        )
+
+    FloatingTypePayoff = getattr(_ql, "FloatingTypePayoff", None)
+    if FloatingTypePayoff is not None:
+        FloatingTypePayoff.optionType = (  # type: ignore[attr-defined]
+            FloatingTypePayoff.option_type
+        )
+
+    PercentageStrikePayoff = getattr(_ql, "PercentageStrikePayoff", None)
+    if PercentageStrikePayoff is not None:
+        PercentageStrikePayoff.optionType = (  # type: ignore[attr-defined]
+            PercentageStrikePayoff.option_type
+        )
+
+    ContinuousFloatingLookbackOption = getattr(
+        _ql, "ContinuousFloatingLookbackOption", None
+    )
+    if ContinuousFloatingLookbackOption is not None:
+        ContinuousFloatingLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousFloatingLookbackOption.set_pricing_engine
+        )
+        if hasattr(ContinuousFloatingLookbackOption, "set_mc_pricing_engine"):
+            ContinuousFloatingLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousFloatingLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousFloatingLookbackOption, "error_estimate"):
+            ContinuousFloatingLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousFloatingLookbackOption.error_estimate
+            )
+
+    ContinuousFixedLookbackOption = getattr(
+        _ql, "ContinuousFixedLookbackOption", None
+    )
+    if ContinuousFixedLookbackOption is not None:
+        ContinuousFixedLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousFixedLookbackOption.set_pricing_engine
+        )
+        if hasattr(ContinuousFixedLookbackOption, "set_mc_pricing_engine"):
+            ContinuousFixedLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousFixedLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousFixedLookbackOption, "error_estimate"):
+            ContinuousFixedLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousFixedLookbackOption.error_estimate
+            )
+
+    AnalyticContinuousFloatingLookbackEngine = getattr(
+        _ql, "AnalyticContinuousFloatingLookbackEngine", None
+    )
+    AnalyticContinuousFixedLookbackEngine = getattr(
+        _ql, "AnalyticContinuousFixedLookbackEngine", None
+    )
+
+    ContinuousPartialFloatingLookbackOption = getattr(
+        _ql, "ContinuousPartialFloatingLookbackOption", None
+    )
+    if ContinuousPartialFloatingLookbackOption is not None:
+        ContinuousPartialFloatingLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousPartialFloatingLookbackOption.set_pricing_engine
+        )
+        if hasattr(ContinuousPartialFloatingLookbackOption, "set_mc_pricing_engine"):
+            ContinuousPartialFloatingLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousPartialFloatingLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousPartialFloatingLookbackOption, "error_estimate"):
+            ContinuousPartialFloatingLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousPartialFloatingLookbackOption.error_estimate
+            )
+
+    ContinuousPartialFixedLookbackOption = getattr(
+        _ql, "ContinuousPartialFixedLookbackOption", None
+    )
+    if ContinuousPartialFixedLookbackOption is not None:
+        ContinuousPartialFixedLookbackOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousPartialFixedLookbackOption.set_pricing_engine
+        )
+        if hasattr(ContinuousPartialFixedLookbackOption, "set_mc_pricing_engine"):
+            ContinuousPartialFixedLookbackOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                ContinuousPartialFixedLookbackOption.set_mc_pricing_engine
+            )
+        if hasattr(ContinuousPartialFixedLookbackOption, "error_estimate"):
+            ContinuousPartialFixedLookbackOption.errorEstimate = (  # type: ignore[attr-defined]
+                ContinuousPartialFixedLookbackOption.error_estimate
+            )
+
+    AnalyticContinuousPartialFloatingLookbackEngine = getattr(
+        _ql, "AnalyticContinuousPartialFloatingLookbackEngine", None
+    )
+    AnalyticContinuousPartialFixedLookbackEngine = getattr(
+        _ql, "AnalyticContinuousPartialFixedLookbackEngine", None
+    )
+
     EuropeanExercise = _ql.EuropeanExercise
     EuropeanExercise.lastDate = EuropeanExercise.last_date  # type: ignore[attr-defined]
 
@@ -234,10 +1214,355 @@ def _install_aliases() -> None:
     ForwardRateAgreement.forwardRate = ForwardRateAgreement.forward_rate  # type: ignore[attr-defined]
     ForwardRateAgreement.fixingDate = ForwardRateAgreement.fixing_date  # type: ignore[attr-defined]
 
-    # Phase-4 experimental instruments (present when bindings are built).
+    BondForward = getattr(_ql, "BondForward", None)
+    if BondForward is not None:
+        BondForward.cleanForwardPrice = (  # type: ignore[attr-defined]
+            BondForward.clean_forward_price
+        )
+        BondForward.forwardPrice = BondForward.forward_price  # type: ignore[attr-defined]
+        BondForward.forwardValue = BondForward.forward_value  # type: ignore[attr-defined]
+        BondForward.spotValue = BondForward.spot_value  # type: ignore[attr-defined]
+        BondForward.spotIncome = BondForward.spot_income  # type: ignore[attr-defined]
+        BondForward.settlementDate = (  # type: ignore[attr-defined]
+            BondForward.settlement_date
+        )
+        BondForward.isExpired = BondForward.is_expired  # type: ignore[attr-defined]
+
+    PerpetualFutures = getattr(_ql, "PerpetualFutures", None)
+    if PerpetualFutures is not None:
+        PerpetualFutures.setPricingEngine = (  # type: ignore[attr-defined]
+            PerpetualFutures.set_pricing_engine
+        )
+        PerpetualFutures.isExpired = PerpetualFutures.is_expired  # type: ignore[attr-defined]
+        PerpetualFuturesPayoffType = getattr(  # noqa: N816
+            _ql, "PerpetualFuturesPayoffType", None
+        )
+        PerpetualFuturesFundingType = getattr(  # noqa: N816
+            _ql, "PerpetualFuturesFundingType", None
+        )
+        if PerpetualFuturesPayoffType is not None:
+            PerpetualFutures.Linear = (  # type: ignore[attr-defined]
+                PerpetualFuturesPayoffType.Linear
+            )
+            PerpetualFutures.Inverse = (  # type: ignore[attr-defined]
+                PerpetualFuturesPayoffType.Inverse
+            )
+            PerpetualFutures.Quanto = (  # type: ignore[attr-defined]
+                PerpetualFuturesPayoffType.Quanto
+            )
+        if PerpetualFuturesFundingType is not None:
+            PerpetualFutures.FundingWithPreviousSpot = (  # type: ignore[attr-defined]
+                PerpetualFuturesFundingType.FundingWithPreviousSpot
+            )
+            PerpetualFutures.FundingWithCurrentSpot = (  # type: ignore[attr-defined]
+                PerpetualFuturesFundingType.FundingWithCurrentSpot
+            )
+
+    # Phase-4 / Phase-31 barrier instruments (present when bindings are built).
     BarrierOption = getattr(_ql, "BarrierOption", None)
+    AnalyticBinaryBarrierEngine = getattr(
+        _ql, "AnalyticBinaryBarrierEngine", None
+    )
     if BarrierOption is not None:
         BarrierOption.setPricingEngine = BarrierOption.set_pricing_engine  # type: ignore[attr-defined]
+        if hasattr(BarrierOption, "set_perturbative_pricing_engine"):
+            BarrierOption.setPerturbativePricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_perturbative_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_vanna_volga_pricing_engine"):
+            BarrierOption.setVannaVolgaPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_vanna_volga_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_binary_pricing_engine"):
+            BarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_binary_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_binomial_pricing_engine"):
+            BarrierOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_binomial_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_fd_heston_pricing_engine"):
+            BarrierOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_fd_heston_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_fd_heston_dividend_pricing_engine"):
+            BarrierOption.setFdHestonDividendPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_fd_heston_dividend_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_fd_pricing_engine"):
+            BarrierOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_fd_pricing_engine
+            )
+        if hasattr(BarrierOption, "set_fd_dividend_pricing_engine"):
+            BarrierOption.setFdDividendPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_fd_dividend_pricing_engine
+            )
+        if hasattr(BarrierOption, "implied_volatility"):
+            BarrierOption.impliedVolatility = (  # type: ignore[attr-defined]
+                BarrierOption.implied_volatility
+            )
+        if hasattr(BarrierOption, "set_mc_pricing_engine"):
+            BarrierOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                BarrierOption.set_mc_pricing_engine
+            )
+        if hasattr(BarrierOption, "error_estimate"):
+            BarrierOption.errorEstimate = (  # type: ignore[attr-defined]
+                BarrierOption.error_estimate
+            )
+
+    # Phase-29 soft barrier aliases.
+    SoftBarrierOption = getattr(_ql, "SoftBarrierOption", None)
+    AnalyticSoftBarrierEngine = getattr(_ql, "AnalyticSoftBarrierEngine", None)
+    if SoftBarrierOption is not None:
+        SoftBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+            SoftBarrierOption.set_pricing_engine
+        )
+        if hasattr(SoftBarrierOption, "implied_volatility"):
+            SoftBarrierOption.impliedVolatility = (  # type: ignore[attr-defined]
+                SoftBarrierOption.implied_volatility
+            )
+
+    # Phase-30 partial-time barrier aliases.
+    PartialBarrierRange = getattr(_ql, "PartialBarrierRange", None)
+    PartialTimeBarrierOption = getattr(_ql, "PartialTimeBarrierOption", None)
+    AnalyticPartialTimeBarrierOptionEngine = getattr(
+        _ql, "AnalyticPartialTimeBarrierOptionEngine", None
+    )
+    if PartialTimeBarrierOption is not None:
+        PartialTimeBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+            PartialTimeBarrierOption.set_pricing_engine
+        )
+
+    # Phase-32 two-asset barrier aliases.
+    TwoAssetBarrierOption = getattr(_ql, "TwoAssetBarrierOption", None)
+    if TwoAssetBarrierOption is not None:
+        TwoAssetBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+            TwoAssetBarrierOption.set_pricing_engine
+        )
+        TwoAssetBarrierOption.isExpired = (  # type: ignore[attr-defined]
+            TwoAssetBarrierOption.is_expired
+        )
+
+    # Phase-33 two-asset correlation aliases.
+    TwoAssetCorrelationOption = getattr(_ql, "TwoAssetCorrelationOption", None)
+    if TwoAssetCorrelationOption is not None:
+        TwoAssetCorrelationOption.setPricingEngine = (  # type: ignore[attr-defined]
+            TwoAssetCorrelationOption.set_pricing_engine
+        )
+        TwoAssetCorrelationOption.isExpired = (  # type: ignore[attr-defined]
+            TwoAssetCorrelationOption.is_expired
+        )
+
+    # Phase-34/143 cliquet aliases.
+    CliquetOption = getattr(_ql, "CliquetOption", None)
+    if CliquetOption is not None:
+        CliquetOption.setPricingEngine = (  # type: ignore[attr-defined]
+            CliquetOption.set_pricing_engine
+        )
+        CliquetOption.isExpired = CliquetOption.is_expired  # type: ignore[attr-defined]
+        if hasattr(CliquetOption, "set_performance_pricing_engine"):
+            CliquetOption.setPerformancePricingEngine = (  # type: ignore[attr-defined]
+                CliquetOption.set_performance_pricing_engine
+            )
+
+    CompoundOption = getattr(_ql, "CompoundOption", None)
+    if CompoundOption is not None:
+        CompoundOption.setPricingEngine = (  # type: ignore[attr-defined]
+            CompoundOption.set_pricing_engine
+        )
+        CompoundOption.isExpired = CompoundOption.is_expired  # type: ignore[attr-defined]
+
+    # Phase-75 Margrabe exchange-option aliases.
+    MargrabeOption = getattr(_ql, "MargrabeOption", None)
+    if MargrabeOption is not None:
+        MargrabeOption.setPricingEngine = (  # type: ignore[attr-defined]
+            MargrabeOption.set_pricing_engine
+        )
+        MargrabeOption.setAmericanPricingEngine = (  # type: ignore[attr-defined]
+            MargrabeOption.set_american_pricing_engine
+        )
+        MargrabeOption.isExpired = MargrabeOption.is_expired  # type: ignore[attr-defined]
+
+    # Phase-76 simple / complex chooser aliases.
+    SimpleChooserOption = getattr(_ql, "SimpleChooserOption", None)
+    if SimpleChooserOption is not None:
+        SimpleChooserOption.setPricingEngine = (  # type: ignore[attr-defined]
+            SimpleChooserOption.set_pricing_engine
+        )
+        SimpleChooserOption.isExpired = SimpleChooserOption.is_expired  # type: ignore[attr-defined]
+    ComplexChooserOption = getattr(_ql, "ComplexChooserOption", None)
+    if ComplexChooserOption is not None:
+        ComplexChooserOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ComplexChooserOption.set_pricing_engine
+        )
+        ComplexChooserOption.isExpired = ComplexChooserOption.is_expired  # type: ignore[attr-defined]
+
+    # Phase-83 holder / writer extensible aliases.
+    HolderExtensibleOption = getattr(_ql, "HolderExtensibleOption", None)
+    if HolderExtensibleOption is not None:
+        HolderExtensibleOption.setPricingEngine = (  # type: ignore[attr-defined]
+            HolderExtensibleOption.set_pricing_engine
+        )
+        HolderExtensibleOption.isExpired = (  # type: ignore[attr-defined]
+            HolderExtensibleOption.is_expired
+        )
+    WriterExtensibleOption = getattr(_ql, "WriterExtensibleOption", None)
+    if WriterExtensibleOption is not None:
+        WriterExtensibleOption.setPricingEngine = (  # type: ignore[attr-defined]
+            WriterExtensibleOption.set_pricing_engine
+        )
+        WriterExtensibleOption.isExpired = (  # type: ignore[attr-defined]
+            WriterExtensibleOption.is_expired
+        )
+
+    # Phase-78 Kirk / Phase-79 Stulz basket aliases.
+    SpreadBasketPayoff = getattr(_ql, "SpreadBasketPayoff", None)
+    MinBasketPayoff = getattr(_ql, "MinBasketPayoff", None)
+    MaxBasketPayoff = getattr(_ql, "MaxBasketPayoff", None)
+    BasketOption = getattr(_ql, "BasketOption", None)
+    if BasketOption is not None:
+        if hasattr(BasketOption, "set_kirk_pricing_engine"):
+            BasketOption.setKirkPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_kirk_pricing_engine
+            )
+        if hasattr(BasketOption, "set_stulz_pricing_engine"):
+            BasketOption.setStulzPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_stulz_pricing_engine
+            )
+        if hasattr(BasketOption, "set_choi_pricing_engine"):
+            BasketOption.setChoiPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_choi_pricing_engine
+            )
+        if hasattr(BasketOption, "set_single_factor_pricing_engine"):
+            BasketOption.setSingleFactorPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_single_factor_pricing_engine
+            )
+        if hasattr(BasketOption, "set_deng_li_zhou_pricing_engine"):
+            BasketOption.setDengLiZhouPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_deng_li_zhou_pricing_engine
+            )
+        if hasattr(BasketOption, "set_bjerksund_stensland_pricing_engine"):
+            BasketOption.setBjerksundStenslandPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_bjerksund_stensland_pricing_engine
+            )
+        if hasattr(BasketOption, "set_pearson_pricing_engine"):
+            BasketOption.setPearsonPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_pearson_pricing_engine
+            )
+        if hasattr(BasketOption, "set_operator_splitting_pricing_engine"):
+            BasketOption.setOperatorSplittingPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_operator_splitting_pricing_engine
+            )
+        if hasattr(BasketOption, "set_gaussian_copula_pricing_engine"):
+            BasketOption.setGaussianCopulaPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_gaussian_copula_pricing_engine
+            )
+        if hasattr(BasketOption, "set_fd_2d_pricing_engine"):
+            BasketOption.setFd2dPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_fd_2d_pricing_engine
+            )
+        if hasattr(BasketOption, "set_fd_ndim_pricing_engine"):
+            BasketOption.setFdNdimPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_fd_ndim_pricing_engine
+            )
+        if hasattr(BasketOption, "set_mc_european_pricing_engine"):
+            BasketOption.setMCEuropeanPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_mc_european_pricing_engine
+            )
+        if hasattr(BasketOption, "set_mc_american_pricing_engine"):
+            BasketOption.setMCAmericanPricingEngine = (  # type: ignore[attr-defined]
+                BasketOption.set_mc_american_pricing_engine
+            )
+        if hasattr(BasketOption, "is_expired"):
+            BasketOption.isExpired = BasketOption.is_expired  # type: ignore[attr-defined]
+
+    # Phase-80 variance-swap aliases.
+    VarianceSwap = getattr(_ql, "VarianceSwap", None)
+    if VarianceSwap is not None:
+        VarianceSwap.setReplicatingPricingEngine = (  # type: ignore[attr-defined]
+            VarianceSwap.set_replicating_pricing_engine
+        )
+        VarianceSwap.isExpired = VarianceSwap.is_expired  # type: ignore[attr-defined]
+        VarianceSwap.startDate = VarianceSwap.start_date  # type: ignore[attr-defined]
+        VarianceSwap.maturityDate = VarianceSwap.maturity_date  # type: ignore[attr-defined]
+        if hasattr(VarianceSwap, "set_mc_pricing_engine"):
+            VarianceSwap.setMcPricingEngine = (  # type: ignore[attr-defined]
+                VarianceSwap.set_mc_pricing_engine
+            )
+
+    # Phase-110 variance-option aliases.
+    VarianceOption = getattr(_ql, "VarianceOption", None)
+    if VarianceOption is not None:
+        VarianceOption.setIntegralHestonPricingEngine = (  # type: ignore[attr-defined]
+            VarianceOption.set_integral_heston_pricing_engine
+        )
+        VarianceOption.isExpired = VarianceOption.is_expired  # type: ignore[attr-defined]
+        VarianceOption.startDate = VarianceOption.start_date  # type: ignore[attr-defined]
+        VarianceOption.maturityDate = VarianceOption.maturity_date  # type: ignore[attr-defined]
+
+    # Phase-35 forward vanilla aliases.
+    ForwardVanillaOption = getattr(_ql, "ForwardVanillaOption", None)
+    if ForwardVanillaOption is not None:
+        ForwardVanillaOption.setPricingEngine = (  # type: ignore[attr-defined]
+            ForwardVanillaOption.set_pricing_engine
+        )
+        if hasattr(ForwardVanillaOption, "set_performance_pricing_engine"):
+            ForwardVanillaOption.setPerformancePricingEngine = (  # type: ignore[attr-defined]
+                ForwardVanillaOption.set_performance_pricing_engine
+            )
+        if hasattr(ForwardVanillaOption, "set_heston_forward_pricing_engine"):
+            ForwardVanillaOption.setHestonForwardPricingEngine = (  # type: ignore[attr-defined]
+                ForwardVanillaOption.set_heston_forward_pricing_engine
+            )
+        ForwardVanillaOption.isExpired = (  # type: ignore[attr-defined]
+            ForwardVanillaOption.is_expired
+        )
+
+    # Phase-25/26 double-barrier aliases.
+    DoubleBarrierType = getattr(_ql, "DoubleBarrierType", None)
+    DoubleBarrierOption = getattr(_ql, "DoubleBarrierOption", None)
+    AnalyticDoubleBarrierEngine = getattr(
+        _ql, "AnalyticDoubleBarrierEngine", None
+    )
+    AnalyticDoubleBarrierBinaryEngine = getattr(
+        _ql, "AnalyticDoubleBarrierBinaryEngine", None
+    )
+    if DoubleBarrierOption is not None:
+        DoubleBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+            DoubleBarrierOption.set_pricing_engine
+        )
+        if hasattr(DoubleBarrierOption, "implied_volatility"):
+            DoubleBarrierOption.impliedVolatility = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.implied_volatility
+            )
+        if hasattr(DoubleBarrierOption, "set_suo_wang_pricing_engine"):
+            DoubleBarrierOption.setSuoWangPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_suo_wang_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "set_binomial_pricing_engine"):
+            DoubleBarrierOption.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_binomial_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "set_vanna_volga_pricing_engine"):
+            DoubleBarrierOption.setVannaVolgaPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_vanna_volga_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "set_binary_pricing_engine"):
+            DoubleBarrierOption.setBinaryPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_binary_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "set_fd_heston_pricing_engine"):
+            DoubleBarrierOption.setFdHestonPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_fd_heston_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "set_mc_pricing_engine"):
+            DoubleBarrierOption.setMcPricingEngine = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.set_mc_pricing_engine
+            )
+        if hasattr(DoubleBarrierOption, "error_estimate"):
+            DoubleBarrierOption.errorEstimate = (  # type: ignore[attr-defined]
+                DoubleBarrierOption.error_estimate
+            )
 
     CapFloor = getattr(_ql, "CapFloor", None)
     if CapFloor is not None:
@@ -245,10 +1570,166 @@ def _install_aliases() -> None:
         CapFloor.atmRate = CapFloor.atm_rate  # type: ignore[attr-defined]
         CapFloor.startDate = CapFloor.start_date  # type: ignore[attr-defined]
         CapFloor.maturityDate = CapFloor.maturity_date  # type: ignore[attr-defined]
+        if hasattr(CapFloor, "set_bachelier_pricing_engine"):
+            CapFloor.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_bachelier_pricing_engine
+            )
+        if hasattr(CapFloor, "set_gaussian1d_pricing_engine"):
+            CapFloor.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_gaussian1d_pricing_engine
+            )
+        if hasattr(CapFloor, "set_analytic_cap_floor_pricing_engine"):
+            CapFloor.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_analytic_cap_floor_pricing_engine
+            )
+        if hasattr(CapFloor, "set_libor_forward_pricing_engine"):
+            CapFloor.setLiborForwardPricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_libor_forward_pricing_engine
+            )
+        if hasattr(CapFloor, "set_tree_pricing_engine"):
+            CapFloor.setTreePricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_tree_pricing_engine
+            )
+        if hasattr(CapFloor, "set_mc_hull_white_pricing_engine"):
+            CapFloor.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                CapFloor.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(CapFloor, "error_estimate"):
+            CapFloor.errorEstimate = CapFloor.error_estimate  # type: ignore[attr-defined]
+        if hasattr(CapFloor, "implied_volatility"):
+            CapFloor.impliedVolatility = (  # type: ignore[attr-defined]
+                CapFloor.implied_volatility
+            )
+
+    Collar = getattr(_ql, "Collar", None)
+    if Collar is not None:
+        Collar.setPricingEngine = Collar.set_pricing_engine  # type: ignore[attr-defined]
+        Collar.atmRate = Collar.atm_rate  # type: ignore[attr-defined]
+        Collar.startDate = Collar.start_date  # type: ignore[attr-defined]
+        Collar.maturityDate = Collar.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Collar, "set_bachelier_pricing_engine"):
+            Collar.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_bachelier_pricing_engine
+            )
+        if hasattr(Collar, "set_gaussian1d_pricing_engine"):
+            Collar.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Collar, "set_analytic_cap_floor_pricing_engine"):
+            Collar.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_analytic_cap_floor_pricing_engine
+            )
+        if hasattr(Collar, "set_libor_forward_pricing_engine"):
+            Collar.setLiborForwardPricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_libor_forward_pricing_engine
+            )
+        if hasattr(Collar, "set_tree_pricing_engine"):
+            Collar.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_tree_pricing_engine
+            )
+        if hasattr(Collar, "set_mc_hull_white_pricing_engine"):
+            Collar.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Collar.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(Collar, "error_estimate"):
+            Collar.errorEstimate = Collar.error_estimate  # type: ignore[attr-defined]
+        if hasattr(Collar, "implied_volatility"):
+            Collar.impliedVolatility = (  # type: ignore[attr-defined]
+                Collar.implied_volatility
+            )
+
+    Cap = getattr(_ql, "Cap", None)
+    if Cap is not None:
+        Cap.setPricingEngine = Cap.set_pricing_engine  # type: ignore[attr-defined]
+        Cap.atmRate = Cap.atm_rate  # type: ignore[attr-defined]
+        Cap.startDate = Cap.start_date  # type: ignore[attr-defined]
+        Cap.maturityDate = Cap.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Cap, "set_bachelier_pricing_engine"):
+            Cap.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_bachelier_pricing_engine
+            )
+        if hasattr(Cap, "set_gaussian1d_pricing_engine"):
+            Cap.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Cap, "set_analytic_cap_floor_pricing_engine"):
+            Cap.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_analytic_cap_floor_pricing_engine
+            )
+        if hasattr(Cap, "set_libor_forward_pricing_engine"):
+            Cap.setLiborForwardPricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_libor_forward_pricing_engine
+            )
+        if hasattr(Cap, "set_tree_pricing_engine"):
+            Cap.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_tree_pricing_engine
+            )
+        if hasattr(Cap, "set_mc_hull_white_pricing_engine"):
+            Cap.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Cap.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(Cap, "error_estimate"):
+            Cap.errorEstimate = Cap.error_estimate  # type: ignore[attr-defined]
+        if hasattr(Cap, "implied_volatility"):
+            Cap.impliedVolatility = Cap.implied_volatility  # type: ignore[attr-defined]
+
+    Floor = getattr(_ql, "Floor", None)
+    if Floor is not None:
+        Floor.setPricingEngine = Floor.set_pricing_engine  # type: ignore[attr-defined]
+        Floor.atmRate = Floor.atm_rate  # type: ignore[attr-defined]
+        Floor.startDate = Floor.start_date  # type: ignore[attr-defined]
+        Floor.maturityDate = Floor.maturity_date  # type: ignore[attr-defined]
+        if hasattr(Floor, "set_bachelier_pricing_engine"):
+            Floor.setBachelierPricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_bachelier_pricing_engine
+            )
+        if hasattr(Floor, "set_gaussian1d_pricing_engine"):
+            Floor.setGaussian1dPricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_gaussian1d_pricing_engine
+            )
+        if hasattr(Floor, "set_analytic_cap_floor_pricing_engine"):
+            Floor.setAnalyticCapFloorPricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_analytic_cap_floor_pricing_engine
+            )
+        if hasattr(Floor, "set_libor_forward_pricing_engine"):
+            Floor.setLiborForwardPricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_libor_forward_pricing_engine
+            )
+        if hasattr(Floor, "set_tree_pricing_engine"):
+            Floor.setTreePricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_tree_pricing_engine
+            )
+        if hasattr(Floor, "set_mc_hull_white_pricing_engine"):
+            Floor.setMcHullWhitePricingEngine = (  # type: ignore[attr-defined]
+                Floor.set_mc_hull_white_pricing_engine
+            )
+        if hasattr(Floor, "error_estimate"):
+            Floor.errorEstimate = Floor.error_estimate  # type: ignore[attr-defined]
+        if hasattr(Floor, "implied_volatility"):
+            Floor.impliedVolatility = Floor.implied_volatility  # type: ignore[attr-defined]
 
 
 _install_aliases()
 
+AbcdCalibration = getattr(_ql, "AbcdCalibration", None)  # noqa: N816
+if AbcdCalibration is not None and hasattr(AbcdCalibration, "end_criteria"):
+    AbcdCalibration.endCriteria = AbcdCalibration.end_criteria  # type: ignore[attr-defined]
+
+LMMDriftCalculator = getattr(_ql, "LMMDriftCalculator", None)  # noqa: N816
+
+terminalMeasure = getattr(_ql, "terminal_measure", None)  # noqa: N816
+moneyMarketMeasure = getattr(_ql, "money_market_measure", None)  # noqa: N816
+moneyMarketPlusMeasure = getattr(_ql, "money_market_plus_measure", None)  # noqa: N816
+isInTerminalMeasure = getattr(_ql, "is_in_terminal_measure", None)  # noqa: N816
+isInMoneyMarketMeasure = getattr(_ql, "is_in_money_market_measure", None)  # noqa: N816
+isInMoneyMarketPlusMeasure = getattr(  # noqa: N816
+    _ql, "is_in_money_market_plus_measure", None
+)
+isInSubset = getattr(_ql, "is_in_subset", None)  # noqa: N816
+mergeTimes = getattr(_ql, "merge_times", None)  # noqa: N816
+checkIncreasingTimesAndCalculateTaus = getattr(  # noqa: N816
+    _ql, "check_increasing_times_and_calculate_taus", None
+)
 
 # Convenience aliases matching common SWIG free functions / names.
 setEvaluationDate = _ql.set_evaluation_date  # noqa: N816
@@ -272,6 +1753,1309 @@ _ql.VanillaSwap.Receiver = _ql.SwapType.Receiver  # type: ignore[attr-defined]
 
 # Phase-6 MakeOIS-style alias.
 makeOIS = getattr(_ql, "make_ois", None)
+
+# Phase-93 MakeMultipleResetsSwap-style alias.
+makeMultipleResetsSwap = getattr(_ql, "make_multiple_resets_swap", None)
+MakeMultipleResetsSwap = makeMultipleResetsSwap
+MultipleResetsSwap = getattr(_ql, "MultipleResetsSwap", None)
+if MultipleResetsSwap is not None:
+    MultipleResetsSwap.fairRate = MultipleResetsSwap.fair_rate  # type: ignore[attr-defined]
+    MultipleResetsSwap.fairSpread = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.fair_spread
+    )
+    MultipleResetsSwap.fixedRate = MultipleResetsSwap.fixed_rate  # type: ignore[attr-defined]
+    MultipleResetsSwap.fixedLegNPV = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.fixed_leg_NPV
+    )
+    MultipleResetsSwap.floatingLegNPV = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.floating_leg_NPV
+    )
+    MultipleResetsSwap.resetsPerCoupon = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.resets_per_coupon
+    )
+    MultipleResetsSwap.averagingMethod = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.averaging_method
+    )
+    MultipleResetsSwap.isExpired = MultipleResetsSwap.is_expired  # type: ignore[attr-defined]
+    MultipleResetsSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        MultipleResetsSwap.set_pricing_engine
+    )
+
+# Phase-98 FloatFloatSwap aliases.
+FloatFloatSwap = getattr(_ql, "FloatFloatSwap", None)
+makeFloatFloatSwap = getattr(_ql, "make_float_float_swap", None)
+MakeFloatFloatSwap = makeFloatFloatSwap
+if FloatFloatSwap is not None:
+    FloatFloatSwap.fairSpread1 = (  # type: ignore[attr-defined]
+        FloatFloatSwap.fair_spread1
+    )
+    FloatFloatSwap.fairSpread2 = (  # type: ignore[attr-defined]
+        FloatFloatSwap.fair_spread2
+    )
+    FloatFloatSwap.legNPV = FloatFloatSwap.leg_NPV  # type: ignore[attr-defined]
+    FloatFloatSwap.legBPS = FloatFloatSwap.leg_BPS  # type: ignore[attr-defined]
+    FloatFloatSwap.isExpired = FloatFloatSwap.is_expired  # type: ignore[attr-defined]
+    FloatFloatSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        FloatFloatSwap.set_pricing_engine
+    )
+
+# Phase-99 OvernightIndexFuture / SOFR futures aliases.
+OvernightIndexFuture = getattr(_ql, "OvernightIndexFuture", None)
+SofrFutureRateHelper = getattr(_ql, "SofrFutureRateHelper", None)
+PiecewiseLinearDiscountCurve = getattr(_ql, "PiecewiseLinearDiscountCurve", None)
+if OvernightIndexFuture is not None:
+    OvernightIndexFuture.isExpired = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.is_expired
+    )
+    OvernightIndexFuture.convexityAdjustment = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.convexity_adjustment
+    )
+    OvernightIndexFuture.valueDate = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.value_date
+    )
+    OvernightIndexFuture.maturityDate = (  # type: ignore[attr-defined]
+        OvernightIndexFuture.maturity_date
+    )
+
+# Phase-100 BMASwap / BMAIndex aliases.
+BMAIndex = getattr(_ql, "BMAIndex", None)
+BMASwap = getattr(_ql, "BMASwap", None)
+makeBMASwap = getattr(_ql, "make_bma_swap", None)
+MakeBMASwap = makeBMASwap
+BMASwapRateHelper = getattr(_ql, "BMASwapRateHelper", None)
+JointCalendar = getattr(_ql, "JointCalendar", None)
+JointCalendarRule = getattr(_ql, "JointCalendarRule", None)
+if BMAIndex is not None:
+    BMAIndex.fixingCalendar = BMAIndex.fixing_calendar  # type: ignore[attr-defined]
+    BMAIndex.dayCounter = BMAIndex.day_counter  # type: ignore[attr-defined]
+    BMAIndex.fixingDays = BMAIndex.fixing_days  # type: ignore[attr-defined]
+    BMAIndex.addFixing = BMAIndex.add_fixing  # type: ignore[attr-defined]
+    BMAIndex.isValidFixingDate = (  # type: ignore[attr-defined]
+        BMAIndex.is_valid_fixing_date
+    )
+if BMASwap is not None:
+    BMASwap.liborFraction = BMASwap.libor_fraction  # type: ignore[attr-defined]
+    BMASwap.liborSpread = BMASwap.libor_spread  # type: ignore[attr-defined]
+    BMASwap.fairLiborFraction = (  # type: ignore[attr-defined]
+        BMASwap.fair_libor_fraction
+    )
+    BMASwap.fairLiborSpread = (  # type: ignore[attr-defined]
+        BMASwap.fair_libor_spread
+    )
+    BMASwap.liborLegNPV = BMASwap.libor_leg_NPV  # type: ignore[attr-defined]
+    BMASwap.bmaLegNPV = BMASwap.bma_leg_NPV  # type: ignore[attr-defined]
+    BMASwap.liborLegBPS = BMASwap.libor_leg_BPS  # type: ignore[attr-defined]
+    BMASwap.bmaLegBPS = BMASwap.bma_leg_BPS  # type: ignore[attr-defined]
+    BMASwap.isExpired = BMASwap.is_expired  # type: ignore[attr-defined]
+    BMASwap.setPricingEngine = (  # type: ignore[attr-defined]
+        BMASwap.set_pricing_engine
+    )
+if hasattr(_ql, "IborIndex"):
+    _ql.IborIndex.businessDayConvention = (  # type: ignore[attr-defined]
+        _ql.IborIndex.business_day_convention
+    )
+    _ql.IborIndex.endOfMonth = _ql.IborIndex.end_of_month  # type: ignore[attr-defined]
+
+# Phase-101 AmortizingFixedRateBond / AmortizingFloatingRateBond aliases.
+AmortizingFixedRateBond = getattr(_ql, "AmortizingFixedRateBond", None)
+AmortizingFloatingRateBond = getattr(_ql, "AmortizingFloatingRateBond", None)
+sinkingSchedule = getattr(_ql, "sinking_schedule", None)
+sinkingNotionals = getattr(_ql, "sinking_notionals", None)
+SinkingSchedule = sinkingSchedule
+SinkingNotionals = sinkingNotionals
+if AmortizingFixedRateBond is not None:
+    AmortizingFixedRateBond.cleanPrice = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.clean_price
+    )
+    AmortizingFixedRateBond.dirtyPrice = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.dirty_price
+    )
+    AmortizingFixedRateBond.settlementDate = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.settlement_date
+    )
+    AmortizingFixedRateBond.maturityDate = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.maturity_date
+    )
+    AmortizingFixedRateBond.settlementValue = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.settlement_value
+    )
+    AmortizingFixedRateBond.dayCounter = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.day_counter
+    )
+    AmortizingFixedRateBond.cashflowAmounts = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.cashflow_amounts
+    )
+    AmortizingFixedRateBond.setPricingEngine = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.set_pricing_engine
+    )
+    AmortizingFixedRateBond.bondYield = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.bond_yield
+    )
+    AmortizingFixedRateBond.accruedAmount = (  # type: ignore[attr-defined]
+        AmortizingFixedRateBond.accrued_amount
+    )
+if AmortizingFloatingRateBond is not None:
+    AmortizingFloatingRateBond.cleanPrice = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.clean_price
+    )
+    AmortizingFloatingRateBond.dirtyPrice = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.dirty_price
+    )
+    AmortizingFloatingRateBond.settlementDate = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.settlement_date
+    )
+    AmortizingFloatingRateBond.maturityDate = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.maturity_date
+    )
+    AmortizingFloatingRateBond.settlementValue = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.settlement_value
+    )
+    AmortizingFloatingRateBond.cashflowAmounts = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.cashflow_amounts
+    )
+    AmortizingFloatingRateBond.setPricingEngine = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.set_pricing_engine
+    )
+    AmortizingFloatingRateBond.bondYield = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.bond_yield
+    )
+    AmortizingFloatingRateBond.accruedAmount = (  # type: ignore[attr-defined]
+        AmortizingFloatingRateBond.accrued_amount
+    )
+
+# Phase-102 VanillaSwingOption aliases.
+SwingExercise = getattr(_ql, "SwingExercise", None)
+VanillaForwardPayoff = getattr(_ql, "VanillaForwardPayoff", None)
+VanillaSwingOption = getattr(_ql, "VanillaSwingOption", None)
+FdSimpleBSSwingEngine = getattr(_ql, "FdSimpleBSSwingEngine", None)
+if SwingExercise is not None:
+    SwingExercise.lastDate = SwingExercise.last_date  # type: ignore[attr-defined]
+if VanillaForwardPayoff is not None:
+    VanillaForwardPayoff.optionType = (  # type: ignore[attr-defined]
+        VanillaForwardPayoff.option_type
+    )
+if VanillaSwingOption is not None:
+    VanillaSwingOption.isExpired = (  # type: ignore[attr-defined]
+        VanillaSwingOption.is_expired
+    )
+    VanillaSwingOption.setPricingEngine = (  # type: ignore[attr-defined]
+        VanillaSwingOption.set_fd_pricing_engine
+    )
+    VanillaSwingOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+        VanillaSwingOption.set_fd_pricing_engine
+    )
+
+# Phase-103 VanillaStorageOption / ExtendedOrnsteinUhlenbeck aliases.
+ExtendedOrnsteinUhlenbeckProcess = getattr(
+    _ql, "ExtendedOrnsteinUhlenbeckProcess", None
+)
+ExtendedOrnsteinUhlenbeckDiscretization = getattr(
+    _ql, "ExtendedOrnsteinUhlenbeckDiscretization", None
+)
+VanillaStorageOption = getattr(_ql, "VanillaStorageOption", None)
+FdSimpleExtOUStorageEngine = getattr(_ql, "FdSimpleExtOUStorageEngine", None)
+if VanillaStorageOption is not None:
+    VanillaStorageOption.isExpired = (  # type: ignore[attr-defined]
+        VanillaStorageOption.is_expired
+    )
+    VanillaStorageOption.setPricingEngine = (  # type: ignore[attr-defined]
+        VanillaStorageOption.set_fd_pricing_engine
+    )
+    VanillaStorageOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+        VanillaStorageOption.set_fd_pricing_engine
+    )
+
+# Phase-104 Stock / CompositeInstrument aliases.
+Stock = getattr(_ql, "Stock", None)
+CompositeInstrument = getattr(_ql, "CompositeInstrument", None)
+if Stock is not None:
+    Stock.isExpired = Stock.is_expired  # type: ignore[attr-defined]
+if CompositeInstrument is not None:
+    CompositeInstrument.isExpired = (  # type: ignore[attr-defined]
+        CompositeInstrument.is_expired
+    )
+
+# Phase-106 cross-currency fix/float swap aliases.
+ConstNotionalCrossCurrencyFixedVsFloatingSwap = getattr(
+    _ql, "ConstNotionalCrossCurrencyFixedVsFloatingSwap", None
+)
+if ConstNotionalCrossCurrencyFixedVsFloatingSwap is not None:
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.set_pricing_engine
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.legNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.leg_npv
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.legBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.leg_bps
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.inCcyLegNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.in_ccy_leg_npv
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.inCcyLegBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.in_ccy_leg_bps
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.fairRate = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.fair_rate
+    )
+    ConstNotionalCrossCurrencyFixedVsFloatingSwap.fairSpread = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyFixedVsFloatingSwap.fair_spread
+    )
+
+# Phase-109 cross-currency basis swap aliases.
+ConstNotionalCrossCurrencyBasisSwap = getattr(
+    _ql, "ConstNotionalCrossCurrencyBasisSwap", None
+)
+if ConstNotionalCrossCurrencyBasisSwap is not None:
+    ConstNotionalCrossCurrencyBasisSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.set_pricing_engine
+    )
+    ConstNotionalCrossCurrencyBasisSwap.legNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.leg_npv
+    )
+    ConstNotionalCrossCurrencyBasisSwap.legBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.leg_bps
+    )
+    ConstNotionalCrossCurrencyBasisSwap.inCcyLegNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.in_ccy_leg_npv
+    )
+    ConstNotionalCrossCurrencyBasisSwap.inCcyLegBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.in_ccy_leg_bps
+    )
+    ConstNotionalCrossCurrencyBasisSwap.fairPaySpread = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.fair_pay_spread
+    )
+    ConstNotionalCrossCurrencyBasisSwap.fairRecSpread = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencyBasisSwap.fair_rec_spread
+    )
+
+# Phase-111 generic cross-currency swap aliases.
+ConstNotionalCrossCurrencySwap = getattr(
+    _ql, "ConstNotionalCrossCurrencySwap", None
+)
+if ConstNotionalCrossCurrencySwap is not None:
+    ConstNotionalCrossCurrencySwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.set_pricing_engine
+    )
+    ConstNotionalCrossCurrencySwap.legNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.leg_npv
+    )
+    ConstNotionalCrossCurrencySwap.legBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.leg_bps
+    )
+    ConstNotionalCrossCurrencySwap.inCcyLegNPV = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.in_ccy_leg_npv
+    )
+    ConstNotionalCrossCurrencySwap.inCcyLegBPS = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.in_ccy_leg_bps
+    )
+    ConstNotionalCrossCurrencySwap.isExpired = (  # type: ignore[attr-defined]
+        ConstNotionalCrossCurrencySwap.is_expired
+    )
+
+makeFixFixXCCYSwap = getattr(_ql, "make_fix_fix_xccy_swap", None)
+makeFloatFloatXCCYSwap = getattr(_ql, "make_float_float_xccy_swap", None)
+makeFixFloatXCCYSwap = getattr(_ql, "make_fix_float_xccy_swap", None)
+CmsRateBond = getattr(_ql, "CmsRateBond", None)
+if CmsRateBond is not None:
+    CmsRateBond.cleanPrice = CmsRateBond.clean_price  # type: ignore[attr-defined]
+    CmsRateBond.dirtyPrice = CmsRateBond.dirty_price  # type: ignore[attr-defined]
+    CmsRateBond.settlementDate = CmsRateBond.settlement_date  # type: ignore[attr-defined]
+    CmsRateBond.maturityDate = CmsRateBond.maturity_date  # type: ignore[attr-defined]
+    CmsRateBond.settlementValue = (  # type: ignore[attr-defined]
+        CmsRateBond.settlement_value
+    )
+    CmsRateBond.setPricingEngine = (  # type: ignore[attr-defined]
+        CmsRateBond.set_pricing_engine
+    )
+    CmsRateBond.setCmsCouponPricer = (  # type: ignore[attr-defined]
+        CmsRateBond.set_cms_coupon_pricer
+    )
+    if hasattr(CmsRateBond, "bond_yield"):
+        CmsRateBond.bondYield = CmsRateBond.bond_yield  # type: ignore[attr-defined]
+        CmsRateBond.zSpread = CmsRateBond.z_spread  # type: ignore[attr-defined]
+        CmsRateBond.cleanPriceFromZSpread = (  # type: ignore[attr-defined]
+            CmsRateBond.clean_price_from_z_spread
+        )
+        CmsRateBond.accruedAmount = (  # type: ignore[attr-defined]
+            CmsRateBond.accrued_amount
+        )
+CHFCurrency = getattr(_ql, "CHFCurrency", None)
+Switzerland = getattr(_ql, "Switzerland", None)
+
+TRYCurrency = getattr(_ql, "TRYCurrency", None)
+Turkey = getattr(_ql, "Turkey", None)
+DiscountCurve = getattr(_ql, "DiscountCurve", None)
+
+# Phase-94 EquityTotalReturnSwap / EquityIndex aliases.
+USDLibor = getattr(_ql, "USDLibor", None)
+EquityIndex = getattr(_ql, "EquityIndex", None)
+if EquityIndex is not None:
+    EquityIndex.fixingCalendar = EquityIndex.fixing_calendar  # type: ignore[attr-defined]
+    EquityIndex.addFixing = EquityIndex.add_fixing  # type: ignore[attr-defined]
+EquityTotalReturnSwap = getattr(_ql, "EquityTotalReturnSwap", None)
+if EquityTotalReturnSwap is not None:
+    EquityTotalReturnSwap.fairMargin = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.fair_margin
+    )
+    EquityTotalReturnSwap.equityLegNPV = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.equity_leg_NPV
+    )
+    EquityTotalReturnSwap.interestRateLegNPV = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.interest_rate_leg_NPV
+    )
+    EquityTotalReturnSwap.isExpired = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.is_expired
+    )
+    EquityTotalReturnSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.set_pricing_engine
+    )
+    EquityTotalReturnSwap.paymentDelay = (  # type: ignore[attr-defined]
+        EquityTotalReturnSwap.payment_delay
+    )
+
+# Phase-95 HimalayaOption aliases.
+HimalayaOption = getattr(_ql, "HimalayaOption", None)
+if HimalayaOption is not None:
+    HimalayaOption.setMCPricingEngine = (  # type: ignore[attr-defined]
+        HimalayaOption.set_mc_pricing_engine
+    )
+    HimalayaOption.errorEstimate = HimalayaOption.error_estimate  # type: ignore[attr-defined]
+    HimalayaOption.isExpired = HimalayaOption.is_expired  # type: ignore[attr-defined]
+MCHimalayaEngine = getattr(_ql, "MCHimalayaEngine", None)
+
+# Phase-96 PagodaOption aliases.
+PagodaOption = getattr(_ql, "PagodaOption", None)
+if PagodaOption is not None:
+    PagodaOption.setMCPricingEngine = (  # type: ignore[attr-defined]
+        PagodaOption.set_mc_pricing_engine
+    )
+    PagodaOption.errorEstimate = PagodaOption.error_estimate  # type: ignore[attr-defined]
+    PagodaOption.isExpired = PagodaOption.is_expired  # type: ignore[attr-defined]
+MCPagodaEngine = getattr(_ql, "MCPagodaEngine", None)
+
+# Phase-97 EverestOption aliases.
+EverestOption = getattr(_ql, "EverestOption", None)
+if EverestOption is not None:
+    EverestOption.setMCPricingEngine = (  # type: ignore[attr-defined]
+        EverestOption.set_mc_pricing_engine
+    )
+    EverestOption.errorEstimate = EverestOption.error_estimate  # type: ignore[attr-defined]
+    EverestOption.isExpired = EverestOption.is_expired  # type: ignore[attr-defined]
+    # `yield` is a Python keyword; expose via setattr for SWIG-style access.
+    setattr(EverestOption, "yield", EverestOption.yield_)
+MCEverestEngine = getattr(_ql, "MCEverestEngine", None)
+
+# Phase-7 Protection nested namespace (SWIG: ql.Protection.Seller).
+class Protection:
+    """SWIG-style Protection.Buyer / Protection.Seller namespace."""
+
+    Buyer = getattr(_ql, "ProtectionSide").Buyer
+    Seller = getattr(_ql, "ProtectionSide").Seller
+
+# FD mesher / value-grid NumPy helpers (camelCase aliases).
+uniform1dMesherLocations = getattr(_ql, "uniform_1d_mesher_locations", None)
+fdmBlackScholesMesherLocations = getattr(
+    _ql, "fdm_black_scholes_mesher_locations", None
+)
+fdmBlackScholesValues = getattr(_ql, "fdm_black_scholes_values", None)
+
+# Phase-9 CDS bootstrap / Asian aliases.
+SpreadCdsHelper = getattr(_ql, "SpreadCdsHelper", None)
+PiecewiseHazardRateCurve = getattr(_ql, "PiecewiseHazardRateCurve", None)
+ContinuousAveragingAsianOption = getattr(
+    _ql, "ContinuousAveragingAsianOption", None
+)
+DiscreteAveragingAsianOption = getattr(
+    _ql, "DiscreteAveragingAsianOption", None
+)
+if ContinuousAveragingAsianOption is not None:
+    ContinuousAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
+        ContinuousAveragingAsianOption.set_pricing_engine
+    )
+    if hasattr(ContinuousAveragingAsianOption, "set_heston_pricing_engine"):
+        ContinuousAveragingAsianOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousAveragingAsianOption.set_heston_pricing_engine
+        )
+    if hasattr(ContinuousAveragingAsianOption, "set_vecer_pricing_engine"):
+        ContinuousAveragingAsianOption.setVecerPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousAveragingAsianOption.set_vecer_pricing_engine
+        )
+    if hasattr(ContinuousAveragingAsianOption, "set_levy_pricing_engine"):
+        ContinuousAveragingAsianOption.setLevyPricingEngine = (  # type: ignore[attr-defined]
+            ContinuousAveragingAsianOption.set_levy_pricing_engine
+        )
+if DiscreteAveragingAsianOption is not None:
+    DiscreteAveragingAsianOption.setPricingEngine = (  # type: ignore[attr-defined]
+        DiscreteAveragingAsianOption.set_pricing_engine
+    )
+    if hasattr(DiscreteAveragingAsianOption, "set_turnbull_wakeman_pricing_engine"):
+        DiscreteAveragingAsianOption.setTurnbullWakemanPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_turnbull_wakeman_pricing_engine
+        )
+    if hasattr(DiscreteAveragingAsianOption, "set_choi_pricing_engine"):
+        DiscreteAveragingAsianOption.setChoiPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_choi_pricing_engine
+        )
+    if hasattr(DiscreteAveragingAsianOption, "set_fd_pricing_engine"):
+        DiscreteAveragingAsianOption.setFdPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_fd_pricing_engine
+        )
+    if hasattr(DiscreteAveragingAsianOption, "set_heston_pricing_engine"):
+        DiscreteAveragingAsianOption.setHestonPricingEngine = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.set_heston_pricing_engine
+        )
+    if hasattr(DiscreteAveragingAsianOption, "is_expired"):
+        DiscreteAveragingAsianOption.isExpired = (  # type: ignore[attr-defined]
+            DiscreteAveragingAsianOption.is_expired
+        )
+
+# Phase-10 CMS / SwapIndex aliases.
+EuriborSwapIsdaFixA = getattr(_ql, "EuriborSwapIsdaFixA", None)
+ConstantSwaptionVolatility = getattr(_ql, "ConstantSwaptionVolatility", None)
+ConstantOptionletVolatility = getattr(_ql, "ConstantOptionletVolatility", None)
+MarkovFunctional = getattr(_ql, "MarkovFunctional", None)
+MarkovFunctionalModelSettings = getattr(_ql, "MarkovFunctionalModelSettings", None)
+MarkovFunctionalModelOutputs = getattr(_ql, "MarkovFunctionalModelOutputs", None)
+MarkovFunctionalAdjustment = getattr(_ql, "MarkovFunctionalAdjustment", None)
+markovFunctionalTestMd0Yts = getattr(_ql, "markov_functional_test_md0_yts", None)
+markovFunctionalTestMd0SwaptionVts = getattr(
+    _ql, "markov_functional_test_md0_swaption_vts", None
+)
+markovFunctionalTestMd0OptionletVts = getattr(
+    _ql, "markov_functional_test_md0_optionlet_vts", None
+)
+markovFunctionalTestMd0CoterminalHelperVols = getattr(
+    _ql, "markov_functional_test_md0_coterminal_helper_vols", None
+)
+AnalyticHaganPricer = getattr(_ql, "AnalyticHaganPricer", None)
+NumericHaganPricer = getattr(_ql, "NumericHaganPricer", None)
+makeCms = getattr(_ql, "make_cms", None)
+makeSwaption = getattr(_ql, "make_swaption", None)
+
+CmsCoupon = getattr(_ql, "CmsCoupon", None)
+if CmsCoupon is not None:
+    CmsCoupon.setPricer = CmsCoupon.set_pricer  # type: ignore[attr-defined]
+    CmsCoupon.accrualStartDate = CmsCoupon.accrual_start_date  # type: ignore[attr-defined]
+    CmsCoupon.accrualEndDate = CmsCoupon.accrual_end_date  # type: ignore[attr-defined]
+
+Swap = getattr(_ql, "Swap", None)
+if Swap is not None:
+    Swap.setPricingEngine = Swap.set_pricing_engine  # type: ignore[attr-defined]
+    Swap.isExpired = Swap.is_expired  # type: ignore[attr-defined]
+    Swap.numberOfLegs = Swap.number_of_legs  # type: ignore[attr-defined]
+    if hasattr(Swap, "set_cms_coupon_pricer"):
+        Swap.setCmsCouponPricer = Swap.set_cms_coupon_pricer  # type: ignore[attr-defined]
+
+SwapIndex = getattr(_ql, "SwapIndex", None)
+if SwapIndex is not None:
+    SwapIndex.fixingDays = SwapIndex.fixing_days  # type: ignore[attr-defined]
+    SwapIndex.fixingCalendar = SwapIndex.fixing_calendar  # type: ignore[attr-defined]
+    SwapIndex.dayCounter = SwapIndex.day_counter  # type: ignore[attr-defined]
+    if hasattr(SwapIndex, "add_fixing"):
+        SwapIndex.addFixing = SwapIndex.add_fixing  # type: ignore[attr-defined]
+    if hasattr(SwapIndex, "value_date"):
+        SwapIndex.valueDate = SwapIndex.value_date  # type: ignore[attr-defined]
+
+# Phase-11 CMS-spread aliases.
+LinearTsrPricer = getattr(_ql, "LinearTsrPricer", None)
+LognormalCmsSpreadPricer = getattr(_ql, "LognormalCmsSpreadPricer", None)
+SwapSpreadIndex = getattr(_ql, "make_swap_spread_index", None)
+CmsSpreadCoupon = getattr(_ql, "CmsSpreadCoupon", None)
+if CmsSpreadCoupon is not None:
+    CmsSpreadCoupon.setPricer = CmsSpreadCoupon.set_pricer  # type: ignore[attr-defined]
+    CmsSpreadCoupon.fixingDate = CmsSpreadCoupon.fixing_date  # type: ignore[attr-defined]
+CappedFlooredCmsSpreadCoupon = getattr(_ql, "CappedFlooredCmsSpreadCoupon", None)
+if CappedFlooredCmsSpreadCoupon is not None:
+    CappedFlooredCmsSpreadCoupon.setPricer = (  # type: ignore[attr-defined]
+        CappedFlooredCmsSpreadCoupon.set_pricer
+    )
+
+# Phase-12 zero-inflation / ZCIS aliases.
+UKRPI = getattr(_ql, "UKRPI", None)
+EUHICP = getattr(_ql, "EUHICP", None)
+ZeroCouponInflationSwapHelper = getattr(
+    _ql, "ZeroCouponInflationSwapHelper", None
+)
+PiecewiseZeroInflationCurve = getattr(_ql, "PiecewiseZeroInflationCurve", None)
+InterpolatedZeroInflationCurve = getattr(
+    _ql, "InterpolatedZeroInflationCurve", None
+)
+FlatZeroInflationCurve = getattr(_ql, "FlatZeroInflationCurve", None)
+
+ZeroInflationIndex = getattr(_ql, "ZeroInflationIndex", None)
+if ZeroInflationIndex is not None:
+    ZeroInflationIndex.addFixing = ZeroInflationIndex.add_fixing  # type: ignore[attr-defined]
+    ZeroInflationIndex.clearFixings = (  # type: ignore[attr-defined]
+        ZeroInflationIndex.clear_fixings
+    )
+    ZeroInflationIndex.lastFixingDate = (  # type: ignore[attr-defined]
+        ZeroInflationIndex.last_fixing_date
+    )
+    ZeroInflationIndex.availabilityLag = (  # type: ignore[attr-defined]
+        ZeroInflationIndex.availability_lag
+    )
+
+ZeroCouponInflationSwap = getattr(_ql, "ZeroCouponInflationSwap", None)
+if ZeroCouponInflationSwap is not None:
+    ZeroCouponInflationSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.set_pricing_engine
+    )
+    ZeroCouponInflationSwap.fairRate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.fair_rate
+    )
+    ZeroCouponInflationSwap.fixedRate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.fixed_rate
+    )
+    ZeroCouponInflationSwap.fixedLegNPV = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.fixed_leg_NPV
+    )
+    ZeroCouponInflationSwap.inflationLegNPV = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.inflation_leg_NPV
+    )
+    ZeroCouponInflationSwap.inflationLeg = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.inflation_leg
+    )
+    ZeroCouponInflationSwap.fixedLeg = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.fixed_leg
+    )
+    ZeroCouponInflationSwap.startDate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.start_date
+    )
+    ZeroCouponInflationSwap.maturityDate = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.maturity_date
+    )
+    ZeroCouponInflationSwap.isExpired = (  # type: ignore[attr-defined]
+        ZeroCouponInflationSwap.is_expired
+    )
+
+ZeroInflationTermStructureHandle = getattr(
+    _ql, "ZeroInflationTermStructureHandle", None
+)
+if ZeroInflationTermStructureHandle is not None:
+    ZeroInflationTermStructureHandle.zeroRate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.zero_rate
+    )
+    ZeroInflationTermStructureHandle.baseDate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.base_date
+    )
+    ZeroInflationTermStructureHandle.maxDate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.max_date
+    )
+    ZeroInflationTermStructureHandle.referenceDate = (  # type: ignore[attr-defined]
+        ZeroInflationTermStructureHandle.reference_date
+    )
+
+RelinkableZeroInflationTermStructureHandle = getattr(
+    _ql, "RelinkableZeroInflationTermStructureHandle", None
+)
+if RelinkableZeroInflationTermStructureHandle is not None:
+    RelinkableZeroInflationTermStructureHandle.linkTo = (  # type: ignore[attr-defined]
+        RelinkableZeroInflationTermStructureHandle.link_to
+    )
+    RelinkableZeroInflationTermStructureHandle.asHandle = (  # type: ignore[attr-defined]
+        RelinkableZeroInflationTermStructureHandle.as_handle
+    )
+
+# Phase-13 YoY-inflation / YYIIS aliases.
+YYUKRPI = getattr(_ql, "YYUKRPI", None)
+YYEUHICP = getattr(_ql, "YYEUHICP", None)
+YoYInflationIndex = getattr(_ql, "make_yoy_inflation_index", None)
+YearOnYearInflationSwapHelper = getattr(
+    _ql, "YearOnYearInflationSwapHelper", None
+)
+PiecewiseYoYInflationCurve = getattr(_ql, "PiecewiseYoYInflationCurve", None)
+InterpolatedYoYInflationCurve = getattr(
+    _ql, "InterpolatedYoYInflationCurve", None
+)
+FlatYoYInflationCurve = getattr(_ql, "FlatYoYInflationCurve", None)
+
+_YoYInflationIndexType = getattr(_ql, "YoYInflationIndex", None)
+if _YoYInflationIndexType is not None:
+    _YoYInflationIndexType.addFixing = (  # type: ignore[attr-defined]
+        _YoYInflationIndexType.add_fixing
+    )
+    _YoYInflationIndexType.clearFixings = (  # type: ignore[attr-defined]
+        _YoYInflationIndexType.clear_fixings
+    )
+    _YoYInflationIndexType.lastFixingDate = (  # type: ignore[attr-defined]
+        _YoYInflationIndexType.last_fixing_date
+    )
+    _YoYInflationIndexType.availabilityLag = (  # type: ignore[attr-defined]
+        _YoYInflationIndexType.availability_lag
+    )
+
+YearOnYearInflationSwap = getattr(_ql, "YearOnYearInflationSwap", None)
+if YearOnYearInflationSwap is not None:
+    YearOnYearInflationSwap.setPricingEngine = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.set_pricing_engine
+    )
+    YearOnYearInflationSwap.fairRate = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.fair_rate
+    )
+    YearOnYearInflationSwap.fairSpread = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.fair_spread
+    )
+    YearOnYearInflationSwap.fixedRate = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.fixed_rate
+    )
+    YearOnYearInflationSwap.fixedLegNPV = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.fixed_leg_NPV
+    )
+    YearOnYearInflationSwap.yoyLegNPV = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.yoy_leg_NPV
+    )
+    YearOnYearInflationSwap.startDate = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.start_date
+    )
+    YearOnYearInflationSwap.maturityDate = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.maturity_date
+    )
+    YearOnYearInflationSwap.isExpired = (  # type: ignore[attr-defined]
+        YearOnYearInflationSwap.is_expired
+    )
+
+YoYInflationTermStructureHandle = getattr(
+    _ql, "YoYInflationTermStructureHandle", None
+)
+if YoYInflationTermStructureHandle is not None:
+    YoYInflationTermStructureHandle.yoyRate = (  # type: ignore[attr-defined]
+        YoYInflationTermStructureHandle.yoy_rate
+    )
+    YoYInflationTermStructureHandle.baseDate = (  # type: ignore[attr-defined]
+        YoYInflationTermStructureHandle.base_date
+    )
+    YoYInflationTermStructureHandle.baseRate = (  # type: ignore[attr-defined]
+        YoYInflationTermStructureHandle.base_rate
+    )
+    YoYInflationTermStructureHandle.maxDate = (  # type: ignore[attr-defined]
+        YoYInflationTermStructureHandle.max_date
+    )
+    YoYInflationTermStructureHandle.referenceDate = (  # type: ignore[attr-defined]
+        YoYInflationTermStructureHandle.reference_date
+    )
+
+RelinkableYoYInflationTermStructureHandle = getattr(
+    _ql, "RelinkableYoYInflationTermStructureHandle", None
+)
+if RelinkableYoYInflationTermStructureHandle is not None:
+    RelinkableYoYInflationTermStructureHandle.linkTo = (  # type: ignore[attr-defined]
+        RelinkableYoYInflationTermStructureHandle.link_to
+    )
+    RelinkableYoYInflationTermStructureHandle.asHandle = (  # type: ignore[attr-defined]
+        RelinkableYoYInflationTermStructureHandle.as_handle
+    )
+
+# Phase-14 YoY inflation cap/floor aliases.
+ConstantYoYOptionletVolatility = getattr(
+    _ql, "ConstantYoYOptionletVolatility", None
+)
+makeYoYInflationCapFloor = getattr(_ql, "make_yoy_inflation_capfloor", None)
+MakeYoYInflationCapFloor = makeYoYInflationCapFloor
+
+YoYInflationCapFloor = getattr(_ql, "YoYInflationCapFloor", None)
+if YoYInflationCapFloor is not None:
+    YoYInflationCapFloor.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationCapFloor.set_pricing_engine
+    )
+    YoYInflationCapFloor.atmRate = (  # type: ignore[attr-defined]
+        YoYInflationCapFloor.atm_rate
+    )
+    YoYInflationCapFloor.startDate = (  # type: ignore[attr-defined]
+        YoYInflationCapFloor.start_date
+    )
+    YoYInflationCapFloor.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationCapFloor.maturity_date
+    )
+    YoYInflationCapFloor.isExpired = (  # type: ignore[attr-defined]
+        YoYInflationCapFloor.is_expired
+    )
+
+YoYInflationCapFloorType = getattr(_ql, "YoYInflationCapFloorType", None)
+YoYInflationCap = getattr(_ql, "YoYInflationCap", None)
+YoYInflationFloor = getattr(_ql, "YoYInflationFloor", None)
+YoYInflationCollar = getattr(_ql, "YoYInflationCollar", None)
+if YoYInflationCap is not None:
+    YoYInflationCap.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationCap.set_pricing_engine
+    )
+    YoYInflationCap.atmRate = YoYInflationCap.atm_rate  # type: ignore[attr-defined]
+    YoYInflationCap.startDate = YoYInflationCap.start_date  # type: ignore[attr-defined]
+    YoYInflationCap.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationCap.maturity_date
+    )
+    YoYInflationCap.isExpired = YoYInflationCap.is_expired  # type: ignore[attr-defined]
+if YoYInflationFloor is not None:
+    YoYInflationFloor.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationFloor.set_pricing_engine
+    )
+    YoYInflationFloor.atmRate = YoYInflationFloor.atm_rate  # type: ignore[attr-defined]
+    YoYInflationFloor.startDate = (  # type: ignore[attr-defined]
+        YoYInflationFloor.start_date
+    )
+    YoYInflationFloor.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationFloor.maturity_date
+    )
+    YoYInflationFloor.isExpired = (  # type: ignore[attr-defined]
+        YoYInflationFloor.is_expired
+    )
+if YoYInflationCollar is not None:
+    YoYInflationCollar.setPricingEngine = (  # type: ignore[attr-defined]
+        YoYInflationCollar.set_pricing_engine
+    )
+    YoYInflationCollar.atmRate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.atm_rate
+    )
+    YoYInflationCollar.startDate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.start_date
+    )
+    YoYInflationCollar.maturityDate = (  # type: ignore[attr-defined]
+        YoYInflationCollar.maturity_date
+    )
+    YoYInflationCollar.isExpired = (  # type: ignore[attr-defined]
+        YoYInflationCollar.is_expired
+    )
+YoYOptionletVolatilitySurfaceHandle = getattr(
+    _ql, "YoYOptionletVolatilitySurfaceHandle", None
+)
+
+# Phase-15 CPISwap / CPIBond aliases.
+GBPLibor = getattr(_ql, "GBPLibor", None)
+InterpolatedZeroCurve = getattr(_ql, "InterpolatedZeroCurve", None)
+ZeroCurve = getattr(_ql, "ZeroCurve", InterpolatedZeroCurve)
+CPISwap = getattr(_ql, "CPISwap", None)
+if CPISwap is not None:
+    CPISwap.setPricingEngine = CPISwap.set_pricing_engine  # type: ignore[attr-defined]
+    CPISwap.fairRate = CPISwap.fair_rate  # type: ignore[attr-defined]
+    CPISwap.fairSpread = CPISwap.fair_spread  # type: ignore[attr-defined]
+    CPISwap.fixedRate = CPISwap.fixed_rate  # type: ignore[attr-defined]
+    CPISwap.baseCPI = CPISwap.base_CPI  # type: ignore[attr-defined]
+    CPISwap.fixedLegNPV = CPISwap.fixed_leg_NPV  # type: ignore[attr-defined]
+    CPISwap.floatLegNPV = CPISwap.float_leg_NPV  # type: ignore[attr-defined]
+    CPISwap.isExpired = CPISwap.is_expired  # type: ignore[attr-defined]
+    CPISwap.inflationNominal = CPISwap.inflation_nominal  # type: ignore[attr-defined]
+
+CPIBond = getattr(_ql, "CPIBond", None)
+if CPIBond is not None:
+    CPIBond.setPricingEngine = CPIBond.set_pricing_engine  # type: ignore[attr-defined]
+    CPIBond.cleanPrice = CPIBond.clean_price  # type: ignore[attr-defined]
+    CPIBond.dirtyPrice = CPIBond.dirty_price  # type: ignore[attr-defined]
+    CPIBond.baseCPI = CPIBond.base_CPI  # type: ignore[attr-defined]
+    CPIBond.settlementDate = CPIBond.settlement_date  # type: ignore[attr-defined]
+    CPIBond.maturityDate = CPIBond.maturity_date  # type: ignore[attr-defined]
+    CPIBond.isExpired = CPIBond.is_expired  # type: ignore[attr-defined]
+
+# Phase-16 CPICapFloor aliases.
+Matrix = getattr(_ql, "Matrix", None)
+InterpolatedCPICapFloorTermPriceSurface = getattr(
+    _ql, "InterpolatedCPICapFloorTermPriceSurface", None
+)
+CPICapFloor = getattr(_ql, "CPICapFloor", None)
+if CPICapFloor is not None:
+    CPICapFloor.setPricingEngine = (  # type: ignore[attr-defined]
+        CPICapFloor.set_pricing_engine
+    )
+    CPICapFloor.fixingDate = CPICapFloor.fixing_date  # type: ignore[attr-defined]
+    CPICapFloor.payDate = CPICapFloor.pay_date  # type: ignore[attr-defined]
+    CPICapFloor.isExpired = CPICapFloor.is_expired  # type: ignore[attr-defined]
+
+CPICapFloorTermPriceSurfaceHandle = getattr(
+    _ql, "CPICapFloorTermPriceSurfaceHandle", None
+)
+if CPICapFloorTermPriceSurfaceHandle is not None:
+    CPICapFloorTermPriceSurfaceHandle.capPrice = (  # type: ignore[attr-defined]
+        CPICapFloorTermPriceSurfaceHandle.cap_price
+    )
+    CPICapFloorTermPriceSurfaceHandle.floorPrice = (  # type: ignore[attr-defined]
+        CPICapFloorTermPriceSurfaceHandle.floor_price
+    )
+    CPICapFloorTermPriceSurfaceHandle.atmRate = (  # type: ignore[attr-defined]
+        CPICapFloorTermPriceSurfaceHandle.atm_rate
+    )
+
+# Phase-17 seasonality aliases.
+MultiplicativePriceSeasonality = getattr(
+    _ql, "MultiplicativePriceSeasonality", None
+)
+KerkhofSeasonality = getattr(_ql, "KerkhofSeasonality", None)
+inflationPeriod = getattr(_ql, "inflation_period", None)
+Seasonality = getattr(_ql, "Seasonality", None)
+
+for _hname in (
+    "ZeroInflationTermStructureHandle",
+    "RelinkableZeroInflationTermStructureHandle",
+    "YoYInflationTermStructureHandle",
+    "RelinkableYoYInflationTermStructureHandle",
+):
+    _h = getattr(_ql, _hname, None)
+    if _h is not None:
+        _h.setSeasonality = _h.set_seasonality  # type: ignore[attr-defined]
+        _h.hasSeasonality = _h.has_seasonality  # type: ignore[attr-defined]
+
+if MultiplicativePriceSeasonality is not None:
+    MultiplicativePriceSeasonality.seasonalityBaseDate = (  # type: ignore[attr-defined]
+        MultiplicativePriceSeasonality.seasonality_base_date
+    )
+    MultiplicativePriceSeasonality.seasonalityFactors = (  # type: ignore[attr-defined]
+        MultiplicativePriceSeasonality.seasonality_factors
+    )
+    MultiplicativePriceSeasonality.seasonalityFactor = (  # type: ignore[attr-defined]
+        MultiplicativePriceSeasonality.seasonality_factor
+    )
+
+# Phase-18 CPI coupon / CPILeg aliases.
+CashFlow = getattr(_ql, "CashFlow", None)
+CPICouponPricer = getattr(_ql, "CPICouponPricer", None)
+CPICoupon = getattr(_ql, "CPICoupon", None)
+if CPICoupon is not None:
+    CPICoupon.setPricer = CPICoupon.set_pricer  # type: ignore[attr-defined]
+    CPICoupon.fixedRate = CPICoupon.fixed_rate  # type: ignore[attr-defined]
+    CPICoupon.baseCPI = CPICoupon.base_CPI  # type: ignore[attr-defined]
+    CPICoupon.indexFixing = CPICoupon.index_fixing  # type: ignore[attr-defined]
+    CPICoupon.adjustedIndexGrowth = (  # type: ignore[attr-defined]
+        CPICoupon.adjusted_index_growth
+    )
+    CPICoupon.fixingDate = CPICoupon.fixing_date  # type: ignore[attr-defined]
+    CPICoupon.indexRatio = CPICoupon.index_ratio  # type: ignore[attr-defined]
+    CPICoupon.capletPrice = CPICoupon.caplet_price  # type: ignore[attr-defined]
+    CPICoupon.floorletPrice = CPICoupon.floorlet_price  # type: ignore[attr-defined]
+    CPICoupon.capletRate = CPICoupon.caplet_rate  # type: ignore[attr-defined]
+    CPICoupon.floorletRate = CPICoupon.floorlet_rate  # type: ignore[attr-defined]
+
+if CPICouponPricer is not None:
+    CPICouponPricer.setCapletVolatility = (  # type: ignore[attr-defined]
+        CPICouponPricer.set_caplet_volatility
+    )
+    CPICouponPricer.capletVolatility = (  # type: ignore[attr-defined]
+        CPICouponPricer.caplet_volatility
+    )
+    CPICouponPricer.capletPrice = (  # type: ignore[attr-defined]
+        CPICouponPricer.caplet_price
+    )
+    CPICouponPricer.floorletPrice = (  # type: ignore[attr-defined]
+        CPICouponPricer.floorlet_price
+    )
+    CPICouponPricer.capletRate = CPICouponPricer.caplet_rate  # type: ignore[attr-defined]
+    CPICouponPricer.floorletRate = (  # type: ignore[attr-defined]
+        CPICouponPricer.floorlet_rate
+    )
+
+# Phase-65 CPI vol-dependent optionlet aliases.
+ConstantCPIVolatility = getattr(_ql, "ConstantCPIVolatility", None)
+CPIVolatilitySurfaceHandle = getattr(
+    _ql, "CPIVolatilitySurfaceHandle", None
+)
+if CPIVolatilitySurfaceHandle is not None:
+    CPIVolatilitySurfaceHandle.totalVariance = (  # type: ignore[attr-defined]
+        CPIVolatilitySurfaceHandle.total_variance
+    )
+    CPIVolatilitySurfaceHandle.observationLag = (  # type: ignore[attr-defined]
+        CPIVolatilitySurfaceHandle.observation_lag
+    )
+    CPIVolatilitySurfaceHandle.indexIsInterpolated = (  # type: ignore[attr-defined]
+        CPIVolatilitySurfaceHandle.index_is_interpolated
+    )
+BlackCPICouponPricer = getattr(_ql, "BlackCPICouponPricer", None)
+BachelierCPICouponPricer = getattr(_ql, "BachelierCPICouponPricer", None)
+
+CPILeg = getattr(_ql, "make_cpi_leg", None)
+setCouponPricer = getattr(_ql, "set_cpi_coupon_pricer", None)
+CashFlows_npv = getattr(_ql, "cashflows_npv", None)
+CashFlows_accruedAmount = getattr(_ql, "cashflows_accrued_amount", None)
+
+# Phase-19 YoY coupon / yoyInflationLeg aliases.
+YoYInflationCouponPricer = getattr(_ql, "YoYInflationCouponPricer", None)
+BlackYoYInflationCouponPricer = getattr(
+    _ql, "BlackYoYInflationCouponPricer", None
+)
+UnitDisplacedBlackYoYInflationCouponPricer = getattr(
+    _ql, "UnitDisplacedBlackYoYInflationCouponPricer", None
+)
+BachelierYoYInflationCouponPricer = getattr(
+    _ql, "BachelierYoYInflationCouponPricer", None
+)
+YoYInflationCoupon = getattr(_ql, "YoYInflationCoupon", None)
+if YoYInflationCoupon is not None:
+    YoYInflationCoupon.setPricer = YoYInflationCoupon.set_pricer  # type: ignore[attr-defined]
+    YoYInflationCoupon.indexFixing = (  # type: ignore[attr-defined]
+        YoYInflationCoupon.index_fixing
+    )
+    YoYInflationCoupon.adjustedFixing = (  # type: ignore[attr-defined]
+        YoYInflationCoupon.adjusted_fixing
+    )
+    YoYInflationCoupon.fixingDate = (  # type: ignore[attr-defined]
+        YoYInflationCoupon.fixing_date
+    )
+    YoYInflationCoupon.yoyIndex = YoYInflationCoupon.yoy_index  # type: ignore[attr-defined]
+
+yoyInflationLeg = getattr(_ql, "make_yoy_inflation_leg", None)
+setYoYCouponPricer = getattr(_ql, "set_yoy_coupon_pricer", None)
+
+# Phase-20 capped/floored YoY coupon aliases.
+CappedFlooredYoYInflationCoupon = getattr(
+    _ql, "CappedFlooredYoYInflationCoupon", None
+)
+if CappedFlooredYoYInflationCoupon is not None:
+    CappedFlooredYoYInflationCoupon.effectiveCap = (  # type: ignore[attr-defined]
+        CappedFlooredYoYInflationCoupon.effective_cap
+    )
+    CappedFlooredYoYInflationCoupon.effectiveFloor = (  # type: ignore[attr-defined]
+        CappedFlooredYoYInflationCoupon.effective_floor
+    )
+    CappedFlooredYoYInflationCoupon.underlyingRate = (  # type: ignore[attr-defined]
+        CappedFlooredYoYInflationCoupon.underlying_rate
+    )
+    CappedFlooredYoYInflationCoupon.isCapped = (  # type: ignore[attr-defined]
+        CappedFlooredYoYInflationCoupon.is_capped
+    )
+    CappedFlooredYoYInflationCoupon.isFloored = (  # type: ignore[attr-defined]
+        CappedFlooredYoYInflationCoupon.is_floored
+    )
+    CappedFlooredYoYInflationCoupon.setPricer = (  # type: ignore[attr-defined]
+        CappedFlooredYoYInflationCoupon.set_pricer
+    )
+
+# Phase-21 Indexed / CPI / ZeroInflation cash-flow aliases.
+IndexedCashFlow = getattr(_ql, "IndexedCashFlow", None)
+if IndexedCashFlow is not None:
+    IndexedCashFlow.baseDate = IndexedCashFlow.base_date  # type: ignore[attr-defined]
+    IndexedCashFlow.fixingDate = (  # type: ignore[attr-defined]
+        IndexedCashFlow.fixing_date
+    )
+    IndexedCashFlow.growthOnly = (  # type: ignore[attr-defined]
+        IndexedCashFlow.growth_only
+    )
+    IndexedCashFlow.baseFixing = (  # type: ignore[attr-defined]
+        IndexedCashFlow.base_fixing
+    )
+    IndexedCashFlow.indexFixing = (  # type: ignore[attr-defined]
+        IndexedCashFlow.index_fixing
+    )
+
+CPICashFlow = getattr(_ql, "CPICashFlow", None)
+if CPICashFlow is not None:
+    CPICashFlow.observationDate = (  # type: ignore[attr-defined]
+        CPICashFlow.observation_date
+    )
+    CPICashFlow.observationLag = (  # type: ignore[attr-defined]
+        CPICashFlow.observation_lag
+    )
+    CPICashFlow.cpiIndex = CPICashFlow.cpi_index  # type: ignore[attr-defined]
+
+ZeroInflationCashFlow = getattr(_ql, "ZeroInflationCashFlow", None)
+if ZeroInflationCashFlow is not None:
+    ZeroInflationCashFlow.zeroInflationIndex = (  # type: ignore[attr-defined]
+        ZeroInflationCashFlow.zero_inflation_index
+    )
+    ZeroInflationCashFlow.observationInterpolation = (  # type: ignore[attr-defined]
+        ZeroInflationCashFlow.observation_interpolation
+    )
+
+# Phase-22 YoY cap/floor term price surface aliases.
+InterpolatedYoYCapFloorTermPriceSurface = getattr(
+    _ql, "InterpolatedYoYCapFloorTermPriceSurface", None
+)
+YoYCapFloorTermPriceSurfaceHandle = getattr(
+    _ql, "YoYCapFloorTermPriceSurfaceHandle", None
+)
+if YoYCapFloorTermPriceSurfaceHandle is not None:
+    YoYCapFloorTermPriceSurfaceHandle.capPrice = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.cap_price
+    )
+    YoYCapFloorTermPriceSurfaceHandle.floorPrice = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.floor_price
+    )
+    YoYCapFloorTermPriceSurfaceHandle.atmYoYSwapRate = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.atm_yoy_swap_rate
+    )
+    YoYCapFloorTermPriceSurfaceHandle.atmYoYRate = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.atm_yoy_rate
+    )
+    YoYCapFloorTermPriceSurfaceHandle.atmYoYSwapTimeRates = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.atm_yoy_swap_time_rates
+    )
+    YoYCapFloorTermPriceSurfaceHandle.atmYoYSwapDateRates = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.atm_yoy_swap_date_rates
+    )
+    YoYCapFloorTermPriceSurfaceHandle.YoYTS = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.yoy_ts
+    )
+    YoYCapFloorTermPriceSurfaceHandle.capStrikes = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.cap_strikes
+    )
+    YoYCapFloorTermPriceSurfaceHandle.floorStrikes = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.floor_strikes
+    )
+    YoYCapFloorTermPriceSurfaceHandle.observationLag = (  # type: ignore[attr-defined]
+        YoYCapFloorTermPriceSurfaceHandle.observation_lag
+    )
+
+# Phase-23 callable / puttable bond aliases.
+BondPriceType = getattr(_ql, "BondPriceType", None)
+BondPrice = getattr(_ql, "BondPrice", None)
+CallabilityType = getattr(_ql, "CallabilityType", None)
+Callability = getattr(_ql, "make_callability", None)
+CallableFixedRateBond = getattr(_ql, "CallableFixedRateBond", None)
+if CallableFixedRateBond is not None:
+    CallableFixedRateBond.cleanPrice = (  # type: ignore[attr-defined]
+        CallableFixedRateBond.clean_price
+    )
+    CallableFixedRateBond.dirtyPrice = (  # type: ignore[attr-defined]
+        CallableFixedRateBond.dirty_price
+    )
+    CallableFixedRateBond.settlementDate = (  # type: ignore[attr-defined]
+        CallableFixedRateBond.settlement_date
+    )
+    CallableFixedRateBond.maturityDate = (  # type: ignore[attr-defined]
+        CallableFixedRateBond.maturity_date
+    )
+    CallableFixedRateBond.setTreePricingEngine = (  # type: ignore[attr-defined]
+        CallableFixedRateBond.set_tree_pricing_engine
+    )
+    if hasattr(CallableFixedRateBond, "set_black_pricing_engine"):
+        CallableFixedRateBond.setBlackPricingEngine = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.set_black_pricing_engine
+        )
+    if hasattr(CallableFixedRateBond, "implied_volatility"):
+        CallableFixedRateBond.impliedVolatility = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.implied_volatility
+        )
+    if hasattr(CallableFixedRateBond, "oas"):
+        CallableFixedRateBond.OAS = CallableFixedRateBond.oas  # type: ignore[attr-defined]
+        CallableFixedRateBond.cleanPriceOAS = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.clean_price_oas
+        )
+        CallableFixedRateBond.effectiveDuration = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.effective_duration
+        )
+        CallableFixedRateBond.effectiveConvexity = (  # type: ignore[attr-defined]
+            CallableFixedRateBond.effective_convexity
+        )
+CallableZeroCouponBond = getattr(_ql, "CallableZeroCouponBond", None)
+if CallableZeroCouponBond is not None:
+    CallableZeroCouponBond.cleanPrice = (  # type: ignore[attr-defined]
+        CallableZeroCouponBond.clean_price
+    )
+    CallableZeroCouponBond.dirtyPrice = (  # type: ignore[attr-defined]
+        CallableZeroCouponBond.dirty_price
+    )
+    CallableZeroCouponBond.settlementDate = (  # type: ignore[attr-defined]
+        CallableZeroCouponBond.settlement_date
+    )
+    CallableZeroCouponBond.maturityDate = (  # type: ignore[attr-defined]
+        CallableZeroCouponBond.maturity_date
+    )
+    CallableZeroCouponBond.setTreePricingEngine = (  # type: ignore[attr-defined]
+        CallableZeroCouponBond.set_tree_pricing_engine
+    )
+    if hasattr(CallableZeroCouponBond, "set_black_pricing_engine"):
+        CallableZeroCouponBond.setBlackPricingEngine = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.set_black_pricing_engine
+        )
+    if hasattr(CallableZeroCouponBond, "implied_volatility"):
+        CallableZeroCouponBond.impliedVolatility = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.implied_volatility
+        )
+    if hasattr(CallableZeroCouponBond, "oas"):
+        CallableZeroCouponBond.OAS = CallableZeroCouponBond.oas  # type: ignore[attr-defined]
+        CallableZeroCouponBond.cleanPriceOAS = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.clean_price_oas
+        )
+        CallableZeroCouponBond.effectiveDuration = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.effective_duration
+        )
+        CallableZeroCouponBond.effectiveConvexity = (  # type: ignore[attr-defined]
+            CallableZeroCouponBond.effective_convexity
+        )
+
+def make_soft_callability(*args: Any, **kwargs: Any) -> Any:
+    return _ql.make_soft_callability(*args, **kwargs)
+
+
+SoftCallability = make_soft_callability
+ConvertibleZeroCouponBond = getattr(_ql, "ConvertibleZeroCouponBond", None)
+ConvertibleFixedCouponBond = getattr(_ql, "ConvertibleFixedCouponBond", None)
+if ConvertibleZeroCouponBond is not None:
+    ConvertibleZeroCouponBond.cleanPrice = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.clean_price
+    )
+    ConvertibleZeroCouponBond.dirtyPrice = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.dirty_price
+    )
+    ConvertibleZeroCouponBond.conversionRatio = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.conversion_ratio
+    )
+    ConvertibleZeroCouponBond.settlementDate = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.settlement_date
+    )
+    ConvertibleZeroCouponBond.maturityDate = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.maturity_date
+    )
+    ConvertibleZeroCouponBond.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+        ConvertibleZeroCouponBond.set_binomial_pricing_engine
+    )
+if ConvertibleFixedCouponBond is not None:
+    ConvertibleFixedCouponBond.cleanPrice = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.clean_price
+    )
+    ConvertibleFixedCouponBond.dirtyPrice = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.dirty_price
+    )
+    ConvertibleFixedCouponBond.conversionRatio = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.conversion_ratio
+    )
+    ConvertibleFixedCouponBond.settlementDate = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.settlement_date
+    )
+    ConvertibleFixedCouponBond.maturityDate = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.maturity_date
+    )
+    ConvertibleFixedCouponBond.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+        ConvertibleFixedCouponBond.set_binomial_pricing_engine
+    )
+ConvertibleFloatingRateBond = getattr(_ql, "ConvertibleFloatingRateBond", None)
+if ConvertibleFloatingRateBond is not None:
+    ConvertibleFloatingRateBond.cleanPrice = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.clean_price
+    )
+    ConvertibleFloatingRateBond.dirtyPrice = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.dirty_price
+    )
+    ConvertibleFloatingRateBond.conversionRatio = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.conversion_ratio
+    )
+    ConvertibleFloatingRateBond.settlementDate = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.settlement_date
+    )
+    ConvertibleFloatingRateBond.maturityDate = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.maturity_date
+    )
+    ConvertibleFloatingRateBond.setBinomialPricingEngine = (  # type: ignore[attr-defined]
+        ConvertibleFloatingRateBond.set_binomial_pricing_engine
+    )
+
+# Phase-24 currency / FX aliases.
+Currency = getattr(_ql, "Currency", None)
+USDCurrency = getattr(_ql, "USDCurrency", None)
+EURCurrency = getattr(_ql, "EURCurrency", None)
+GBPCurrency = getattr(_ql, "GBPCurrency", None)
+SGDCurrency = getattr(_ql, "SGDCurrency", None)
+MoneyConversionType = getattr(_ql, "MoneyConversionType", None)
+Money = getattr(_ql, "Money", None)
+ExchangeRateType = getattr(_ql, "ExchangeRateType", None)
+ExchangeRate = getattr(_ql, "ExchangeRate", None)
+FxForward = getattr(_ql, "FxForward", None)
+if Currency is not None:
+    Currency.numericCode = Currency.numeric_code  # type: ignore[attr-defined]
+    Currency.fractionSymbol = (  # type: ignore[attr-defined]
+        Currency.fraction_symbol
+    )
+    Currency.fractionsPerUnit = (  # type: ignore[attr-defined]
+        Currency.fractions_per_unit
+    )
+if FxForward is not None:
+    FxForward.sourceNominal = (  # type: ignore[attr-defined]
+        FxForward.source_nominal
+    )
+    FxForward.targetNominal = (  # type: ignore[attr-defined]
+        FxForward.target_nominal
+    )
+    FxForward.sourceCurrency = (  # type: ignore[attr-defined]
+        FxForward.source_currency
+    )
+    FxForward.targetCurrency = (  # type: ignore[attr-defined]
+        FxForward.target_currency
+    )
+    FxForward.maturityDate = (  # type: ignore[attr-defined]
+        FxForward.maturity_date
+    )
+    FxForward.paySourceCurrency = (  # type: ignore[attr-defined]
+        FxForward.pay_source_currency
+    )
+    FxForward.forwardRate = FxForward.forward_rate  # type: ignore[attr-defined]
+    FxForward.settlementDays = (  # type: ignore[attr-defined]
+        FxForward.settlement_days
+    )
+    FxForward.settlementCalendar = (  # type: ignore[attr-defined]
+        FxForward.settlement_calendar
+    )
+    FxForward.settlementDate = (  # type: ignore[attr-defined]
+        FxForward.settlement_date
+    )
+    FxForward.isExpired = FxForward.is_expired  # type: ignore[attr-defined]
+    FxForward.fairForwardRate = (  # type: ignore[attr-defined]
+        FxForward.fair_forward_rate
+    )
+    FxForward.npvSourceCurrency = (  # type: ignore[attr-defined]
+        FxForward.npv_source_currency
+    )
+    FxForward.npvTargetCurrency = (  # type: ignore[attr-defined]
+        FxForward.npv_target_currency
+    )
+    FxForward.setPricingEngine = (  # type: ignore[attr-defined]
+        FxForward.set_pricing_engine
+    )
+
+# Phase-40 quanto vanilla aliases.
+QuantoVanillaOption = getattr(_ql, "QuantoVanillaOption", None)
+if QuantoVanillaOption is not None:
+    QuantoVanillaOption.setPricingEngine = (  # type: ignore[attr-defined]
+        QuantoVanillaOption.set_pricing_engine
+    )
+    QuantoVanillaOption.isExpired = (  # type: ignore[attr-defined]
+        QuantoVanillaOption.is_expired
+    )
+
+# Phase-41 / Phase-44 quanto-forward vanilla aliases.
+QuantoForwardVanillaOption = getattr(_ql, "QuantoForwardVanillaOption", None)
+if QuantoForwardVanillaOption is not None:
+    QuantoForwardVanillaOption.setPricingEngine = (  # type: ignore[attr-defined]
+        QuantoForwardVanillaOption.set_pricing_engine
+    )
+    if hasattr(QuantoForwardVanillaOption, "set_performance_pricing_engine"):
+        QuantoForwardVanillaOption.setPerformancePricingEngine = (  # type: ignore[attr-defined]
+            QuantoForwardVanillaOption.set_performance_pricing_engine
+        )
+    QuantoForwardVanillaOption.isExpired = (  # type: ignore[attr-defined]
+        QuantoForwardVanillaOption.is_expired
+    )
+
+# Phase-42 quanto barrier aliases.
+QuantoBarrierOption = getattr(_ql, "QuantoBarrierOption", None)
+if QuantoBarrierOption is not None:
+    QuantoBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+        QuantoBarrierOption.set_pricing_engine
+    )
+    QuantoBarrierOption.isExpired = (  # type: ignore[attr-defined]
+        QuantoBarrierOption.is_expired
+    )
+
+# Phase-43 quanto double-barrier aliases.
+QuantoDoubleBarrierOption = getattr(_ql, "QuantoDoubleBarrierOption", None)
+if QuantoDoubleBarrierOption is not None:
+    QuantoDoubleBarrierOption.setPricingEngine = (  # type: ignore[attr-defined]
+        QuantoDoubleBarrierOption.set_pricing_engine
+    )
+    QuantoDoubleBarrierOption.isExpired = (  # type: ignore[attr-defined]
+        QuantoDoubleBarrierOption.is_expired
+    )
+
+# SWIG-style CPI.Flat nested namespace.
+class CPI:
+    """SWIG-style CPI.Flat / CPI.Linear namespace."""
+
+    Flat = getattr(_ql, "CPIInterpolationType").Flat
+    Linear = getattr(_ql, "CPIInterpolationType").Linear
+    laggedFixing = staticmethod(getattr(_ql, "cpi_lagged_fixing"))
+
+# SWIG-style GFunctionFactory.Standard nested namespace.
+class GFunctionFactory:
+    """SWIG-style GFunctionFactory.Standard / ExactYield / … namespace."""
+
+    Standard = getattr(_ql, "YieldCurveModel").Standard
+    ExactYield = getattr(_ql, "YieldCurveModel").ExactYield
+    ParallelShifts = getattr(_ql, "YieldCurveModel").ParallelShifts
+    NonParallelShifts = getattr(_ql, "YieldCurveModel").NonParallelShifts
 
 
 __all__ = [name for name in globals() if not name.startswith("_")]

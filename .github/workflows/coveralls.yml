@@ -3,8 +3,17 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'python-nanobind/**'
+      - '.github/workflows/qlnb-wheels.yml'
   pull_request:
+    paths-ignore:
+      - 'python-nanobind/**'
+      - '.github/workflows/qlnb-wheels.yml'
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 jobs:
   coverage:
     runs-on: ubuntu-24.04

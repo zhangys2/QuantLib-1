@@ -1,7 +1,10 @@
 #include "bindings.hpp"
 
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
+
+#include <optional>
 
 #include <ql/handle.hpp>
 #include <ql/quotes/simplequote.hpp>
@@ -27,8 +30,8 @@ void settings_set_evaluation_date(const Date& d) {
 } // namespace
 
 NB_MODULE(_qlnb, m) {
-    m.doc() = "Nanobind bindings for QuantLib (phase 6)";
-    m.attr("__version__") = "0.7.0";
+    m.doc() = "Nanobind bindings for QuantLib (phase 123)";
+    m.attr("__version__") = "4.67.0";
 
     nb::enum_<Month>(m, "Month")
         .value("January", January)
@@ -89,6 +92,15 @@ NB_MODULE(_qlnb, m) {
         .def("__ne__", [](const Period& a, const Period& b) { return a != b; })
         .def("__mul__", [](const Period& p, Integer n) { return p * n; });
 
+    nb::enum_<Weekday>(m, "Weekday")
+        .value("Sunday", Sunday)
+        .value("Monday", Monday)
+        .value("Tuesday", Tuesday)
+        .value("Wednesday", Wednesday)
+        .value("Thursday", Thursday)
+        .value("Friday", Friday)
+        .value("Saturday", Saturday);
+
     nb::class_<Date>(m, "Date")
         .def(nb::init<>())
         .def(nb::init<Date::serial_type>(), nb::arg("serial_number"))
@@ -99,6 +111,8 @@ NB_MODULE(_qlnb, m) {
         .def("day_of_month", &Date::dayOfMonth)
         .def("month", &Date::month)
         .def("year", &Date::year)
+        .def("weekday",
+             [](const Date& d) { return static_cast<int>(d.weekday()); })
         .def("serial_number", &Date::serialNumber)
         .def_static("todays_date", &Date::todaysDate)
         .def_static("min_date", &Date::minDate)
@@ -134,6 +148,14 @@ NB_MODULE(_qlnb, m) {
             "evaluation_date",
             [](Settings&) { return settings_get_evaluation_date(); },
             [](Settings&, const Date& d) { settings_set_evaluation_date(d); })
+        .def_prop_rw(
+            "include_todays_cash_flows",
+            [](Settings&) -> std::optional<bool> {
+                return Settings::instance().includeTodaysCashFlows();
+            },
+            [](Settings&, const std::optional<bool>& v) {
+                Settings::instance().includeTodaysCashFlows() = v;
+            })
         .def("anchor_evaluation_date",
              [](Settings&) { Settings::instance().anchorEvaluationDate(); })
         .def("reset_evaluation_date",
@@ -184,8 +206,22 @@ NB_MODULE(_qlnb, m) {
 
     bind_time(m);
     bind_curves(m);
+    bind_heston(m);  // before instruments/pricing (set_heston_pricing_engine)
     bind_instruments(m);
     bind_pricing(m);
     bind_rates_options(m);
+    bind_callable(m);
+    bind_credit(m);
+    bind_cms(m);
+    bind_inflation(m);
+    bind_fx(m);
+    bind_smile(m);
+    bind_markov_functional(m);
     bind_experimental(m);
+    bind_lmm(m);
+    bind_math(m);
+    bind_marketmodel(m);
+    bind_arrays(m);
+    bind_random(m);
+    bind_statistics(m);
 }
