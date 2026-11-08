@@ -85,9 +85,13 @@ void bind_credit(nb::module_& m) {
         .value("Midpoint", CreditDefaultSwap::Midpoint)
         .value("ISDA", CreditDefaultSwap::ISDA);
 
-    nb::enum_<IsdaCdsEngine::NumericalFix>(m, "IsdaCdsNumericalFix")
-        .value("None", IsdaCdsEngine::None)
-        .value("Taylor", IsdaCdsEngine::Taylor);
+    auto isda_numerical_fix =
+        nb::enum_<IsdaCdsEngine::NumericalFix>(m, "IsdaCdsNumericalFix")
+            .value("None", IsdaCdsEngine::None)
+            .value("Taylor", IsdaCdsEngine::Taylor);
+    // `None` is a Python keyword, so the member is only reachable via getattr;
+    // `None_` is the attribute-syntax spelling, an alias of the same member.
+    isda_numerical_fix.attr("None_") = isda_numerical_fix.attr("None");
 
     nb::enum_<IsdaCdsEngine::AccrualBias>(m, "IsdaCdsAccrualBias")
         .value("HalfDayBias", IsdaCdsEngine::HalfDayBias)

@@ -102,3 +102,22 @@ def test_compat_stub_matches_runtime():
     members = stub_members(PACKAGE / "compat.pyi")
     assert members, "compat.pyi declares no classes"
     assert missing_at_runtime("qlnb.compat", members) == {}
+
+
+def test_stubs_are_valid_python():
+    # Strict parsers choke on keyword member names such as `def lambda(self)`.
+    import ast
+
+    for name in ("_qlnb.pyi", "compat.pyi"):
+        ast.parse((PACKAGE / name).read_text(), filename=name)
+
+
+def test_keyword_named_members_have_attribute_spellings():
+    import qlnb as ql
+
+    # Python keywords cannot be written with attribute syntax, so the stub
+    # declares lambda_ / None_; the old spellings still work through getattr.
+    assert ql.IsdaCdsNumericalFix.None_ is getattr(ql.IsdaCdsNumericalFix, "None")
+    assert ql.IsdaCdsNumericalFix.None_ is not ql.IsdaCdsNumericalFix.Taylor
+    for cls in (ql.GJRGARCHProcess, ql.GJRGARCHModel):
+        assert hasattr(cls, "lambda_") and hasattr(cls, "lambda")
