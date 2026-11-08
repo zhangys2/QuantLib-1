@@ -60,7 +60,7 @@ jobs:
           CIBW_BUILD: cp312-manylinux_x86_64
           CIBW_SKIP: pp* *-musllinux_*
           CIBW_BUILD_VERBOSITY: 1
-          CIBW_ENVIRONMENT: CMAKE_BUILD_PARALLEL_LEVEL=2
+          CIBW_ENVIRONMENT: CMAKE_BUILD_PARALLEL_LEVEL=4
           # manylinux2014 ships Boost 1.53; QuantLib needs >= 1.58.
           # manylinux_2_28 (AlmaLinux 8) provides a new-enough Boost via dnf.
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
