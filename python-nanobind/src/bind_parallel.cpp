@@ -19,6 +19,8 @@
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/instruments/europeanoption.hpp>
 #include <ql/instruments/vanillaoption.hpp>
+#include <ql/patterns/lazyobject.hpp>
+#include <ql/patterns/observable.hpp>
 #include <ql/qldefines.hpp>
 
 #include <algorithm>
@@ -26,7 +28,9 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <set>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 using namespace QuantLib;
@@ -37,6 +41,62 @@ namespace {
 constexpr bool kThreadSafeObserver = true;
 #else
 constexpr bool kThreadSafeObserver = false;
+#endif
+
+#ifdef QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN
+
+// QuantLib's LazyObject::calculate() is not thread-safe: a shared curve or
+// surface that two threads reach for the first time at the same time can be read
+// half initialised (an exception such as "null interest rate", or silently wrong
+// numbers).  Everything an instrument depends on is reachable through the
+// observer graph (instrument -> engine -> process / handles -> curves ...), so
+// those shared lazy objects are calculated serially before the threads start.
+//
+// Observer::observables_ is private and has no accessor; reach it with the
+// explicit-instantiation access idiom (instantiation ignores access control).
+// Only built with thread-safe observers, which is the only case that threads.
+using ObservableSet = std::set<ext::shared_ptr<Observable>>;
+template <ObservableSet Observer::*Member>
+struct ObserverAccess {
+    friend ObservableSet const& registered_with(const Observer& o) { return o.*Member; }
+};
+template struct ObserverAccess<&Observer::observables_>;
+ObservableSet const& registered_with(const Observer&);
+
+// LazyObject::calculate() is protected; recalculate() is public but would also
+// notify observers and invalidate the instruments, so use the same idiom.
+using CalculateFn = void (LazyObject::*)() const;
+template <CalculateFn Member>
+struct LazyAccess {
+    friend void calculate_now(const LazyObject& o) { (o.*Member)(); }
+};
+template struct LazyAccess<&LazyObject::calculate>;
+void calculate_now(const LazyObject&);
+
+void prime_dependencies(Observer& node, std::unordered_set<const Observable*>& seen) {
+    for (const auto& dep : registered_with(node)) {
+        Observable* observable = dep.get();
+        if (!observable || !seen.insert(observable).second)
+            continue;
+        // Dependencies first, so a lazy object finds its own inputs calculated.
+        if (auto* observer = dynamic_cast<Observer*>(observable))
+            prime_dependencies(*observer, seen);
+        if (auto* lazy = dynamic_cast<LazyObject*>(observable)) {
+            try {
+                calculate_now(*lazy);
+            } catch (...) {
+                // Pricing reports the error with the element index later.
+            }
+        }
+    }
+}
+
+void prime_dependencies(const std::vector<Instrument*>& items) {
+    std::unordered_set<const Observable*> seen;
+    for (auto* item : items)
+        prime_dependencies(*dynamic_cast<Observer*>(item), seen);
+}
+
 #endif
 
 template <class T>
@@ -95,13 +155,20 @@ void bind_parallel(nb::module_& m) {
 
             std::vector<double> npv(n);
             std::atomic<bool> failed{false};
+
+#ifdef QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN
+            if (workers > 1) {
+                nb::gil_scoped_release release;
+                prime_dependencies(items);
+            }
+#endif
             std::string message;
 
-            // Some QuantLib objects initialise lazily inside const accessors on
-            // first use (e.g. GeneralizedBlackScholesProcess::localVolatility()
-            // relinks a mutable handle).  Pricing the first instrument serially
-            // performs that initialisation once for the setup it shares with the
-            // rest of the book.
+            // Shared LazyObjects were calculated above.  Some other objects also
+            // initialise mutable state inside const accessors on first use (e.g.
+            // GeneralizedBlackScholesProcess::localVolatility() relinks a handle);
+            // pricing the first instrument serially performs that once for the
+            // setup it shares with the rest of the book.
             const std::size_t first = (warmup && n > 0) ? 1 : 0;
             std::atomic<std::size_t> next{first};
 
@@ -161,9 +228,10 @@ void bind_parallel(nb::module_& m) {
         "threads=0 uses every hardware thread when the build has thread-safe observers\n"
         "(qlnb.THREAD_SAFE_OBSERVER) and runs serially otherwise; threads=1 is always\n"
         "serial; threads>1 raises RuntimeError on a build without thread-safe observers.\n"
-        "warmup=True prices the first instrument serially before starting threads; with\n"
-        "several distinct shared setups (processes, curves) price one instrument of each\n"
-        "yourself first.  Instruments, quotes, curves and the evaluation date must not be\n"
-        "modified while the call runs.  Supported: VanillaOption, EuropeanOption,\n"
+        "Before starting threads, the lazily calculated objects the instruments share\n"
+        "(curves, surfaces) are calculated, and warmup=True also prices the first\n"
+        "instrument serially to initialise caches such as a process's local volatility.\n"
+        "Instruments, quotes, curves and the evaluation date must not be modified while\n"
+        "the call runs.  Supported: VanillaOption, EuropeanOption,\n"
         "FixedRateBond.  Errors name the failing element index.");
 }

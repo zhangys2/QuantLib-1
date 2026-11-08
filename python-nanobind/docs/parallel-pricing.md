@@ -53,11 +53,16 @@ the opt-out variant.
   create and destroy objects that observe them, while a call is running.
 - Instruments may share processes, curves and quotes. That is the normal layout
   and is covered by the tests.
-- `warmup=True` prices the first instrument serially before starting threads.
-  Some QuantLib objects initialise lazily inside `const` accessors (for example
-  `GeneralizedBlackScholesProcess::localVolatility()` relinks a mutable handle),
-  so this does it once for the setup the book shares. If the book has several
-  distinct shared setups, price one instrument of each first.
+- Lazily calculated objects that instruments share (curves, volatility surfaces)
+  are not thread-safe on first use: two threads reaching an uncalculated curve
+  together can read it half initialised ("null interest rate", or silently wrong
+  numbers). Before starting threads, `npv_many` walks the observer graph of the
+  book (instrument -> engine -> process / handles -> curves ...) and calculates
+  each shared lazy object once, serially, dependencies first.
+- `warmup=True` additionally prices the first instrument serially. That
+  initialises caches that are not lazy objects, such as the local volatility a
+  `BlackScholesMertonProcess` builds on first use. If the book has several
+  distinct shared setups of that kind, price one instrument of each first.
 - Results are bit-identical to pricing the same instruments one by one.
 - A failure reports the element index: `RuntimeError: element 23: ...`.
 
@@ -101,3 +106,8 @@ off for the affected types. If a new binding fails with "cannot convert from
 pointer to base class 'QuantLib::Observer' ... because the base is virtual" in
 the default build, add the class to the list there. The default-build CI jobs
 keep this from rotting.
+
+The observer-graph walk reaches `Observer::observables_` and the protected
+`LazyObject::calculate()` with the explicit-instantiation access idiom (no
+QuantLib header is changed). If a QuantLib update renames them, the thread-safe
+build stops compiling and CI shows it.

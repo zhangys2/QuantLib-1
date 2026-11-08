@@ -185,3 +185,45 @@ def test_threaded_error_names_an_element():
 def test_more_threads_than_instruments():
     ref = _serial_reference(3)
     assert np.array_equal(ql.npv_many(_book(_process(), 3), threads=16), ref)
+
+
+def _bond_book(curve: ql.YieldTermStructureHandle, n: int = 200) -> list:
+    schedule = ql.Schedule(
+        TODAY,
+        ql.Date(15, ql.Month.May, 2008),
+        ql.Period(ql.Frequency.Annual),
+        CAL,
+        ql.BusinessDayConvention.Unadjusted,
+        ql.BusinessDayConvention.Unadjusted,
+        ql.DateGeneration.Backward,
+        False,
+    )
+    book = []
+    for i in range(n):
+        b = ql.FixedRateBond(
+            3,
+            100.0,
+            schedule,
+            [0.02 + 0.0001 * i],
+            ql.Thirty360(ql.Thirty360Convention.BondBasis),
+            ql.BusinessDayConvention.Following,
+            100.0,
+            TODAY,
+        )
+        b.set_pricing_engine(curve)
+        book.append(b)
+    return book
+
+
+@needs_threads
+def test_threaded_shared_lazy_curve_is_primed():
+    # A freshly built curve is a lazy object that computes on first use.  Many
+    # threads reaching it at once used to see it half initialised
+    # ("null interest rate", or silently wrong values).  Fresh curve each round.
+    ql.set_evaluation_date(TODAY)
+    ref_curve = ql.FlatForward(TODAY, 0.04, DC)
+    ref = np.array([b.NPV() for b in _bond_book(ref_curve)])
+    for _ in range(150):
+        curve = ql.FlatForward(TODAY, 0.04, DC)
+        got = ql.npv_many(_bond_book(curve), threads=8, warmup=False)
+        assert np.array_equal(got, ref)
