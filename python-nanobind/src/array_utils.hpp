@@ -43,7 +43,7 @@ struct Input {
 
     Input(nb::handle h, const char* dtype, const char* name) {
         nb::module_ np = nb::module_::import_("numpy");
-        owner = np.attr("ascontiguousarray")(np.attr("atleast_1d")(h), dtype);
+        owner = np.attr("ascontiguousarray")(h, dtype); // always ndim >= 1
         View view;
         if (!nb::try_cast(owner, view, false))
             QL_FAIL(name << " must be a number or a 1-D array");
