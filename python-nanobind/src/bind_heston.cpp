@@ -672,6 +672,8 @@ void bind_heston(nb::module_& m) {
         .def("beta", &GJRGARCHProcess::beta)
         .def("gamma", &GJRGARCHProcess::gamma)
         .def("lambda", &GJRGARCHProcess::lambda)
+        // `lambda` is a Python keyword, so it is only reachable via getattr.
+        .def("lambda_", &GJRGARCHProcess::lambda)
         .def("days_per_year", &GJRGARCHProcess::daysPerYear);
 
     nb::class_<GJRGARCHModel>(m, "GJRGARCHModel")
@@ -688,6 +690,8 @@ void bind_heston(nb::module_& m) {
         .def("beta", &GJRGARCHModel::beta)
         .def("gamma", &GJRGARCHModel::gamma)
         .def("lambda", &GJRGARCHModel::lambda)
+        // `lambda` is a Python keyword, so it is only reachable via getattr.
+        .def("lambda_", &GJRGARCHModel::lambda)
         .def("process", &GJRGARCHModel::process);
 
     m.def(

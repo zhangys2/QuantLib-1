@@ -923,6 +923,10 @@ Experimental Python package that binds a focused QuantLib surface with
 - Gaussian counterparts (`gaussian_value_at_risk`, `gaussian_expected_shortfall`, ...)
 - Golden checks against the official SWIG wheel; Gaussian measures checked against closed forms
 
+### Phase 196 (stubs that parse)
+- `GJRGARCHProcess.lambda_`, `GJRGARCHModel.lambda_` and `IsdaCdsNumericalFix.None_`: attribute-syntax spellings of the Python-keyword names `lambda` and `None` (the old spellings still work through `getattr`)
+- `_qlnb.pyi` and `compat.pyi` now parse as Python; a test enforces it
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
