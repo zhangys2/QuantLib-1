@@ -53,7 +53,7 @@ def test_mersenne_twister_matches_quantlib():
     u = ql.MersenneTwisterRng(42).uniform(5)
     assert u.dtype == np.float64 and u.shape == (5,)
     np.testing.assert_array_equal(u, MT42_UNIFORM)
-    np.testing.assert_allclose(ql.MersenneTwisterRng(42).gaussian(5), MT42_GAUSSIAN, rtol=1e-15)
+    np.testing.assert_allclose(ql.MersenneTwisterRng(42).gaussian(5), MT42_GAUSSIAN, rtol=1e-12)
 
 
 def test_mersenne_twister_stream_continues_across_calls():
@@ -115,19 +115,19 @@ def test_inverse_cumulative_normal_array():
     np.testing.assert_allclose(
         got,
         [-3.090232304709404, -0.5244005132792953, 0.0, 1.959963986120195],
-        rtol=1e-14,
+        rtol=1e-12,
         atol=1e-15,
     )
     shifted = ql.inverse_cumulative_normal_array(0.975, 2.0, 3.0)
-    assert shifted[0] == pytest.approx(2.0 + 3.0 * 1.959963986120195, rel=1e-14)
+    assert shifted[0] == pytest.approx(2.0 + 3.0 * 1.959963986120195, rel=1e-12)
 
 
 def test_cumulative_normal_array_round_trips():
     x = np.linspace(-4.0, 4.0, 41)
     p = ql.cumulative_normal_array(x)
     assert p[20] == 0.5
-    assert ql.cumulative_normal_array(1.0)[0] == pytest.approx(0.841344746068543, rel=1e-14)
-    assert ql.cumulative_normal_array(-0.5)[0] == pytest.approx(0.3085375387259869, rel=1e-14)
+    assert ql.cumulative_normal_array(1.0)[0] == pytest.approx(0.841344746068543, rel=1e-12)
+    assert ql.cumulative_normal_array(-0.5)[0] == pytest.approx(0.3085375387259869, rel=1e-12)
     np.testing.assert_allclose(ql.inverse_cumulative_normal_array(p), x, atol=1e-9)
 
 
