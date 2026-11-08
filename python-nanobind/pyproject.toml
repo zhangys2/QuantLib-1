@@ -7,10 +7,10 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "0.7.0"
-description = "Nanobind Python bindings for QuantLib (phase 6: floating bonds, tree/FD, overnight indexes)"
+version = "4.68.0"
+description = "Nanobind Python bindings for QuantLib (phase 192: Abcd instantaneous vol)"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = { text = "BSD-3-Clause" }
 authors = [{ name = "QuantLib contributors" }]
 classifiers = [
@@ -71,7 +71,7 @@ build-frontend = "build"
 test-requires = ["pytest>=7.0", "numpy>=1.24"]
 test-command = "pytest {package}/tests -q"
 # Before-all: nothing special; scikit-build builds parent QuantLib.
-environment = { CMAKE_BUILD_PARALLEL_LEVEL = "2" }
+environment = { CMAKE_BUILD_PARALLEL_LEVEL = "4" }
 
 [tool.cibuildwheel.linux]
 # manylinux2014's yum boost-devel is 1.53; QuantLib requires >= 1.58.

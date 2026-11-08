@@ -7,16 +7,24 @@
 
 #include <ql/compounding.hpp>
 #include <ql/handle.hpp>
+#include <ql/indexes/bmaindex.hpp>
 #include <ql/indexes/ibor/eonia.hpp>
 #include <ql/indexes/ibor/estr.hpp>
 #include <ql/indexes/ibor/euribor.hpp>
+#include <ql/indexes/ibor/gbplibor.hpp>
 #include <ql/indexes/ibor/sofr.hpp>
+#include <ql/indexes/ibor/sonia.hpp>
+#include <ql/indexes/ibor/usdlibor.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/interestrate.hpp>
+#include <ql/math/interpolations/cubicinterpolation.hpp>
+#include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/quote.hpp>
+#include <ql/termstructures/yield/discountcurve.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
+#include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/calendar.hpp>
 #include <ql/time/date.hpp>
@@ -25,6 +33,7 @@
 #include <ql/time/period.hpp>
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 using namespace QuantLib;
@@ -84,7 +93,29 @@ Handle<YieldTermStructure> make_flat_forward_handle_quote(
         ext::make_shared<FlatForward>(reference_date, forward, day_counter));
 }
 
+Handle<YieldTermStructure> make_zero_curve(
+    const std::vector<Date>& dates,
+    const std::vector<Rate>& yields,
+    const DayCounter& day_counter,
+    const std::string& interpolation) {
+    QL_REQUIRE(dates.size() == yields.size(), "dates/yields size mismatch");
+    QL_REQUIRE(dates.size() >= 2, "need at least two zero-curve nodes");
+    if (interpolation == "linear" || interpolation == "Linear") {
+        return Handle<YieldTermStructure>(
+            ext::make_shared<InterpolatedZeroCurve<Linear>>(
+                dates, yields, day_counter));
+    }
+    if (interpolation == "cubic" || interpolation == "Cubic") {
+        return Handle<YieldTermStructure>(
+            ext::make_shared<InterpolatedZeroCurve<Cubic>>(
+                dates, yields, day_counter));
+    }
+    QL_FAIL("unknown InterpolatedZeroCurve interpolation '"
+            << interpolation << "' (use linear|cubic)");
+}
+
 using DiscountLogLinearCurve = PiecewiseYieldCurve<Discount, LogLinear>;
+using DiscountLinearCurve = PiecewiseYieldCurve<Discount, Linear>;
 
 } // namespace
 
@@ -185,6 +216,23 @@ void bind_curves(nb::module_& m) {
           nb::arg("reference_date"),
           nb::arg("forward"),
           nb::arg("day_counter"));
+
+    m.def("InterpolatedZeroCurve",
+          &make_zero_curve,
+          nb::arg("dates"),
+          nb::arg("yields"),
+          nb::arg("day_counter"),
+          nb::arg("interpolation") = std::string("linear"),
+          "Factory: InterpolatedZeroCurve<Linear|Cubic> → "
+          "YieldTermStructureHandle.");
+
+    m.def("ZeroCurve",
+          &make_zero_curve,
+          nb::arg("dates"),
+          nb::arg("yields"),
+          nb::arg("day_counter"),
+          nb::arg("interpolation") = std::string("linear"),
+          "C++ ZeroCurve alias — InterpolatedZeroCurve<Linear> by default.");
 
     // Rate helpers are opaque shared_ptrs (MI-heavy).
     nb::class_<RateHelper>(m, "RateHelper");
@@ -321,6 +369,33 @@ void bind_curves(nb::module_& m) {
         nb::arg("helpers"),
         nb::arg("day_counter"));
 
+    m.def(
+        "PiecewiseLinearDiscountCurve",
+        [](const Date& reference_date,
+           const std::vector<ext::shared_ptr<RateHelper>>& helpers,
+           const DayCounter& day_counter) {
+            return Handle<YieldTermStructure>(
+                ext::make_shared<DiscountLinearCurve>(
+                    reference_date, helpers, day_counter));
+        },
+        nb::arg("reference_date"),
+        nb::arg("helpers"),
+        nb::arg("day_counter"),
+        "PiecewiseYieldCurve<Discount, Linear> (SOFR futures suite default).");
+
+    m.def(
+        "DiscountCurve",
+        [](const std::vector<Date>& dates,
+           const std::vector<DiscountFactor>& discount_factors,
+           const DayCounter& day_counter) {
+            return Handle<YieldTermStructure>(ext::make_shared<DiscountCurve>(
+                dates, discount_factors, day_counter));
+        },
+        nb::arg("dates"),
+        nb::arg("discount_factors"),
+        nb::arg("day_counter"),
+        "Log-linear discount curve from date/discount-factor pairs.");
+
     // Ibor indexes as opaque shared_ptrs.
     nb::class_<IborIndex>(m, "IborIndex")
         .def("name", [](const IborIndex& i) { return i.name(); })
@@ -329,6 +404,9 @@ void bind_curves(nb::module_& m) {
              [](const IborIndex& i) { return i.fixingCalendar(); })
         .def("day_counter", [](const IborIndex& i) { return i.dayCounter(); })
         .def("fixing_days", [](const IborIndex& i) { return i.fixingDays(); })
+        .def("business_day_convention",
+             [](const IborIndex& i) { return i.businessDayConvention(); })
+        .def("end_of_month", [](const IborIndex& i) { return i.endOfMonth(); })
         .def(
             "add_fixing",
             [](IborIndex& i, const Date& fixing_date, Rate fixing, bool force) {
@@ -344,6 +422,37 @@ void bind_curves(nb::module_& m) {
             },
             nb::arg("fixing_date"),
             nb::arg("forecast_todays_fixing") = false);
+
+    // BMAIndex is InterestRateIndex (MI) — concrete wrapper (like EquityIndex).
+    nb::class_<BMAIndex>(m, "BMAIndex")
+        .def(nb::init<Handle<YieldTermStructure>>(),
+             nb::arg("handle") = Handle<YieldTermStructure>())
+        .def("name", [](const BMAIndex& i) { return i.name(); })
+        .def("tenor", [](const BMAIndex& i) { return i.tenor(); })
+        .def("fixing_calendar",
+             [](const BMAIndex& i) { return i.fixingCalendar(); })
+        .def("day_counter", [](const BMAIndex& i) { return i.dayCounter(); })
+        .def("fixing_days", [](const BMAIndex& i) { return i.fixingDays(); })
+        .def(
+            "add_fixing",
+            [](BMAIndex& i, const Date& fixing_date, Rate fixing, bool force) {
+                i.addFixing(fixing_date, fixing, force);
+            },
+            nb::arg("fixing_date"),
+            nb::arg("fixing"),
+            nb::arg("force_overwrite") = false)
+        .def(
+            "fixing",
+            [](const BMAIndex& i, const Date& fixing_date, bool forecast_today) {
+                return i.fixing(fixing_date, forecast_today);
+            },
+            nb::arg("fixing_date"),
+            nb::arg("forecast_todays_fixing") = false)
+        .def("is_valid_fixing_date",
+             [](const BMAIndex& i, const Date& d) {
+                 return i.isValidFixingDate(d);
+             },
+             nb::arg("fixing_date"));
 
     m.def("Euribor3M", []() {
         return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor3M>());
@@ -363,6 +472,35 @@ void bind_curves(nb::module_& m) {
             return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor6M>(h));
         },
         nb::arg("handle"));
+    m.def("Euribor1Y", []() {
+        return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor1Y>());
+    });
+    m.def(
+        "Euribor1Y",
+        [](const Handle<YieldTermStructure>& h) {
+            return ext::shared_ptr<IborIndex>(ext::make_shared<Euribor1Y>(h));
+        },
+        nb::arg("handle"));
+
+    m.def(
+        "GBPLibor",
+        [](const Period& tenor, const Handle<YieldTermStructure>& h) {
+            return ext::shared_ptr<IborIndex>(
+                ext::make_shared<GBPLibor>(tenor, h));
+        },
+        nb::arg("tenor"),
+        nb::arg("handle") = Handle<YieldTermStructure>(),
+        "Factory: GBPLibor → IborIndex.");
+
+    m.def(
+        "USDLibor",
+        [](const Period& tenor, const Handle<YieldTermStructure>& h) {
+            return ext::shared_ptr<IborIndex>(
+                ext::make_shared<USDLibor>(tenor, h));
+        },
+        nb::arg("tenor"),
+        nb::arg("handle") = Handle<YieldTermStructure>(),
+        "Factory: USDLibor → IborIndex.");
 
     // Overnight indexes as opaque shared_ptrs (standalone; Index hierarchy is MI-heavy).
     nb::class_<OvernightIndex>(m, "OvernightIndex")
@@ -400,6 +538,15 @@ void bind_curves(nb::module_& m) {
         "Sofr",
         [](const Handle<YieldTermStructure>& h) {
             return ext::shared_ptr<OvernightIndex>(ext::make_shared<Sofr>(h));
+        },
+        nb::arg("handle"));
+    m.def("Sonia", []() {
+        return ext::shared_ptr<OvernightIndex>(ext::make_shared<Sonia>());
+    });
+    m.def(
+        "Sonia",
+        [](const Handle<YieldTermStructure>& h) {
+            return ext::shared_ptr<OvernightIndex>(ext::make_shared<Sonia>(h));
         },
         nb::arg("handle"));
     m.def("Estr", []() {

@@ -7,8 +7,11 @@
 #include <ql/time/calendar.hpp>
 #include <ql/time/calendars/germany.hpp>
 #include <ql/time/calendars/japan.hpp>
+#include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/calendars/nullcalendar.hpp>
+#include <ql/time/calendars/switzerland.hpp>
 #include <ql/time/calendars/target.hpp>
+#include <ql/time/calendars/turkey.hpp>
 #include <ql/time/calendars/unitedkingdom.hpp>
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/calendars/weekendsonly.hpp>
@@ -156,6 +159,7 @@ void bind_time(nb::module_& m) {
     m.def("NullCalendar", []() { return Calendar(NullCalendar()); });
     m.def("WeekendsOnly", []() { return Calendar(WeekendsOnly()); });
     m.def("UnitedKingdom", []() { return Calendar(UnitedKingdom()); });
+    m.def("Switzerland", []() { return Calendar(Switzerland()); });
     m.def("Japan", []() { return Calendar(Japan()); });
     m.def(
         "Germany",
@@ -165,6 +169,22 @@ void bind_time(nb::module_& m) {
         "UnitedStates",
         [](UnitedStates::Market market) { return Calendar(UnitedStates(market)); },
         nb::arg("market") = UnitedStates::Settlement);
+
+    m.def("Turkey", []() { return Calendar(Turkey()); });
+
+    nb::enum_<JointCalendarRule>(m, "JointCalendarRule")
+        .value("JoinHolidays", JoinHolidays)
+        .value("JoinBusinessDays", JoinBusinessDays);
+
+    m.def(
+        "JointCalendar",
+        [](const Calendar& c1, const Calendar& c2, JointCalendarRule rule) {
+            return Calendar(JointCalendar(c1, c2, rule));
+        },
+        nb::arg("calendar1"),
+        nb::arg("calendar2"),
+        nb::arg("rule") = JoinHolidays,
+        "Union (JoinHolidays) or intersection (JoinBusinessDays) of two calendars.");
 
     nb::class_<Schedule>(m, "Schedule")
         .def(
@@ -195,6 +215,18 @@ void bind_time(nb::module_& m) {
             nb::arg("termination_date_convention"),
             nb::arg("rule"),
             nb::arg("end_of_month"))
+        .def(
+            "__init__",
+            [](Schedule* self,
+               const std::vector<Date>& dates,
+               const Calendar& calendar,
+               BusinessDayConvention convention) {
+                new (self) Schedule(dates, calendar, convention);
+            },
+            nb::arg("dates"),
+            nb::arg("calendar") = Calendar(),
+            nb::arg("convention") = Unadjusted,
+            "Build a Schedule from an explicit date list.")
         .def("size", &Schedule::size)
         .def("__len__", &Schedule::size)
         .def(
