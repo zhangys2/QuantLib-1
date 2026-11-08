@@ -28,6 +28,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lock_check:
+    name: uv.lock is up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check python-nanobind/uv.lock matches pyproject.toml
+        working-directory: python-nanobind
+        run: |
+          python3 -m pip install uv==0.12.21
+          uv lock --check
+
   build_wheels:
     name: cibuildwheel (manylinux x86_64)
     runs-on: ubuntu-latest
