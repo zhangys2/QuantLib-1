@@ -910,6 +910,13 @@ Experimental Python package that binds a focused QuantLib surface with
 - Golden checks: every array result equals the scalar function element by element
 - `benchmarks/bench_call_overhead.py` shows why: a `Date` object per element costs as much as the call
 
+### Phase 194 (bulk random-number generation)
+- `MersenneTwisterRng(seed)` with `uniform(n)` / `gaussian(n)` into NumPy arrays
+- `SobolSequence(dimension, seed)` and `HaltonSequence(dimension, ...)` with `uniform(points)` / `gaussian(points)` as `(points, dimension)` arrays; `SobolSequence.skip_to`
+- `inverse_cumulative_normal_array`, `cumulative_normal_array`
+- QuantLib's own sequences, not NumPy's: a seed reproduces what C++ and SWIG draw
+- Golden checks against values drawn from the official SWIG wheel
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`

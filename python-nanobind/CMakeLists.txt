@@ -71,6 +71,7 @@ nanobind_add_module(
     src/bind_math.cpp
     src/bind_marketmodel.cpp
     src/bind_arrays.cpp
+    src/bind_random.cpp
 )
 
 target_link_libraries(_qlnb PRIVATE ${QLNB_QUANTLIB_TARGET})
