@@ -114,7 +114,7 @@ jobs:
   build_wheels_macos:
     name: cibuildwheel (macOS, optional)
     if: false
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
