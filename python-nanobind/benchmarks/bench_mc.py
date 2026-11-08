@@ -9,10 +9,10 @@ Three questions, answered with best-of-N wall times:
 2. MC pricing.  `EuropeanOption.set_mc_pricing_engine` against SWIG's
    `MCEuropeanEngine` for the same samples and time steps, and against the
    "paths to NumPy, payoff in NumPy" workflow.
-3. Random draws.  qlnb binds no random-number generators, so the cost of a
-   Python-driven draw is measured through SWIG and set against NumPy's bulk
-   draws.  That gap is what a bulk-fill binding (Sobol, Mersenne Twister,
-   inverse cumulative normal) would remove.
+3. Random draws.  qlnb fills NumPy arrays from QuantLib's own Mersenne Twister,
+   Sobol and inverse cumulative normal in C++.  The same generators driven one
+   call at a time through SWIG show the per-call cost that bulk fill removes;
+   NumPy's own bulk generators are the speed reference (different sequences).
 
 SWIG paths and draws use different generators from qlnb, so values are not
 compared, only timings.  Prices are printed as a sanity check.
@@ -192,9 +192,18 @@ def main() -> None:
 
     # 3. Random draws ---------------------------------------------------
     d = args.draws
-    print(f"\n3. Random draws: {d} values (ns per draw; qlnb binds no RNGs)")
+    print(f"\n3. Random draws: {d} values (ns per draw)")
     rng = np.random.default_rng(42)
+    probabilities = np.random.default_rng(1).random(d)
+    q_mt = qlnb.MersenneTwisterRng(42)
+    q_sobol = qlnb.SobolSequence(5, 42)
     draws = {
+        "qlnb MersenneTwisterRng.uniform (bulk)": lambda: q_mt.uniform(d),
+        "qlnb MersenneTwisterRng.gaussian (bulk)": lambda: q_mt.gaussian(d),
+        "qlnb SobolSequence(5).uniform (bulk)": lambda: q_sobol.uniform(d // 5),
+        "qlnb inverse_cumulative_normal_array": (
+            lambda: qlnb.inverse_cumulative_normal_array(probabilities)
+        ),
         "numpy Generator.random (bulk)": lambda: rng.random(d),
         "numpy Generator.standard_normal (bulk)": lambda: rng.standard_normal(d),
     }

@@ -77,10 +77,24 @@ def build_qlnb(n: int):
 
     # Array APIs that already exist, timed against the loop they replace.
     times = 0.001 * (np.arange(n) % 3000)
+    serials = np.array([d.serial_number() for d in dates], dtype=np.int64)
     arrays = {
         "discount_times (ndarray)": (lambda: ql.discount_times(curve, times), n),
         "discount_dates (list[Date])": (lambda: ql.discount_dates(curve, dates), n),
     }
+    if hasattr(ql, "discount_serials"):
+        arrays["discount_serials (int64 ndarray)"] = (
+            lambda: ql.discount_serials(curve, serials),
+            n,
+        )
+        arrays["zero_rates_serials (int64 ndarray)"] = (
+            lambda: ql.zero_rates_serials(curve, serials, dc, comp),
+            n,
+        )
+        arrays["black_formula_array (ndarray)"] = (
+            lambda: ql.black_formula_array(call, strikes, forward, std_dev, disc),
+            n,
+        )
     return ops, calls, arrays
 
 
@@ -158,7 +172,11 @@ def main() -> None:
         print("Existing array APIs (us per element) vs the qlnb Python loop")
         for name, (fn, calls) in q_arrays.items():
             us = best_us_per_call(fn, calls, args.repeats)
-            loop = loop_time if "times" in name else loop_date
+            loop = {
+                "zero_rates_serials": results["Curve.zero_rate(date)"]["qlnb_us"],
+                "black_formula_array": results["black_formula"]["qlnb_us"],
+                "discount_times": loop_time,
+            }.get(name.split(" ")[0], loop_date)
             print(f"{name:38s} {us:9.4f}   loop {loop:7.3f}   speedup {loop / us:7.1f}x")
             results[name] = {"qlnb_us": us, "loop_us": loop}
 
