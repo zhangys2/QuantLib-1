@@ -1538,7 +1538,6 @@ class PercentageStrikePayoff:
     def strike(self) -> float: ...
     def moneyness(self) -> float: ...
     def option_type(self) -> OptionType: ...
-    def optionType(self) -> OptionType: ...
 
 class BlackScholesMertonProcess:
     def __init__(
@@ -1716,23 +1715,10 @@ class HestonModelHelper:
     def set_pricing_engine(
         self, model: HestonModel, integration_order: int = ...
     ) -> None: ...
-    def setPricingEngine(
-        self, model: HestonModel, integration_order: int = ...
-    ) -> None: ...
     def set_cos_heston_pricing_engine(
         self, model: HestonModel, L: float = ..., N: int = ...
     ) -> None: ...
-    def setCosHestonPricingEngine(
-        self, model: HestonModel, L: float = ..., N: int = ...
-    ) -> None: ...
     def set_exponential_fitting_heston_pricing_engine(
-        self,
-        model: HestonModel,
-        control_variate: HestonComplexLogFormula = ...,
-        scaling: float | None = ...,
-        alpha: float = ...,
-    ) -> None: ...
-    def setExponentialFittingHestonPricingEngine(
         self,
         model: HestonModel,
         control_variate: HestonComplexLogFormula = ...,
@@ -2080,12 +2066,6 @@ class EuropeanOption:
         dividend_dates: Sequence[Date],
         dividend_amounts: Sequence[float],
     ) -> None: ...
-    def setDividendPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-    ) -> None: ...
     def set_cash_dividend_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -2093,25 +2073,7 @@ class EuropeanOption:
         dividend_amounts: Sequence[float],
         cash_dividend_model: CashDividendModel = ...,
     ) -> None: ...
-    def setCashDividendPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        cash_dividend_model: CashDividendModel = ...,
-    ) -> None: ...
     def set_fd_dividend_pricing_engine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-        cash_dividend_model: CashDividendModel = ...,
-    ) -> None: ...
-    def setFdDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
         dividend_dates: Sequence[Date],
@@ -2131,27 +2093,7 @@ class EuropeanOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
-    def setFdQuantoPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
     def set_fd_quanto_dividend_pricing_engine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdQuantoDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
         dividend_dates: Sequence[Date],
@@ -2172,15 +2114,6 @@ class EuropeanOption:
         brownian_bridge: bool = ...,
     ) -> None: ...
     def set_mc_heston_pricing_engine(
-        self,
-        process: HestonProcess,
-        time_steps: int | None = ...,
-        steps_per_year: int | None = ...,
-        required_samples: int = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-    ) -> None: ...
-    def setMcHestonPricingEngine(
         self,
         process: HestonProcess,
         time_steps: int | None = ...,
@@ -2281,71 +2214,10 @@ class EuropeanOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
-    def setHestonPricingEngine(
-        self, model: HestonModel, integration_order: int = ...
-    ) -> None: ...
-    def setCosHestonPricingEngine(
-        self, model: HestonModel, L: float = ..., N: int = ...
-    ) -> None: ...
-    def setExponentialFittingHestonPricingEngine(
-        self,
-        model: HestonModel,
-        control_variate: HestonComplexLogFormula = ...,
-        scaling: float | None = ...,
-        alpha: float = ...,
-    ) -> None: ...
-    def setFdHestonPricingEngine(
-        self,
-        model: HestonModel,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdHestonDividendPricingEngine(
-        self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdHestonQuantoPricingEngine(
-        self,
-        model: HestonModel,
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdHestonQuantoDividendPricingEngine(
-        self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
     def set_bates_pricing_engine(
         self, model: BatesModel, integration_order: int = ...
     ) -> None: ...
-    def setBatesPricingEngine(
-        self, model: BatesModel, integration_order: int = ...
-    ) -> None: ...
     def set_variance_gamma_pricing_engine(
-        self, process: VarianceGammaProcess, absolute_error: float = ...
-    ) -> None: ...
-    def setVarianceGammaPricingEngine(
         self, process: VarianceGammaProcess, absolute_error: float = ...
     ) -> None: ...
     @overload
@@ -2373,15 +2245,6 @@ class EuropeanOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
-    def setFdBatesPricingEngine(
-        self,
-        model: BatesModel,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
     def set_fd_bates_dividend_pricing_engine(
         self,
         model: BatesModel,
@@ -2396,19 +2259,10 @@ class EuropeanOption:
     def set_bates_det_jump_pricing_engine(
         self, model: BatesDetJumpModel, integration_order: int = ...
     ) -> None: ...
-    def setBatesDetJumpPricingEngine(
-        self, model: BatesDetJumpModel, integration_order: int = ...
-    ) -> None: ...
     def set_bates_double_exp_pricing_engine(
         self, model: BatesDoubleExpModel, integration_order: int = ...
     ) -> None: ...
-    def setBatesDoubleExpPricingEngine(
-        self, model: BatesDoubleExpModel, integration_order: int = ...
-    ) -> None: ...
     def set_bates_double_exp_det_jump_pricing_engine(
-        self, model: BatesDoubleExpDetJumpModel, integration_order: int = ...
-    ) -> None: ...
-    def setBatesDoubleExpDetJumpPricingEngine(
         self, model: BatesDoubleExpDetJumpModel, integration_order: int = ...
     ) -> None: ...
 
@@ -2478,20 +2332,7 @@ class VanillaOption:
         dividend_dates: Sequence[Date],
         dividend_amounts: Sequence[float],
     ) -> None: ...
-    def setDividendPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-    ) -> None: ...
     def set_cash_dividend_pricing_engine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        cash_dividend_model: CashDividendModel = ...,
-    ) -> None: ...
-    def setCashDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
         dividend_dates: Sequence[Date],
@@ -2539,17 +2380,6 @@ class VanillaOption:
         scheme_desc: FdmSchemeDesc = ...,
         cash_dividend_model: CashDividendModel = ...,
     ) -> None: ...
-    def setFdDividendPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-        cash_dividend_model: CashDividendModel = ...,
-    ) -> None: ...
     def set_fd_quanto_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -2559,27 +2389,7 @@ class VanillaOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
-    def setFdQuantoPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
     def set_fd_quanto_dividend_pricing_engine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdQuantoDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
         dividend_dates: Sequence[Date],
@@ -2645,15 +2455,6 @@ class VanillaOption:
         seed: int = ...,
         antithetic: bool = ...,
     ) -> None: ...
-    def setMcHestonPricingEngine(
-        self,
-        process: HestonProcess,
-        time_steps: int | None = ...,
-        steps_per_year: int | None = ...,
-        required_samples: int = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-    ) -> None: ...
     def set_cos_heston_pricing_engine(
         self, model: HestonModel, L: float = ..., N: int = ...
     ) -> None: ...
@@ -2706,77 +2507,10 @@ class VanillaOption:
         damping_steps: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
-    def setHestonPricingEngine(
-        self, model: HestonModel, integration_order: int = ...
-    ) -> None: ...
-    def setCosHestonPricingEngine(
-        self, model: HestonModel, L: float = ..., N: int = ...
-    ) -> None: ...
-    def setExponentialFittingHestonPricingEngine(
-        self,
-        model: HestonModel,
-        control_variate: HestonComplexLogFormula = ...,
-        scaling: float | None = ...,
-        alpha: float = ...,
-    ) -> None: ...
-    def setFdHestonPricingEngine(
-        self,
-        model: HestonModel,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdHestonDividendPricingEngine(
-        self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdHestonQuantoPricingEngine(
-        self,
-        model: HestonModel,
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdHestonQuantoDividendPricingEngine(
-        self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        quanto_helper: FdmQuantoHelper,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
     def set_bates_pricing_engine(
         self, model: BatesModel, integration_order: int = ...
     ) -> None: ...
-    def setBatesPricingEngine(
-        self, model: BatesModel, integration_order: int = ...
-    ) -> None: ...
     def set_fd_bates_pricing_engine(
-        self,
-        model: BatesModel,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdBatesPricingEngine(
         self,
         model: BatesModel,
         t_grid: int = ...,
@@ -2799,19 +2533,10 @@ class VanillaOption:
     def set_bates_det_jump_pricing_engine(
         self, model: BatesDetJumpModel, integration_order: int = ...
     ) -> None: ...
-    def setBatesDetJumpPricingEngine(
-        self, model: BatesDetJumpModel, integration_order: int = ...
-    ) -> None: ...
     def set_bates_double_exp_pricing_engine(
         self, model: BatesDoubleExpModel, integration_order: int = ...
     ) -> None: ...
-    def setBatesDoubleExpPricingEngine(
-        self, model: BatesDoubleExpModel, integration_order: int = ...
-    ) -> None: ...
     def set_bates_double_exp_det_jump_pricing_engine(
-        self, model: BatesDoubleExpDetJumpModel, integration_order: int = ...
-    ) -> None: ...
-    def setBatesDoubleExpDetJumpPricingEngine(
         self, model: BatesDoubleExpDetJumpModel, integration_order: int = ...
     ) -> None: ...
 
@@ -3011,55 +2736,6 @@ class BarrierOption:
         brownian_bridge: bool = ...,
         biased: bool = ...,
     ) -> None: ...
-    def setFdHestonPricingEngine(
-        self,
-        model: HestonModel,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdHestonDividendPricingEngine(
-        self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def setFdDividendPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
-        dividend_amounts: Sequence[float],
-        t_grid: int = ...,
-        x_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def impliedVolatility(
-        self,
-        target_price: float,
-        process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date] = ...,
-        dividend_amounts: Sequence[float] = ...,
-        accuracy: float = ...,
-        max_evaluations: int = ...,
-        min_vol: float = ...,
-        max_vol: float = ...,
-    ) -> float: ...
 
 def FdBlackScholesBarrierEngine(
     process: BlackScholesMertonProcess,
@@ -3088,13 +2764,6 @@ class TwoAssetBarrierOption:
     ) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        rho: QuoteHandle | float,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 class TwoAssetCorrelationOption:
     def __init__(
@@ -3112,13 +2781,6 @@ class TwoAssetCorrelationOption:
     ) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: QuoteHandle | float,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 class HimalayaOption:
     def __init__(
@@ -3140,19 +2802,6 @@ class HimalayaOption:
     def NPV(self) -> float: ...
     def error_estimate(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setMCPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-        required_samples: int | None = ...,
-        required_tolerance: float | None = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-        brownian_bridge: bool = ...,
-        max_samples: int | None = ...,
-    ) -> None: ...
-    def errorEstimate(self) -> float: ...
-    def isExpired(self) -> bool: ...
 
 def MCHimalayaEngine(
     processes: Sequence[BlackScholesMertonProcess],
@@ -3186,19 +2835,6 @@ class PagodaOption:
     def NPV(self) -> float: ...
     def error_estimate(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setMCPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-        required_samples: int | None = ...,
-        required_tolerance: float | None = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-        brownian_bridge: bool = ...,
-        max_samples: int | None = ...,
-    ) -> None: ...
-    def errorEstimate(self) -> float: ...
-    def isExpired(self) -> bool: ...
 
 def MCPagodaEngine(
     processes: Sequence[BlackScholesMertonProcess],
@@ -3283,19 +2919,6 @@ class MargrabeOption:
     def gamma2(self) -> float: ...
     def theta(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-    ) -> None: ...
-    def setAmericanPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def AnalyticEuropeanMargrabeEngine(
     process1: BlackScholesMertonProcess,
@@ -3319,8 +2942,6 @@ class SimpleChooserOption:
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def AnalyticSimpleChooserEngine(
     process: BlackScholesMertonProcess,
@@ -3338,8 +2959,6 @@ class ComplexChooserOption:
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def AnalyticComplexChooserEngine(
     process: BlackScholesMertonProcess,
@@ -3358,8 +2977,6 @@ class HolderExtensibleOption:
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def AnalyticHolderExtensibleOptionEngine(
     process: BlackScholesMertonProcess,
@@ -3376,8 +2993,6 @@ class WriterExtensibleOption:
     def set_pricing_engine(self, process: BlackScholesMertonProcess) -> None: ...
     def NPV(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def AnalyticWriterExtensibleOptionEngine(
     process: BlackScholesMertonProcess,
@@ -3539,110 +3154,6 @@ class BasketOption:
         brownian_bridge: bool = ...,
         calibration_samples: int | None = ...,
     ) -> None: ...
-    def setKirkPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-    ) -> None: ...
-    def setStulzPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-    ) -> None: ...
-    def setChoiPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-        integration_lambda: float = ...,
-        max_nr_integration_steps: int | None = ...,
-        calc_fwd_delta: bool = ...,
-        control_variate: bool = ...,
-    ) -> None: ...
-    def setSingleFactorPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-    ) -> None: ...
-    def setDengLiZhouPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-    ) -> None: ...
-    def setBjerksundStenslandPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-    ) -> None: ...
-    def setPearsonPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-    ) -> None: ...
-    def setOperatorSplittingPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-        order: OperatorSplittingOrder = ...,
-    ) -> None: ...
-    def setGaussianCopulaPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-        n_points: int = ...,
-    ) -> None: ...
-    def setFd2dPricingEngine(
-        self,
-        process1: BlackScholesMertonProcess,
-        process2: BlackScholesMertonProcess,
-        correlation: float,
-        x_grid: int = ...,
-        y_grid: int = ...,
-        t_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-        local_vol: bool = ...,
-    ) -> None: ...
-    def setFdNdimPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-        x_grid: int = ...,
-        t_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-        x_grids: Sequence[int] | None = ...,
-    ) -> None: ...
-    def setMCEuropeanPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-        time_steps: int | None = ...,
-        steps_per_year: int | None = ...,
-        required_samples: int | None = ...,
-        required_tolerance: float | None = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-        brownian_bridge: bool = ...,
-    ) -> None: ...
-    def setMCAmericanPricingEngine(
-        self,
-        processes: Sequence[BlackScholesMertonProcess],
-        rho: Matrix,
-        time_steps: int | None = ...,
-        steps_per_year: int | None = ...,
-        required_samples: int | None = ...,
-        required_tolerance: float | None = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-        brownian_bridge: bool = ...,
-        calibration_samples: int | None = ...,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def KirkEngine(
     process1: BlackScholesMertonProcess,
@@ -3788,13 +3299,6 @@ class VarianceSwap:
         put_strikes: Sequence[float],
         dk: float = ...,
     ) -> None: ...
-    def setReplicatingPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        call_strikes: Sequence[float],
-        put_strikes: Sequence[float],
-        dk: float = ...,
-    ) -> None: ...
     def set_mc_pricing_engine(
         self,
         process: BlackScholesMertonProcess,
@@ -3806,20 +3310,6 @@ class VarianceSwap:
         antithetic: bool = ...,
         brownian_bridge: bool = ...,
     ) -> None: ...
-    def setMcPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        time_steps: int | None = ...,
-        steps_per_year: int | None = ...,
-        required_samples: int | None = ...,
-        required_tolerance: float | None = ...,
-        seed: int = ...,
-        antithetic: bool = ...,
-        brownian_bridge: bool = ...,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
-    def startDate(self) -> Date: ...
-    def maturityDate(self) -> Date: ...
 
 def ReplicatingVarianceSwapEngine(
     process: BlackScholesMertonProcess,
@@ -3867,11 +3357,6 @@ class CliquetOption:
     def gamma(self) -> float: ...
     def vega(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
-    def setPerformancePricingEngine(
-        self, process: BlackScholesMertonProcess
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def AnalyticCliquetEngine(
     process: BlackScholesMertonProcess,
@@ -3900,11 +3385,6 @@ class ForwardVanillaOption:
     def gamma(self) -> float: ...
     def vega(self) -> float: ...
     def is_expired(self) -> bool: ...
-    def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
-    def setPerformancePricingEngine(
-        self, process: BlackScholesMertonProcess
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def ForwardVanillaEngine(
     process: BlackScholesMertonProcess,
@@ -4065,15 +3545,6 @@ class DoubleBarrierOption:
         seed: int = ...,
         antithetic: bool = ...,
         brownian_bridge: bool = ...,
-    ) -> None: ...
-    def setFdHestonPricingEngine(
-        self,
-        model: HestonModel,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        v_grid: int = ...,
-        damping_steps: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
     ) -> None: ...
 
 def SuoWangDoubleBarrierEngine(
@@ -5267,25 +4738,6 @@ class DiscreteAveragingAsianOption:
     def set_heston_pricing_engine(
         self, process: HestonProcess, xi_right_limit: float = ...
     ) -> None: ...
-    def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
-    def setTurnbullWakemanPricingEngine(
-        self, process: BlackScholesMertonProcess
-    ) -> None: ...
-    def setChoiPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        integration_lambda: float = ...,
-        max_nr_integration_steps: int = ...,
-    ) -> None: ...
-    def setFdPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        t_grid: int = ...,
-        x_grid: int = ...,
-        a_grid: int = ...,
-        scheme_desc: FdmSchemeDesc = ...,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 class DefaultProbabilityHelper: ...
 
@@ -7075,15 +6527,6 @@ class CallableFixedRateBond:
         min_vol: float = ...,
         max_vol: float = ...,
     ) -> float: ...
-    def impliedVolatility(
-        self,
-        target_price: BondPrice,
-        discount_curve: YieldTermStructureHandle,
-        accuracy: float = ...,
-        max_evaluations: int = ...,
-        min_vol: float = ...,
-        max_vol: float = ...,
-    ) -> float: ...
     def oas(
         self,
         clean_price: float,
@@ -7117,25 +6560,7 @@ class CallableFixedRateBond:
         frequency: Frequency,
         settlement_date: Date = ...,
     ) -> float: ...
-    def cleanPriceOAS(
-        self,
-        oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
-        compounding: Compounding,
-        frequency: Frequency,
-        settlement_date: Date = ...,
-    ) -> float: ...
     def effective_duration(
-        self,
-        oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
-        compounding: Compounding,
-        frequency: Frequency,
-        bump: float = ...,
-    ) -> float: ...
-    def effectiveDuration(
         self,
         oas: float,
         engine_ts: YieldTermStructureHandle,
@@ -7153,15 +6578,6 @@ class CallableFixedRateBond:
         frequency: Frequency,
         bump: float = ...,
     ) -> float: ...
-    def effectiveConvexity(
-        self,
-        oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
-        compounding: Compounding,
-        frequency: Frequency,
-        bump: float = ...,
-    ) -> float: ...
     def set_tree_pricing_engine(
         self,
         model: HullWhite,
@@ -7169,11 +6585,6 @@ class CallableFixedRateBond:
         discount_curve: YieldTermStructureHandle = ...,
     ) -> None: ...
     def set_black_pricing_engine(
-        self,
-        fwd_yield_vol: QuoteHandle | float,
-        discount_curve: YieldTermStructureHandle,
-    ) -> None: ...
-    def setBlackPricingEngine(
         self,
         fwd_yield_vol: QuoteHandle | float,
         discount_curve: YieldTermStructureHandle,
@@ -7206,15 +6617,6 @@ class CallableZeroCouponBond:
         min_vol: float = ...,
         max_vol: float = ...,
     ) -> float: ...
-    def impliedVolatility(
-        self,
-        target_price: BondPrice,
-        discount_curve: YieldTermStructureHandle,
-        accuracy: float = ...,
-        max_evaluations: int = ...,
-        min_vol: float = ...,
-        max_vol: float = ...,
-    ) -> float: ...
     def oas(
         self,
         clean_price: float,
@@ -7248,25 +6650,7 @@ class CallableZeroCouponBond:
         frequency: Frequency,
         settlement_date: Date = ...,
     ) -> float: ...
-    def cleanPriceOAS(
-        self,
-        oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
-        compounding: Compounding,
-        frequency: Frequency,
-        settlement_date: Date = ...,
-    ) -> float: ...
     def effective_duration(
-        self,
-        oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
-        compounding: Compounding,
-        frequency: Frequency,
-        bump: float = ...,
-    ) -> float: ...
-    def effectiveDuration(
         self,
         oas: float,
         engine_ts: YieldTermStructureHandle,
@@ -7284,15 +6668,6 @@ class CallableZeroCouponBond:
         frequency: Frequency,
         bump: float = ...,
     ) -> float: ...
-    def effectiveConvexity(
-        self,
-        oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
-        compounding: Compounding,
-        frequency: Frequency,
-        bump: float = ...,
-    ) -> float: ...
     def set_tree_pricing_engine(
         self,
         model: HullWhite,
@@ -7300,11 +6675,6 @@ class CallableZeroCouponBond:
         discount_curve: YieldTermStructureHandle = ...,
     ) -> None: ...
     def set_black_pricing_engine(
-        self,
-        fwd_yield_vol: QuoteHandle | float,
-        discount_curve: YieldTermStructureHandle,
-    ) -> None: ...
-    def setBlackPricingEngine(
         self,
         fwd_yield_vol: QuoteHandle | float,
         discount_curve: YieldTermStructureHandle,
@@ -7350,12 +6720,6 @@ class ConvertibleZeroCouponBond:
         time_steps: int,
         credit_spread: QuoteHandle | float,
     ) -> None: ...
-    def setBinomialPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        time_steps: int,
-        credit_spread: QuoteHandle | float,
-    ) -> None: ...
 
 class ConvertibleFixedCouponBond:
     def __init__(
@@ -7377,12 +6741,6 @@ class ConvertibleFixedCouponBond:
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
     def set_binomial_pricing_engine(
-        self,
-        process: BlackScholesMertonProcess,
-        time_steps: int,
-        credit_spread: QuoteHandle | float,
-    ) -> None: ...
-    def setBinomialPricingEngine(
         self,
         process: BlackScholesMertonProcess,
         time_steps: int,
@@ -7411,12 +6769,6 @@ class ConvertibleFloatingRateBond:
     def settlement_date(self) -> Date: ...
     def maturity_date(self) -> Date: ...
     def set_binomial_pricing_engine(
-        self,
-        process: BlackScholesMertonProcess,
-        time_steps: int,
-        credit_spread: QuoteHandle | float,
-    ) -> None: ...
-    def setBinomialPricingEngine(
         self,
         process: BlackScholesMertonProcess,
         time_steps: int,
@@ -7582,14 +6934,6 @@ class QuantoVanillaOption:
         exchange_rate_volatility: object,
         correlation: QuoteHandle | float,
     ) -> None: ...
-    def setPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
-        exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def QuantoEuropeanEngine(
     process: BlackScholesMertonProcess,
@@ -7625,21 +6969,6 @@ class QuantoForwardVanillaOption:
         exchange_rate_volatility: object,
         correlation: QuoteHandle | float,
     ) -> None: ...
-    def setPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
-        exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
-    ) -> None: ...
-    def setPerformancePricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
-        exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def QuantoForwardEuropeanEngine(
     process: BlackScholesMertonProcess,
@@ -7673,14 +7002,6 @@ class QuantoBarrierOption:
         exchange_rate_volatility: object,
         correlation: QuoteHandle | float,
     ) -> None: ...
-    def setPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
-        exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def QuantoBarrierEngine(
     process: BlackScholesMertonProcess,
@@ -7711,14 +7032,6 @@ class QuantoDoubleBarrierOption:
         exchange_rate_volatility: object,
         correlation: QuoteHandle | float,
     ) -> None: ...
-    def setPricingEngine(
-        self,
-        process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
-        exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
-    ) -> None: ...
-    def isExpired(self) -> bool: ...
 
 def QuantoDoubleBarrierEngine(
     process: BlackScholesMertonProcess,
