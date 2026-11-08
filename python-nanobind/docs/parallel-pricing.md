@@ -14,7 +14,7 @@ npvs = ql.npv_many(book, threads=1)    # serial, GIL released
 Supported instruments: `VanillaOption`, `EuropeanOption`, `FixedRateBond`.
 Other types raise `TypeError`; add them in `src/bind_parallel.cpp`.
 
-## Requires the thread-safe observer build
+## The default build is thread-safe
 
 QuantLib's observer pattern is not thread-safe by default. Some engines create
 temporary observers of shared market data while pricing (for example
@@ -23,15 +23,19 @@ every call). Threads then add and remove entries in the same quote's observer
 set at the same time, which corrupts the heap. ThreadSanitizer reports this as
 a race in `Observable::unregisterObserver`.
 
-So multi-threaded use needs QuantLib built with
-`QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN`:
+So multi-threaded pricing needs QuantLib built with
+`QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN`, and **qlnb builds it that way by
+default** (`QLNB_THREAD_SAFE_OBSERVER=ON`). `qlnb.THREAD_SAFE_OBSERVER` tells
+you which kind of build you have.
+
+To opt out and get the plain observer pattern (cheaper to construct and notify,
+single-threaded `npv_many` only):
 
 ```bash
-CMAKE_ARGS="-DQLNB_THREAD_SAFE_OBSERVER=ON" pip install --no-build-isolation .
+pip install --no-build-isolation -C cmake.define.QLNB_THREAD_SAFE_OBSERVER=OFF .
 ```
 
-`qlnb.THREAD_SAFE_OBSERVER` tells you which kind of build you have. On a
-default build:
+On an opt-out build:
 
 | Call | Behaviour |
 | --- | --- |
@@ -39,12 +43,9 @@ default build:
 | `threads=1` | runs serially |
 | `threads>1` | raises `RuntimeError` |
 
-so code that calls `npv_many(book)` is correct everywhere and only gets faster
-where threading is allowed.
-
-The wheels CI builds are default builds. The `threadsafe` job in
-`.github/workflows/qlnb-wheels.yml` builds and tests a thread-safe build from
-source; no thread-safe wheel is published yet.
+so code that calls `npv_many(book)` is correct on either build and only gets
+faster where threading is allowed. The `single_threaded` CI job builds and tests
+the opt-out variant.
 
 ## Contract
 
@@ -60,12 +61,12 @@ source; no thread-safe wheel is published yet.
 - Results are bit-identical to pricing the same instruments one by one.
 - A failure reports the element index: `RuntimeError: element 23: ...`.
 
-## Cost of the thread-safe build
+## Cost of the thread-safe build (the default)
 
 Thread-safe observers add locking and heap allocation to every register and
 notify. Measured on 2000 instruments (noisy, 4-core machine):
 
-| Operation | default | thread-safe |
+| Operation | opt-out build | default (thread-safe) |
 | --- | --- | --- |
 | build European options | 3.9 µs each | 7.5 µs each |
 | build fixed-rate bonds | 7.6 µs each | 21.9 µs each |
@@ -98,5 +99,5 @@ compile for classes that reach `Observer` through a virtual base. The fix is
 `src/observer_compat.hpp`, which switches nanobind's shared-from-this handling
 off for the affected types. If a new binding fails with "cannot convert from
 pointer to base class 'QuantLib::Observer' ... because the base is virtual" in
-the thread-safe build, add the class to the list there. The `threadsafe` CI job
-keeps this from rotting.
+the default build, add the class to the list there. The default-build CI jobs
+keep this from rotting.

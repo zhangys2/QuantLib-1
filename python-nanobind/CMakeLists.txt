@@ -9,8 +9,8 @@ option(QLNB_BUILD_QUANTLIB
     "Build QuantLib from the parent source tree and link it statically"
     ON)
 option(QLNB_THREAD_SAFE_OBSERVER
-    "Pass QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN=ON when building QuantLib (threaded/free-threaded use)"
-    OFF)
+    "Build QuantLib with QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN (needed for multi-threaded npv_many; default ON). Set OFF for the smaller, faster-to-construct single-threaded build."
+    ON)
 
 set(QLNB_QUANTLIB_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." CACHE PATH
     "Path to the QuantLib source root")
