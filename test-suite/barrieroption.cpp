@@ -2146,6 +2146,113 @@ BOOST_AUTO_TEST_CASE(testZeroVolatility) {
     QL_CHECK_SMALL(missed - missedExpected, 1.0e-10);
 }
 
+BOOST_AUTO_TEST_CASE(testZeroVolatilityDifferentReferenceDates) {
+    BOOST_TEST_MESSAGE("Testing barrier options with zero volatility "
+                       "and curves anchored on different dates...");
+
+    // The deterministic barrier search has to start at the later of the two
+    // reference dates: starting at the earlier one asks the later curve for a
+    // negative time.  With flat zero rates the log-distance to the barrier is
+    // linear in time, so the first crossing has a closed form that does not
+    // use the engine.  Times below are Actual/365 years from today.
+
+    DayCounter dc = Actual365Fixed();
+    Date today(11, February, 2018);
+    Settings::instance().evaluationDate() = today;
+
+    const Date maturity = today + 365;
+    const Real timeToMaturity = 1.0;
+    const Real spot = 100.0;
+    const Real rebate = 4.0;
+    const Real strike = 95.0;
+    const Integer lag = 30;
+    const Real lagTime = lag / 365.0;
+
+    Handle<Quote> s0(ext::make_shared<SimpleQuote>(spot));
+    Handle<BlackVolTermStructure> volTS(flatVol(today, 0.0, dc));
+
+    auto zeroCurve = [&](const Date& reference, Rate rate) {
+        std::vector<Date> dates{reference, today + 3 * 365};
+        std::vector<Rate> rates{rate, rate};
+        return ext::make_shared<ZeroCurve>(dates, rates, dc);
+    };
+
+    struct Case {
+        bool dividendLater; // otherwise the risk-free curve is the later one
+        Rate r, q;
+        Real barrier;
+        Barrier::Type type;
+        bool hit;
+    };
+    std::vector<Case> cases;
+    for (bool dividendLater : {true, false}) {
+        // spot drifts up (r > q): up barriers can be reached
+        cases.push_back({dividendLater, 0.03, 0.01, 101.0, Barrier::UpOut, true});
+        cases.push_back({dividendLater, 0.03, 0.01, 101.0, Barrier::UpIn, true});
+        cases.push_back({dividendLater, 0.03, 0.01, 120.0, Barrier::UpOut, false});
+        cases.push_back({dividendLater, 0.03, 0.01, 120.0, Barrier::UpIn, false});
+        // spot drifts down (r < q): down barriers can be reached
+        cases.push_back({dividendLater, 0.01, 0.03, 99.0, Barrier::DownOut, true});
+        cases.push_back({dividendLater, 0.01, 0.03, 99.0, Barrier::DownIn, true});
+        cases.push_back({dividendLater, 0.01, 0.03, 80.0, Barrier::DownOut, false});
+        cases.push_back({dividendLater, 0.01, 0.03, 80.0, Barrier::DownIn, false});
+    }
+
+    for (const Case& c : cases) {
+        const Real xq = c.dividendLater ? lagTime : 0.0;
+        const Real xr = c.dividendLater ? 0.0 : lagTime;
+
+        const Real gapAtStart = std::log(spot / c.barrier) + (c.r - c.q) * std::max(xq, xr) +
+                                c.q * xq - c.r * xr;
+        const bool up = c.type == Barrier::UpOut || c.type == Barrier::UpIn;
+        if (up ? gapAtStart >= 0.0 : gapAtStart <= 0.0)
+            BOOST_FAIL("setup must start on the safe side of the barrier");
+
+        const Real hitTime =
+            -(std::log(spot / c.barrier) + c.q * xq - c.r * xr) / (c.r - c.q);
+        if ((hitTime < timeToMaturity) != c.hit)
+            BOOST_FAIL("setup must " << (c.hit ? "" : "not ") << "reach the barrier");
+
+        const Real riskFreeDiscount = std::exp(-c.r * (timeToMaturity - xr));
+        const Real dividendDiscount = std::exp(-c.q * (timeToMaturity - xq));
+        const Real forward = spot * dividendDiscount / riskFreeDiscount;
+        const Real vanilla = riskFreeDiscount * std::max(forward - strike, 0.0);
+        const bool knockOut = c.type == Barrier::UpOut || c.type == Barrier::DownOut;
+        Real expected;
+        if (knockOut)
+            expected = c.hit ? rebate * std::exp(-c.r * (hitTime - xr)) : vanilla;
+        else
+            expected = c.hit ? vanilla : rebate * riskFreeDiscount;
+
+        const Date dividendReference = c.dividendLater ? today + lag : today;
+        const Date riskFreeReference = c.dividendLater ? today : today + lag;
+        auto process = ext::make_shared<BlackScholesMertonProcess>(
+            s0, Handle<YieldTermStructure>(zeroCurve(dividendReference, c.q)),
+            Handle<YieldTermStructure>(zeroCurve(riskFreeReference, c.r)), volTS);
+        BarrierOption option(c.type, c.barrier, rebate,
+                             ext::make_shared<PlainVanillaPayoff>(Option::Call, strike),
+                             ext::make_shared<EuropeanExercise>(maturity));
+        option.setPricingEngine(ext::make_shared<AnalyticBarrierEngine>(process));
+
+        Real calculated;
+        try {
+            calculated = option.NPV();
+        } catch (Error& e) {
+            BOOST_FAIL("pricing failed:"
+                       << "\n    later curve: " << (c.dividendLater ? "dividend" : "risk-free")
+                       << "\n    barrier:     " << c.barrier << " (type " << c.type << ")"
+                       << "\n    error:       " << e.what());
+        }
+        if (std::fabs(calculated - expected) > 1.0e-10) {
+            BOOST_ERROR("Failed to match expected price:"
+                        << "\n    later curve: " << (c.dividendLater ? "dividend" : "risk-free")
+                        << "\n    barrier:     " << c.barrier << " (type " << c.type << ")"
+                        << "\n    expected:    " << expected
+                        << "\n    calculated:  " << calculated);
+        }
+    }
+}
+
 Real perturbativeBarrierOptionValue(Natural order, Size npoint = 1000,
                                     Size npoint2 = 100) {
     Real S = 100.0;
