@@ -31,7 +31,7 @@ void settings_set_evaluation_date(const Date& d) {
 
 NB_MODULE(_qlnb, m) {
     m.doc() = "Nanobind bindings for QuantLib (phase 123)";
-    m.attr("__version__") = "4.65.0";
+    m.attr("__version__") = "4.66.0";
 
     nb::enum_<Month>(m, "Month")
         .value("January", January)
@@ -223,4 +223,5 @@ NB_MODULE(_qlnb, m) {
     bind_marketmodel(m);
     bind_arrays(m);
     bind_random(m);
+    bind_statistics(m);
 }

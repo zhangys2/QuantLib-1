@@ -917,6 +917,12 @@ Experimental Python package that binds a focused QuantLib surface with
 - QuantLib's own sequences, not NumPy's: a seed reproduces what C++ and SWIG draw
 - Golden checks against values drawn from the official SWIG wheel
 
+### Phase 195 (risk statistics)
+- `RiskStatistics`: `add`, `add_values(values, weights=None)` from NumPy arrays, moments, `min` / `max`
+- Empirical `percentile`, `value_at_risk`, `expected_shortfall`, `shortfall`, `average_shortfall`, `regret`, `semi_deviation`, `downside_deviation`
+- Gaussian counterparts (`gaussian_value_at_risk`, `gaussian_expected_shortfall`, ...)
+- Golden checks against the official SWIG wheel; Gaussian measures checked against closed forms
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
