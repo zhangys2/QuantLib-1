@@ -73,6 +73,7 @@ nanobind_add_module(
     src/bind_arrays.cpp
     src/bind_random.cpp
     src/bind_statistics.cpp
+    src/bind_parallel.cpp
 )
 
 target_link_libraries(_qlnb PRIVATE ${QLNB_QUANTLIB_TARGET})

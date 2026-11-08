@@ -971,6 +971,7 @@ pimpl types. Option engines are attached via lambdas on concrete wrappers
 - [SWIG → qlnb migration guide](docs/migration.md)
 - [Packaging / wheel build notes](docs/packaging.md)
 - [Free-threading readiness](docs/free-threading.md)
+- [Parallel pricing with `npv_many`](docs/parallel-pricing.md)
 
 Compatibility shim (optional):
 

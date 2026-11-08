@@ -17,6 +17,9 @@ Treat multi-threaded use of a single `qlnb` process as **experimental**. Prefer
 one evaluation context per process, or serialize access to Settings / shared
 handles.
 
+See also [parallel-pricing.md](parallel-pricing.md) for `npv_many`, which
+uses native threads with the GIL released and needs the same build option.
+
 ## QuantLib thread-safe observer pattern
 
 QuantLib's observable/observer notifications race under threads unless built
