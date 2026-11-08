@@ -5689,6 +5689,60 @@ def black_formula_implied_std_dev(
     accuracy: float = ...,
     max_iterations: int = ...,
 ) -> float: ...
+def date_serials(dates: Sequence[Date]) -> object: ...
+def dates_from_serials(serials: object) -> list[Date]: ...
+def discount_serials(
+    curve_handle: YieldTermStructureHandle,
+    serials: object,
+    extrapolate: bool = ...,
+) -> object: ...
+def zero_rates_serials(
+    curve_handle: YieldTermStructureHandle,
+    serials: object,
+    day_counter: DayCounter,
+    compounding: Compounding,
+    frequency: Frequency = ...,
+    extrapolate: bool = ...,
+) -> object: ...
+def forward_rates_serials(
+    curve_handle: YieldTermStructureHandle,
+    starts: object,
+    ends: object,
+    day_counter: DayCounter,
+    compounding: Compounding,
+    frequency: Frequency = ...,
+    extrapolate: bool = ...,
+) -> object: ...
+def year_fractions_serials(
+    day_counter: DayCounter,
+    starts: object,
+    ends: object,
+) -> object: ...
+def adjust_serials(
+    calendar: Calendar,
+    serials: object,
+    convention: BusinessDayConvention = ...,
+) -> object: ...
+def is_business_day_serials(calendar: Calendar, serials: object) -> object: ...
+def black_formula_array(
+    option_type: OptionType,
+    strike: object,
+    forward: object,
+    std_dev: object,
+    discount: object = ...,
+    displacement: object = ...,
+) -> object: ...
+def black_formula_implied_std_dev_array(
+    option_type: OptionType,
+    strike: object,
+    forward: object,
+    black_price: object,
+    discount: object = ...,
+    displacement: object = ...,
+    guess: float = ...,
+    accuracy: float = ...,
+    max_iterations: int = ...,
+) -> object: ...
 def AnalyticContinuousGeometricAveragePriceAsianEngine(
     process: BlackScholesMertonProcess,
 ) -> BlackScholesMertonProcess: ...
