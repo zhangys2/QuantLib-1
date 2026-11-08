@@ -902,6 +902,27 @@ Experimental Python package that binds a focused QuantLib surface with
 - `AbcdFunction.instantaneous_volatility`, `instantaneous_variance`, `instantaneous_covariance`
 - Golden checks that variance is volatility-squared and covariance is the product of vols
 
+### Phase 193 (NumPy array APIs for cheap functions)
+- Dates travel as int64 arrays of serial numbers: `date_serials`, `dates_from_serials`
+- `discount_serials`, `zero_rates_serials`, `forward_rates_serials`
+- `year_fractions_serials`, `adjust_serials`, `is_business_day_serials`
+- `black_formula_array`, `black_formula_implied_std_dev_array` (inputs broadcast)
+- Golden checks: every array result equals the scalar function element by element
+- `benchmarks/bench_call_overhead.py` shows why: a `Date` object per element costs as much as the call
+
+### Phase 194 (bulk random-number generation)
+- `MersenneTwisterRng(seed)` with `uniform(n)` / `gaussian(n)` into NumPy arrays
+- `SobolSequence(dimension, seed)` and `HaltonSequence(dimension, ...)` with `uniform(points)` / `gaussian(points)` as `(points, dimension)` arrays; `SobolSequence.skip_to`
+- `inverse_cumulative_normal_array`, `cumulative_normal_array`
+- QuantLib's own sequences, not NumPy's: a seed reproduces what C++ and SWIG draw
+- Golden checks against values drawn from the official SWIG wheel
+
+### Phase 195 (risk statistics)
+- `RiskStatistics`: `add`, `add_values(values, weights=None)` from NumPy arrays, moments, `min` / `max`
+- Empirical `percentile`, `value_at_risk`, `expected_shortfall`, `shortfall`, `average_shortfall`, `regret`, `semi_deviation`, `downside_deviation`
+- Gaussian counterparts (`gaussian_value_at_risk`, `gaussian_expected_shortfall`, ...)
+- Golden checks against the official SWIG wheel; Gaussian measures checked against closed forms
+
 ### Phase 49 (COS / exp-fitting Heston engines)
 - `set_cos_heston_pricing_engine` → `COSHestonEngine` (Fang–Oosterlee)
 - `set_exponential_fitting_heston_pricing_engine` → `ExponentialFittingHestonEngine`
