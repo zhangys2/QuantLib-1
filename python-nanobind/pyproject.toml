@@ -7,7 +7,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qlnb"
-version = "4.68.0"
+version = "4.69.0"
 description = "Nanobind Python bindings for QuantLib (phase 192: Abcd instantaneous vol)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -57,9 +57,11 @@ sdist.exclude = [
 
 [tool.scikit-build.cmake.define]
 QLNB_BUILD_QUANTLIB = "ON"
-# Opt-in: rebuild QuantLib with QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN.
-# Override at install time: -C cmake.define.QLNB_THREAD_SAFE_OBSERVER=ON
-QLNB_THREAD_SAFE_OBSERVER = "OFF"
+# Default: build QuantLib with QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN so that
+# npv_many() can price on several threads.  It makes building instruments and
+# notifying observers slower; opt out with
+#   -C cmake.define.QLNB_THREAD_SAFE_OBSERVER=OFF
+QLNB_THREAD_SAFE_OBSERVER = "ON"
 
 [tool.cibuildwheel]
 # Full QuantLib static link → large/slow wheels. Keep the matrix small.

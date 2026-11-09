@@ -2,6 +2,8 @@
 
 #include <nanobind/nanobind.h>
 
+#include "observer_compat.hpp"
+
 namespace nb = nanobind;
 
 void bind_time(nb::module_& m);
@@ -24,3 +26,4 @@ void bind_marketmodel(nb::module_& m);
 void bind_arrays(nb::module_& m);
 void bind_random(nb::module_& m);
 void bind_statistics(nb::module_& m);
+void bind_parallel(nb::module_& m);

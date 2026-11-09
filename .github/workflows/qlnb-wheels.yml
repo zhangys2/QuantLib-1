@@ -132,6 +132,37 @@ jobs:
           name: qlnb-wheels-macos
           path: wheelhouse/*.whl
 
+  single_threaded:
+    name: qlnb single-threaded build (thread-safe observers off)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build libboost-dev
+          python -m pip install -U pip
+          python -m pip install nanobind scikit-build-core ninja pytest numpy
+
+      # The default build has thread-safe observers.  This opt-out build keeps the
+      # plain QuantLib observer pattern working (and npv_many serial-only).
+      - name: Build and install qlnb (thread-safe observers off)
+        working-directory: python-nanobind
+        run: pip install --no-build-isolation -C cmake.define.QLNB_THREAD_SAFE_OBSERVER=OFF .
+
+      - name: Check the build flag
+        run: python -c "import qlnb; assert not qlnb.THREAD_SAFE_OBSERVER, 'unexpected thread-safe build'"
+
+      - name: Run unit tests
+        working-directory: python-nanobind
+        run: pytest -q
+
   benchmark:
     name: qlnb benchmarks + NPV drift
     runs-on: ubuntu-latest
@@ -154,9 +185,16 @@ jobs:
         working-directory: python-nanobind
         run: pip install --no-build-isolation .
 
-      - name: Run unit tests
+      - name: Check the default build is thread-safe
+        run: python -c "import qlnb; assert qlnb.THREAD_SAFE_OBSERVER, 'default build is not thread-safe'"
+
+      - name: Run unit tests (including threaded npv_many)
         working-directory: python-nanobind
         run: pytest -q
+
+      - name: Parallel scaling (informational)
+        working-directory: python-nanobind
+        run: python benchmarks/bench_parallel.py --options 400
 
       - name: NPV drift check
         working-directory: python-nanobind

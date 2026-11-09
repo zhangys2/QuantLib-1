@@ -38,8 +38,9 @@ Experimental Python package that binds a focused QuantLib surface with
   camelCase methods, `evaluationDate`); not full SWIG parity
 - Experimental pricing: `BarrierOption` + `AnalyticBarrierEngine`,
   `make_cap` / `make_floor` + Black cap/floor engine
-- Free-threading notes (`docs/free-threading.md`) and optional
-  `QLNB_THREAD_SAFE_OBSERVER` CMake passthrough
+- Free-threading notes (`docs/free-threading.md`) and the
+  `QLNB_THREAD_SAFE_OBSERVER` CMake option (on by default since 4.69.0; see
+  `docs/parallel-pricing.md`)
 
 ### Phase 5 (rates options + ergonomics)
 - European `Swaption` + Black swaption engine (`src/bind_rates_options.cpp`)
@@ -971,6 +972,7 @@ pimpl types. Option engines are attached via lambdas on concrete wrappers
 - [SWIG → qlnb migration guide](docs/migration.md)
 - [Packaging / wheel build notes](docs/packaging.md)
 - [Free-threading readiness](docs/free-threading.md)
+- [Parallel pricing with `npv_many`](docs/parallel-pricing.md)
 
 Compatibility shim (optional):
 

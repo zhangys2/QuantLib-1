@@ -10,12 +10,15 @@ default CI. This note records the current status and how to experiment locally.
 | --- | --- |
 | Default wheels / CI | GIL CPython only (Stable ABI / cp312 manylinux) |
 | nanobind | Recent nanobind releases support free-threaded builds when compiled against a free-threaded interpreter |
-| QuantLib observers | Not thread-safe by default |
+| QuantLib observers | Thread-safe pattern is on by default (`QLNB_THREAD_SAFE_OBSERVER=ON`); opt out with `-C cmake.define.QLNB_THREAD_SAFE_OBSERVER=OFF` |
 | qlnb Settings / Handles | Share process-wide QuantLib singletons — not free-thread safe without care |
 
 Treat multi-threaded use of a single `qlnb` process as **experimental**. Prefer
 one evaluation context per process, or serialize access to Settings / shared
 handles.
+
+See also [parallel-pricing.md](parallel-pricing.md) for `npv_many`, which
+uses native threads with the GIL released and needs the same build option.
 
 ## QuantLib thread-safe observer pattern
 
@@ -26,14 +29,15 @@ with:
 QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN=ON
 ```
 
-When building `qlnb` from this tree, pass the CMake passthrough:
+`qlnb` builds with this pattern **by default**. To opt out of it (a cheaper,
+single-threaded build):
 
 ```bash
 pip install --no-build-isolation . \
-  -C cmake.define.QLNB_THREAD_SAFE_OBSERVER=ON
+  -C cmake.define.QLNB_THREAD_SAFE_OBSERVER=OFF
 ```
 
-`QLNB_THREAD_SAFE_OBSERVER=ON` forces
+`QLNB_THREAD_SAFE_OBSERVER=ON` (the default) forces
 `QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN=ON` on the embedded QuantLib static
 library (see `python-nanobind/CMakeLists.txt`).
 

@@ -1,0 +1,113 @@
+# Parallel pricing with `npv_many`
+
+`qlnb.npv_many(instruments, threads=0, warmup=True)` prices a sequence of
+instruments with the GIL released and returns a float64 NumPy array. With
+several threads it spreads the book across native threads.
+
+```python
+import qlnb as ql
+npvs = ql.npv_many(book)               # every hardware thread, if the build allows
+npvs = ql.npv_many(book, threads=4)
+npvs = ql.npv_many(book, threads=1)    # serial, GIL released
+```
+
+Supported instruments: `VanillaOption`, `EuropeanOption`, `FixedRateBond`.
+Other types raise `TypeError`; add them in `src/bind_parallel.cpp`.
+
+## The default build is thread-safe
+
+QuantLib's observer pattern is not thread-safe by default. Some engines create
+temporary observers of shared market data while pricing (for example
+`BinomialVanillaEngine` builds a temporary `GeneralizedBlackScholesProcess` on
+every call). Threads then add and remove entries in the same quote's observer
+set at the same time, which corrupts the heap. ThreadSanitizer reports this as
+a race in `Observable::unregisterObserver`.
+
+So multi-threaded pricing needs QuantLib built with
+`QL_ENABLE_THREAD_SAFE_OBSERVER_PATTERN`, and **qlnb builds it that way by
+default** (`QLNB_THREAD_SAFE_OBSERVER=ON`). `qlnb.THREAD_SAFE_OBSERVER` tells
+you which kind of build you have.
+
+To opt out and get the plain observer pattern (cheaper to construct and notify,
+single-threaded `npv_many` only):
+
+```bash
+pip install --no-build-isolation -C cmake.define.QLNB_THREAD_SAFE_OBSERVER=OFF .
+```
+
+On an opt-out build:
+
+| Call | Behaviour |
+| --- | --- |
+| `threads=0` (default) | runs serially |
+| `threads=1` | runs serially |
+| `threads>1` | raises `RuntimeError` |
+
+so code that calls `npv_many(book)` is correct on either build and only gets
+faster where threading is allowed. The `single_threaded` CI job builds and tests
+the opt-out variant.
+
+## Contract
+
+- Do not change quotes, curves, the evaluation date or pricing engines, or
+  create and destroy objects that observe them, while a call is running.
+- Instruments may share processes, curves and quotes. That is the normal layout
+  and is covered by the tests.
+- Lazily calculated objects that instruments share (curves, volatility surfaces)
+  are not thread-safe on first use: two threads reaching an uncalculated curve
+  together can read it half initialised ("null interest rate", or silently wrong
+  numbers). Before starting threads, `npv_many` walks the observer graph of the
+  book (instrument -> engine -> process / handles -> curves ...) and calculates
+  each shared lazy object once, serially, dependencies first.
+- `warmup=True` additionally prices the first instrument serially. That
+  initialises caches that are not lazy objects, such as the local volatility a
+  `BlackScholesMertonProcess` builds on first use. If the book has several
+  distinct shared setups of that kind, price one instrument of each first.
+- Results are bit-identical to pricing the same instruments one by one.
+- A failure reports the element index: `RuntimeError: element 23: ...`.
+
+## Cost of the thread-safe build (the default)
+
+Thread-safe observers add locking and heap allocation to every register and
+notify. Measured on 2000 instruments (noisy, 4-core machine):
+
+| Operation | opt-out build | default (thread-safe) |
+| --- | --- | --- |
+| build European options | 3.9 µs each | 7.5 µs each |
+| build fixed-rate bonds | 7.6 µs each | 21.9 µs each |
+| notify observers after a spot bump | 0.02 µs each | 0.31 µs each |
+| bump spot and reprice (analytic) | 1.95 µs each | 2.95 µs each |
+| first or cached `NPV()` | same | same |
+
+Heavy engines are unaffected, except that engines which create temporary
+observers on every call (binomial) pay the registration cost each time, about
+9% serially in our measurements.
+
+## Speedup
+
+`python benchmarks/bench_parallel.py` on a 4-core machine, 800 American options
+sharing one process:
+
+| Engine | 1 thread | 2 threads | 4 threads |
+| --- | --- | --- | --- |
+| binomial, 200 steps | 318 ms | 156 ms (2.0x) | 85 ms (3.7x) |
+| finite difference, 100x100 | 430 ms | 212 ms (2.0x) | 124 ms (3.5x) |
+
+Cheap analytic instruments (about 1 µs each) gain little: thread start-up and
+the serial warm-up dominate unless the book has well over 100,000 of them.
+
+## Build note for the bindings
+
+With thread-safe observers `QuantLib::Observer` derives from
+`std::enable_shared_from_this`, and nanobind's `shared_ptr` caster then fails to
+compile for classes that reach `Observer` through a virtual base. The fix is
+`src/observer_compat.hpp`, which switches nanobind's shared-from-this handling
+off for the affected types. If a new binding fails with "cannot convert from
+pointer to base class 'QuantLib::Observer' ... because the base is virtual" in
+the default build, add the class to the list there. The default-build CI jobs
+keep this from rotting.
+
+The observer-graph walk reaches `Observer::observables_` and the protected
+`LazyObject::calculate()` with the explicit-instantiation access idiom (no
+QuantLib header is changed). If a QuantLib update renames them, the thread-safe
+build stops compiling and CI shows it.
