@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2026
+ Copyright (C) 2026 JOHN SAM
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -55,19 +55,20 @@ namespace QuantLib {
 
     VarianceDayCategory VarianceCalendar::category(const Date& date) const {
         const Weekday weekday = date.weekday();
-        const bool weekend = calendar_.empty()
-                                 ? (weekday == Saturday || weekday == Sunday)
-                                 : calendar_.isWeekend(weekday);
-        if (weekend)
-            return VarianceDayCategory::Weekend;
-        if (!calendar_.empty() && calendar_.isHoliday(date))
-            return VarianceDayCategory::Holiday;
-        return VarianceDayCategory::Weekday;
+        if (calendar_.empty())
+            return (weekday == Saturday || weekday == Sunday) ? VarianceDayCategory::Weekend :
+                                                                VarianceDayCategory::Weekday;
+        // Business-day status comes first: a weekend day opened with
+        // removeHoliday() is a business day and must not be classified as a weekend.
+        if (calendar_.isBusinessDay(date))
+            return VarianceDayCategory::Weekday;
+        return calendar_.isWeekend(weekday) ? VarianceDayCategory::Weekend :
+                                              VarianceDayCategory::Holiday;
     }
 
     const VarianceCalendar::Profile& VarianceCalendar::profile(Weekday weekday) const {
         const auto it = weekdayProfiles_.find(weekday);
-        if (it != weekdayProfiles_.end() && !it->second.values.empty())
+        if (it != weekdayProfiles_.end())
             return it->second;
         return defaultProfile_;
     }

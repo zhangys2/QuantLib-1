@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2026
+ Copyright (C) 2026 JOHN SAM
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -44,8 +44,16 @@ namespace QuantLib {
         all-one profile. Times are local wall-clock minutes after midnight;
         timezone and daylight-saving conversions are the caller's responsibility.
 
-        If a calendar is supplied, its weekend definition and holidays classify dates.
-        Without one, Saturday and Sunday are weekends and no other dates are holidays.
+        If a calendar is supplied, a date is a weekday if it is a business day of the
+        calendar (this includes weekend days opened with \c removeHoliday), otherwise a
+        weekend if its weekday is a weekend day of the calendar, otherwise a holiday.
+        Without a calendar, Saturday and Sunday are weekends and no other dates are
+        holidays.
+
+        The intraday profile is chosen by the date's weekday only, whatever its category:
+        a weekday entry replaces the default profile even if that entry is empty (an
+        empty entry flattens the day to an all-one profile), and a holiday keeps the
+        profile of the weekday it falls on.
     */
     class VarianceCalendar {
       public:

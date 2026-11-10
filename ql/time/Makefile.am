@@ -9,7 +9,6 @@ this_include_HEADERS = \
     asx.hpp \
     businessdayconvention.hpp \
     calendar.hpp \
-    variancecalendar.hpp \
     date.hpp \
     dategenerationrule.hpp \
 	daycounter.hpp \
@@ -19,13 +18,13 @@ this_include_HEADERS = \
     period.hpp \
     schedule.hpp \
     timeunit.hpp \
+    variancecalendar.hpp \
     weekday.hpp
 
 cpp_files = \
     asx.cpp \
     businessdayconvention.cpp \
     calendar.cpp \
-    variancecalendar.cpp \
     date.cpp \
     dategenerationrule.cpp \
     ecb.cpp \
@@ -34,6 +33,7 @@ cpp_files = \
     period.cpp \
     schedule.cpp \
     timeunit.cpp \
+    variancecalendar.cpp \
     weekday.cpp
 
 if UNITY_BUILD
