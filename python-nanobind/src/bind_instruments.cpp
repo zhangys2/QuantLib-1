@@ -2760,6 +2760,100 @@ void bind_instruments(nb::module_& m) {
         nb::arg("averaging_method") = RateAveraging::Compound,
         nb::arg("end_of_month") = nb::none());
 
+    // DatedOISRateHelper: the same helper with explicit start / end dates
+    // (QuantLib's second OISRateHelper constructor).
+    auto make_dated_ois_helper = [](const Date& start_date,
+                                    const Date& end_date,
+                                    const std::variant<Rate, Handle<Quote>>& fixed_rate,
+                                    const ext::shared_ptr<OvernightIndex>& overnight_index,
+                                    const Handle<YieldTermStructure>& discounting_curve,
+                                    bool telescopic_value_dates,
+                                    Integer payment_lag,
+                                    BusinessDayConvention payment_convention,
+                                    Frequency payment_frequency,
+                                    const Calendar& payment_calendar,
+                                    Spread overnight_spread,
+                                    RateAveraging::Type averaging_method,
+                                    const std::optional<bool>& end_of_month) {
+        QL_REQUIRE(overnight_index, "DatedOISRateHelper: null overnight index");
+        QL_REQUIRE(start_date < end_date, "DatedOISRateHelper: start date must precede end date");
+        return ext::shared_ptr<RateHelper>(ext::make_shared<OISRateHelper>(
+            start_date, end_date, fixed_rate, overnight_index, discounting_curve,
+            telescopic_value_dates, payment_lag, payment_convention, payment_frequency,
+            payment_calendar, overnight_spread, Pillar::LastRelevantDate, Date(),
+            averaging_method, end_of_month));
+    };
+
+    m.def(
+        "DatedOISRateHelper",
+        [make_dated_ois_helper](const Date& start_date,
+                                const Date& end_date,
+                                Rate fixed_rate,
+                                const ext::shared_ptr<OvernightIndex>& overnight_index,
+                                const Handle<YieldTermStructure>& discounting_curve,
+                                bool telescopic_value_dates,
+                                Integer payment_lag,
+                                BusinessDayConvention payment_convention,
+                                Frequency payment_frequency,
+                                const Calendar& payment_calendar,
+                                Spread overnight_spread,
+                                RateAveraging::Type averaging_method,
+                                const std::optional<bool>& end_of_month) {
+            return make_dated_ois_helper(start_date, end_date, fixed_rate, overnight_index,
+                                         discounting_curve, telescopic_value_dates, payment_lag,
+                                         payment_convention, payment_frequency, payment_calendar,
+                                         overnight_spread, averaging_method, end_of_month);
+        },
+        nb::arg("start_date"),
+        nb::arg("end_date"),
+        nb::arg("fixed_rate"),
+        nb::arg("overnight_index"),
+        nb::arg("discounting_curve") = Handle<YieldTermStructure>(),
+        nb::arg("telescopic_value_dates") = false,
+        nb::arg("payment_lag") = 0,
+        nb::arg("payment_convention") = Following,
+        nb::arg("payment_frequency") = Annual,
+        nb::arg("payment_calendar") = Calendar(),
+        nb::arg("overnight_spread") = 0.0,
+        nb::arg("averaging_method") = RateAveraging::Compound,
+        nb::arg("end_of_month") = nb::none(),
+        "OIS bootstrap helper with explicit start and end dates (same options as "
+        "OISRateHelper, without settlement_days / tenor / forward_start).");
+
+    m.def(
+        "DatedOISRateHelper",
+        [make_dated_ois_helper](const Date& start_date,
+                                const Date& end_date,
+                                const Handle<Quote>& fixed_rate,
+                                const ext::shared_ptr<OvernightIndex>& overnight_index,
+                                const Handle<YieldTermStructure>& discounting_curve,
+                                bool telescopic_value_dates,
+                                Integer payment_lag,
+                                BusinessDayConvention payment_convention,
+                                Frequency payment_frequency,
+                                const Calendar& payment_calendar,
+                                Spread overnight_spread,
+                                RateAveraging::Type averaging_method,
+                                const std::optional<bool>& end_of_month) {
+            return make_dated_ois_helper(start_date, end_date, fixed_rate, overnight_index,
+                                         discounting_curve, telescopic_value_dates, payment_lag,
+                                         payment_convention, payment_frequency, payment_calendar,
+                                         overnight_spread, averaging_method, end_of_month);
+        },
+        nb::arg("start_date"),
+        nb::arg("end_date"),
+        nb::arg("fixed_rate"),
+        nb::arg("overnight_index"),
+        nb::arg("discounting_curve") = Handle<YieldTermStructure>(),
+        nb::arg("telescopic_value_dates") = false,
+        nb::arg("payment_lag") = 0,
+        nb::arg("payment_convention") = Following,
+        nb::arg("payment_frequency") = Annual,
+        nb::arg("payment_calendar") = Calendar(),
+        nb::arg("overnight_spread") = 0.0,
+        nb::arg("averaging_method") = RateAveraging::Compound,
+        nb::arg("end_of_month") = nb::none());
+
     // BMASwap is Swap/Instrument (MI) — standalone concrete wrapper.
     nb::class_<BMASwap>(m, "BMASwap")
         .def(

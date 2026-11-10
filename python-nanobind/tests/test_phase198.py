@@ -122,3 +122,68 @@ def test_oisratehelper_in_compat_namespace():
     import qlnb.compat as ql_c
 
     assert ql_c.OISRateHelper is ql.OISRateHelper
+
+
+def _dated_helpers(index, today, rates=None, **kwargs):
+    calendar = ql.TARGET()
+    start = calendar.advance(today, 2, ql.TimeUnit.Days)
+    rates = rates or [r for _, _, r in TENORS]
+    return [
+        ql.DatedOISRateHelper(
+            start,
+            calendar.advance(start, ql.Period(n, unit), ql.BusinessDayConvention.ModifiedFollowing),
+            rate,
+            index,
+            **kwargs,
+        )
+        for (n, unit, _), rate in zip(TENORS, rates)
+    ]
+
+
+def test_dated_oisratehelper_matches_the_tenor_helper():
+    today = _today()
+    by_tenor = _bootstrap(today)
+    dated = ql.PiecewiseLogLinearDiscountCurve(
+        today, _dated_helpers(ql.Estr(), today), ql.Actual365Fixed()
+    )
+    for t in (0.5, 1.0, 3.0, 7.0, 10.0):
+        assert dated.discount(t) == pytest.approx(by_tenor.discount(t), abs=1.0e-12)
+    for n, unit, rate in TENORS:
+        assert _par_rate(dated, ql.Period(n, unit)) == pytest.approx(rate, abs=1.0e-6)
+
+
+def test_dated_oisratehelper_quote_handle_moves_the_curve():
+    today = _today()
+    quotes = [ql.SimpleQuote(r) for _, _, r in TENORS]
+    helpers = _dated_helpers(ql.Estr(), today, rates=[ql.QuoteHandle(q) for q in quotes])
+    curve = ql.PiecewiseLogLinearDiscountCurve(today, helpers, ql.Actual365Fixed())
+    before = curve.discount(5.0)
+    for q in quotes:
+        q.set_value(q.value() + 0.01)
+    assert curve.discount(5.0) < before
+
+
+def test_dated_oisratehelper_forward_starting_quote():
+    today = _today()
+    index = ql.Estr()
+    calendar = ql.TARGET()
+    spot = calendar.advance(today, 2, ql.TimeUnit.Days)
+    forward = calendar.advance(spot, 1, ql.TimeUnit.Years)
+    end = calendar.advance(forward, 1, ql.TimeUnit.Years)
+    helpers = _helpers(index)[:1] + [ql.DatedOISRateHelper(forward, end, 0.034, index)]
+    curve = ql.PiecewiseLogLinearDiscountCurve(today, helpers, ql.Actual365Fixed())
+    # A single-period OIS reprices to the simple Act/360 forward rate between its dates.
+    dc = ql.Actual365Fixed()
+    d_start = curve.discount(dc.year_fraction(today, forward))
+    d_end = curve.discount(dc.year_fraction(today, end))
+    simple = (d_start / d_end - 1.0) / ql.Actual360().year_fraction(forward, end)
+    assert simple == pytest.approx(0.034, abs=1.0e-9)
+
+
+def test_dated_oisratehelper_rejects_bad_input():
+    today = _today()
+    index = ql.Estr()
+    with pytest.raises(Exception):
+        ql.DatedOISRateHelper(today + 365, today, 0.03, index)
+    with pytest.raises(Exception):
+        ql.DatedOISRateHelper(today, today + 365, 0.03, None)

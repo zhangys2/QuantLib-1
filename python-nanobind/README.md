@@ -928,10 +928,11 @@ Experimental Python package that binds a focused QuantLib surface with
 - `GJRGARCHProcess.lambda_`, `GJRGARCHModel.lambda_` and `IsdaCdsNumericalFix.None_`: attribute-syntax spellings of the Python-keyword names `lambda` and `None` (the old spellings still work through `getattr`)
 - `_qlnb.pyi` and `compat.pyi` now parse as Python; a test enforces it
 
-### Phase 198 (OISRateHelper)
+### Phase 198 (OISRateHelper, DatedOISRateHelper)
 - `OISRateHelper(settlement_days, tenor, fixed_rate, overnight_index, ...)` bootstraps an overnight-indexed curve (SOFR, ESTR, SONIA, EONIA) from OIS quotes; `fixed_rate` is a float or a `QuoteHandle`
 - Optional `discounting_curve` (exogenous discounting), `payment_lag`, `payment_convention`, `payment_frequency`, `payment_calendar`, `forward_start`, `overnight_spread`, `averaging_method`, `end_of_month`, `telescopic_value_dates`
-- Pillar choice, lookback / lockout days and custom coupon pricers are not exposed; no `DatedOISRateHelper` yet
+- `DatedOISRateHelper(start_date, end_date, fixed_rate, overnight_index, ...)`: the same helper with explicit dates (QuantLib's second `OISRateHelper` constructor); same options minus `settlement_days`, `tenor` and `forward_start`
+- Pillar choice, lookback / lockout days and custom coupon pricers are not exposed
 - Golden checks: the bootstrapped curve reprices each quote through `make_ois`, with a single curve and with an exogenous discounting curve
 
 ### Phase 197 (builds against current QuantLib master)

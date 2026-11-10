@@ -1308,6 +1308,21 @@ def OISRateHelper(
     averaging_method: RateAveraging = ...,
     end_of_month: bool | None = ...,
 ) -> RateHelper: ...
+def DatedOISRateHelper(
+    start_date: Date,
+    end_date: Date,
+    fixed_rate: float | QuoteHandle,
+    overnight_index: OvernightIndex,
+    discounting_curve: YieldTermStructureHandle = ...,
+    telescopic_value_dates: bool = ...,
+    payment_lag: int = ...,
+    payment_convention: BusinessDayConvention = ...,
+    payment_frequency: Frequency = ...,
+    payment_calendar: Calendar = ...,
+    overnight_spread: float = ...,
+    averaging_method: RateAveraging = ...,
+    end_of_month: bool | None = ...,
+) -> RateHelper: ...
 
 class BMASwap:
     def __init__(
