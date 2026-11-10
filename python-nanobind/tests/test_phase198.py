@@ -187,3 +187,128 @@ def test_dated_oisratehelper_rejects_bad_input():
         ql.DatedOISRateHelper(today + 365, today, 0.03, index)
     with pytest.raises(Exception):
         ql.DatedOISRateHelper(today, today + 365, 0.03, None)
+
+
+def _third_wednesday(year, month):
+    first = ql.Date(1, month, year)
+    # Weekday: Sunday = 1 ... Saturday = 7 (QuantLib); Wednesday = 4.
+    offset = (int(first.weekday()) - 4) % 7
+    return first + ((7 - offset) % 7) + 14
+
+
+def _futures_curve(today, convexity=0.0, **kwargs):
+    deposit = ql.DepositRateHelper(
+        0.0310,
+        ql.Period(3, ql.TimeUnit.Months),
+        2,
+        ql.TARGET(),
+        ql.BusinessDayConvention.ModifiedFollowing,
+        True,
+        ql.Actual360(),
+    )
+    months = [
+        (ql.Month.June, 2026, 96.90),
+        (ql.Month.September, 2026, 96.80),
+        (ql.Month.December, 2026, 96.70),
+        (ql.Month.March, 2027, 96.60),
+    ]
+    helpers = [deposit]
+    for month, year, price in months:
+        helpers.append(
+            ql.FuturesRateHelper(
+                price,
+                _third_wednesday(year, month),
+                3,
+                ql.TARGET(),
+                ql.BusinessDayConvention.ModifiedFollowing,
+                True,
+                ql.Actual360(),
+                convexity,
+                **kwargs,
+            )
+        )
+    return ql.PiecewiseLogLinearDiscountCurve(today, helpers, ql.Actual365Fixed()), months
+
+
+def _forward(curve, today, start):
+    calendar = ql.TARGET()
+    end = calendar.advance(start, 3, ql.TimeUnit.Months, ql.BusinessDayConvention.ModifiedFollowing, True)
+    dc = ql.Actual365Fixed()
+    d1 = curve.discount(dc.year_fraction(today, start))
+    d2 = curve.discount(dc.year_fraction(today, end))
+    return (d1 / d2 - 1.0) / ql.Actual360().year_fraction(start, end)
+
+
+def test_futures_ratehelper_reproduces_implied_rates():
+    today = _today()
+    curve, months = _futures_curve(today)
+    for month, year, price in months:
+        forward = _forward(curve, today, _third_wednesday(year, month))
+        assert forward == pytest.approx((100.0 - price) / 100.0, abs=1.0e-9)
+
+
+def test_futures_ratehelper_convexity_adjustment_lowers_the_forward():
+    today = _today()
+    curve, months = _futures_curve(today, convexity=0.0005)
+    for month, year, price in months:
+        forward = _forward(curve, today, _third_wednesday(year, month))
+        assert forward == pytest.approx((100.0 - price) / 100.0 - 0.0005, abs=1.0e-9)
+
+
+def test_futures_ratehelper_quote_handles_move_the_curve():
+    today = _today()
+    start = _third_wednesday(2026, ql.Month.June)
+    price = ql.SimpleQuote(96.90)
+    adjustment = ql.SimpleQuote(0.0)
+    deposit = ql.DepositRateHelper(
+        0.0310, ql.Period(3, ql.TimeUnit.Months), 2, ql.TARGET(),
+        ql.BusinessDayConvention.ModifiedFollowing, True, ql.Actual360(),
+    )
+    future = ql.FuturesRateHelper(
+        ql.QuoteHandle(price),
+        start,
+        3,
+        ql.TARGET(),
+        ql.BusinessDayConvention.ModifiedFollowing,
+        True,
+        ql.Actual360(),
+        ql.QuoteHandle(adjustment),
+    )
+    curve = ql.PiecewiseLogLinearDiscountCurve(today, [deposit, future], ql.Actual365Fixed())
+    base = _forward(curve, today, start)
+    assert base == pytest.approx(0.031, abs=1.0e-9)
+    price.set_value(96.40)
+    assert _forward(curve, today, start) == pytest.approx(0.036, abs=1.0e-9)
+    adjustment.set_value(0.001)
+    assert _forward(curve, today, start) == pytest.approx(0.035, abs=1.0e-9)
+
+
+def test_futures_ratehelper_end_date_and_index_overloads_agree():
+    today = _today()
+    start = _third_wednesday(2026, ql.Month.June)
+    calendar = ql.TARGET()
+    end = calendar.advance(start, 3, ql.TimeUnit.Months, ql.BusinessDayConvention.ModifiedFollowing, True)
+    deposit = ql.DepositRateHelper(
+        0.0310, ql.Period(3, ql.TimeUnit.Months), 2, calendar,
+        ql.BusinessDayConvention.ModifiedFollowing, True, ql.Actual360(),
+    )
+    variants = [
+        ql.FuturesRateHelper(96.9, start, end, ql.Actual360()),
+        ql.FuturesRateHelper(96.9, start, ql.Euribor3M()),
+        ql.FuturesRateHelper(
+            96.9, start, 3, calendar, ql.BusinessDayConvention.ModifiedFollowing, True,
+            ql.Actual360(), 0.0, ql.FuturesType.IMM,
+        ),
+    ]
+    curves = [
+        ql.PiecewiseLogLinearDiscountCurve(today, [deposit, h], ql.Actual365Fixed())
+        for h in variants
+    ]
+    for curve in curves[1:]:
+        assert curve.discount(0.3) == pytest.approx(curves[0].discount(0.3), abs=1.0e-12)
+
+
+def test_futures_ratehelper_rejects_null_index():
+    today = _today()
+    with pytest.raises(Exception):
+        ql.FuturesRateHelper(96.9, _third_wednesday(2026, ql.Month.June), None)

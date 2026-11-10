@@ -3444,7 +3444,7 @@ cov = f.instantaneous_covariance(u, T, S)
 
 Completes the instantaneous AbcdFunction surface used by market-model volatility tests.
 
-## Phase-198 OISRateHelper / DatedOISRateHelper
+## Phase-198 OISRateHelper / DatedOISRateHelper / FuturesRateHelper
 
 ```python
 index = ql.Estr()
@@ -3464,12 +3464,26 @@ ois = ql.OISRateHelper(2, ql.Period(5, ql.TimeUnit.Years), ql.QuoteHandle(q), in
 dated = ql.DatedOISRateHelper(start, end, 0.034, index)
 ```
 
+```python
+# Interest-rate futures: price quote, 3-month contract, optional convexity adjustment
+fut = ql.FuturesRateHelper(97.25, imm_start, 3, ql.TARGET(),
+                           ql.BusinessDayConvention.ModifiedFollowing, True,
+                           ql.Actual360(), convexity_adjustment=0.0002)
+# ... or from an index / explicit end date
+fut = ql.FuturesRateHelper(97.25, imm_start, ql.Euribor3M())
+```
+
+`FuturesRateHelper` implies the rate `100 - price` (percent) plus `convexity_adjustment`
+(an absolute rate, `0.0002` = 2 bp); `price` and `convexity_adjustment` are each a float
+or a `QuoteHandle`. `FuturesType` selects the contract convention (`IMM`, `ASX`, `Custom`);
+the start date is not derived from the contract month, so pass the IMM date yourself.
+
 `fixed_rate` is a float or a `QuoteHandle` (a quote change moves the curve). With no
 `discounting_curve` the curve being bootstrapped both discounts and projects. Pillar
 choice, lookback / lockout days and custom coupon pricers are not exposed.
 `DatedOISRateHelper` takes the same options except `settlement_days`, `tenor` and
 `forward_start`; it wraps QuantLib's start/end-date `OISRateHelper` constructor. Replaces SWIG
-`ql.OISRateHelper(...)` and `ql.DatedOISRateHelper(...)`.
+`ql.OISRateHelper(...)`, `ql.DatedOISRateHelper(...)` and `ql.FuturesRateHelper(...)`.
 
 ## Phase-49 COS / exponential-fitting Heston engines
 

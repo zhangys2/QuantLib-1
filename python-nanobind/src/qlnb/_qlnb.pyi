@@ -1308,6 +1308,40 @@ def OISRateHelper(
     averaging_method: RateAveraging = ...,
     end_of_month: bool | None = ...,
 ) -> RateHelper: ...
+class FuturesType:
+    IMM: FuturesType
+    ASX: FuturesType
+    Custom: FuturesType
+
+@overload
+def FuturesRateHelper(
+    price: float | QuoteHandle,
+    ibor_start_date: Date,
+    length_in_months: int,
+    calendar: Calendar,
+    convention: BusinessDayConvention,
+    end_of_month: bool,
+    day_counter: DayCounter,
+    convexity_adjustment: float | QuoteHandle = ...,
+    type: FuturesType = ...,
+) -> RateHelper: ...
+@overload
+def FuturesRateHelper(
+    price: float | QuoteHandle,
+    ibor_start_date: Date,
+    ibor_end_date: Date,
+    day_counter: DayCounter,
+    convexity_adjustment: float | QuoteHandle = ...,
+    type: FuturesType = ...,
+) -> RateHelper: ...
+@overload
+def FuturesRateHelper(
+    price: float | QuoteHandle,
+    ibor_start_date: Date,
+    ibor_index: IborIndex,
+    convexity_adjustment: float | QuoteHandle = ...,
+    type: FuturesType = ...,
+) -> RateHelper: ...
 def DatedOISRateHelper(
     start_date: Date,
     end_date: Date,

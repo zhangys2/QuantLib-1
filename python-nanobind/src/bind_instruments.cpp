@@ -1,6 +1,7 @@
 #include "bindings.hpp"
 
 #include <nanobind/stl/shared_ptr.h>
+#include <nanobind/stl/variant.h>
 #include <nanobind/stl/vector.h>
 
 #include <ql/cashflows/couponpricer.hpp>
@@ -2759,6 +2760,80 @@ void bind_instruments(nb::module_& m) {
         nb::arg("overnight_spread") = 0.0,
         nb::arg("averaging_method") = RateAveraging::Compound,
         nb::arg("end_of_month") = nb::none());
+
+    // FuturesRateHelper: bootstrap instrument for an interest-rate future (price
+    // quote, rate = 100 - price + convexity adjustment). Price and convexity
+    // adjustment are each a float or a QuoteHandle.
+    nb::enum_<Futures::Type>(m, "FuturesType")
+        .value("IMM", Futures::IMM)
+        .value("ASX", Futures::ASX)
+        .value("Custom", Futures::Custom);
+
+    using PriceOrQuote = std::variant<Real, Handle<Quote>>;
+
+    m.def(
+        "FuturesRateHelper",
+        [](const PriceOrQuote& price,
+           const Date& ibor_start_date,
+           Natural length_in_months,
+           const Calendar& calendar,
+           BusinessDayConvention convention,
+           bool end_of_month,
+           const DayCounter& day_counter,
+           const PriceOrQuote& convexity_adjustment,
+           Futures::Type type) {
+            return ext::shared_ptr<RateHelper>(ext::make_shared<FuturesRateHelper>(
+                price, ibor_start_date, length_in_months, calendar, convention,
+                end_of_month, day_counter, convexity_adjustment, type));
+        },
+        nb::arg("price"),
+        nb::arg("ibor_start_date"),
+        nb::arg("length_in_months"),
+        nb::arg("calendar"),
+        nb::arg("convention"),
+        nb::arg("end_of_month"),
+        nb::arg("day_counter"),
+        nb::arg("convexity_adjustment") = 0.0,
+        nb::arg("type") = Futures::IMM,
+        "Interest-rate futures helper from a start date and a length in months. "
+        "`price` and `convexity_adjustment` are floats or QuoteHandles; the implied "
+        "rate is 100 - price (in percent) plus the convexity adjustment (a rate).");
+
+    m.def(
+        "FuturesRateHelper",
+        [](const PriceOrQuote& price,
+           const Date& ibor_start_date,
+           const Date& ibor_end_date,
+           const DayCounter& day_counter,
+           const PriceOrQuote& convexity_adjustment,
+           Futures::Type type) {
+            return ext::shared_ptr<RateHelper>(ext::make_shared<FuturesRateHelper>(
+                price, ibor_start_date, ibor_end_date, day_counter, convexity_adjustment,
+                type));
+        },
+        nb::arg("price"),
+        nb::arg("ibor_start_date"),
+        nb::arg("ibor_end_date"),
+        nb::arg("day_counter"),
+        nb::arg("convexity_adjustment") = 0.0,
+        nb::arg("type") = Futures::IMM);
+
+    m.def(
+        "FuturesRateHelper",
+        [](const PriceOrQuote& price,
+           const Date& ibor_start_date,
+           const ext::shared_ptr<IborIndex>& ibor_index,
+           const PriceOrQuote& convexity_adjustment,
+           Futures::Type type) {
+            QL_REQUIRE(ibor_index, "FuturesRateHelper: null ibor index");
+            return ext::shared_ptr<RateHelper>(ext::make_shared<FuturesRateHelper>(
+                price, ibor_start_date, ibor_index, convexity_adjustment, type));
+        },
+        nb::arg("price"),
+        nb::arg("ibor_start_date"),
+        nb::arg("ibor_index"),
+        nb::arg("convexity_adjustment") = 0.0,
+        nb::arg("type") = Futures::IMM);
 
     // DatedOISRateHelper: the same helper with explicit start / end dates
     // (QuantLib's second OISRateHelper constructor).

@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "qlnb"
 version = "4.70.0"
-description = "Nanobind Python bindings for QuantLib (phase 198: OISRateHelper, DatedOISRateHelper)"
+description = "Nanobind Python bindings for QuantLib (phase 198: OIS and futures rate helpers)"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "BSD-3-Clause" }
