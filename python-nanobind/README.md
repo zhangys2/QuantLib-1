@@ -933,8 +933,8 @@ Experimental Python package that binds a focused QuantLib surface with
 - Optional `discounting_curve` (exogenous discounting), `payment_lag`, `payment_convention`, `payment_frequency`, `payment_calendar`, `forward_start`, `overnight_spread`, `averaging_method`, `end_of_month`, `telescopic_value_dates`
 - `DatedOISRateHelper(start_date, end_date, fixed_rate, overnight_index, ...)`: the same helper with explicit dates (QuantLib's second `OISRateHelper` constructor); same options minus `settlement_days`, `tenor` and `forward_start`
 - Pillar choice, lookback / lockout days and custom coupon pricers are not exposed
-- `FuturesRateHelper` for interest-rate futures (e.g. Eurodollar / Euribor IMM contracts), with the `FuturesType` enum (`IMM`, `ASX`, `Custom`); `price` and `convexity_adjustment` are each a float or a `QuoteHandle`, and the start date is given with a length in months, an end date, or an `IborIndex`
-- Golden checks: the bootstrapped curve reproduces each contract's implied rate `100 - price` (plus convexity adjustment) between its dates
+- `FuturesRateHelper` for interest-rate futures (e.g. Eurodollar / Euribor IMM contracts), with the `FuturesType` enum (`IMM`, `ASX`, `Custom`; it only validates the start date); `price` and `convexity_adjustment` are each a float or a `QuoteHandle`, and the start date is given with a length in months, an end date, or an `IborIndex`
+- Golden checks: the bootstrapped curve reproduces each contract's forward `(100 - price) / 100 - convexity adjustment` between its dates (the end date is the next IMM date for a null end date, `calendar.advance` for the length-in-months form)
 - Golden checks: the bootstrapped curve reprices each quote through `make_ois`, with a single curve and with an exogenous discounting curve
 
 ### Phase 197 (builds against current QuantLib master)

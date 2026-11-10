@@ -3465,18 +3465,24 @@ dated = ql.DatedOISRateHelper(start, end, 0.034, index)
 ```
 
 ```python
-# Interest-rate futures: price quote, 3-month contract, optional convexity adjustment
+# Interest-rate futures: price quote, optional convexity adjustment.
+# A null end date (ql.Date()) rolls the end three IMM dates forward: the real contract end.
+fut = ql.FuturesRateHelper(97.25, imm_start, ql.Date(), ql.Actual360(),
+                           convexity_adjustment=0.0002)
+# Length in months: the end is calendar.advance(start, 3 months), which can differ from the
+# IMM date by a day (17 Sep 2026 instead of 16 Sep 2026 for the June 2026 contract).
 fut = ql.FuturesRateHelper(97.25, imm_start, 3, ql.TARGET(),
                            ql.BusinessDayConvention.ModifiedFollowing, True,
                            ql.Actual360(), convexity_adjustment=0.0002)
-# ... or from an index / explicit end date
+# ... or from an index
 fut = ql.FuturesRateHelper(97.25, imm_start, ql.Euribor3M())
 ```
 
-`FuturesRateHelper` implies the rate `100 - price` (percent) plus `convexity_adjustment`
-(an absolute rate, `0.0002` = 2 bp); `price` and `convexity_adjustment` are each a float
-or a `QuoteHandle`. `FuturesType` selects the contract convention (`IMM`, `ASX`, `Custom`);
-the start date is not derived from the contract month, so pass the IMM date yourself.
+The curve forward over the contract is `(100 - price) / 100 - convexity_adjustment`
+(QuantLib's `impliedQuote` is `100 * (1 - (forward + convexity))`; the adjustment is an
+absolute rate, `0.0002` = 2 bp). `price` and `convexity_adjustment` are each a float or a
+`QuoteHandle`. `FuturesType` (`IMM`, `ASX`, `Custom`) only validates the start date; the
+start date is not derived from the contract month, so pass the IMM date yourself.
 
 `fixed_rate` is a float or a `QuoteHandle` (a quote change moves the curve). With no
 `discounting_curve` the curve being bootstrapped both discounts and projects. Pillar

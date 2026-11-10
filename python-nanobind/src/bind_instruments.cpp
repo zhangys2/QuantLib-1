@@ -2762,8 +2762,8 @@ void bind_instruments(nb::module_& m) {
         nb::arg("end_of_month") = nb::none());
 
     // FuturesRateHelper: bootstrap instrument for an interest-rate future (price
-    // quote, rate = 100 - price + convexity adjustment). Price and convexity
-    // adjustment are each a float or a QuoteHandle.
+    // quote; the curve forward is (100 - price) / 100 - convexity adjustment).
+    // Price and convexity adjustment are each a float or a QuoteHandle.
     nb::enum_<Futures::Type>(m, "FuturesType")
         .value("IMM", Futures::IMM)
         .value("ASX", Futures::ASX)
@@ -2796,8 +2796,10 @@ void bind_instruments(nb::module_& m) {
         nb::arg("convexity_adjustment") = 0.0,
         nb::arg("type") = Futures::IMM,
         "Interest-rate futures helper from a start date and a length in months. "
-        "`price` and `convexity_adjustment` are floats or QuoteHandles; the implied "
-        "rate is 100 - price (in percent) plus the convexity adjustment (a rate).");
+        "`price` and `convexity_adjustment` are floats or QuoteHandles. The contract "
+        "ends at calendar.advance(start, length_in_months) -- not at the next IMM "
+        "date; `type` only validates the start date. The curve forward over the "
+        "contract is (100 - price) / 100 - convexity_adjustment (a rate, 0.0002 = 2 bp).");
 
     m.def(
         "FuturesRateHelper",
@@ -2816,7 +2818,10 @@ void bind_instruments(nb::module_& m) {
         nb::arg("ibor_end_date"),
         nb::arg("day_counter"),
         nb::arg("convexity_adjustment") = 0.0,
-        nb::arg("type") = Futures::IMM);
+        nb::arg("type") = Futures::IMM,
+        "Interest-rate futures helper from start and end dates. A null end date "
+        "(Date()) rolls the end three IMM (ASX) dates forward from the start, i.e. "
+        "the real contract end; use it for standard IMM futures.");
 
     m.def(
         "FuturesRateHelper",

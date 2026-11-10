@@ -196,7 +196,24 @@ def _third_wednesday(year, month):
     return first + ((7 - offset) % 7) + 14
 
 
-def _futures_curve(today, convexity=0.0, **kwargs):
+def _add_months(year, month, n):
+    index = month.value - 1 + n
+    return year + index // 12, ql.Month(index % 12 + 1)
+
+
+def _futures_end(start, year, month, mode):
+    """Contract end date as the helper itself defines it."""
+    if mode == "imm":
+        # A null end date makes the helper step three IMM (third-Wednesday) dates.
+        end_year, end_month = _add_months(year, month, 3)
+        return _third_wednesday(end_year, end_month)
+    # The length-in-months constructor only uses calendar.advance.
+    return ql.TARGET().advance(
+        start, 3, ql.TimeUnit.Months, ql.BusinessDayConvention.ModifiedFollowing, True
+    )
+
+
+def _futures_curve(today, convexity=0.0, mode="imm", **kwargs):
     deposit = ql.DepositRateHelper(
         0.0310,
         ql.Period(3, ql.TimeUnit.Months),
@@ -214,10 +231,15 @@ def _futures_curve(today, convexity=0.0, **kwargs):
     ]
     helpers = [deposit]
     for month, year, price in months:
-        helpers.append(
-            ql.FuturesRateHelper(
+        start = _third_wednesday(year, month)
+        if mode == "imm":
+            helper = ql.FuturesRateHelper(
+                price, start, ql.Date(), ql.Actual360(), convexity, **kwargs
+            )
+        else:
+            helper = ql.FuturesRateHelper(
                 price,
-                _third_wednesday(year, month),
+                start,
                 3,
                 ql.TARGET(),
                 ql.BusinessDayConvention.ModifiedFollowing,
@@ -226,33 +248,75 @@ def _futures_curve(today, convexity=0.0, **kwargs):
                 convexity,
                 **kwargs,
             )
-        )
+        helpers.append(helper)
     return ql.PiecewiseLogLinearDiscountCurve(today, helpers, ql.Actual365Fixed()), months
 
 
-def _forward(curve, today, start):
-    calendar = ql.TARGET()
-    end = calendar.advance(start, 3, ql.TimeUnit.Months, ql.BusinessDayConvention.ModifiedFollowing, True)
+def _forward(curve, today, start, end):
     dc = ql.Actual365Fixed()
     d1 = curve.discount(dc.year_fraction(today, start))
     d2 = curve.discount(dc.year_fraction(today, end))
     return (d1 / d2 - 1.0) / ql.Actual360().year_fraction(start, end)
 
 
-def test_futures_ratehelper_reproduces_implied_rates():
+@pytest.mark.parametrize("mode", ["imm", "months"])
+def test_futures_ratehelper_reproduces_implied_rates(mode):
     today = _today()
-    curve, months = _futures_curve(today)
+    curve, months = _futures_curve(today, mode=mode)
     for month, year, price in months:
-        forward = _forward(curve, today, _third_wednesday(year, month))
+        start = _third_wednesday(year, month)
+        forward = _forward(curve, today, start, _futures_end(start, year, month, mode))
         assert forward == pytest.approx((100.0 - price) / 100.0, abs=1.0e-9)
 
 
-def test_futures_ratehelper_convexity_adjustment_lowers_the_forward():
+@pytest.mark.parametrize("mode", ["imm", "months"])
+def test_futures_ratehelper_convexity_adjustment_lowers_the_forward(mode):
     today = _today()
-    curve, months = _futures_curve(today, convexity=0.0005)
+    curve, months = _futures_curve(today, convexity=0.0005, mode=mode)
     for month, year, price in months:
-        forward = _forward(curve, today, _third_wednesday(year, month))
+        start = _third_wednesday(year, month)
+        forward = _forward(curve, today, start, _futures_end(start, year, month, mode))
+        # impliedQuote = 100 * (1 - (forward + convexity)), so the curve forward
+        # is (100 - price) / 100 - convexity.
         assert forward == pytest.approx((100.0 - price) / 100.0 - 0.0005, abs=1.0e-9)
+
+
+def test_futures_ratehelper_imm_contract_ends_on_the_next_imm_date():
+    # 2026-06-17 + 3 months with calendar.advance is 2026-09-17, but the IMM
+    # contract ends on 2026-09-16: the two constructors give different curves.
+    today = _today()
+    start = _third_wednesday(2026, ql.Month.June)
+    assert _futures_end(start, 2026, ql.Month.June, "imm") == ql.Date(16, 9, 2026)
+    assert _futures_end(start, 2026, ql.Month.June, "months") == ql.Date(17, 9, 2026)
+    imm, _ = _futures_curve(today, mode="imm")
+    adv, _ = _futures_curve(today, mode="months")
+    assert imm.discount(0.4) != pytest.approx(adv.discount(0.4), abs=1.0e-12)
+
+
+def test_futures_ratehelper_type_validates_the_start_date():
+    start = _third_wednesday(2026, ql.Month.June)
+    off_imm = start + 1
+    end = start + 91
+    ql.FuturesRateHelper(96.9, start, end, ql.Actual360(), 0.0, ql.FuturesType.IMM)
+    with pytest.raises(Exception):
+        ql.FuturesRateHelper(96.9, off_imm, end, ql.Actual360(), 0.0, ql.FuturesType.IMM)
+    # Custom accepts any start date; ASX needs an ASX (second-Friday) date.
+    ql.FuturesRateHelper(96.9, off_imm, end, ql.Actual360(), 0.0, ql.FuturesType.Custom)
+    with pytest.raises(Exception):
+        ql.FuturesRateHelper(96.9, start, end, ql.Actual360(), 0.0, ql.FuturesType.ASX)
+
+
+def test_futures_ratehelper_custom_type_reproduces_implied_rate():
+    today = _today()
+    start = today + 120
+    end = start + 91
+    deposit = ql.DepositRateHelper(
+        0.0310, ql.Period(3, ql.TimeUnit.Months), 2, ql.TARGET(),
+        ql.BusinessDayConvention.ModifiedFollowing, True, ql.Actual360(),
+    )
+    future = ql.FuturesRateHelper(96.9, start, end, ql.Actual360(), 0.0, ql.FuturesType.Custom)
+    curve = ql.PiecewiseLogLinearDiscountCurve(today, [deposit, future], ql.Actual365Fixed())
+    assert _forward(curve, today, start, end) == pytest.approx(0.031, abs=1.0e-9)
 
 
 def test_futures_ratehelper_quote_handles_move_the_curve():
@@ -275,12 +339,13 @@ def test_futures_ratehelper_quote_handles_move_the_curve():
         ql.QuoteHandle(adjustment),
     )
     curve = ql.PiecewiseLogLinearDiscountCurve(today, [deposit, future], ql.Actual365Fixed())
-    base = _forward(curve, today, start)
+    end = _futures_end(start, 2026, ql.Month.June, "months")
+    base = _forward(curve, today, start, end)
     assert base == pytest.approx(0.031, abs=1.0e-9)
     price.set_value(96.40)
-    assert _forward(curve, today, start) == pytest.approx(0.036, abs=1.0e-9)
+    assert _forward(curve, today, start, end) == pytest.approx(0.036, abs=1.0e-9)
     adjustment.set_value(0.001)
-    assert _forward(curve, today, start) == pytest.approx(0.035, abs=1.0e-9)
+    assert _forward(curve, today, start, end) == pytest.approx(0.035, abs=1.0e-9)
 
 
 def test_futures_ratehelper_end_date_and_index_overloads_agree():
