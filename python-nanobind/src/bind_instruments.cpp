@@ -23,6 +23,7 @@
 #include <ql/indexes/bmaindex.hpp>
 #include <ql/indexes/swapindex.hpp>
 #include <ql/termstructures/yield/overnightindexfutureratehelper.hpp>
+#include <ql/termstructures/yield/oisratehelper.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 #include <ql/pricingengines/futures/discountingperpetualfuturesengine.hpp>
 #include <ql/instruments/bonds/amortizingfixedratebond.hpp>
@@ -2656,6 +2657,108 @@ void bind_instruments(nb::module_& m) {
         nb::arg("reference_freq"),
         nb::arg("convexity_adjustment") = 0.0,
         "CME SOFR futures rate helper (compounds third-Wed to third-Wed).");
+
+    // OISRateHelper: bootstrap instrument for an overnight-indexed swap. The
+    // fixed rate is a float or a QuoteHandle (two overloads, as for the other
+    // helpers). Pillar / lookback / lockout / pricer options are not exposed.
+    auto make_ois_helper = [](Natural settlement_days,
+                              const Period& tenor,
+                              const std::variant<Rate, Handle<Quote>>& fixed_rate,
+                              const ext::shared_ptr<OvernightIndex>& overnight_index,
+                              const Handle<YieldTermStructure>& discounting_curve,
+                              bool telescopic_value_dates,
+                              Integer payment_lag,
+                              BusinessDayConvention payment_convention,
+                              Frequency payment_frequency,
+                              const Calendar& payment_calendar,
+                              const Period& forward_start,
+                              Spread overnight_spread,
+                              RateAveraging::Type averaging_method,
+                              const std::optional<bool>& end_of_month) {
+        QL_REQUIRE(overnight_index, "OISRateHelper: null overnight index");
+        return ext::shared_ptr<RateHelper>(ext::make_shared<OISRateHelper>(
+            settlement_days, tenor, fixed_rate, overnight_index, discounting_curve,
+            telescopic_value_dates, payment_lag, payment_convention, payment_frequency,
+            payment_calendar, forward_start, overnight_spread, Pillar::LastRelevantDate,
+            Date(), averaging_method, end_of_month));
+    };
+
+    m.def(
+        "OISRateHelper",
+        [make_ois_helper](Natural settlement_days,
+                          const Period& tenor,
+                          Rate fixed_rate,
+                          const ext::shared_ptr<OvernightIndex>& overnight_index,
+                          const Handle<YieldTermStructure>& discounting_curve,
+                          bool telescopic_value_dates,
+                          Integer payment_lag,
+                          BusinessDayConvention payment_convention,
+                          Frequency payment_frequency,
+                          const Calendar& payment_calendar,
+                          const Period& forward_start,
+                          Spread overnight_spread,
+                          RateAveraging::Type averaging_method,
+                          const std::optional<bool>& end_of_month) {
+            return make_ois_helper(settlement_days, tenor, fixed_rate, overnight_index,
+                                   discounting_curve, telescopic_value_dates, payment_lag,
+                                   payment_convention, payment_frequency, payment_calendar,
+                                   forward_start, overnight_spread, averaging_method,
+                                   end_of_month);
+        },
+        nb::arg("settlement_days"),
+        nb::arg("tenor"),
+        nb::arg("fixed_rate"),
+        nb::arg("overnight_index"),
+        nb::arg("discounting_curve") = Handle<YieldTermStructure>(),
+        nb::arg("telescopic_value_dates") = false,
+        nb::arg("payment_lag") = 0,
+        nb::arg("payment_convention") = Following,
+        nb::arg("payment_frequency") = Annual,
+        nb::arg("payment_calendar") = Calendar(),
+        nb::arg("forward_start") = Period(0, Days),
+        nb::arg("overnight_spread") = 0.0,
+        nb::arg("averaging_method") = RateAveraging::Compound,
+        nb::arg("end_of_month") = nb::none(),
+        "OIS bootstrap helper (fixed rate vs overnight index). An empty "
+        "discounting_curve means the curve being bootstrapped discounts and "
+        "projects (single-curve OIS).");
+
+    m.def(
+        "OISRateHelper",
+        [make_ois_helper](Natural settlement_days,
+                          const Period& tenor,
+                          const Handle<Quote>& fixed_rate,
+                          const ext::shared_ptr<OvernightIndex>& overnight_index,
+                          const Handle<YieldTermStructure>& discounting_curve,
+                          bool telescopic_value_dates,
+                          Integer payment_lag,
+                          BusinessDayConvention payment_convention,
+                          Frequency payment_frequency,
+                          const Calendar& payment_calendar,
+                          const Period& forward_start,
+                          Spread overnight_spread,
+                          RateAveraging::Type averaging_method,
+                          const std::optional<bool>& end_of_month) {
+            return make_ois_helper(settlement_days, tenor, fixed_rate, overnight_index,
+                                   discounting_curve, telescopic_value_dates, payment_lag,
+                                   payment_convention, payment_frequency, payment_calendar,
+                                   forward_start, overnight_spread, averaging_method,
+                                   end_of_month);
+        },
+        nb::arg("settlement_days"),
+        nb::arg("tenor"),
+        nb::arg("fixed_rate"),
+        nb::arg("overnight_index"),
+        nb::arg("discounting_curve") = Handle<YieldTermStructure>(),
+        nb::arg("telescopic_value_dates") = false,
+        nb::arg("payment_lag") = 0,
+        nb::arg("payment_convention") = Following,
+        nb::arg("payment_frequency") = Annual,
+        nb::arg("payment_calendar") = Calendar(),
+        nb::arg("forward_start") = Period(0, Days),
+        nb::arg("overnight_spread") = 0.0,
+        nb::arg("averaging_method") = RateAveraging::Compound,
+        nb::arg("end_of_month") = nb::none());
 
     // BMASwap is Swap/Instrument (MI) — standalone concrete wrapper.
     nb::class_<BMASwap>(m, "BMASwap")

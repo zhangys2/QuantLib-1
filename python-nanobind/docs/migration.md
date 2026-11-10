@@ -3444,6 +3444,26 @@ cov = f.instantaneous_covariance(u, T, S)
 
 Completes the instantaneous AbcdFunction surface used by market-model volatility tests.
 
+## Phase-198 OISRateHelper
+
+```python
+index = ql.Estr()
+helpers = [
+    ql.OISRateHelper(2, ql.Period(n, ql.TimeUnit.Years), rate, index)
+    for n, rate in [(1, 0.030), (2, 0.032), (5, 0.035), (10, 0.037)]
+]
+curve = ql.PiecewiseLogLinearDiscountCurve(today, helpers, ql.Actual365Fixed())
+
+# Two-curve setup: discount off an exogenous curve, project off the new one
+ois = ql.OISRateHelper(2, ql.Period(5, ql.TimeUnit.Years), ql.QuoteHandle(q), index,
+                       discounting_curve=discount_curve)
+```
+
+`fixed_rate` is a float or a `QuoteHandle` (a quote change moves the curve). With no
+`discounting_curve` the curve being bootstrapped both discounts and projects. Pillar
+choice, lookback / lockout days and custom coupon pricers are not exposed, and there is
+no `DatedOISRateHelper` yet. Replaces SWIG `ql.OISRateHelper(...)`.
+
 ## Phase-49 COS / exponential-fitting Heston engines
 
 ```python

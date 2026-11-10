@@ -1292,6 +1292,22 @@ def SofrFutureRateHelper(
     reference_freq: Frequency,
     convexity_adjustment: float = ...,
 ) -> RateHelper: ...
+def OISRateHelper(
+    settlement_days: int,
+    tenor: Period,
+    fixed_rate: float | QuoteHandle,
+    overnight_index: OvernightIndex,
+    discounting_curve: YieldTermStructureHandle = ...,
+    telescopic_value_dates: bool = ...,
+    payment_lag: int = ...,
+    payment_convention: BusinessDayConvention = ...,
+    payment_frequency: Frequency = ...,
+    payment_calendar: Calendar = ...,
+    forward_start: Period = ...,
+    overnight_spread: float = ...,
+    averaging_method: RateAveraging = ...,
+    end_of_month: bool | None = ...,
+) -> RateHelper: ...
 
 class BMASwap:
     def __init__(
