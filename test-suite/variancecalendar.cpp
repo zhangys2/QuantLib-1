@@ -1,9 +1,20 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
-/* This file is part of QuantLib, a free-software/open-source library
-   for financial quantitative analysts and developers - http://quantlib.org/
+/*
+ Copyright (C) 2026
 
-   SPDX-License-Identifier: BSD-3-Clause
+ This file is part of QuantLib, a free-software/open-source library
+ for financial quantitative analysts and developers - http://quantlib.org/
+
+ QuantLib is free software: you can redistribute it and/or modify it
+ under the terms of the QuantLib license.  You should have received a
+ copy of the license along with this program; if not, please email
+ <quantlib-dev@lists.sf.net>. The license is also available online at
+ <https://www.quantlib.org/license.shtml>.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
 #include "toplevelfixture.hpp"
@@ -25,7 +36,7 @@ BOOST_AUTO_TEST_CASE(variance_calendar_weights) {
     VarianceCalendar::CategoryWeights categoryWeights{{3.0, 5.0, 7.0}};
     VarianceCalendar varianceCalendar(categoryWeights, common, profiles, TARGET());
 
-    const Date holiday(28, November, 2024);
+    const Date holiday(25, December, 2024);
     const Date weekend(6, January, 2024);
     const Date weekday(8, January, 2024);
     BOOST_CHECK(varianceCalendar.category(holiday) == VarianceDayCategory::Holiday);
@@ -49,8 +60,10 @@ BOOST_AUTO_TEST_CASE(variance_calendar_validation) {
     invalid.values[10] = -1.0;
     BOOST_CHECK_THROW(VarianceCalendar(VarianceCalendar::CategoryWeights{{1.0, 1.0, 1.0}},
                                        invalid), Error);
-    BOOST_CHECK_THROW(VarianceCalendar(VarianceCalendar::CategoryWeights{{1.0, 1.0, 1.0}},
-                                       VarianceCalendar::Profile{0, std::vector<Real>(2, 1.0)}), Error);
+    BOOST_CHECK_THROW(
+        VarianceCalendar(VarianceCalendar::CategoryWeights{{1.0, 1.0, 1.0}},
+                         VarianceCalendar::Profile{1, std::vector<Real>(2, 1.0)}),
+        Error);
     VarianceCalendar varianceCalendar;
     BOOST_CHECK_THROW(varianceCalendar.weight(Date(8, January, 2024), 1440.1), Error);
 }
