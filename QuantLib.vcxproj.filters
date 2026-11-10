@@ -2868,6 +2868,9 @@
     <ClInclude Include="ql\time\businessdayconvention.hpp">
       <Filter>time</Filter>
     </ClInclude>
+    <ClInclude Include="ql\time\variancecalendar.hpp">
+      <Filter>time</Filter>
+    </ClInclude>
     <ClInclude Include="ql\time\calendar.hpp">
       <Filter>time</Filter>
     </ClInclude>
@@ -6237,6 +6240,9 @@
       <Filter>quotes</Filter>
     </ClCompile>
     <ClCompile Include="ql\time\businessdayconvention.cpp">
+      <Filter>time</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\time\variancecalendar.cpp">
       <Filter>time</Filter>
     </ClCompile>
     <ClCompile Include="ql\time\calendar.cpp">

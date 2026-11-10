@@ -9,6 +9,7 @@ this_include_HEADERS = \
     asx.hpp \
     businessdayconvention.hpp \
     calendar.hpp \
+    variancecalendar.hpp \
     date.hpp \
     dategenerationrule.hpp \
 	daycounter.hpp \
@@ -24,6 +25,7 @@ cpp_files = \
     asx.cpp \
     businessdayconvention.cpp \
     calendar.cpp \
+    variancecalendar.cpp \
     date.cpp \
     dategenerationrule.cpp \
     ecb.cpp \
