@@ -1292,6 +1292,71 @@ def SofrFutureRateHelper(
     reference_freq: Frequency,
     convexity_adjustment: float = ...,
 ) -> RateHelper: ...
+def OISRateHelper(
+    settlement_days: int,
+    tenor: Period,
+    fixed_rate: float | QuoteHandle,
+    overnight_index: OvernightIndex,
+    discounting_curve: YieldTermStructureHandle = ...,
+    telescopic_value_dates: bool = ...,
+    payment_lag: int = ...,
+    payment_convention: BusinessDayConvention = ...,
+    payment_frequency: Frequency = ...,
+    payment_calendar: Calendar = ...,
+    forward_start: Period = ...,
+    overnight_spread: float = ...,
+    averaging_method: RateAveraging = ...,
+    end_of_month: bool | None = ...,
+) -> RateHelper: ...
+class FuturesType:
+    IMM: FuturesType
+    ASX: FuturesType
+    Custom: FuturesType
+
+@overload
+def FuturesRateHelper(
+    price: float | QuoteHandle,
+    ibor_start_date: Date,
+    length_in_months: int,
+    calendar: Calendar,
+    convention: BusinessDayConvention,
+    end_of_month: bool,
+    day_counter: DayCounter,
+    convexity_adjustment: float | QuoteHandle = ...,
+    type: FuturesType = ...,
+) -> RateHelper: ...
+@overload
+def FuturesRateHelper(
+    price: float | QuoteHandle,
+    ibor_start_date: Date,
+    ibor_end_date: Date,
+    day_counter: DayCounter,
+    convexity_adjustment: float | QuoteHandle = ...,
+    type: FuturesType = ...,
+) -> RateHelper: ...
+@overload
+def FuturesRateHelper(
+    price: float | QuoteHandle,
+    ibor_start_date: Date,
+    ibor_index: IborIndex,
+    convexity_adjustment: float | QuoteHandle = ...,
+    type: FuturesType = ...,
+) -> RateHelper: ...
+def DatedOISRateHelper(
+    start_date: Date,
+    end_date: Date,
+    fixed_rate: float | QuoteHandle,
+    overnight_index: OvernightIndex,
+    discounting_curve: YieldTermStructureHandle = ...,
+    telescopic_value_dates: bool = ...,
+    payment_lag: int = ...,
+    payment_convention: BusinessDayConvention = ...,
+    payment_frequency: Frequency = ...,
+    payment_calendar: Calendar = ...,
+    overnight_spread: float = ...,
+    averaging_method: RateAveraging = ...,
+    end_of_month: bool | None = ...,
+) -> RateHelper: ...
 
 class BMASwap:
     def __init__(
