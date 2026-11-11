@@ -24,6 +24,7 @@ QL_TEST_SRCS = \
 	brownianbridge.cpp \
 	businessdayconventions.cpp \
 	calendars.cpp \
+	variancecalendar.cpp \
 	callablebonds.cpp \
 	capfloor.cpp \
 	capflooredcoupon.cpp \

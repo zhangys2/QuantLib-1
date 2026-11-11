@@ -23,6 +23,7 @@ set(QL_TEST_SOURCES
     brownianbridge.cpp
     businessdayconventions.cpp
     calendars.cpp
+    variancecalendar.cpp
     callablebonds.cpp
     capfloor.cpp
     capflooredcoupon.cpp

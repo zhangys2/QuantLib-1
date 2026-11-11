@@ -18,6 +18,7 @@ this_include_HEADERS = \
     period.hpp \
     schedule.hpp \
     timeunit.hpp \
+    variancecalendar.hpp \
     weekday.hpp
 
 cpp_files = \
@@ -32,6 +33,7 @@ cpp_files = \
     period.cpp \
     schedule.cpp \
     timeunit.cpp \
+    variancecalendar.cpp \
     weekday.cpp
 
 if UNITY_BUILD
