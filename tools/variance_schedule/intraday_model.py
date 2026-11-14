@@ -127,38 +127,61 @@ def fit_profile(bars, local_timezone, day_category, required_slots, min_samples)
     else:
         direct = {}
     known = {key: value for key, (value, count) in direct.items() if count >= min_samples}
-    unknown_categories = {
-        key[0] for _, counts, _ in returns for key in counts if key not in known
-    }
-    unknown_categories.update(key[0] for key in required if key not in known)
-    categories = sorted(unknown_categories)
-    category_index = {category: index for index, category in enumerate(categories)}
+    required_categories = {key[0] for key in required if key not in known}
+    pooled = {}
+    if required_categories:
+        # Keep only equations connected to a required pooled category.  Expand
+        # the retained category set transitively so no unknown term is dropped.
+        retained_categories = set(required_categories)
+        retained_equations = []
+        changed = True
+        while changed:
+            changed = False
+            retained_equations = []
+            for squared, counts, _ in returns:
+                equation_categories = {
+                    key[0] for key in counts if key not in known
+                }
+                if equation_categories & retained_categories:
+                    retained_equations.append((squared, counts))
+                    new_categories = equation_categories - retained_categories
+                    if new_categories:
+                        retained_categories.update(new_categories)
+                        changed = True
 
-    equations = []
-    responses = []
-    for squared, counts, _ in returns:
-        row = np.zeros(len(categories), dtype=np.float64)
-        known_contribution = 0.0
-        has_unknown = False
-        for key, count in counts.items():
-            rate = known.get(key)
-            if rate is None:
-                has_unknown = True
-                row[category_index[key[0]]] += count
-            else:
-                known_contribution += rate * count
-        if has_unknown:
+        categories = sorted(retained_categories)
+        category_index = {category: index for index, category in enumerate(categories)}
+        equations = []
+        responses = []
+        for squared, counts in retained_equations:
+            row = np.zeros(len(categories), dtype=np.float64)
+            known_contribution = 0.0
+            for key, count in counts.items():
+                rate = known.get(key)
+                if rate is None:
+                    row[category_index[key[0]]] += count
+                else:
+                    known_contribution += rate * count
             equations.append(row)
             responses.append(squared - known_contribution)
 
-    pooled = {}
-    if categories:
         matrix = np.asarray(equations, dtype=np.float64).reshape((-1, len(categories)))
         response = np.asarray(responses, dtype=np.float64)
-        if matrix.shape[0] == 0 or np.linalg.matrix_rank(matrix) < len(categories):
+        if matrix.shape[0] == 0:
             raise ValueError(
                 "insufficient history to identify pooled variance for categories "
-                f"{', '.join(categories)}; collect observations spanning gaps that expose "
+                f"{', '.join(sorted(required_categories))}; collect observations spanning gaps that expose "
+                "each unknown category"
+            )
+        required_indices = {category_index[category] for category in required_categories}
+        full_rank = np.linalg.matrix_rank(matrix)
+        if any(
+                full_rank <= (np.linalg.matrix_rank(np.delete(matrix, index, axis=1))
+                              if len(categories) > 1 else 0)
+                for index in required_indices):
+            raise ValueError(
+                "insufficient history to identify pooled variance for categories "
+                f"{', '.join(sorted(required_categories))}; collect observations spanning gaps that expose "
                 "each unknown category"
             )
         estimates, _ = nnls(matrix, response)

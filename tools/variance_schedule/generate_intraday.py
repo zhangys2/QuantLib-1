@@ -4,15 +4,14 @@
 import argparse
 import json
 import math
-import os
 import sys
-import tempfile
 from datetime import date, datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import polars as pl
 
+from atomic_output import atomic_write
 from intraday_time import UTC, intervals, slot_key
 from intraday_model import fit_profile
 
@@ -22,6 +21,7 @@ SCHEDULE_SCHEMA = {
     "end_utc": pl.Datetime("us", "UTC"),
     "local_date": pl.Date,
     "minute_of_day": pl.Int32,
+    "fold": pl.Int8,
     "category": pl.String,
     "weight": pl.Float64,
     "variance_per_5m": pl.Float64,
@@ -41,15 +41,29 @@ def parse_boundary(value, local_timezone):
         except ValueError:
             parsed_date = None
         if parsed_date is not None and parsed_date.isoformat() == value:
-            local_midnight = datetime.combine(parsed_date, time.min).replace(
-                tzinfo=local_timezone
-            )
-            utc = local_midnight.astimezone(UTC)
-            if utc.astimezone(local_timezone).replace(tzinfo=None) != datetime.combine(
-                parsed_date, time.min
-            ):
+            naive_midnight = datetime.combine(parsed_date, time.min)
+            candidates = [
+                naive_midnight.replace(tzinfo=local_timezone, fold=fold)
+                for fold in (0, 1)
+            ]
+            valid = [
+                candidate
+                for candidate in candidates
+                if candidate.astimezone(UTC).astimezone(local_timezone).replace(
+                    tzinfo=None
+                ) == naive_midnight
+            ]
+            if not valid:
                 raise ValueError(f"local midnight does not exist for date {value}")
-            return utc
+            if (
+                len(valid) == 2
+                and valid[0].utcoffset() != valid[1].utcoffset()
+            ):
+                raise ValueError(
+                    f"local midnight is ambiguous for date {value}; "
+                    "supply an explicit UTC offset"
+                )
+            return valid[0].astimezone(UTC)
 
     normalized = value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value
     try:
@@ -182,6 +196,7 @@ def read_prices(path, timestamp_column, price_column):
 def build_schedule(start, end, local_timezone, day_category, profile):
     rows = []
     for slot_start, row_start, row_end in intervals(start, end):
+        local_start = slot_start.astimezone(local_timezone)
         category, minute_of_day = slot_key(slot_start, local_timezone, day_category)
         key = (category, minute_of_day)
         try:
@@ -203,8 +218,9 @@ def build_schedule(start, end, local_timezone, day_category, profile):
             {
                 "start_utc": row_start,
                 "end_utc": row_end,
-                "local_date": slot_start.astimezone(local_timezone).date(),
+                "local_date": local_start.date(),
                 "minute_of_day": minute_of_day,
+                "fold": local_start.fold,
                 "category": category,
                 "weight": weight,
                 "variance_per_5m": variance,
@@ -234,21 +250,15 @@ def write_schedule(path, frame, metadata):
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and path.is_dir():
         raise ValueError(f"output path {str(path)!r} is a directory")
-    temporary_path = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            prefix=f".{path.name}.", suffix=".tmp", dir=path.parent, delete=False
-        ) as temporary:
-            temporary_path = Path(temporary.name)
+
+    def writer(stream):
         frame.write_parquet(
-            temporary_path,
+            stream,
             compression="zstd",
             metadata={"variance_schedule": json.dumps(metadata, allow_nan=False)},
         )
-        os.replace(temporary_path, path)
-    finally:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
+
+    atomic_write(path, writer)
 
 
 def create_parser():
@@ -264,7 +274,7 @@ def create_parser():
     parser.add_argument("--start", required=True, help="offset timestamp or local date")
     parser.add_argument("--end", required=True, help="offset timestamp or local date")
     parser.add_argument("--output", required=True, type=Path, help="output Parquet file")
-    parser.add_argument("--min-samples", type=int, default=2)
+    parser.add_argument("--min-samples", type=int, default=30)
     parser.add_argument(
         "--weekend-days", type=parse_weekend_days, default=None,
         help="custom calendar weekend weekdays as integers 0=Monday through 6=Sunday; empty means none",
@@ -327,6 +337,12 @@ def generate(args):
             "warning: calibration data ends after schedule start; this schedule uses look-ahead data",
             file=sys.stderr,
         )
+    for category, rate in diagnostics["pooled_variance_per_5m"].items():
+        if rate == 0:
+            print(
+                f"warning: pooled variance rate is exactly zero for category {category!r}",
+                file=sys.stderr,
+            )
 
     frame, total_weighted_days = build_schedule(
         start, end, local_timezone, day_category, profile

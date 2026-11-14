@@ -71,10 +71,12 @@ python tools/variance_schedule/generate_intraday.py \
 
 `--start` is inclusive and `--end` is exclusive. Each accepts an ISO timestamp
 with a UTC offset, or a `YYYY-MM-DD` date interpreted as local midnight in the
-specified timezone. The generator clips the first and last five-minute slots
-to the exact boundaries. For an option, supply the actual expiry instant, not
-the following midnight. The timestamp's offset must be correct for daylight
-saving time.
+specified timezone. If that midnight is ambiguous because it has two valid
+offsets, the date-only boundary is rejected; supply an ISO timestamp with an
+explicit UTC offset instead. A nonexistent local midnight is also rejected.
+The generator clips the first and last five-minute slots to the exact
+boundaries. For an option, supply the actual expiry instant, not the following
+midnight. The timestamp's offset must be correct for daylight saving time.
 
 `--calendar` is required:
 
@@ -108,7 +110,8 @@ with zero total weighted time is rejected.
 Each return is the log price change between consecutive observations. A return
 spanning exactly five minutes contributes its squared drift-adjusted return to
 its local start-time and day-category bucket. Buckets with at least
-`--min-samples` observations, default 2, use their observed average variance.
+`--min-samples` observations, default 30, use their observed average variance.
+You can set `--min-samples` explicitly to use a different positive threshold.
 
 A longer gap contains only one aggregate return. For unobserved or undersampled
 buckets, the generator pools an unknown variance rate by day category and fits
@@ -118,7 +121,8 @@ fit is nonnegative and requires enough independent gap exposures to identify
 the needed category rates; if it cannot, generation fails rather than inventing
 one. Check the data, calendar, requested range, and sample threshold if that
 happens. A fitted zero can be a constrained-fit boundary, not evidence of zero
-risk.
+risk; the generator warns on stderr and names every category whose pooled
+variance rate is exactly zero.
 
 This pooled rate is **not** a measured five-minute shape within the gap. For
 example, cash-market bars alone cannot identify the distribution of a weekend
@@ -144,11 +148,17 @@ slot:
 | --- | --- |
 | `start_utc`, `end_utc` | Timezone-aware UTC boundaries; start inclusive, end exclusive. |
 | `local_date`, `minute_of_day`, `category` | Local five-minute slot and calendar category. |
+| `fold` | Local-time fold (`0` or `1`) identifying repeated local timestamps. |
 | `weight`, `variance_per_5m` | Relative rate and unnormalized fitted variance per five minutes. |
 | `sample_count`, `calibration_method` | Direct five-minute return count and `observed` or `gap_pool`. |
 | `weighted_days` | Weight multiplied by actual elapsed seconds / 86,400. |
 | `remaining_weighted_days` | Weighted time from this row's start to schedule end, including this row. |
 | `remaining_fraction` | Remaining weighted time divided by the initial total, at this row's start. |
+
+UTC boundaries are authoritative for locating rows and measuring elapsed time.
+The fold distinguishes repeated local timestamps during a daylight-saving
+transition; both folds share the same fitted profile for their local slot and
+category.
 
 Parquet file metadata key `variance_schedule` contains JSON with format
 version, calendar, timezone, interval boundaries, and calibration diagnostics.

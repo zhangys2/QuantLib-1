@@ -5,9 +5,8 @@ import argparse
 import csv
 import json
 import math
-import os
+import re
 import sys
-import tempfile
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -16,11 +15,14 @@ import numpy as np
 import qlnb as ql
 from scipy.optimize import nnls
 
+from atomic_output import atomic_write
+
 
 ET = ZoneInfo("America/New_York")
 UTC = timezone.utc
 CATEGORIES = ("weekday", "weekend", "holiday")
 NYSE = ql.UnitedStates(ql.UnitedStatesMarket.NYSE)
+CANONICAL_DATE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 
 
 def is_business_day(d):
@@ -39,15 +41,14 @@ def midnight_utc(d):
 
 def parse_boundary(value):
     try:
-        return midnight_utc(date.fromisoformat(value))
-    except ValueError:
-        try:
-            result = datetime.fromisoformat(value)
-            if result.tzinfo is None or result.utcoffset() is None:
-                raise ValueError("timestamp requires a UTC offset")
-            return result.astimezone(UTC)
-        except ValueError as error:
-            raise argparse.ArgumentTypeError(str(error)) from error
+        if CANONICAL_DATE.fullmatch(value):
+            return midnight_utc(date.fromisoformat(value))
+        result = datetime.fromisoformat(value)
+        if result.tzinfo is None or result.utcoffset() is None:
+            raise ValueError("timestamp requires a UTC offset")
+        return result.astimezone(UTC)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
 
 
 def utc_string(t):
@@ -186,18 +187,11 @@ def make_schedule(start, end, calibration):
 
 def write_schedule(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", dir=path.parent,
-                prefix=f".{path.name}.", suffix=".tmp", delete=False) as stream:
-            temp_path = Path(stream.name)
-            json.dump(payload, stream, indent=2, allow_nan=False)
-            stream.write("\n")
-        os.replace(temp_path, path)
-    finally:
-        if temp_path is not None:
-            temp_path.unlink(missing_ok=True)
+
+    def write_json(stream):
+        stream.write(json.dumps(payload, indent=2, allow_nan=False).encode("utf-8") + b"\n")
+
+    atomic_write(path, write_json)
 
 
 def main():
