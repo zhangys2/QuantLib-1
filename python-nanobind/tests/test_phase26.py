@@ -60,9 +60,10 @@ _HAUG_CASES = [
     (ql.DoubleBarrierType.KOKI, 80, 120, 0.30, 100.0, 2.1581),
     (ql.DoubleBarrierType.KOKI, 90, 110, 0.20, 100.0, 3.4424),
     (ql.DoubleBarrierType.KOKI, 95, 105, 0.10, 100.0, 3.6524),
-    # Degenerate cases
+    # Degenerate cases. A knocked-in option pays the cash at expiry, so its
+    # value is the discounted cash, 10*exp(-0.05*0.25).
     (ql.DoubleBarrierType.KnockOut, 95, 105, 0.10, 80.0, 0.0000),
-    (ql.DoubleBarrierType.KnockIn, 95, 105, 0.10, 110.0, 10.0000),
+    (ql.DoubleBarrierType.KnockIn, 95, 105, 0.10, 110.0, 9.8758),
     (ql.DoubleBarrierType.KIKO, 95, 105, 0.10, 80.0, 10.0000),
 ]
 
