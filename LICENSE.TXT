@@ -187,6 +187,7 @@ Copyright (C) 2026 Ada Logics Ltd
 Copyright (C) 2026 Chirag Desai
 Copyright (C) 2026 Colin Alberts
 Copyright (C) 2026 David Korczynski
+Copyright (C) 2026 JOHN SAM
 Copyright (C) 2026 Jogi Sidhu
 Copyright (C) 2026 Junjie Guo
 Copyright (C) 2026 Kyrylo Protsenko
