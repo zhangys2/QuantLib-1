@@ -1954,6 +1954,17 @@ BOOST_AUTO_TEST_CASE(testFdAmericanKnockInByDividend) {
             }
         }
     }
+
+    // a dividend at least as large as the barrier takes inactive-mesh spots
+    // to a non-positive ex-dividend level, which this engine does not value
+    const DividendSchedule largeDividend = DividendVector({ today }, { 95.0 });
+    auto rejectingEngine =
+        ext::make_shared<FdBlackScholesBarrierEngine>(bsProcess, largeDividend, 20, 20);
+    BarrierOption knockedThrough(
+        Barrier::DownIn, 90.0, 0.0,
+        ext::make_shared<PlainVanillaPayoff>(Option::Put, 100.0), exercise);
+    knockedThrough.setPricingEngine(rejectingEngine);
+    BOOST_CHECK_THROW(knockedThrough.NPV(), Error);
 }
 
 BOOST_AUTO_TEST_CASE(testFdEarlyExerciseKnockInBounds) {

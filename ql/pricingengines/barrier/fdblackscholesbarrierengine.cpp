@@ -104,7 +104,7 @@ namespace QuantLib {
                     for (Size i = 0; i < spots_.size(); ++i) {
                         const Real exSpot = spots_[i] - dividend->second;
                         if (exSpot < barrier_)
-                            a[i] = interpolation(std::max(activeSpots_.front(), exSpot), true);
+                            a[i] = interpolation(exSpot, true);
                     }
                 }
 
@@ -391,6 +391,18 @@ namespace QuantLib {
                          return dividend->date() >= referenceDate
                              && dividend->date() <= maturityDate;
                      });
+
+        // A down-and-in dividend at least as large as the barrier takes
+        // inactive-mesh spots through to a non-positive ex-dividend level.
+        // The active mesh starts above zero, so those nodes cannot be valued.
+        if (down) {
+            for (const auto& dividend : dividendSchedule) {
+                QL_REQUIRE(dividend->amount() < arguments_.barrier,
+                           "down-and-in dividend of " << dividend->amount()
+                           << " does not leave a positive ex-dividend spot "
+                           << "above barrier " << arguments_.barrier);
+            }
+        }
 
         // 1. Active option: mesher as in FdBlackScholesVanillaEngine,
         //    widened if needed to keep a margin around the barrier and
