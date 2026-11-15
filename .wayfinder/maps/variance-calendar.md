@@ -2,6 +2,7 @@
 Design a symbol-independent variance calendar that generates reusable CSV intraday profiles from five-minute prices and supports full days, early closes, holidays, and weekends. Define an efficient in-memory cumulative clock for arbitrary observation and expiry times, including `v(T) - v(t)`, without requiring a schedule file per expiry or integrating into pricing engines.
 
 ## Notes
+- Delivery handoff: [Reusable market variance schedules and cumulative clock](../variance-calendar-delivery-brief.md).
 - Project: QuantLib; maintain C++17 compatibility and support market-specific calendars without making the model symbol-dependent.
 - The existing abstraction in `ql/time/variancecalendar.hpp` and `.cpp` provides per-observation weights. This expanded destination also includes cumulative variance time; it does not automatically replace the existing API or its prior decisions.
 - The existing C++ calendar keeps its linearly interpolated intraday weights; the separate cumulative clock uses constant rates within five-minute slots.
@@ -39,13 +40,16 @@ Design a symbol-independent variance calendar that generates reusable CSV intrad
 - [Point-in-time price and profile evidence policy](../tickets/variance-calendar-price-provenance-policy.md) — Require auditable source availability, revision order, and continuous-futures lineage; permit documented causal reconstruction.
 
 ## Acceptance criteria
-- Compare the clock against an independent high-precision reference using deterministic cases covering near-expiry cancellation, five-minute and DST boundaries, and mixed profiles. Define and justify tolerances for the supported numeric type, horizon, and rate range before acceptance testing.
+- For the default IEEE-754 binary64 `Real` build, compare remaining weighted days with an independent reference using at least 50 decimal digits and the serialized rates and UTC intervals. For reference value `R`, require `abs(actual - R) <= 1e-12 + 1e-10 * abs(R)` weighted days and a nonnegative result. Expired and zero-variance fixtures return exact zero with the correct status. Custom `Real` types require separately justified tolerances.
+- Exercise synthetic snapshots up to 30 years with rates from zero through 100 and intervals down to one millisecond, including near-expiry subtraction after a large cumulative value. These are acceptance-test cases, not runtime input limits. UTC inputs must distinguish the one-millisecond test instants. A numerically stable difference or rebasing may be required; naively subtracting rounded global binary64 values is not sufficient in the stress case.
+- At a five-minute boundary, test the instant itself and instants one millisecond to either side using different adjacent rates; the next bucket applies at the boundary and the cumulative clock is continuous. Check the same error budget against the independent reference.
+- For daylight saving, check 23- and 25-hour local days at unit rate against `23/24` and `25/24` weighted days. On a 25-hour fall-back day, also test rate `3` in the repeated hour and rate `1` otherwise against `29/24`. Count both folds and apply the same error budget.
 - Verify that successful, expired, stale-token, and out-of-coverage queries initiate no clock-owned heap allocation or file I/O; custom `Real` arithmetic is outside that guarantee. Use precomputed indexed lookups rather than scanning the full horizon per query.
 - Support distinct eligible full-day, early-close, holiday, and weekend profiles with rates varying by local time and date type. Preserve market-specific session patterns, including overnight segments and breaks, without tying the calendar to a price symbol or implicitly zeroing closed hours.
 - Support explicit date-to-profile overrides for exceptional dates using eligible supplied profiles. Apply the agreed sample, provenance, and fallback requirements; do not silently substitute an unsupported profile.
 
 ## Deferred
-- Concrete numerical error budgets must be chosen and justified before acceptance testing. Deployment-specific latency and throughput targets require a representative workload, hardware, and measurement method; no speedup or latency claim is implied.
+- Deployment-specific latency and throughput targets require a representative workload, hardware, and measurement method; no speedup or latency claim is implied.
 - Automatic event classification and first-class specialized event-group calibration beyond the agreed date types and explicit overrides are deferred.
 
 ## Out of scope
