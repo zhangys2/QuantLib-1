@@ -1411,8 +1411,6 @@ BOOST_AUTO_TEST_CASE(testConcurrentCaptureNeverMixesSnapshots) {
 
     std::atomic<unsigned> invalidResults{0};
     std::atomic<std::size_t> readerIterationsCompleted{0};
-    std::atomic<std::size_t> activationsCompleted{0};
-    std::atomic<std::size_t> reclamationsCompleted{0};
     std::atomic<std::size_t> reclaimedGenerations{0};
     std::atomic<bool> writerDone{false};
     const auto reader = [&] {
@@ -1440,32 +1438,16 @@ BOOST_AUTO_TEST_CASE(testConcurrentCaptureNeverMixesSnapshots) {
         while (readerIterationsCompleted.load(std::memory_order_acquire) <
                readerIterationsBeforeActivating)
             std::this_thread::yield();
-        for (auto& candidate : candidates) {
+        for (auto& candidate : candidates)
             clock.activate(std::move(candidate));
-            const auto step =
-                activationsCompleted.fetch_add(1, std::memory_order_release) + 1;
-            while (reclamationsCompleted.load(std::memory_order_acquire) < step)
-                std::this_thread::yield();
-        }
         writerDone.store(true, std::memory_order_release);
     };
     const auto reclaimer = [&] {
         waitForStart();
-        while (!writerDone.load(std::memory_order_acquire) ||
-               reclamationsCompleted.load(std::memory_order_acquire) <
-                   activationsCompleted.load(std::memory_order_acquire)) {
-            const auto reclaimedThrough =
-                reclamationsCompleted.load(std::memory_order_acquire);
-            const auto activatedThrough =
-                activationsCompleted.load(std::memory_order_acquire);
-            if (reclaimedThrough < activatedThrough) {
-                reclaimedGenerations.fetch_add(clock.reclaim(),
-                                               std::memory_order_relaxed);
-                reclamationsCompleted.store(activatedThrough,
-                                            std::memory_order_release);
-            } else {
-                std::this_thread::yield();
-            }
+        while (!writerDone.load(std::memory_order_acquire)) {
+            reclaimedGenerations.fetch_add(clock.reclaim(),
+                                           std::memory_order_relaxed);
+            std::this_thread::yield();
         }
     };
 
