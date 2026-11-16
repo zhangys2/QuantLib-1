@@ -29,10 +29,29 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <utility>
+
+namespace varianceClockDeleteProbe {
+    thread_local bool countDeletes = false;
+    thread_local std::size_t deletes = 0;
+}
+
+void operator delete(void* memory) noexcept {
+    if (varianceClockDeleteProbe::countDeletes)
+        ++varianceClockDeleteProbe::deletes;
+    std::free(memory);
+}
+
+void operator delete(void* memory, std::size_t) noexcept {
+    if (varianceClockDeleteProbe::countDeletes)
+        ++varianceClockDeleteProbe::deletes;
+    std::free(memory);
+}
 
 using namespace QuantLib;
 
@@ -1205,6 +1224,14 @@ BOOST_AUTO_TEST_CASE(testOldTokenRejectedAfterABA) {
     BOOST_REQUIRE(oldAWhileBActive.status == VarianceClockStatus::Ok);
     checkWeightedDays(oldAWhileBActive.weightedDays,
                       HighPrecision("600") / HighPrecision("86400"));
+    const auto staleOnB = viewB.remaining(instant(0), firstAToken);
+    BOOST_CHECK(staleOnB.status == VarianceClockStatus::StaleToken);
+    BOOST_CHECK_EQUAL(staleOnB.weightedDays, 0.0);
+
+    BOOST_CHECK_EXCEPTION(clock.activate(nullptr), Error,
+                          [](const Error&) { return true; });
+    const auto stillB = viewB.remaining(instant(0), tokenB);
+    BOOST_CHECK(stillB.status == VarianceClockStatus::Ok);
 
     clock.activate(makeVarianceClockSnapshot(makeTables(1.0)));
     const auto secondA = clock.capture();
@@ -1218,6 +1245,43 @@ BOOST_AUTO_TEST_CASE(testOldTokenRejectedAfterABA) {
     BOOST_REQUIRE(resultA.status == VarianceClockStatus::Ok);
     checkWeightedDays(resultA.weightedDays,
                       HighPrecision("600") / HighPrecision("86400"));
+}
+
+BOOST_AUTO_TEST_CASE(testRetiredGenerationReleaseStaysOnControlThread) {
+    BOOST_TEST_MESSAGE("Testing variance-clock retired generation ownership...");
+
+    auto makeTables = [](double weight) {
+        VarianceClockTables tables;
+        tables.start = instant(0);
+        tables.end = instant(86400);
+        tables.availableFrom = instant(0);
+        tables.profiles = {profile(1, weight)};
+        tables.dates = {{Date(1, January, 1970), 1}};
+        tables.offsets = {{tables.start, tables.end, 0, false}};
+        return tables;
+    };
+
+    VarianceClock clock(makeVarianceClockSnapshot(makeTables(1.0)));
+    VarianceClockView retiredView = clock.capture();
+    VarianceClockExpiryToken retiredToken;
+    BOOST_REQUIRE(retiredView.prepareExpiry(instant(600), retiredToken) ==
+                  VarianceClockStatus::Ok);
+    clock.activate(makeVarianceClockSnapshot(makeTables(2.0)));
+
+    std::size_t workerDeletes = 0;
+    std::thread releaser([view = std::move(retiredView),
+                          token = std::move(retiredToken),
+                          &workerDeletes]() mutable {
+        varianceClockDeleteProbe::deletes = 0;
+        varianceClockDeleteProbe::countDeletes = true;
+        view = VarianceClockView();
+        token = VarianceClockExpiryToken();
+        varianceClockDeleteProbe::countDeletes = false;
+        workerDeletes = varianceClockDeleteProbe::deletes;
+    });
+    releaser.join();
+
+    BOOST_CHECK_EQUAL(workerDeletes, 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

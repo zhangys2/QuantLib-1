@@ -71,7 +71,8 @@ foreach(symbol IN LISTS QL_VARIANCECLOCK_PROBE_WRAP_OPTIONS)
     ql_add_varianceclock_probe(${target} "${symbol}")
     add_test(NAME "variance_clock_probe_missing_${identifier}" COMMAND ${target})
     set_tests_properties("variance_clock_probe_missing_${identifier}"
-        PROPERTIES PASS_REGULAR_EXPRESSION "1 of 23 controls failed")
+        PROPERTIES PASS_REGULAR_EXPRESSION
+        "(^|\n)\\[FAIL\\] ${symbol} ")
 endforeach()
 
 ql_add_varianceclock_clock_probe(variance_clock_probe_clock)
@@ -83,3 +84,12 @@ add_test(NAME variance_clock_probe_clock_runtime_red COMMAND variance_clock_prob
 set_tests_properties(variance_clock_probe_clock_runtime_red
     PROPERTIES PASS_REGULAR_EXPRESSION
                "clock activation positive control observed no allocation")
+
+ql_add_varianceclock_clock_probe(variance_clock_probe_clock_query_red)
+target_compile_definitions(variance_clock_probe_clock_query_red
+    PRIVATE QL_VARIANCECLOCK_PROBE_INJECT_QUERY_ALLOC)
+add_test(NAME variance_clock_probe_clock_query_runtime_red
+    COMMAND variance_clock_probe_clock_query_red)
+set_tests_properties(variance_clock_probe_clock_query_runtime_red
+    PROPERTIES PASS_REGULAR_EXPRESSION
+        "(^|\n)\\[FAIL\\] clock capture/query failed or observed allocation/I/O")

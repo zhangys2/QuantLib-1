@@ -87,10 +87,11 @@ complete new one. An old view remains paired with its old token, while using
 that token with a newly captured view returns `StaleToken`, including after an
 A-to-B-to-equivalent-A sequence. The owner retains each replaced generation
 before publishing its successor, so releasing a view or token cannot destroy
-retired snapshot storage on that reader thread. Reclamation and shutdown are
-not yet provided. Destroy views and tokens before destroying their owner: a
-violation aborts in debug builds. In release builds, surviving handles retain
-and eventually destroy their generation, outside any off-query reclamation
+retired snapshot storage on that reader thread. Until control-thread
+reclamation is added, the retired list grows without bound as snapshots are
+activated. Destroy views and tokens before destroying their owner: a violation
+aborts in debug builds. In release builds, surviving handles retain and
+eventually destroy their generation, outside any off-query reclamation
 guarantee. Capture and activation must not race with owner destruction.
 
 The numeric query implementation performs no intended clock-owned allocation

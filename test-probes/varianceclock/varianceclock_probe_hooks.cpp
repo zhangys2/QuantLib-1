@@ -32,8 +32,18 @@
 //   * __cxa_allocate_exception is intercepted with --wrap as well, again for
 //     direct references from this executable only.
 // File I/O:
-//   * descriptor, positional, and stdio calls are intercepted with --wrap.
-//     The probe links libstdc++ statically and exercises an ifstream control.
+//   * open/open64/openat, fopen/fopen64, read/pread, write/pwrite, and
+//     fread/fwrite references from this executable are intercepted with
+//     --wrap. The probe links libstdc++ statically and exercises an ifstream
+//     control requiring both an open event and a read event.
+//   * printf, puts, fprintf, creat, freopen, readv, writev, and mmap are not
+//     wrapped. GNU ld --wrap cannot rewrite libc-internal calls; direct calls
+//     from these APIs into libc are therefore outside this probe's coverage.
+// Clock controls:
+//   * varianceclock.cpp and varianceclocktables.cpp are compiled into the
+//     probe and their direct references are covered by these hooks. The
+//     binary also links libQuantLib.so for Date and Error; calls made inside
+//     that shared library (including its libstdc++ copy) are not wrapped.
 //
 // Define QL_VARIANCECLOCK_PROBE_DISABLED to build the runtime-red binary:
 // the interposers still forward, but record() observes nothing, so every

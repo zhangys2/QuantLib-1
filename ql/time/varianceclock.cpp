@@ -18,8 +18,8 @@
 #include <ql/errors.hpp>
 #include <ql/time/varianceclock.hpp>
 #include <ql/time/varianceclockdetail.hpp>
-#include <ql/errors.hpp>
 #include <mutex>
+#include <new>
 #include <utility>
 
 namespace QuantLib {
@@ -53,7 +53,8 @@ namespace QuantLib {
     }
 
     VarianceClockView::VarianceClockView(
-        const ext::shared_ptr<const detail::VarianceClockGeneration>& generation) noexcept
+        const ext::shared_ptr<const detail::VarianceClockGeneration>&
+            generation) noexcept
     : generation_(generation) {}
 
     VarianceClockInstant VarianceClockView::coverageStart() const noexcept {
@@ -102,6 +103,10 @@ namespace QuantLib {
     VarianceClockResult
     VarianceClockView::remaining(VarianceClockInstant time,
                                  const VarianceClockExpiryToken& expiry) const noexcept {
+#ifdef QL_VARIANCECLOCK_PROBE_INJECT_QUERY_ALLOC
+        void* probeAllocation = ::operator new(1);
+        ::operator delete(probeAllocation);
+#endif
         if (!generation_)
             return {VarianceClockStatus::InvalidView, 0.0};
         if (!expiry.generation_)
@@ -144,8 +149,10 @@ namespace QuantLib {
         auto next = ext::make_shared<detail::VarianceClockGeneration>(std::move(candidate));
 
         std::lock_guard<std::mutex> lock(mutex_);
-        if (generation_)
+        if (generation_) {
+            retired_.reserve(retired_.size() + 1);
             retired_.push_back(generation_);
+        }
         generation_ = std::move(next);
     }
 

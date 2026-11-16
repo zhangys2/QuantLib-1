@@ -65,6 +65,13 @@ namespace {
                         : "");
     }
 
+#ifndef QL_VARIANCECLOCK_PROBE_BASE_CONTROLS_ONLY
+    void reportCustomFailure(const char* event, const char* reason) {
+        ++failures;
+        std::printf("[FAIL] %s %s\n", event, reason);
+    }
+#endif
+
     template <typename Operation>
     void expectOne(vcp::Event event, std::uint64_t expectedBytes, Operation operation) {
         ++controls;
@@ -122,14 +129,15 @@ namespace {
         return result;
     }
 
-    QuantLib::VarianceClockTables probeClockTables(double weight) {
+    QuantLib::VarianceClockTables probeClockTables(double weight,
+                                                   std::int64_t calibration = 0) {
         QuantLib::VarianceClockTables tables;
         tables.start = probeClockInstant(0);
         tables.end = probeClockInstant(86400);
         tables.availableFrom = probeClockInstant(0);
         QuantLib::VarianceClockProfileInput profile;
         profile.id = 1;
-        profile.calibrationAsOf = probeClockInstant(0);
+        profile.calibrationAsOf = probeClockInstant(calibration);
         for (auto& slot : profile.slots)
             slot.weight = weight;
         tables.profiles.push_back(std::move(profile));
@@ -327,10 +335,10 @@ int main() {
     for (std::size_t i = 1; i < static_cast<std::size_t>(vcp::Event::Count); ++i)
         onlyNewMoved = onlyNewMoved &&
                        vcp::count(static_cast<vcp::Event>(i)) == 0;
-    if (!onlyNewMoved) {
-        ++failures;
-        std::printf("[FAIL] all-kinds armed control moved an unexpected counter\n");
-    }
+    ++controls;
+    if (!onlyNewMoved)
+        reportCustomFailure("all-kinds armed control",
+                            "moved a counter other than the expected new event");
 
     vcp::disarmAll();
     vcp::reset();
@@ -349,22 +357,30 @@ int main() {
     char character = '\0';
     stream.get(character);
     stream.close();
-    const bool streamObserved =
+    ++controls;
+    const bool streamOpenObserved =
         vcp::count(vcp::Event::Open) + vcp::count(vcp::Event::Open64) +
             vcp::count(vcp::Event::OpenAt) + vcp::count(vcp::Event::Fopen) +
-            vcp::count(vcp::Event::Fopen64) + vcp::count(vcp::Event::Read) +
-            vcp::count(vcp::Event::Pread) + vcp::count(vcp::Event::Fread) >
+            vcp::count(vcp::Event::Fopen64) >
         0;
-    if (!streamObserved) {
-        ++failures;
-        std::printf("[FAIL] ifstream positive control observed no file I/O\n");
-    }
+    const bool streamReadObserved =
+        vcp::count(vcp::Event::Read) + vcp::count(vcp::Event::Pread) +
+            vcp::count(vcp::Event::Fread) >
+        0;
+    if (!streamOpenObserved || !streamReadObserved)
+        reportCustomFailure("ifstream positive control",
+                            "did not observe both file-open and file-read events");
     ::unlink(path);
 #endif
 
 #ifdef QL_VARIANCECLOCK_PROBE_CLOCK_CONTROLS
     QuantLib::VarianceClock clock(
         QuantLib::makeVarianceClockSnapshot(probeClockTables(1.0)));
+    const auto oldView = clock.capture();
+    QuantLib::VarianceClockExpiryToken oldToken;
+    const bool oldTokenReady =
+        oldView.prepareExpiry(probeClockInstant(600), oldToken) ==
+        QuantLib::VarianceClockStatus::Ok;
     auto candidate = QuantLib::makeVarianceClockSnapshot(probeClockTables(2.0));
 
     vcp::disarmAll();
@@ -381,18 +397,48 @@ int main() {
         std::printf("[FAIL] clock activation positive control observed no allocation\n");
     }
 
+    QuantLib::VarianceClock beforeCalibrationClock(
+        QuantLib::makeVarianceClockSnapshot(probeClockTables(1.0, 10)));
+    const auto beforeCalibrationView = beforeCalibrationClock.capture();
+    QuantLib::VarianceClockExpiryToken beforeCalibrationToken;
+    const bool beforeCalibrationExpiryReady =
+        beforeCalibrationView.prepareExpiry(probeClockInstant(600),
+                                            beforeCalibrationToken) ==
+        QuantLib::VarianceClockStatus::Ok;
+
     vcp::disarmAll();
     vcp::reset();
     for (std::size_t i = 0; i < static_cast<std::size_t>(vcp::Event::Count); ++i)
         vcp::arm(static_cast<vcp::Event>(i));
-    bool queryOk = false;
+    bool queryOk = oldTokenReady;
     {
         const auto view = clock.capture();
         QuantLib::VarianceClockExpiryToken expiry;
-        queryOk = view.prepareExpiry(probeClockInstant(600), expiry) ==
-                      QuantLib::VarianceClockStatus::Ok &&
-                  view.remaining(probeClockInstant(0), expiry).status ==
-                      QuantLib::VarianceClockStatus::Ok;
+        const auto invalidView = QuantLib::VarianceClockView().remaining(
+            probeClockInstant(0), expiry);
+        const auto invalidToken = view.remaining(probeClockInstant(0), expiry);
+        const bool expiryReady =
+            view.prepareExpiry(probeClockInstant(600), expiry) ==
+            QuantLib::VarianceClockStatus::Ok;
+        const auto ok = view.remaining(probeClockInstant(0), expiry);
+        const auto stale = view.remaining(probeClockInstant(0), oldToken);
+        const auto invalidInstant = view.remaining(QuantLib::VarianceClockInstant(),
+                                                   expiry);
+        const auto outOfCoverage = view.remaining(probeClockInstant(86401), expiry);
+        const auto expired = view.remaining(probeClockInstant(600), expiry);
+        const auto beforeCalibration =
+            beforeCalibrationView.remaining(probeClockInstant(0),
+                                            beforeCalibrationToken);
+        queryOk = queryOk &&
+                  invalidView.status == QuantLib::VarianceClockStatus::InvalidView &&
+                  invalidToken.status == QuantLib::VarianceClockStatus::InvalidToken &&
+                  expiryReady && ok.status == QuantLib::VarianceClockStatus::Ok &&
+                  stale.status == QuantLib::VarianceClockStatus::StaleToken &&
+                  invalidInstant.status == QuantLib::VarianceClockStatus::InvalidInstant &&
+                  outOfCoverage.status == QuantLib::VarianceClockStatus::OutOfCoverage &&
+                  expired.status == QuantLib::VarianceClockStatus::Expired &&
+                  beforeCalibrationExpiryReady &&
+                  beforeCalibration.status == QuantLib::VarianceClockStatus::BeforeCalibration;
     }
     vcp::disarmAll();
     bool queryAllocated = false;
@@ -402,8 +448,8 @@ int main() {
     if (queryOk && !queryAllocated) {
         std::printf("[ ok ] clock capture/query observed no allocation or I/O\n");
     } else {
-        ++failures;
-        std::printf("[FAIL] clock capture/query failed or observed allocation/I/O\n");
+        reportCustomFailure("clock capture/query",
+                            "failed or observed allocation/I/O");
     }
 #endif
 
