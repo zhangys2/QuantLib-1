@@ -41,11 +41,12 @@ endfunction()
 
 function(ql_generate_varianceclock_mutant target mutation)
     set(source_file "${PROJECT_SOURCE_DIR}/ql/time/varianceclock.cpp")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${source_file}")
     file(READ "${source_file}" source)
 
     if("${mutation}" STREQUAL "query_alloc")
-        set(before "const noexcept {\n        if (!generation_)")
-        set(after "const noexcept {\n        void* probeAllocation = ::operator new(1);\n        ::operator delete(probeAllocation);\n        if (!generation_)")
+        set(before "VarianceClockView::remaining(VarianceClockInstant time,\n                                 const VarianceClockExpiryToken& expiry) const noexcept {\n        if (!generation_)")
+        set(after "VarianceClockView::remaining(VarianceClockInstant time,\n                                 const VarianceClockExpiryToken& expiry) const noexcept {\n        void* probeAllocation = ::operator new(1);\n        ::operator delete(probeAllocation);\n        if (!generation_)")
         string(REPLACE "${before}" "${after}" mutated "${source}")
         string(REPLACE "#include <mutex>" "#include <mutex>\n#include <new>"
                        mutated "${mutated}")

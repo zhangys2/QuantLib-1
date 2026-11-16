@@ -28,9 +28,9 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
-#include <condition_variable>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -1364,7 +1364,9 @@ BOOST_AUTO_TEST_CASE(testConcurrentCaptureNeverMixesSnapshots) {
     VarianceClock clock(makeSnapshot(1.0));
     auto pinnedView = clock.capture();
     VarianceClockExpiryToken pinnedToken;
-    BOOST_REQUIRE(pinnedView.prepareExpiry(instant(600), pinnedToken) ==
+    const auto valuation = instant(0);
+    const auto expiry = instant(600);
+    BOOST_REQUIRE(pinnedView.prepareExpiry(expiry, pinnedToken) ==
                   VarianceClockStatus::Ok);
 
     const double oneRate = 600.0 / 86400.0;
@@ -1383,13 +1385,14 @@ BOOST_AUTO_TEST_CASE(testConcurrentCaptureNeverMixesSnapshots) {
     clock.activate(makeSnapshot(2.0));
     {
         const auto newView = clock.capture();
-        const auto stale = newView.remaining(instant(0), pinnedToken);
+        const auto stale = newView.remaining(valuation, pinnedToken);
         BOOST_CHECK(stale.status == VarianceClockStatus::StaleToken);
         BOOST_CHECK_EQUAL(stale.weightedDays, 0.0);
     }
 
     constexpr std::size_t activationCount = 256;
     constexpr std::size_t readerIterations = 2000;
+    constexpr std::size_t readerIterationsBeforeActivating = 100;
     std::vector<std::unique_ptr<VarianceClockSnapshot>> candidates;
     candidates.reserve(activationCount);
     for (std::size_t i = 0; i != activationCount; ++i)
@@ -1407,31 +1410,72 @@ BOOST_AUTO_TEST_CASE(testConcurrentCaptureNeverMixesSnapshots) {
     };
 
     std::atomic<unsigned> invalidResults{0};
+    std::atomic<std::size_t> readerIterationsCompleted{0};
+    std::atomic<std::size_t> activationsCompleted{0};
+    std::atomic<std::size_t> reclamationsCompleted{0};
+    std::atomic<std::size_t> reclaimedGenerations{0};
+    std::atomic<bool> writerDone{false};
     const auto reader = [&] {
         waitForStart();
-        for (std::size_t i = 0; i != readerIterations; ++i) {
+        for (std::size_t i = 0;
+             i < readerIterations || !writerDone.load(std::memory_order_acquire);
+             ++i) {
             const auto view = clock.capture();
             VarianceClockExpiryToken token;
-            if (view.prepareExpiry(instant(600), token) != VarianceClockStatus::Ok) {
+            if (view.prepareExpiry(expiry, token) != VarianceClockStatus::Ok) {
                 invalidResults.fetch_add(1, std::memory_order_relaxed);
-                continue;
+            } else if (!matchesSingleGeneration(view.remaining(valuation, token))) {
+                invalidResults.fetch_add(1, std::memory_order_relaxed);
             }
-            if (!matchesSingleGeneration(view.remaining(instant(0), token)))
+
+            const auto stale = view.remaining(valuation, pinnedToken);
+            if (stale.status != VarianceClockStatus::StaleToken ||
+                stale.weightedDays != 0.0)
                 invalidResults.fetch_add(1, std::memory_order_relaxed);
+            readerIterationsCompleted.fetch_add(1, std::memory_order_release);
         }
     };
     const auto writer = [&] {
         waitForStart();
-        for (auto& candidate : candidates)
+        while (readerIterationsCompleted.load(std::memory_order_acquire) <
+               readerIterationsBeforeActivating)
+            std::this_thread::yield();
+        for (auto& candidate : candidates) {
             clock.activate(std::move(candidate));
+            const auto step =
+                activationsCompleted.fetch_add(1, std::memory_order_release) + 1;
+            while (reclamationsCompleted.load(std::memory_order_acquire) < step)
+                std::this_thread::yield();
+        }
+        writerDone.store(true, std::memory_order_release);
+    };
+    const auto reclaimer = [&] {
+        waitForStart();
+        while (!writerDone.load(std::memory_order_acquire) ||
+               reclamationsCompleted.load(std::memory_order_acquire) <
+                   activationsCompleted.load(std::memory_order_acquire)) {
+            const auto reclaimedThrough =
+                reclamationsCompleted.load(std::memory_order_acquire);
+            const auto activatedThrough =
+                activationsCompleted.load(std::memory_order_acquire);
+            if (reclaimedThrough < activatedThrough) {
+                reclaimedGenerations.fetch_add(clock.reclaim(),
+                                               std::memory_order_relaxed);
+                reclamationsCompleted.store(activatedThrough,
+                                            std::memory_order_release);
+            } else {
+                std::this_thread::yield();
+            }
+        }
     };
 
     std::thread firstReader(reader);
     std::thread secondReader(reader);
     std::thread activationWriter(writer);
+    std::thread reclaimWriter(reclaimer);
     {
         std::unique_lock<std::mutex> lock(startMutex);
-        startCondition.wait(lock, [&] { return readyThreads == 3; });
+        startCondition.wait(lock, [&] { return readyThreads == 4; });
         start = true;
     }
     startCondition.notify_all();
@@ -1439,13 +1483,21 @@ BOOST_AUTO_TEST_CASE(testConcurrentCaptureNeverMixesSnapshots) {
     firstReader.join();
     secondReader.join();
     activationWriter.join();
+    reclaimWriter.join();
 
     BOOST_CHECK_EQUAL(invalidResults.load(std::memory_order_relaxed), 0U);
-    BOOST_CHECK(matchesSingleGeneration(pinnedView.remaining(instant(0), pinnedToken)));
-    BOOST_CHECK_EQUAL(clock.reclaim(), activationCount);
+    BOOST_CHECK(matchesSingleGeneration(pinnedView.remaining(valuation, pinnedToken)));
+    const auto reclaimedAfterReaders = clock.reclaim();
+    BOOST_CHECK(reclaimedGenerations.load(std::memory_order_relaxed) +
+                    reclaimedAfterReaders <
+                activationCount + 1);
     pinnedView = VarianceClockView();
     pinnedToken = VarianceClockExpiryToken();
-    BOOST_CHECK_EQUAL(clock.reclaim(), 1U);
+    const auto reclaimedAfterRelease = clock.reclaim();
+    BOOST_CHECK(reclaimedAfterRelease > 0);
+    BOOST_CHECK_EQUAL(reclaimedGenerations.load(std::memory_order_relaxed) +
+                          reclaimedAfterReaders + reclaimedAfterRelease,
+                      activationCount + 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
