@@ -88,7 +88,7 @@ namespace QuantLib {
 
     //! Fixed-snapshot owner; live replacement and reclamation are not provided.
     /*! Destroying this owner with live views or tokens violates the lifetime
-        precondition and asserts in debug builds. In release builds those
+        precondition and aborts in debug builds. In release builds those
         handles retain the snapshot and can destroy it off the control path.
         Capture must not race with destruction.
     */

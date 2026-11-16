@@ -48,8 +48,10 @@ namespace QuantLib {
 
         std::int64_t shiftedSeconds(std::int64_t seconds, std::int32_t offset) {
             const auto shift = static_cast<std::int64_t>(offset);
-            QL_REQUIRE((shift <= 0 || seconds <= std::numeric_limits<std::int64_t>::max() - shift) &&
-                           (shift >= 0 || seconds >= std::numeric_limits<std::int64_t>::min() - shift),
+            QL_REQUIRE((shift <= 0 ||
+                        seconds <= std::numeric_limits<std::int64_t>::max() - shift) &&
+                           (shift >= 0 ||
+                            seconds >= std::numeric_limits<std::int64_t>::min() - shift),
                        "variance-clock UTC offset overflows");
             return seconds + shift;
         }
@@ -132,9 +134,11 @@ namespace QuantLib {
         }
 
         double validateTables(VarianceClockTables& tables) {
-            QL_REQUIRE(tables.start.isValid() && tables.end.isValid() && tables.availableFrom.isValid(),
+            QL_REQUIRE(tables.start.isValid() && tables.end.isValid() &&
+                           tables.availableFrom.isValid(),
                        "variance-clock coverage or availability is invalid");
-            QL_REQUIRE(tables.start < tables.end, "variance-clock coverage must be nonempty and ordered");
+            QL_REQUIRE(tables.start < tables.end,
+                       "variance-clock coverage must be nonempty and ordered");
 
             double maximumWeight = 0.0;
             for (const auto& profile : tables.profiles) {
@@ -147,7 +151,8 @@ namespace QuantLib {
                 }
             }
             std::sort(tables.profiles.begin(), tables.profiles.end(),
-                      [](const VarianceClockProfileInput& lhs, const VarianceClockProfileInput& rhs) {
+                      [](const VarianceClockProfileInput& lhs,
+                         const VarianceClockProfileInput& rhs) {
                           return lhs.id < rhs.id;
                       });
             for (Size i = 1; i < tables.profiles.size(); ++i)
@@ -197,7 +202,8 @@ namespace QuantLib {
                  static_cast<long double>(tables.start.nanosecond())) /
                     nanosecondsPerSecond;
             const long double days = seconds / secondsPerDay;
-            const long double bound = static_cast<long double>(std::numeric_limits<double>::max()) / 4;
+            const long double bound =
+                static_cast<long double>(std::numeric_limits<double>::max()) / 4;
             QL_REQUIRE(static_cast<long double>(maximumWeight) * days <= bound,
                        "variance-clock conservative weighted bound exceeded");
         }

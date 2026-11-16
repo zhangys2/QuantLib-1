@@ -1,4 +1,4 @@
-# Variance clock: fixed-snapshot runtime
+/*! \page variance_clock Variance clock: fixed-snapshot runtime
 
 `VarianceClock` integrates a supplied, market-specific variance-rate schedule.
 Its unit is **weighted days**, not annualized volatility or price variance.
@@ -65,25 +65,16 @@ error macros; query methods instead return statuses and are `noexcept`.
 ## Lifetime and scope
 
 Views and tokens retain their immutable generation. Destroy views and tokens
-before destroying their owner: a violation asserts in debug builds. In release
+before destroying their owner: a violation aborts in debug builds. In release
 builds, surviving handles retain and eventually destroy their generation, and
 that destruction is outside any off-query reclamation guarantee. Capture must
 not race with owner destruction. The fixed owner has no activation, retirement,
 or shutdown API yet.
 
 The numeric query implementation performs no intended clock-owned allocation
-or file I/O; the separate allocation and I/O probe is not yet part of this
-ticket. Bundle loading, hashing, CSV/JSON parsing, historical calibration,
+or file I/O. Bundle loading, hashing, CSV/JSON parsing, historical calibration,
 source provenance, and live snapshot swaps are outside this fixed-snapshot
 implementation. A supplied availability cutoff does not itself prove source
 authenticity or point-in-time provenance.
 
-## Design traceability
-
-| Record | Decision and evidence |
-| --- | --- |
-| CLM-002 / EVD-002 / DEC-001 | Preserve the existing `VarianceCalendar` interpolation and category behavior; clock slots are authoritative rates instead. |
-| CLM-007 / EVD-008 / DEC-010 | QuantLib `Real` and shared-pointer types are configurable; the query result stores a `double` and conversion to `Real` is separate. |
-| CLM-008, CLM-009 / EVD-007, EVD-009 / DEC-008, DEC-009 | Sum nonnegative interval pieces, including DST and slot boundaries, against a high-precision numerical budget. The approved DEC-008 amendment replaces indexed prefixes with balanced range-sum trees. |
-| CLM-006 / DEC-006 | Snapshot availability and profile calibration cutoffs gate nonempty intervals; provenance validation is a separate concern. |
-| CLM-011 / DEC-007 | Views and position-only tokens are generation-bound; a mismatched generation is stale. |
+*/

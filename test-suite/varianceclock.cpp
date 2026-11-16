@@ -425,8 +425,10 @@ BOOST_AUTO_TEST_CASE(testDateRangeLimits) {
     BOOST_TEST_MESSAGE("Testing variance-clock QuantLib date range limits...");
 
     const auto epoch = static_cast<std::int64_t>(Date(1, January, 1970).serialNumber());
-    const auto minimum = (static_cast<std::int64_t>(Date::minDate().serialNumber()) - epoch) * 86400;
-    const auto maximum = (static_cast<std::int64_t>(Date::maxDate().serialNumber()) - epoch) * 86400;
+    const auto minimum =
+        (static_cast<std::int64_t>(Date::minDate().serialNumber()) - epoch) * 86400;
+    const auto maximum =
+        (static_cast<std::int64_t>(Date::maxDate().serialNumber()) - epoch) * 86400;
 
     VarianceClockTables tables;
     tables.availableFrom = instant(0);
@@ -904,6 +906,10 @@ BOOST_AUTO_TEST_CASE(testFutureProfileIsNotEligible) {
     const auto unavailable = view.remaining(instant(1), firstDay);
     BOOST_CHECK(unavailable.status == VarianceClockStatus::BeforeCalibration);
     BOOST_CHECK_EQUAL(unavailable.weightedDays, 0.0);
+    const auto atAvailability = view.remaining(instant(50), firstDay);
+    BOOST_CHECK(atAvailability.status == VarianceClockStatus::Ok);
+    checkWeightedDays(atAvailability.weightedDays,
+                      HighPrecision("2") * HighPrecision("86350") / HighPrecision("86400"));
     const auto emptyCumulative = view.cumulativeFromCoverageStart(instant(0));
     BOOST_CHECK(emptyCumulative.status == VarianceClockStatus::Ok);
     BOOST_CHECK_EQUAL(emptyCumulative.weightedDays, 0.0);
@@ -957,6 +963,7 @@ BOOST_AUTO_TEST_CASE(testViewStatusPrecedenceAndTokenSafety) {
     VarianceClock second(makeVarianceClockSnapshot(std::move(otherTables)));
     VarianceClock unavailable(makeVarianceClockSnapshot(std::move(unavailableTables)));
     const auto view = first.capture();
+    const auto sameGeneration = first.capture();
     const auto other = second.capture();
     const auto notYetAvailable = unavailable.capture();
     const VarianceClockView invalidView;
@@ -993,8 +1000,13 @@ BOOST_AUTO_TEST_CASE(testViewStatusPrecedenceAndTokenSafety) {
     BOOST_CHECK(view.prepareExpiry(instant(86401), token) == VarianceClockStatus::OutOfCoverage);
     const auto preserved = view.remaining(instant(299), token);
     BOOST_CHECK(preserved.status == VarianceClockStatus::Ok);
-    checkWeightedDays(preserved.weightedDays, HighPrecision("1") / HighPrecision("86400"));
-    QL_CHECK_SMALL(varianceClockAsReal(preserved) - Real(preserved.weightedDays), 1e-14);
+    const HighPrecision preservedOracle = HighPrecision("1") / HighPrecision("86400");
+    checkWeightedDays(preserved.weightedDays, preservedOracle);
+    QL_CHECK_SMALL(varianceClockAsReal(preserved) - Real(preservedOracle.convert_to<double>()),
+                   1e-15);
+    const auto crossView = sameGeneration.remaining(instant(150), token);
+    BOOST_CHECK(crossView.status == VarianceClockStatus::Ok);
+    checkWeightedDays(crossView.weightedDays, HighPrecision("150") / HighPrecision("86400"));
     BOOST_CHECK_THROW(varianceClockAsReal(view.remaining(VarianceClockInstant(), token)), Error);
 
     VarianceClockExpiryToken unavailableExpiry;
@@ -1040,6 +1052,95 @@ BOOST_AUTO_TEST_CASE(testAsOfAcrossMiddleRuns) {
     const auto cumulativeEligible = view.cumulativeFromCoverageStart(instant(4 * 86400));
     BOOST_CHECK(cumulativeEligible.status == VarianceClockStatus::Ok);
     checkWeightedDays(cumulativeEligible.weightedDays, HighPrecision("3"));
+}
+
+BOOST_AUTO_TEST_CASE(testRandomizedEligibilityAgainstBruteForce) {
+    BOOST_TEST_MESSAGE("Testing variance-clock eligibility against a brute-force oracle...");
+
+    constexpr Size days = 37;
+    constexpr std::int64_t secondsPerDay = 86400;
+    constexpr std::int64_t end = days * secondsPerDay;
+    constexpr std::int64_t availableFrom = 4 * secondsPerDay + 123;
+    const std::array<VarianceClockProfileId, 5> ids = {71, 3, 201, 19, 7};
+    const std::array<std::int64_t, 5> asOf = {
+        0, 3 * secondsPerDay, 12 * secondsPerDay, 25 * secondsPerDay, end + 1};
+    std::array<Size, days> selected{};
+
+    VarianceClockTables tables;
+    tables.start = instant(0);
+    tables.end = instant(end);
+    tables.availableFrom = instant(availableFrom);
+    for (Size i = 0; i < ids.size(); ++i) {
+        tables.profiles.push_back(profile(ids[i], i == 2 ? 0.0 : 1.0 + i));
+        tables.profiles.back().calibrationAsOf = instant(asOf[i]);
+    }
+    for (Size day = 0; day < days; ++day) {
+        selected[day] = (7 * day + day / 3 + 1) % ids.size();
+        tables.dates.push_back(
+            {Date(1, January, 1970) + static_cast<Integer>(day), ids[selected[day]]});
+    }
+    tables.offsets = {{tables.start, tables.end, 0, false}};
+    VarianceClock clock(makeVarianceClockSnapshot(std::move(tables)));
+    const auto view = clock.capture();
+
+    std::uint64_t state = 0xc1a0c5eedULL;
+    const auto random = [&state]() {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        return state;
+    };
+    std::array<Size, 3> outcomes{};
+    for (Size i = 0; i < 4096; ++i) {
+        std::int64_t valuation = static_cast<std::int64_t>(random() % (end + 1));
+        std::int64_t expiry = static_cast<std::int64_t>(random() % (end + 1));
+        if (i % 8 == 0)
+            valuation = static_cast<std::int64_t>(random() % (days + 1)) * secondsPerDay;
+        if (i % 8 == 1)
+            expiry = static_cast<std::int64_t>(random() % (days + 1)) * secondsPerDay;
+
+        VarianceClockStatus expected = VarianceClockStatus::Ok;
+        if (valuation >= expiry) {
+            expected = VarianceClockStatus::Expired;
+        } else if (valuation < availableFrom) {
+            expected = VarianceClockStatus::BeforeCalibration;
+        } else {
+            for (Size day = 0; day < days; ++day) {
+                const auto dayStart = static_cast<std::int64_t>(day) * secondsPerDay;
+                if (dayStart < expiry && valuation < dayStart + secondsPerDay &&
+                    asOf[selected[day]] > valuation)
+                    expected = VarianceClockStatus::BeforeCalibration;
+            }
+        }
+
+        VarianceClockExpiryToken token;
+        BOOST_REQUIRE(view.prepareExpiry(instant(expiry), token) == VarianceClockStatus::Ok);
+        const auto result = view.remaining(instant(valuation), token);
+        BOOST_CHECK_MESSAGE(result.status == expected,
+                            "eligibility mismatch at " << valuation << " to " << expiry);
+        if (expected == VarianceClockStatus::Ok) {
+            ++outcomes[0];
+        } else {
+            BOOST_CHECK_EQUAL(result.weightedDays, 0.0);
+            ++outcomes[expected == VarianceClockStatus::Expired ? 1 : 2];
+        }
+
+        bool cumulativeEligible = valuation == 0 || valuation >= availableFrom;
+        for (Size day = 0; day < days && cumulativeEligible; ++day) {
+            const auto dayStart = static_cast<std::int64_t>(day) * secondsPerDay;
+            if (dayStart < valuation && asOf[selected[day]] > valuation)
+                cumulativeEligible = false;
+        }
+        const auto cumulative = view.cumulativeFromCoverageStart(instant(valuation));
+        const auto expectedCumulative =
+            cumulativeEligible ? VarianceClockStatus::Ok : VarianceClockStatus::BeforeCalibration;
+        BOOST_CHECK_MESSAGE(cumulative.status == expectedCumulative,
+                            "cumulative eligibility mismatch at " << valuation);
+        if (!cumulativeEligible)
+            BOOST_CHECK_EQUAL(cumulative.weightedDays, 0.0);
+    }
+    for (Size count : outcomes)
+        BOOST_CHECK_GT(count, 0);
 }
 
 BOOST_AUTO_TEST_CASE(testFixedViewLifetimeAndZeroRates) {
