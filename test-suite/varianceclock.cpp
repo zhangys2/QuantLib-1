@@ -26,14 +26,19 @@
 #include <boost/test/unit_test.hpp>
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <condition_variable>
 #include <limits>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 using namespace QuantLib;
 
@@ -1337,6 +1342,110 @@ BOOST_AUTO_TEST_CASE(testShutdownWaitsForHandlesAndIsTerminal) {
         clock.activate(makeVarianceClockSnapshot(newTables())), Error,
         [](const Error&) { return true; });
     BOOST_CHECK(clock.shutdown());
+}
+
+BOOST_AUTO_TEST_CASE(testConcurrentCaptureNeverMixesSnapshots) {
+    BOOST_TEST_MESSAGE("Testing variance-clock concurrent capture and activation...");
+
+    const auto makeTables = [](double weight) {
+        VarianceClockTables tables;
+        tables.start = instant(0);
+        tables.end = instant(86400);
+        tables.availableFrom = instant(0);
+        tables.profiles = {profile(1, weight)};
+        tables.dates = {{Date(1, January, 1970), 1}};
+        tables.offsets = {{tables.start, tables.end, 0, false}};
+        return tables;
+    };
+    const auto makeSnapshot = [&makeTables](double weight) {
+        return makeVarianceClockSnapshot(makeTables(weight));
+    };
+
+    VarianceClock clock(makeSnapshot(1.0));
+    auto pinnedView = clock.capture();
+    VarianceClockExpiryToken pinnedToken;
+    BOOST_REQUIRE(pinnedView.prepareExpiry(instant(600), pinnedToken) ==
+                  VarianceClockStatus::Ok);
+
+    const double oneRate = 600.0 / 86400.0;
+    const double twoRates = 2.0 * oneRate;
+    const auto matchesSingleGeneration = [oneRate, twoRates](
+                                             const VarianceClockResult& result) {
+        return result.status == VarianceClockStatus::Ok &&
+               (std::abs(result.weightedDays - oneRate) <= 1e-15 ||
+                std::abs(result.weightedDays - twoRates) <= 1e-15);
+    };
+    const VarianceClockResult injectedMixedResult{
+        VarianceClockStatus::Ok, (oneRate + twoRates) / 2.0};
+    BOOST_CHECK_MESSAGE(!matchesSingleGeneration(injectedMixedResult),
+                        "single-generation oracle accepted an injected mixed result");
+
+    clock.activate(makeSnapshot(2.0));
+    {
+        const auto newView = clock.capture();
+        const auto stale = newView.remaining(instant(0), pinnedToken);
+        BOOST_CHECK(stale.status == VarianceClockStatus::StaleToken);
+        BOOST_CHECK_EQUAL(stale.weightedDays, 0.0);
+    }
+
+    constexpr std::size_t activationCount = 256;
+    constexpr std::size_t readerIterations = 2000;
+    std::vector<std::unique_ptr<VarianceClockSnapshot>> candidates;
+    candidates.reserve(activationCount);
+    for (std::size_t i = 0; i != activationCount; ++i)
+        candidates.push_back(makeSnapshot(i % 2 == 0 ? 1.0 : 2.0));
+
+    std::mutex startMutex;
+    std::condition_variable startCondition;
+    unsigned readyThreads = 0;
+    bool start = false;
+    const auto waitForStart = [&] {
+        std::unique_lock<std::mutex> lock(startMutex);
+        ++readyThreads;
+        startCondition.notify_all();
+        startCondition.wait(lock, [&] { return start; });
+    };
+
+    std::atomic<unsigned> invalidResults{0};
+    const auto reader = [&] {
+        waitForStart();
+        for (std::size_t i = 0; i != readerIterations; ++i) {
+            const auto view = clock.capture();
+            VarianceClockExpiryToken token;
+            if (view.prepareExpiry(instant(600), token) != VarianceClockStatus::Ok) {
+                invalidResults.fetch_add(1, std::memory_order_relaxed);
+                continue;
+            }
+            if (!matchesSingleGeneration(view.remaining(instant(0), token)))
+                invalidResults.fetch_add(1, std::memory_order_relaxed);
+        }
+    };
+    const auto writer = [&] {
+        waitForStart();
+        for (auto& candidate : candidates)
+            clock.activate(std::move(candidate));
+    };
+
+    std::thread firstReader(reader);
+    std::thread secondReader(reader);
+    std::thread activationWriter(writer);
+    {
+        std::unique_lock<std::mutex> lock(startMutex);
+        startCondition.wait(lock, [&] { return readyThreads == 3; });
+        start = true;
+    }
+    startCondition.notify_all();
+
+    firstReader.join();
+    secondReader.join();
+    activationWriter.join();
+
+    BOOST_CHECK_EQUAL(invalidResults.load(std::memory_order_relaxed), 0U);
+    BOOST_CHECK(matchesSingleGeneration(pinnedView.remaining(instant(0), pinnedToken)));
+    BOOST_CHECK_EQUAL(clock.reclaim(), activationCount);
+    pinnedView = VarianceClockView();
+    pinnedToken = VarianceClockExpiryToken();
+    BOOST_CHECK_EQUAL(clock.reclaim(), 1U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
