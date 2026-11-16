@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2024 QuantLib contributors
+ Copyright (C) 2026 QuantLib contributors
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -31,6 +31,7 @@
 #include <cstring>
 #include <cxxabi.h>
 #include <fcntl.h>
+#include <fstream>
 #include <new>
 #include <sys/types.h>
 #include <unistd.h>
@@ -67,8 +68,14 @@ namespace {
         // so the clean control must observe nothing.
         vcp::disarmAll();
         vcp::reset();
+        vcp::arm(event);
+        [] {}();
+        vcp::disarm(event);
+        const bool armedClean = vcp::count(event) == 0 && vcp::bytes(event) == 0;
+        vcp::reset();
         operation();
-        const bool clean = vcp::count(event) == 0 && vcp::bytes(event) == 0;
+        const bool clean = armedClean && vcp::count(event) == 0 &&
+                           vcp::bytes(event) == 0;
 
         // Arm exactly one kind, run the operation, disarm immediately.
         vcp::arm(event);
@@ -100,6 +107,7 @@ namespace {
     // exercised.
     void* (*volatile mallocCall)(std::size_t) = std::malloc;
     void* (*volatile callocCall)(std::size_t, std::size_t) = std::calloc;
+    void* (*volatile reallocCall)(void*, std::size_t) = std::realloc;
 
 } // namespace
 
@@ -163,7 +171,7 @@ int main() {
 
     expectOne(vcp::Event::Realloc, 96, [] {
         void* memory = std::malloc(32);
-        memory = std::realloc(memory, 96);
+        memory = reallocCall(memory, 96);
         std::free(memory);
     });
 
@@ -202,6 +210,127 @@ int main() {
         ::close(descriptor);
         ::unlink(path);
     });
+
+#ifndef QL_VARIANCECLOCK_PROBE_BASE_CONTROLS_ONLY
+    expectOne(vcp::Event::OpenAt, 0, [&path] {
+        const int descriptor = ::openat(AT_FDCWD, path,
+                                        O_CREAT | O_TRUNC | O_RDWR, 0600);
+        if (descriptor >= 0)
+            ::close(descriptor);
+        ::unlink(path);
+    });
+
+    expectOne(vcp::Event::Open64, 0, [&path] {
+        const int descriptor = ::open64(path, O_CREAT | O_TRUNC | O_RDWR, 0600);
+        if (descriptor >= 0)
+            ::close(descriptor);
+        ::unlink(path);
+    });
+
+    expectOne(vcp::Event::Fopen, 0, [&path] {
+        std::FILE* file = std::fopen(path, "w");
+        if (file != nullptr)
+            std::fclose(file);
+        ::unlink(path);
+    });
+
+    expectOne(vcp::Event::Fopen64, 0, [&path] {
+        std::FILE* file = ::fopen64(path, "w");
+        if (file != nullptr)
+            std::fclose(file);
+        ::unlink(path);
+    });
+
+    expectOne(vcp::Event::Fwrite, 3, [&path] {
+        std::FILE* file = std::fopen(path, "w");
+        if (file != nullptr) {
+            std::fwrite("abc", 1, 3, file);
+            std::fclose(file);
+        }
+        ::unlink(path);
+    });
+
+    expectOne(vcp::Event::Fread, 3, [&path] {
+        std::FILE* file = std::fopen(path, "w+");
+        if (file != nullptr) {
+            std::fwrite("abc", 1, 3, file);
+            std::rewind(file);
+            char buffer[3];
+            const std::size_t transferred = std::fread(buffer, 1, sizeof buffer, file);
+            (void)transferred;
+            std::fclose(file);
+        }
+        ::unlink(path);
+    });
+
+    expectOne(vcp::Event::Pwrite, 3, [&path] {
+        const int descriptor = ::open(path, O_CREAT | O_TRUNC | O_RDWR, 0600);
+        if (descriptor >= 0) {
+            const ssize_t transferred = ::pwrite(descriptor, "abc", 3, 0);
+            (void)transferred;
+            ::close(descriptor);
+        }
+        ::unlink(path);
+    });
+
+    expectOne(vcp::Event::Pread, 3, [&path] {
+        const int descriptor = ::open(path, O_CREAT | O_TRUNC | O_RDWR, 0600);
+        if (descriptor >= 0) {
+            const ssize_t written = ::write(descriptor, "abc", 3);
+            (void)written;
+            char buffer[3];
+            const ssize_t transferred = ::pread(descriptor, buffer, sizeof buffer, 0);
+            (void)transferred;
+            ::close(descriptor);
+        }
+        ::unlink(path);
+    });
+
+    vcp::disarmAll();
+    vcp::reset();
+    for (std::size_t i = 0; i < static_cast<std::size_t>(vcp::Event::Count); ++i)
+        vcp::arm(static_cast<vcp::Event>(i));
+    void* isolated = ::operator new(48);
+    ::operator delete(isolated);
+    vcp::disarmAll();
+    bool onlyNewMoved = vcp::count(vcp::Event::New) == 1;
+    for (std::size_t i = 1; i < static_cast<std::size_t>(vcp::Event::Count); ++i)
+        onlyNewMoved = onlyNewMoved &&
+                       vcp::count(static_cast<vcp::Event>(i)) == 0;
+    if (!onlyNewMoved) {
+        ++failures;
+        std::printf("[FAIL] all-kinds armed control moved an unexpected counter\n");
+    }
+
+    vcp::disarmAll();
+    vcp::reset();
+    const int streamDescriptor = ::open(path, O_CREAT | O_TRUNC | O_WRONLY, 0600);
+    if (streamDescriptor >= 0) {
+        const ssize_t written = ::write(streamDescriptor, "abc", 3);
+        (void)written;
+        ::close(streamDescriptor);
+    }
+    vcp::reset();
+    for (std::size_t i = static_cast<std::size_t>(vcp::Event::Open);
+         i < static_cast<std::size_t>(vcp::Event::Count);
+         ++i)
+        vcp::arm(static_cast<vcp::Event>(i));
+    std::ifstream stream(path);
+    char character = '\0';
+    stream.get(character);
+    stream.close();
+    const bool streamObserved =
+        vcp::count(vcp::Event::Open) + vcp::count(vcp::Event::Open64) +
+            vcp::count(vcp::Event::OpenAt) + vcp::count(vcp::Event::Fopen) +
+            vcp::count(vcp::Event::Fopen64) + vcp::count(vcp::Event::Read) +
+            vcp::count(vcp::Event::Pread) + vcp::count(vcp::Event::Fread) >
+        0;
+    if (!streamObserved) {
+        ++failures;
+        std::printf("[FAIL] ifstream positive control observed no file I/O\n");
+    }
+    ::unlink(path);
+#endif
 
     if (failures == 0) {
         std::printf("\nAll %d controls passed: clean controls observed nothing, "

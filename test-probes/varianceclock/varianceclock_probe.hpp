@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2024 QuantLib contributors
+ Copyright (C) 2026 QuantLib contributors
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -38,8 +38,16 @@ namespace varianceclockprobe {
         Realloc,                //!< C realloc
         Exception,              //!< __cxa_allocate_exception
         Open,                   //!< open
+        Open64,                 //!< open64
+        OpenAt,                 //!< openat
+        Fopen,                  //!< fopen
+        Fopen64,                //!< fopen64
         Read,                   //!< read
+        Pread,                  //!< pread
         Write,                  //!< write
+        Pwrite,                 //!< pwrite
+        Fread,                  //!< fread
+        Fwrite,                 //!< fwrite
         Count,                  //!< sentinel, not an event
     };
 

@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2024 QuantLib contributors
+ Copyright (C) 2026 QuantLib contributors
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -32,7 +32,8 @@
 //   * __cxa_allocate_exception is intercepted with --wrap as well, again for
 //     direct references from this executable only.
 // File I/O:
-//   * open, read and write are intercepted with --wrap for the same reason.
+//   * descriptor, positional, and stdio calls are intercepted with --wrap.
+//     The probe links libstdc++ statically and exercises an ifstream control.
 //
 // Define QL_VARIANCECLOCK_PROBE_DISABLED to build the runtime-red binary:
 // the interposers still forward, but record() observes nothing, so every
@@ -46,19 +47,62 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstdio>
 #include <fcntl.h>
 #include <new>
 #include <sys/types.h>
 #include <unistd.h>
 
 extern "C" {
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_MALLOC
 void* __real_malloc(std::size_t size) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_CALLOC
 void* __real_calloc(std::size_t count, std::size_t size) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_REALLOC
 void* __real_realloc(void* memory, std::size_t size) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_OPEN
 int __real_open(const char* path, int flags, ...) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_OPEN64
+int __real_open64(const char* path, int flags, ...) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_OPENAT
+int __real_openat(int directory, const char* path, int flags, ...) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FOPEN
+FILE* __real_fopen(const char* path, const char* mode) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FOPEN64
+FILE* __real_fopen64(const char* path, const char* mode) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_READ
 ssize_t __real_read(int descriptor, void* buffer, std::size_t size) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_PREAD
+ssize_t __real_pread(int descriptor, void* buffer, std::size_t size,
+                     off_t offset) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_WRITE
 ssize_t __real_write(int descriptor, const void* buffer, std::size_t size) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_PWRITE
+ssize_t __real_pwrite(int descriptor, const void* buffer, std::size_t size,
+                      off_t offset) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FREAD
+std::size_t __real_fread(void* buffer, std::size_t size, std::size_t count,
+                         FILE* stream) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FWRITE
+std::size_t __real_fwrite(const void* buffer, std::size_t size,
+                          std::size_t count, FILE* stream) noexcept;
+#endif
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT___CXA_ALLOCATE_EXCEPTION
 void* __real___cxa_allocate_exception(std::size_t size) noexcept;
+#endif
 }
 
 namespace QuantLib {
@@ -151,8 +195,16 @@ namespace varianceclockprobe {
             case Event::Realloc:                return "realloc";
             case Event::Exception:              return "__cxa_allocate_exception";
             case Event::Open:                   return "open";
+            case Event::Open64:                 return "open64";
+            case Event::OpenAt:                 return "openat";
+            case Event::Fopen:                  return "fopen";
+            case Event::Fopen64:                return "fopen64";
             case Event::Read:                   return "read";
+            case Event::Pread:                  return "pread";
             case Event::Write:                  return "write";
+            case Event::Pwrite:                 return "pwrite";
+            case Event::Fread:                  return "fread";
+            case Event::Fwrite:                 return "fwrite";
             case Event::Count:                  break;
         }
         return "unknown";
@@ -163,8 +215,20 @@ namespace varianceclockprobe {
 
 // Replaceable allocation functions ---------------------------------------
 
+namespace {
+
+    void* defaultAlignedAllocate(std::size_t size) noexcept {
+        void* memory = nullptr;
+        if (::posix_memalign(&memory, alignof(std::max_align_t),
+                             size == 0 ? 1 : size) != 0)
+            memory = nullptr;
+        return memory;
+    }
+
+} // namespace
+
 void* operator new(std::size_t size) {
-    void* memory = __real_malloc(size);
+    void* memory = defaultAlignedAllocate(size);
     if (memory == nullptr)
         throw std::bad_alloc();
     QuantLib::varianceclockprobe::record(
@@ -173,7 +237,7 @@ void* operator new(std::size_t size) {
 }
 
 void* operator new[](std::size_t size) {
-    void* memory = __real_malloc(size);
+    void* memory = defaultAlignedAllocate(size);
     if (memory == nullptr)
         throw std::bad_alloc();
     QuantLib::varianceclockprobe::record(
@@ -182,7 +246,7 @@ void* operator new[](std::size_t size) {
 }
 
 void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
-    void* memory = __real_malloc(size);
+    void* memory = defaultAlignedAllocate(size);
     if (memory != nullptr)
         QuantLib::varianceclockprobe::record(
             QuantLib::varianceclockprobe::Event::NewNothrow, size);
@@ -190,7 +254,7 @@ void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
 }
 
 void* operator new[](std::size_t size, const std::nothrow_t&) noexcept {
-    void* memory = __real_malloc(size);
+    void* memory = defaultAlignedAllocate(size);
     if (memory != nullptr)
         QuantLib::varianceclockprobe::record(
             QuantLib::varianceclockprobe::Event::NewArrayNothrow, size);
@@ -287,6 +351,7 @@ void operator delete[](void* memory, std::size_t, std::align_val_t) noexcept {
 
 // GNU ld --wrap interposers ----------------------------------------------
 
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_MALLOC
 extern "C" void* __wrap_malloc(std::size_t size) noexcept {
     void* memory = __real_malloc(size);
     if (memory != nullptr)
@@ -294,7 +359,9 @@ extern "C" void* __wrap_malloc(std::size_t size) noexcept {
             QuantLib::varianceclockprobe::Event::Malloc, size);
     return memory;
 }
+#endif
 
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_CALLOC
 extern "C" void* __wrap_calloc(std::size_t count, std::size_t size) noexcept {
     void* memory = __real_calloc(count, size);
     if (memory != nullptr) {
@@ -306,7 +373,9 @@ extern "C" void* __wrap_calloc(std::size_t count, std::size_t size) noexcept {
     }
     return memory;
 }
+#endif
 
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_REALLOC
 extern "C" void* __wrap_realloc(void* memory, std::size_t size) noexcept {
     void* resized = __real_realloc(memory, size);
     if (resized != nullptr)
@@ -314,7 +383,9 @@ extern "C" void* __wrap_realloc(void* memory, std::size_t size) noexcept {
             QuantLib::varianceclockprobe::Event::Realloc, size);
     return resized;
 }
+#endif
 
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_OPEN
 extern "C" int __wrap_open(const char* path, int flags, ...) noexcept {
     mode_t mode = 0;
     if ((flags & O_CREAT) != 0 || (flags & O_TMPFILE) != 0) {
@@ -329,7 +400,66 @@ extern "C" int __wrap_open(const char* path, int flags, ...) noexcept {
             QuantLib::varianceclockprobe::Event::Open, 0);
     return descriptor;
 }
+#endif
 
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_OPEN64
+extern "C" int __wrap_open64(const char* path, int flags, ...) noexcept {
+    mode_t mode = 0;
+    if ((flags & O_CREAT) != 0 || (flags & O_TMPFILE) != 0) {
+        va_list arguments;
+        va_start(arguments, flags);
+        mode = static_cast<mode_t>(va_arg(arguments, int));
+        va_end(arguments);
+    }
+    const int descriptor = __real_open64(path, flags, mode);
+    if (descriptor >= 0)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::Open64, 0);
+    return descriptor;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_OPENAT
+extern "C" int __wrap_openat(int directory,
+                              const char* path,
+                              int flags,
+                              ...) noexcept {
+    mode_t mode = 0;
+    if ((flags & O_CREAT) != 0 || (flags & O_TMPFILE) != 0) {
+        va_list arguments;
+        va_start(arguments, flags);
+        mode = static_cast<mode_t>(va_arg(arguments, int));
+        va_end(arguments);
+    }
+    const int descriptor = __real_openat(directory, path, flags, mode);
+    if (descriptor >= 0)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::OpenAt, 0);
+    return descriptor;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FOPEN
+extern "C" FILE* __wrap_fopen(const char* path, const char* mode) noexcept {
+    FILE* file = __real_fopen(path, mode);
+    if (file != nullptr)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::Fopen, 0);
+    return file;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FOPEN64
+extern "C" FILE* __wrap_fopen64(const char* path, const char* mode) noexcept {
+    FILE* file = __real_fopen64(path, mode);
+    if (file != nullptr)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::Fopen64, 0);
+    return file;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_READ
 extern "C" ssize_t __wrap_read(int descriptor,
                                void* buffer,
                                std::size_t size) noexcept {
@@ -340,7 +470,23 @@ extern "C" ssize_t __wrap_read(int descriptor,
             static_cast<std::size_t>(transferred));
     return transferred;
 }
+#endif
 
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_PREAD
+extern "C" ssize_t __wrap_pread(int descriptor,
+                                void* buffer,
+                                std::size_t size,
+                                off_t offset) noexcept {
+    const ssize_t transferred = __real_pread(descriptor, buffer, size, offset);
+    if (transferred > 0)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::Pread,
+            static_cast<std::size_t>(transferred));
+    return transferred;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_WRITE
 extern "C" ssize_t __wrap_write(int descriptor,
                                 const void* buffer,
                                 std::size_t size) noexcept {
@@ -351,7 +497,49 @@ extern "C" ssize_t __wrap_write(int descriptor,
             static_cast<std::size_t>(transferred));
     return transferred;
 }
+#endif
 
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_PWRITE
+extern "C" ssize_t __wrap_pwrite(int descriptor,
+                                 const void* buffer,
+                                 std::size_t size,
+                                 off_t offset) noexcept {
+    const ssize_t transferred = __real_pwrite(descriptor, buffer, size, offset);
+    if (transferred > 0)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::Pwrite,
+            static_cast<std::size_t>(transferred));
+    return transferred;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FREAD
+extern "C" std::size_t __wrap_fread(void* buffer,
+                                    std::size_t size,
+                                    std::size_t count,
+                                    FILE* stream) noexcept {
+    const std::size_t transferred = __real_fread(buffer, size, count, stream);
+    if (transferred > 0)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::Fread, transferred * size);
+    return transferred;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT_FWRITE
+extern "C" std::size_t __wrap_fwrite(const void* buffer,
+                                     std::size_t size,
+                                     std::size_t count,
+                                     FILE* stream) noexcept {
+    const std::size_t transferred = __real_fwrite(buffer, size, count, stream);
+    if (transferred > 0)
+        QuantLib::varianceclockprobe::record(
+            QuantLib::varianceclockprobe::Event::Fwrite, transferred * size);
+    return transferred;
+}
+#endif
+
+#ifndef QL_VARIANCECLOCK_PROBE_OMIT___CXA_ALLOCATE_EXCEPTION
 extern "C" void* __wrap___cxa_allocate_exception(std::size_t size) noexcept {
     void* memory = __real___cxa_allocate_exception(size);
     if (memory != nullptr)
@@ -359,3 +547,4 @@ extern "C" void* __wrap___cxa_allocate_exception(std::size_t size) noexcept {
             QuantLib::varianceclockprobe::Event::Exception, size);
     return memory;
 }
+#endif

@@ -13,24 +13,32 @@
 add_library(varianceclock_probe_wrap INTERFACE)
 
 set(QL_VARIANCECLOCK_PROBE_WRAP_OPTIONS
-    -Wl,--wrap=malloc
-    -Wl,--wrap=calloc
-    -Wl,--wrap=realloc
-    -Wl,--wrap=open
-    -Wl,--wrap=read
-    -Wl,--wrap=write
-    -Wl,--wrap=__cxa_allocate_exception)
-
-target_link_options(varianceclock_probe_wrap
-    INTERFACE ${QL_VARIANCECLOCK_PROBE_WRAP_OPTIONS})
+    malloc calloc realloc __cxa_allocate_exception
+    open open64 openat fopen fopen64
+    read pread write pwrite fread fwrite)
 
 function(ql_add_varianceclock_probe target)
+    set(omitted_hook "")
+    if(ARGC GREATER 1)
+        set(omitted_hook "${ARGV1}")
+    endif()
+    set(wrap_options)
+    foreach(symbol IN LISTS QL_VARIANCECLOCK_PROBE_WRAP_OPTIONS)
+        if(NOT "${symbol}" STREQUAL "${omitted_hook}")
+            list(APPEND wrap_options "-Wl,--wrap=${symbol}")
+        endif()
+    endforeach()
     add_executable(${target}
         varianceclock_probe_controls.cpp
         varianceclock_probe_hooks.cpp)
     target_compile_features(${target} PRIVATE cxx_std_17)
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_link_libraries(${target} PRIVATE varianceclock_probe_wrap)
+    target_link_options(${target} PRIVATE ${wrap_options} -static-libstdc++)
+    if(NOT "${omitted_hook}" STREQUAL "")
+        string(TOUPPER "${omitted_hook}" omitted_macro)
+        target_compile_definitions(${target}
+            PRIVATE "QL_VARIANCECLOCK_PROBE_OMIT_${omitted_macro}")
+    endif()
 endfunction()
 
 # Green binary: every positive control must observe exactly one event.
@@ -41,9 +49,19 @@ ql_add_varianceclock_probe(variance_clock_probe)
 # nonzero exit as success for this test.
 ql_add_varianceclock_probe(variance_clock_probe_red)
 target_compile_definitions(variance_clock_probe_red
-    PRIVATE QL_VARIANCECLOCK_PROBE_DISABLED)
+    PRIVATE QL_VARIANCECLOCK_PROBE_DISABLED
+            QL_VARIANCECLOCK_PROBE_BASE_CONTROLS_ONLY)
 
 add_test(NAME variance_clock_probe_controls COMMAND variance_clock_probe)
 add_test(NAME variance_clock_probe_runtime_red COMMAND variance_clock_probe_red)
 set_tests_properties(variance_clock_probe_runtime_red
-    PROPERTIES WILL_FAIL TRUE)
+    PROPERTIES PASS_REGULAR_EXPRESSION "15 of 15 controls failed")
+
+foreach(symbol IN LISTS QL_VARIANCECLOCK_PROBE_WRAP_OPTIONS)
+    string(MAKE_C_IDENTIFIER "${symbol}" identifier)
+    set(target "variance_clock_probe_missing_${identifier}")
+    ql_add_varianceclock_probe(${target} "${symbol}")
+    add_test(NAME "variance_clock_probe_missing_${identifier}" COMMAND ${target})
+    set_tests_properties("variance_clock_probe_missing_${identifier}"
+        PROPERTIES PASS_REGULAR_EXPRESSION "1 of 23 controls failed")
+endforeach()
