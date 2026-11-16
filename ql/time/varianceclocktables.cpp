@@ -17,7 +17,6 @@
 
 #include <ql/errors.hpp>
 #include <ql/time/varianceclockdetail.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -32,12 +31,6 @@ namespace QuantLib {
         constexpr std::int64_t secondsPerDay = 86400;
         constexpr std::int64_t secondsPerSlot = 300;
         constexpr std::int64_t nanosecondsPerSecond = 1000000000;
-
-        bool before(const VarianceClockInstant& lhs, const VarianceClockInstant& rhs) {
-            return lhs.unixSeconds() < rhs.unixSeconds() ||
-                   (lhs.unixSeconds() == rhs.unixSeconds() &&
-                    lhs.nanosecond() < rhs.nanosecond());
-        }
 
         VarianceClockInstant wholeSecond(std::int64_t seconds) {
             VarianceClockInstant result;
@@ -98,7 +91,7 @@ namespace QuantLib {
         double validateTables(VarianceClockTables& tables) {
             QL_REQUIRE(tables.start.isValid() && tables.end.isValid() && tables.availableFrom.isValid(),
                        "variance-clock coverage or availability is invalid");
-            QL_REQUIRE(!before(tables.end, tables.start), "variance-clock coverage is reversed");
+            QL_REQUIRE(tables.start < tables.end, "variance-clock coverage must be nonempty and ordered");
 
             double maximumWeight = 0.0;
             for (const auto& profile : tables.profiles) {
@@ -138,56 +131,22 @@ namespace QuantLib {
 
             for (const auto& offset : tables.offsets) {
                 QL_REQUIRE(offset.start.isValid() && offset.end.isValid() &&
-                               before(offset.start, offset.end),
+                               offset.start < offset.end,
                            "invalid variance-clock offset interval");
                 QL_REQUIRE(offset.offsetSeconds % secondsPerSlot == 0,
                            "variance-clock offsets must be multiples of 300 seconds");
             }
             std::sort(tables.offsets.begin(), tables.offsets.end(),
                       [](const VarianceClockOffsetInput& lhs, const VarianceClockOffsetInput& rhs) {
-                          return before(lhs.start, rhs.start);
+                          return lhs.start < rhs.start;
                       });
             for (Size i = 1; i < tables.offsets.size(); ++i)
-                QL_REQUIRE(!before(tables.offsets[i].start, tables.offsets[i - 1].end),
+                QL_REQUIRE(tables.offsets[i - 1].end <= tables.offsets[i].start,
                            "overlapping variance-clock offset intervals");
             return maximumWeight;
         }
 
-        constexpr unsigned int sumBits =
-            std::numeric_limits<double>::max_exponent -
-            std::numeric_limits<double>::min_exponent + std::numeric_limits<double>::digits + 64;
-        using SumBackend = boost::multiprecision::cpp_int_backend<
-            sumBits, sumBits, boost::multiprecision::unsigned_magnitude,
-            boost::multiprecision::unchecked, void>;
-        using ScaledSum =
-            boost::multiprecision::number<SumBackend, boost::multiprecision::et_off>;
-
-        ScaledSum scaledWeight(double weight) {
-            static_assert(std::numeric_limits<double>::radix == 2 &&
-                              std::numeric_limits<double>::digits <= 64,
-                          "variance-clock weight validation requires binary double");
-            if (weight == 0.0)
-                return 0;
-            constexpr int digits = std::numeric_limits<double>::digits;
-            constexpr int scale = std::numeric_limits<double>::min_exponent - digits;
-            int exponent = 0;
-            const auto fraction = std::frexp(weight, &exponent);
-            auto significand = static_cast<std::uint64_t>(std::ldexp(fraction, digits));
-            const int shift = exponent - digits - scale;
-            if (shift < 0)
-                significand >>= -shift;
-            ScaledSum result(significand);
-            if (shift > 0)
-                result <<= shift;
-            return result;
-        }
-
-        void validateFiniteSum(const VarianceClockTables& tables,
-                               const std::vector<detail::VarianceClockRun>& runs,
-                               double maximumWeight) {
-            if (runs.empty() || maximumWeight == 0.0)
-                return;
-
+        void validateFiniteSum(const VarianceClockTables& tables, double maximumWeight) {
             const long double seconds =
                 static_cast<long double>(tables.end.unixSeconds()) -
                 static_cast<long double>(tables.start.unixSeconds()) +
@@ -195,33 +154,9 @@ namespace QuantLib {
                  static_cast<long double>(tables.start.nanosecond())) /
                     nanosecondsPerSecond;
             const long double days = seconds / secondsPerDay;
-            if (days <= (static_cast<long double>(std::numeric_limits<double>::max()) / 2) /
-                            maximumWeight)
-                return;
-
-            // The usual bound is inconclusive only for extreme rates; compare those sums exactly.
-            auto maximum = scaledWeight(std::numeric_limits<double>::max());
-            maximum *= secondsPerDay * nanosecondsPerSecond;
-            ScaledSum total = 0;
-            for (const auto& run : runs) {
-                const auto& profile = findProfile(tables.profiles, run.profile);
-                auto cursor = run.start;
-                while (before(cursor, run.end)) {
-                    const auto local = shiftedSeconds(cursor.unixSeconds(), run.offsetSeconds);
-                    const auto withinDay = secondOfDay(local);
-                    const auto boundary = nextBoundary(cursor, secondsPerSlot - withinDay % secondsPerSlot);
-                    const auto end = before(boundary, run.end) ? boundary : run.end;
-                    const auto duration =
-                        (end.unixSeconds() - cursor.unixSeconds()) * nanosecondsPerSecond +
-                        static_cast<std::int64_t>(end.nanosecond()) -
-                        static_cast<std::int64_t>(cursor.nanosecond());
-                    auto contribution = scaledWeight(profile.slots[withinDay / secondsPerSlot].weight);
-                    contribution *= static_cast<std::uint64_t>(duration);
-                    total += contribution;
-                    QL_REQUIRE(total <= maximum, "variance-clock weighted sum overflows");
-                    cursor = end;
-                }
-            }
+            const long double bound = static_cast<long double>(std::numeric_limits<double>::max()) / 4;
+            QL_REQUIRE(static_cast<long double>(maximumWeight) * days <= bound,
+                       "variance-clock conservative weighted bound exceeded");
         }
 
     }
@@ -230,20 +165,21 @@ namespace QuantLib {
 
         std::vector<VarianceClockRun> buildVarianceClockRuns(VarianceClockTables& tables) {
             const auto maximumWeight = validateTables(tables);
+            validateFiniteSum(tables, maximumWeight);
             std::vector<VarianceClockRun> runs;
             runs.reserve(tables.dates.size() + tables.offsets.size());
 
             auto cursor = tables.start;
             Size offsetIndex = 0;
             while (offsetIndex < tables.offsets.size() &&
-                   !before(cursor, tables.offsets[offsetIndex].end))
+                   tables.offsets[offsetIndex].end <= cursor)
                 ++offsetIndex;
 
-            while (before(cursor, tables.end)) {
+            while (cursor < tables.end) {
                 QL_REQUIRE(offsetIndex < tables.offsets.size(),
                            "variance-clock offset coverage is incomplete");
                 const auto& offset = tables.offsets[offsetIndex];
-                QL_REQUIRE(!before(cursor, offset.start),
+                QL_REQUIRE(offset.start <= cursor,
                            "variance-clock offset coverage contains a gap");
 
                 const auto local = shiftedSeconds(cursor.unixSeconds(), offset.offsetSeconds);
@@ -256,18 +192,17 @@ namespace QuantLib {
                 QL_REQUIRE(dateIt != tables.dates.end() && dateIt->localDate == date,
                            "variance-clock local date is not covered");
 
-                auto end = before(offset.end, tables.end) ? offset.end : tables.end;
+                auto end = offset.end < tables.end ? offset.end : tables.end;
                 const auto midnight = nextBoundary(cursor, secondsPerDay - secondOfDay(local));
-                if (before(midnight, end))
+                if (midnight < end)
                     end = midnight;
 
                 runs.push_back({cursor, end, date, dateIt->profile, offset.offsetSeconds, offset.fold});
                 cursor = end;
-                if (!before(cursor, offset.end))
+                if (offset.end <= cursor)
                     ++offsetIndex;
             }
 
-            validateFiniteSum(tables, runs, maximumWeight);
             return runs;
         }
 

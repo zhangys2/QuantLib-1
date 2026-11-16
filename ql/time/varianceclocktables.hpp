@@ -55,6 +55,7 @@ namespace QuantLib {
     //! UTC interval, local offset in seconds, and repeated-time fold marker.
     struct VarianceClockOffsetInput {
         VarianceClockInstant start, end;
+        // INT32_MIN is not divisible by 300, so an omitted offset fails validation.
         std::int32_t offsetSeconds = std::numeric_limits<std::int32_t>::min();
         bool fold = false;
     };
@@ -69,7 +70,9 @@ namespace QuantLib {
     //! Validated, immutable in-memory tables for a variance clock.
     /*! The local dates represented by the mapping must fall in the range
         supported by QuantLib::Date.  Coverage is start-inclusive and
-        end-exclusive; both endpoints are available to callers.
+        end-exclusive and must be nonempty; both endpoints are available to callers.
+        Construction rejects the conservative maximum-weight times coverage-days
+        bound above DBL_MAX/4, even if the actual weighted sum would fit.
     */
     class VarianceClockSnapshot {
       public:

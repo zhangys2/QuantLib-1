@@ -29,7 +29,8 @@
 namespace QuantLib {
 
     //! A POSIX second and its nonnegative nanosecond fraction.
-    /*! The default value is invalid.  Negative instants use floor seconds;
+    /*! The default value is invalid and compares before all valid instants;
+        invalid instants compare equal. Negative instants use floor seconds;
         leap seconds are not represented.
     */
     class VarianceClockInstant {
@@ -51,6 +52,22 @@ namespace QuantLib {
         bool isValid() const noexcept { return valid_; }
         std::int64_t unixSeconds() const noexcept { return seconds_; }
         std::uint32_t nanosecond() const noexcept { return nanosecond_; }
+
+        bool operator==(const VarianceClockInstant& other) const noexcept {
+            return valid_ == other.valid_ &&
+                   (!valid_ || (seconds_ == other.seconds_ && nanosecond_ == other.nanosecond_));
+        }
+
+        bool operator<(const VarianceClockInstant& other) const noexcept {
+            if (valid_ != other.valid_)
+                return !valid_;
+            return valid_ && (seconds_ < other.seconds_ ||
+                              (seconds_ == other.seconds_ && nanosecond_ < other.nanosecond_));
+        }
+
+        bool operator<=(const VarianceClockInstant& other) const noexcept {
+            return *this < other || *this == other;
+        }
 
       private:
         std::int64_t seconds_ = 0;

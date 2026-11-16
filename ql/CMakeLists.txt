@@ -912,6 +912,7 @@ set(QL_SOURCES
     time/businessdayconvention.cpp
     time/calendar.cpp
     time/variancecalendar.cpp
+    time/varianceclockdetail.hpp
     time/varianceclocktables.cpp
     time/calendars/argentina.cpp
     time/calendars/australia.cpp
@@ -2245,7 +2246,6 @@ set(QL_HEADERS
     time/businessdayconvention.hpp
     time/calendar.hpp
     time/variancecalendar.hpp
-    time/varianceclockdetail.hpp
     time/varianceclockinstant.hpp
     time/varianceclocktables.hpp
     time/calendars/argentina.hpp
@@ -2470,6 +2470,7 @@ add_custom_command(OUTPUT ${QL_GENERATED_HEADERS}
         -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
         -DBINARY_DIR=${PROJECT_BINARY_DIR}
         -P ${PROJECT_SOURCE_DIR}/cmake/GenerateHeaders.cmake
+    DEPENDS ${PROJECT_SOURCE_DIR}/cmake/GenerateHeaders.cmake
     COMMENT "Generating headers..."
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
