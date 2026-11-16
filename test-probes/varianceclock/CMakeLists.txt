@@ -93,3 +93,12 @@ add_test(NAME variance_clock_probe_clock_query_runtime_red
 set_tests_properties(variance_clock_probe_clock_query_runtime_red
     PROPERTIES PASS_REGULAR_EXPRESSION
         "(^|\n)\\[FAIL\\] clock capture/query failed or observed allocation/I/O")
+
+ql_add_varianceclock_clock_probe(variance_clock_probe_clock_reclaim_red)
+target_compile_definitions(variance_clock_probe_clock_reclaim_red
+    PRIVATE QL_VARIANCECLOCK_PROBE_DISABLE_RECLAIM)
+add_test(NAME variance_clock_probe_clock_reclaim_runtime_red
+    COMMAND variance_clock_probe_clock_reclaim_red)
+set_tests_properties(variance_clock_probe_clock_reclaim_runtime_red
+    PROPERTIES PASS_REGULAR_EXPRESSION
+        "(^|\n)\\[FAIL\\] clock reclaim positive control failed to reclaim")

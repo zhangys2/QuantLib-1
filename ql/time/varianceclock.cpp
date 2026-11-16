@@ -149,11 +149,58 @@ namespace QuantLib {
         auto next = ext::make_shared<detail::VarianceClockGeneration>(std::move(candidate));
 
         std::lock_guard<std::mutex> lock(mutex_);
+        QL_REQUIRE(!shutdown_, "cannot activate a shut down variance clock");
         if (generation_) {
             retired_.reserve(retired_.size() + 1);
             retired_.push_back(generation_);
         }
         generation_ = std::move(next);
+    }
+
+    Size VarianceClock::reclaim() {
+#ifdef QL_VARIANCECLOCK_PROBE_DISABLE_RECLAIM
+        return 0;
+#else
+        std::vector<ext::shared_ptr<const detail::VarianceClockGeneration>> releasing;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            releasing.reserve(retired_.size());
+            auto generation = retired_.begin();
+            while (generation != retired_.end()) {
+                if (generation->use_count() == 1) {
+                    releasing.push_back(std::move(*generation));
+                    generation = retired_.erase(generation);
+                } else {
+                    ++generation;
+                }
+            }
+        }
+        return static_cast<Size>(releasing.size());
+#endif
+    }
+
+    bool VarianceClock::shutdown() {
+        std::vector<ext::shared_ptr<const detail::VarianceClockGeneration>> releasing;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (shutdown_)
+                return true;
+            if (generation_ && generation_.use_count() != 1)
+                return false;
+            for (const auto& generation : retired_) {
+                if (generation.use_count() != 1)
+                    return false;
+            }
+
+            releasing.reserve(retired_.size() + (generation_ ? 1 : 0));
+            if (generation_)
+                releasing.push_back(std::move(generation_));
+            for (auto& generation : retired_)
+                releasing.push_back(std::move(generation));
+            retired_.clear();
+            shutdown_ = true;
+        }
+        return true;
     }
 
 }

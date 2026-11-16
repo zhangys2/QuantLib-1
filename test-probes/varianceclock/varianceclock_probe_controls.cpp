@@ -451,6 +451,18 @@ int main() {
         reportCustomFailure("clock capture/query",
                             "failed or observed allocation/I/O");
     }
+
+    QuantLib::VarianceClock reclaimClock(
+        QuantLib::makeVarianceClockSnapshot(probeClockTables(1.0)));
+    reclaimClock.activate(
+        QuantLib::makeVarianceClockSnapshot(probeClockTables(2.0)));
+    ++controls;
+    if (reclaimClock.reclaim() == 1) {
+        std::printf("[ ok ] clock reclaim released one retired generation\n");
+    } else {
+        reportCustomFailure("clock reclaim positive control",
+                            "failed to reclaim one retired generation");
+    }
 #endif
 
     if (failures == 0) {

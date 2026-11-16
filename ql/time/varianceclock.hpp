@@ -90,7 +90,8 @@ namespace QuantLib {
 
     //! Mutex-guarded owner of immutable, replaceable variance-clock snapshots.
     /*! Activation publishes a new generation while retaining prior generations
-        on the control side. Reclamation and shutdown are not provided yet.
+        on the control side. Reclaim and shutdown release snapshots on the
+        control thread after their views and tokens are gone.
         Destroying this owner with live views or tokens violates the lifetime
         precondition and aborts in debug builds. In release builds those
         handles retain their generation and can destroy it off the control path.
@@ -105,11 +106,14 @@ namespace QuantLib {
 
         VarianceClockView capture() const;
         void activate(std::unique_ptr<VarianceClockSnapshot> candidate);
+        Size reclaim();
+        bool shutdown();
 
       private:
         mutable std::mutex mutex_;
         ext::shared_ptr<const detail::VarianceClockGeneration> generation_;
         std::vector<ext::shared_ptr<const detail::VarianceClockGeneration>> retired_;
+        bool shutdown_ = false;
     };
 
 }

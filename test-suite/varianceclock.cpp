@@ -1284,6 +1284,94 @@ BOOST_AUTO_TEST_CASE(testRetiredGenerationReleaseStaysOnControlThread) {
     BOOST_CHECK_EQUAL(workerDeletes, 0U);
 }
 
+BOOST_AUTO_TEST_CASE(testReclaimWaitsForViewsAndTokens) {
+    BOOST_TEST_MESSAGE("Testing variance-clock control-thread reclamation...");
+
+    auto makeTables = [](double weight) {
+        VarianceClockTables tables;
+        tables.start = instant(0);
+        tables.end = instant(86400);
+        tables.availableFrom = instant(0);
+        tables.profiles = {profile(1, weight)};
+        tables.dates = {{Date(1, January, 1970), 1}};
+        tables.offsets = {{tables.start, tables.end, 0, false}};
+        return tables;
+    };
+
+    VarianceClock clock(makeVarianceClockSnapshot(makeTables(1.0)));
+    auto retiredView = clock.capture();
+    VarianceClockExpiryToken retiredToken;
+    BOOST_REQUIRE(retiredView.prepareExpiry(instant(600), retiredToken) ==
+                  VarianceClockStatus::Ok);
+    clock.activate(makeVarianceClockSnapshot(makeTables(2.0)));
+
+    BOOST_CHECK_EQUAL(clock.reclaim(), 0U);
+    BOOST_CHECK(retiredView.remaining(instant(0), retiredToken).status ==
+                VarianceClockStatus::Ok);
+    retiredView = VarianceClockView();
+    BOOST_CHECK_EQUAL(clock.reclaim(), 0U);
+    retiredToken = VarianceClockExpiryToken();
+
+    varianceClockDeleteProbe::deletes = 0;
+    varianceClockDeleteProbe::countDeletes = true;
+    const Size reclaimed = clock.reclaim();
+    varianceClockDeleteProbe::countDeletes = false;
+    BOOST_CHECK_EQUAL(reclaimed, 1U);
+    BOOST_CHECK_GT(varianceClockDeleteProbe::deletes, 0U);
+    const auto active = clock.capture();
+    VarianceClockExpiryToken activeToken;
+    BOOST_REQUIRE(active.prepareExpiry(instant(600), activeToken) ==
+                  VarianceClockStatus::Ok);
+    BOOST_CHECK(active.remaining(instant(0), activeToken).status ==
+                VarianceClockStatus::Ok);
+}
+
+BOOST_AUTO_TEST_CASE(testShutdownWaitsForHandlesAndIsTerminal) {
+    BOOST_TEST_MESSAGE("Testing variance-clock busy and terminal shutdown...");
+
+    const auto newTables = [] {
+        VarianceClockTables replacement;
+        replacement.start = instant(0);
+        replacement.end = instant(86400);
+        replacement.availableFrom = instant(0);
+        replacement.profiles = {profile(1)};
+        replacement.dates = {{Date(1, January, 1970), 1}};
+        replacement.offsets = {{replacement.start, replacement.end, 0, false}};
+        return replacement;
+    };
+
+    VarianceClock clock(makeVarianceClockSnapshot(newTables()));
+
+    auto liveView = clock.capture();
+    VarianceClockExpiryToken liveToken;
+    BOOST_REQUIRE(liveView.prepareExpiry(instant(600), liveToken) ==
+                  VarianceClockStatus::Ok);
+    clock.activate(makeVarianceClockSnapshot(newTables()));
+    BOOST_CHECK(!clock.shutdown());
+    BOOST_CHECK(liveView.remaining(instant(0), liveToken).status ==
+                VarianceClockStatus::Ok);
+    auto stillActive = clock.capture();
+    VarianceClockExpiryToken activeToken;
+    BOOST_REQUIRE(stillActive.prepareExpiry(instant(600), activeToken) ==
+                  VarianceClockStatus::Ok);
+    BOOST_CHECK(stillActive.remaining(instant(0), activeToken).status ==
+                VarianceClockStatus::Ok);
+
+    stillActive = VarianceClockView();
+    activeToken = VarianceClockExpiryToken();
+    BOOST_CHECK(!clock.shutdown());
+    BOOST_CHECK(liveView.remaining(instant(0), liveToken).status ==
+                VarianceClockStatus::Ok);
+    liveView = VarianceClockView();
+    liveToken = VarianceClockExpiryToken();
+    BOOST_CHECK(clock.shutdown());
+    BOOST_CHECK(!clock.capture().coverageStart().isValid());
+    BOOST_CHECK_EXCEPTION(
+        clock.activate(makeVarianceClockSnapshot(newTables())), Error,
+        [](const Error&) { return true; });
+    BOOST_CHECK(clock.shutdown());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE_END()
