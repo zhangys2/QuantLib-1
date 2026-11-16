@@ -32,6 +32,13 @@ namespace QuantLib {
         constexpr std::int64_t secondsPerSlot = 300;
         constexpr std::int64_t nanosecondsPerSecond = 1000000000;
 
+#ifndef NDEBUG
+        void assertCovered(const VarianceClockTables& tables, VarianceClockInstant time) {
+            QL_ASSERT(time.isValid() && tables.start <= time && time <= tables.end,
+                      "variance-clock instant outside coverage");
+        }
+#endif
+
         VarianceClockInstant wholeSecond(std::int64_t seconds) {
             VarianceClockInstant result;
             QL_ENSURE(VarianceClockInstant::tryCreate(seconds, 0, result),
@@ -58,7 +65,8 @@ namespace QuantLib {
             return secondOfDay(time.unixSeconds() % secondsPerDay + offset);
         }
 
-        double weightedDuration(double weight, VarianceClockInstant start,
+        double weightedDuration(double weight,
+                                VarianceClockInstant start,
                                 VarianceClockInstant end) noexcept {
             const auto nanoseconds =
                 (end.unixSeconds() - start.unixSeconds()) * nanosecondsPerSecond +
@@ -68,7 +76,10 @@ namespace QuantLib {
                              (static_cast<double>(secondsPerDay) * nanosecondsPerSecond));
         }
 
-        double indexedSum(const double* tree, Size size, Size begin, Size end,
+        double indexedSum(const double* tree,
+                          Size size,
+                          Size begin,
+                          Size end,
                           std::size_t* visitedNodes) noexcept {
             double result = 0.0;
             for (begin += size, end += size; begin < end; begin /= 2, end /= 2) {
@@ -229,7 +240,8 @@ namespace QuantLib {
                 if (midnight < end)
                     end = midnight;
 
-                runs.push_back({cursor, end, date, dateIt->profile, offset.offsetSeconds, offset.fold});
+                runs.push_back(
+                    {cursor, end, date, dateIt->profile, offset.offsetSeconds, offset.fold});
                 cursor = end;
                 if (offset.end <= cursor)
                     ++offsetIndex;
@@ -257,11 +269,10 @@ namespace QuantLib {
 
             runProfiles_.reserve(runs_.size());
             for (const auto& run : runs_) {
-                const auto it = std::lower_bound(
-                    tables_.profiles.begin(), tables_.profiles.end(), run.profile,
-                    [](const VarianceClockProfileInput& profile, VarianceClockProfileId id) {
-                        return profile.id < id;
-                    });
+                const auto it =
+                    std::lower_bound(tables_.profiles.begin(), tables_.profiles.end(), run.profile,
+                                     [](const VarianceClockProfileInput& profile,
+                                        VarianceClockProfileId id) { return profile.id < id; });
                 runProfiles_.push_back(static_cast<Size>(it - tables_.profiles.begin()));
             }
 
@@ -282,7 +293,8 @@ namespace QuantLib {
             return tables_.end;
         }
 
-        Size VarianceClockNumericEngine::endpointSlot(Size run, VarianceClockInstant time) const noexcept {
+        Size VarianceClockNumericEngine::endpointSlot(Size run,
+                                                      VarianceClockInstant time) const noexcept {
             const auto local = localSecondOfDay(time, runs_[run].offsetSeconds);
             if (local == 0 && time.nanosecond() == 0 && time == runs_[run].end)
                 return 288;
@@ -291,18 +303,23 @@ namespace QuantLib {
 
         VarianceClockNumericPosition
         VarianceClockNumericEngine::prepareExpiry(VarianceClockInstant time) const noexcept {
-            const auto it = std::lower_bound(
-                runs_.begin(), runs_.end(), time,
-                [](const VarianceClockRun& run, VarianceClockInstant value) {
-                    return run.end < value;
-                });
+#ifndef NDEBUG
+            assertCovered(tables_, time);
+#endif
+            const auto it =
+                std::lower_bound(runs_.begin(), runs_.end(), time,
+                                 [](const VarianceClockRun& run, VarianceClockInstant value) {
+                                     return run.end < value;
+                                 });
             const auto run = static_cast<Size>(it - runs_.begin());
             return {time, run, endpointSlot(run, time)};
         }
 
-        double VarianceClockNumericEngine::runValue(Size run, VarianceClockInstant start,
-                                                     VarianceClockInstant end, Size endSlot,
-                                                     std::size_t* visitedNodes) const noexcept {
+        double VarianceClockNumericEngine::runValue(Size run,
+                                                    VarianceClockInstant start,
+                                                    VarianceClockInstant end,
+                                                    Size endSlot,
+                                                    std::size_t* visitedNodes) const noexcept {
             if (!(start < end))
                 return 0.0;
 
@@ -317,6 +334,7 @@ namespace QuantLib {
             (void)VarianceClockInstant::tryCreate(
                 start.unixSeconds() + secondsPerSlot - localStart % secondsPerSlot, 0, nextSlot);
             double result = weightedDuration(weights[startSlot].weight, start, nextSlot);
+            // Restore the profile tree's half-scaled contributions.
             result += 2.0 * indexedSum(profileTrees_[runProfiles_[run]].data(), slotsPerDay,
                                        startSlot + 1, endSlot, visitedNodes);
             if (endSlot < slotsPerDay) {
@@ -333,25 +351,35 @@ namespace QuantLib {
 
         VarianceClockNumericResult VarianceClockNumericEngine::cumulativeFromCoverageStart(
             VarianceClockInstant time, std::size_t* visitedNodes) const noexcept {
+#ifndef NDEBUG
+            assertCovered(tables_, time);
+#endif
             if (time == tables_.start)
                 return {VarianceClockNumericStatus::Ok, 0.0};
             const auto end = prepareExpiry(time);
-            const double prior = indexedSum(runTree_.data(), runs_.size(), 0, end.run, visitedNodes);
-            const double last = runValue(end.run, runs_[end.run].start, time, end.slot, visitedNodes);
+            const double prior =
+                indexedSum(runTree_.data(), runs_.size(), 0, end.run, visitedNodes);
+            const double last =
+                runValue(end.run, runs_[end.run].start, time, end.slot, visitedNodes);
             return {VarianceClockNumericStatus::Ok, prior + last};
         }
 
-        VarianceClockNumericResult VarianceClockNumericEngine::remaining(
-            VarianceClockInstant time, const VarianceClockNumericPosition& expiry,
-            std::size_t* visitedNodes) const noexcept {
+        VarianceClockNumericResult
+        VarianceClockNumericEngine::remaining(VarianceClockInstant time,
+                                              const VarianceClockNumericPosition& expiry,
+                                              std::size_t* visitedNodes) const noexcept {
+#ifndef NDEBUG
+            assertCovered(tables_, time);
+            assertCovered(tables_, expiry.time);
+#endif
             if (!(time < expiry.time))
                 return {VarianceClockNumericStatus::Expired, 0.0};
 
-            const auto it = std::lower_bound(
-                runs_.begin(), runs_.end(), time,
-                [](const VarianceClockRun& run, VarianceClockInstant value) {
-                    return run.end <= value;
-                });
+            const auto it =
+                std::lower_bound(runs_.begin(), runs_.end(), time,
+                                 [](const VarianceClockRun& run, VarianceClockInstant value) {
+                                     return run.end <= value;
+                                 });
             const auto first = static_cast<Size>(it - runs_.begin());
             if (first == expiry.run)
                 return {VarianceClockNumericStatus::Ok,
@@ -359,8 +387,8 @@ namespace QuantLib {
 
             const double tail = runValue(first, time, runs_[first].end,
                                          endpointSlot(first, runs_[first].end), visitedNodes);
-            const double middle = indexedSum(runTree_.data(), runs_.size(), first + 1,
-                                             expiry.run, visitedNodes);
+            const double middle =
+                indexedSum(runTree_.data(), runs_.size(), first + 1, expiry.run, visitedNodes);
             const double head = runValue(expiry.run, runs_[expiry.run].start, expiry.time,
                                          expiry.slot, visitedNodes);
             return {VarianceClockNumericStatus::Ok, tail + middle + head};
@@ -391,5 +419,4 @@ namespace QuantLib {
         auto impl = std::make_unique<VarianceClockSnapshot::Impl>(std::move(tables));
         return std::unique_ptr<VarianceClockSnapshot>(new VarianceClockSnapshot(std::move(impl)));
     }
-
 }

@@ -474,9 +474,17 @@ BOOST_AUTO_TEST_CASE(testOneMillisecondAfterThirtyYears) {
     const auto expiry = engine.prepareExpiry(instant(end));
     const auto result = engine.remaining(instant(end - 1, 999000000), expiry);
     BOOST_CHECK(result.status == detail::VarianceClockNumericStatus::Ok);
-    const HighPrecision reference = HighPrecision("100") * HighPrecision("0.001") /
-                                    HighPrecision("86400");
+    const HighPrecision reference =
+        HighPrecision("100") * HighPrecision("0.001") / HighPrecision("86400");
     checkWeightedDays(result.weightedDays, reference);
+
+    const auto cumulativeEnd = engine.cumulativeFromCoverageStart(instant(end));
+    const auto cumulativeBefore = engine.cumulativeFromCoverageStart(instant(end - 1, 999000000));
+    const HighPrecision subtracted(cumulativeEnd.weightedDays - cumulativeBefore.weightedDays);
+    const HighPrecision tolerance =
+        HighPrecision("1e-12") + HighPrecision("1e-10") * abs(reference);
+    BOOST_CHECK_MESSAGE(abs(subtracted - reference) > tolerance,
+                        "rounded cumulative subtraction unexpectedly met the interval budget");
 }
 
 BOOST_AUTO_TEST_CASE(testNumericBoundariesAndStatuses) {
@@ -484,9 +492,9 @@ BOOST_AUTO_TEST_CASE(testNumericBoundariesAndStatuses) {
 
     using Engine = detail::VarianceClockNumericEngine;
     using Position = detail::VarianceClockNumericPosition;
-    static_assert(noexcept(std::declval<const Engine&>().prepareExpiry(
-                      std::declval<VarianceClockInstant>())),
-                  "expiry preparation must not throw");
+    static_assert(
+        noexcept(std::declval<const Engine&>().prepareExpiry(std::declval<VarianceClockInstant>())),
+        "expiry preparation must not throw");
     static_assert(noexcept(std::declval<const Engine&>().cumulativeFromCoverageStart(
                       std::declval<VarianceClockInstant>())),
                   "cumulative query must not throw");
@@ -507,10 +515,11 @@ BOOST_AUTO_TEST_CASE(testNumericBoundariesAndStatuses) {
     tables.offsets = {{tables.start, tables.end, 0, false}};
     const detail::VarianceClockNumericEngine engine(std::move(tables));
 
-    const auto sameSlot = engine.remaining(instant(200), engine.prepareExpiry(instant(200, 500000000)));
+    const auto sameSlot =
+        engine.remaining(instant(200), engine.prepareExpiry(instant(200, 500000000)));
     BOOST_CHECK(sameSlot.status == detail::VarianceClockNumericStatus::Ok);
-    checkWeightedDays(sameSlot.weightedDays, HighPrecision("2") * HighPrecision("0.5") /
-                                                HighPrecision("86400"));
+    checkWeightedDays(sameSlot.weightedDays,
+                      HighPrecision("2") * HighPrecision("0.5") / HighPrecision("86400"));
 
     const auto before = instant(299, 999000000);
     const auto boundary = instant(300);
@@ -518,12 +527,12 @@ BOOST_AUTO_TEST_CASE(testNumericBoundariesAndStatuses) {
     const auto left = engine.remaining(before, engine.prepareExpiry(boundary));
     const auto right = engine.remaining(boundary, engine.prepareExpiry(after));
     const auto both = engine.remaining(before, engine.prepareExpiry(after));
-    checkWeightedDays(left.weightedDays, HighPrecision("2") * HighPrecision("0.001") /
-                                            HighPrecision("86400"));
-    checkWeightedDays(right.weightedDays, HighPrecision("3") * HighPrecision("0.001") /
-                                             HighPrecision("86400"));
-    const HighPrecision across = (HighPrecision("2") + HighPrecision("3")) *
-                                 HighPrecision("0.001") / HighPrecision("86400");
+    checkWeightedDays(left.weightedDays,
+                      HighPrecision("2") * HighPrecision("0.001") / HighPrecision("86400"));
+    checkWeightedDays(right.weightedDays,
+                      HighPrecision("3") * HighPrecision("0.001") / HighPrecision("86400"));
+    const HighPrecision across =
+        (HighPrecision("2") + HighPrecision("3")) * HighPrecision("0.001") / HighPrecision("86400");
     checkWeightedDays(both.weightedDays, across);
     checkWeightedDays(left.weightedDays + right.weightedDays, across);
 
@@ -532,14 +541,15 @@ BOOST_AUTO_TEST_CASE(testNumericBoundariesAndStatuses) {
     BOOST_CHECK_EQUAL(startValue.weightedDays, 0.0);
     const auto endValue = engine.cumulativeFromCoverageStart(instant(900, 750000000));
     BOOST_CHECK(endValue.status == detail::VarianceClockNumericStatus::Ok);
-    const HighPrecision full = (HighPrecision("2") * HighPrecision("199.75") +
-                                HighPrecision("3") * HighPrecision("300") +
-                                HighPrecision("4") * HighPrecision("0.75")) /
-                               HighPrecision("86400");
+    const HighPrecision full =
+        (HighPrecision("2") * HighPrecision("199.75") + HighPrecision("3") * HighPrecision("300") +
+         HighPrecision("4") * HighPrecision("0.75")) /
+        HighPrecision("86400");
     checkWeightedDays(endValue.weightedDays, full);
-    checkWeightedDays(engine.remaining(instant(100, 250000000),
-                                       engine.prepareExpiry(instant(900, 750000000))).weightedDays,
-                      full);
+    checkWeightedDays(
+        engine.remaining(instant(100, 250000000), engine.prepareExpiry(instant(900, 750000000)))
+            .weightedDays,
+        full);
 
     const auto zero = engine.remaining(instant(600), engine.prepareExpiry(instant(899)));
     BOOST_CHECK(zero.status == detail::VarianceClockNumericStatus::Ok);
@@ -563,9 +573,10 @@ BOOST_AUTO_TEST_CASE(testNumericDstDaysAndFolds) {
     spring.offsets = {{spring.start, instant(1710054000), -18000, false},
                       {instant(1710054000), spring.end, -14400, false}};
     const detail::VarianceClockNumericEngine springEngine(std::move(spring));
-    checkWeightedDays(springEngine.remaining(instant(1710046800),
-                                             springEngine.prepareExpiry(instant(1710129600))).weightedDays,
-                      HighPrecision("23") / HighPrecision("24"));
+    checkWeightedDays(
+        springEngine.remaining(instant(1710046800), springEngine.prepareExpiry(instant(1710129600)))
+            .weightedDays,
+        HighPrecision("23") / HighPrecision("24"));
 
     VarianceClockTables fall;
     fall.start = instant(1730606400);
@@ -578,22 +589,26 @@ BOOST_AUTO_TEST_CASE(testNumericDstDaysAndFolds) {
                     {instant(1730617200), fall.end, -18000, false}};
     auto unitFall = fall;
     const detail::VarianceClockNumericEngine unitEngine(std::move(unitFall));
-    checkWeightedDays(unitEngine.remaining(instant(1730606400),
-                                           unitEngine.prepareExpiry(instant(1730696400))).weightedDays,
-                      HighPrecision("25") / HighPrecision("24"));
+    checkWeightedDays(
+        unitEngine.remaining(instant(1730606400), unitEngine.prepareExpiry(instant(1730696400)))
+            .weightedDays,
+        HighPrecision("25") / HighPrecision("24"));
 
     for (Size slot = 12; slot < 24; ++slot)
         fall.profiles[0].slots[slot].weight = 3.0;
     const detail::VarianceClockNumericEngine fallEngine(std::move(fall));
-    checkWeightedDays(fallEngine.remaining(instant(1730606400),
-                                           fallEngine.prepareExpiry(instant(1730696400))).weightedDays,
-                      HighPrecision("29") / HighPrecision("24"));
-    checkWeightedDays(fallEngine.remaining(instant(1730610000),
-                                           fallEngine.prepareExpiry(instant(1730613600))).weightedDays,
-                      HighPrecision("3") / HighPrecision("24"));
-    checkWeightedDays(fallEngine.remaining(instant(1730613600),
-                                           fallEngine.prepareExpiry(instant(1730617200))).weightedDays,
-                      HighPrecision("3") / HighPrecision("24"));
+    checkWeightedDays(
+        fallEngine.remaining(instant(1730606400), fallEngine.prepareExpiry(instant(1730696400)))
+            .weightedDays,
+        HighPrecision("29") / HighPrecision("24"));
+    checkWeightedDays(
+        fallEngine.remaining(instant(1730610000), fallEngine.prepareExpiry(instant(1730613600)))
+            .weightedDays,
+        HighPrecision("3") / HighPrecision("24"));
+    checkWeightedDays(
+        fallEngine.remaining(instant(1730613600), fallEngine.prepareExpiry(instant(1730617200)))
+            .weightedDays,
+        HighPrecision("3") / HighPrecision("24"));
 }
 
 BOOST_AUTO_TEST_CASE(testNumericProfileAndOffsetTransitions) {
@@ -609,14 +624,12 @@ BOOST_AUTO_TEST_CASE(testNumericProfileAndOffsetTransitions) {
     const detail::VarianceClockNumericEngine dateEngine(std::move(dates));
     const auto dateResult = dateEngine.remaining(instant(86399, 999000000),
                                                  dateEngine.prepareExpiry(instant(86400, 1000000)));
-    checkWeightedDays(dateResult.weightedDays,
-                      (HighPrecision("2") + HighPrecision("5")) * HighPrecision("0.001") /
-                          HighPrecision("86400"));
+    checkWeightedDays(dateResult.weightedDays, (HighPrecision("2") + HighPrecision("5")) *
+                                                   HighPrecision("0.001") / HighPrecision("86400"));
     const auto dateFull = dateEngine.cumulativeFromCoverageStart(instant(86500, 750000000));
-    checkWeightedDays(dateFull.weightedDays,
-                      (HighPrecision("2") * HighPrecision("99.75") +
-                       HighPrecision("5") * HighPrecision("100.75")) /
-                          HighPrecision("86400"));
+    checkWeightedDays(dateFull.weightedDays, (HighPrecision("2") * HighPrecision("99.75") +
+                                              HighPrecision("5") * HighPrecision("100.75")) /
+                                                 HighPrecision("86400"));
 
     VarianceClockTables negative;
     negative.start = instant(-1, 999000000);
@@ -628,9 +641,9 @@ BOOST_AUTO_TEST_CASE(testNumericProfileAndOffsetTransitions) {
     const detail::VarianceClockNumericEngine negativeEngine(std::move(negative));
     const auto negativeResult = negativeEngine.remaining(
         instant(-1, 999000000), negativeEngine.prepareExpiry(instant(0, 1000000)));
-    checkWeightedDays(negativeResult.weightedDays,
-                      (HighPrecision("2") + HighPrecision("5")) * HighPrecision("0.001") /
-                          HighPrecision("86400"));
+    checkWeightedDays(negativeResult.weightedDays, (HighPrecision("2") + HighPrecision("5")) *
+                                                       HighPrecision("0.001") /
+                                                       HighPrecision("86400"));
 
     VarianceClockTables offsets;
     offsets.start = instant(0, 250000000);
@@ -645,9 +658,9 @@ BOOST_AUTO_TEST_CASE(testNumericProfileAndOffsetTransitions) {
     const detail::VarianceClockNumericEngine offsetEngine(std::move(offsets));
     const auto offsetResult = offsetEngine.remaining(
         instant(150, 499000000), offsetEngine.prepareExpiry(instant(150, 501000000)));
-    checkWeightedDays(offsetResult.weightedDays,
-                      (HighPrecision("2") + HighPrecision("3")) * HighPrecision("0.001") /
-                          HighPrecision("86400"));
+    checkWeightedDays(offsetResult.weightedDays, (HighPrecision("2") + HighPrecision("3")) *
+                                                     HighPrecision("0.001") /
+                                                     HighPrecision("86400"));
 }
 
 BOOST_AUTO_TEST_CASE(testLargeWeightsAndIndexedTraversal) {
@@ -666,11 +679,11 @@ BOOST_AUTO_TEST_CASE(testLargeWeightsAndIndexedTraversal) {
     BOOST_CHECK(std::isfinite(extremeResult.weightedDays));
     checkWeightedDays(extremeResult.weightedDays,
                       HighPrecision("1e308") * HighPrecision("300") / HighPrecision("86400"));
-    const auto nanosecondResult = extremeEngine.remaining(
-        instant(299, 999999999), extremeEngine.prepareExpiry(instant(300)));
-    checkWeightedDays(nanosecondResult.weightedDays,
-                      HighPrecision("1e308") * HighPrecision("0.000000001") /
-                          HighPrecision("86400"));
+    const auto nanosecondResult =
+        extremeEngine.remaining(instant(299, 999999999), extremeEngine.prepareExpiry(instant(300)));
+    checkWeightedDays(nanosecondResult.weightedDays, HighPrecision("1e308") *
+                                                         HighPrecision("0.000000001") /
+                                                         HighPrecision("86400"));
 
     VarianceClockTables maximum;
     maximum.start = instant(0);
@@ -680,11 +693,12 @@ BOOST_AUTO_TEST_CASE(testLargeWeightsAndIndexedTraversal) {
     maximum.dates = {{Date(1, January, 1970), 1}};
     maximum.offsets = {{maximum.start, maximum.end, 0, false}};
     const detail::VarianceClockNumericEngine maximumEngine(std::move(maximum));
-    const auto maximumResult = maximumEngine.remaining(
-        instant(0), maximumEngine.prepareExpiry(instant(0, 1000000)));
+    const auto maximumResult =
+        maximumEngine.remaining(instant(0), maximumEngine.prepareExpiry(instant(0, 1000000)));
     BOOST_CHECK(std::isfinite(maximumResult.weightedDays));
     checkWeightedDays(maximumResult.weightedDays, HighPrecision("1.7976931348623157e308") *
-                                                    HighPrecision("0.001") / HighPrecision("86400"));
+                                                      HighPrecision("0.001") /
+                                                      HighPrecision("86400"));
 
     constexpr Size days = 30 * 365;
     constexpr std::int64_t end = static_cast<std::int64_t>(days) * 86400;
@@ -699,15 +713,96 @@ BOOST_AUTO_TEST_CASE(testLargeWeightsAndIndexedTraversal) {
     longHorizon.offsets = {{longHorizon.start, longHorizon.end, 0, false}};
     const detail::VarianceClockNumericEngine longEngine(std::move(longHorizon));
     std::size_t visited = 0;
-    const auto longResult = longEngine.remaining(instant(150, 250000000),
-                                                 longEngine.prepareExpiry(instant(end - 100, 750000000)),
-                                                 &visited);
+    const auto longResult = longEngine.remaining(
+        instant(150, 250000000), longEngine.prepareExpiry(instant(end - 100, 750000000)), &visited);
     const HighPrecision elapsed = HighPrecision(std::to_string(end)) - HighPrecision("249.5");
-    checkWeightedDays(longResult.weightedDays, HighPrecision("2") * elapsed / HighPrecision("86400"));
+    checkWeightedDays(longResult.weightedDays,
+                      HighPrecision("2") * elapsed / HighPrecision("86400"));
     std::size_t depth = 0;
     for (Size n = days; n > 1; n = (n + 1) / 2)
         ++depth;
     BOOST_CHECK_LE(visited, 4 * depth + 64);
+
+    std::size_t cumulativeVisited = 0;
+    const auto cumulative =
+        longEngine.cumulativeFromCoverageStart(instant(end - 100, 750000000), &cumulativeVisited);
+    checkWeightedDays(cumulative.weightedDays,
+                      HighPrecision("2") *
+                          (HighPrecision(std::to_string(end)) - HighPrecision("99.25")) /
+                          HighPrecision("86400"));
+    BOOST_CHECK_LE(cumulativeVisited, 4 * depth + 64);
+}
+
+BOOST_AUTO_TEST_CASE(testMultiRunMixedProfileDecimalOracle) {
+    BOOST_TEST_MESSAGE("Testing mixed profiles across multiple variance-clock runs...");
+
+    constexpr Size days = 20;
+    constexpr std::int64_t nanosPerSecond = 1000000000;
+    constexpr std::int64_t slotNanos = 300 * nanosPerSecond;
+    constexpr std::int64_t totalNanos = days * 86400 * nanosPerSecond;
+    const std::array<VarianceClockProfileId, 4> ids = {97, 3, 1009, 42};
+    const std::array<const char*, 5> rates = {"0", "0.25", "1.5", "3.75", "17.25"};
+    std::array<Size, days> dayProfiles{};
+
+    VarianceClockTables tables;
+    tables.start = instant(0);
+    tables.end = instant(days * 86400);
+    tables.availableFrom = instant(-1);
+    for (Size p = 0; p < ids.size(); ++p) {
+        auto input = profile(ids[p]);
+        for (Size slot = 0; slot < input.slots.size(); ++slot)
+            input.slots[slot].weight = std::stod(rates[(slot * 7 + p * 3) % rates.size()]);
+        tables.profiles.push_back(std::move(input));
+    }
+    for (Size day = 0; day < days; ++day) {
+        dayProfiles[day] = (day * 7 + day / 3) % ids.size();
+        tables.dates.push_back(
+            {Date(1, January, 1970) + static_cast<Integer>(day), ids[dayProfiles[day]]});
+    }
+    tables.offsets = {{tables.start, tables.end, 0, false}};
+    const detail::VarianceClockNumericEngine engine(std::move(tables));
+
+    const auto oracle = [&rates, &dayProfiles](std::int64_t start,
+                                               std::int64_t end) -> HighPrecision {
+        HighPrecision total("0");
+        for (Size slot = 0; slot < days * 288; ++slot) {
+            const auto left = std::max(start, static_cast<std::int64_t>(slot) * slotNanos);
+            const auto right = std::min(end, static_cast<std::int64_t>(slot + 1) * slotNanos);
+            if (left < right) {
+                const Size day = slot / 288;
+                const Size localSlot = slot % 288;
+                const Size rate = (localSlot * 7 + dayProfiles[day] * 3) % rates.size();
+                total += HighPrecision(rates[rate]) * HighPrecision(std::to_string(right - left)) /
+                         HighPrecision("86400000000000");
+            }
+        }
+        return total;
+    };
+    const auto asInstant = [](std::int64_t nanos) {
+        return instant(nanos / nanosPerSecond, static_cast<std::uint32_t>(nanos % nanosPerSecond));
+    };
+    const auto checkInterval = [&](std::int64_t start, std::int64_t end) {
+        const auto result =
+            engine.remaining(asInstant(start), engine.prepareExpiry(asInstant(end)));
+        BOOST_CHECK(result.status == detail::VarianceClockNumericStatus::Ok);
+        checkWeightedDays(result.weightedDays, oracle(start, end));
+        checkWeightedDays(engine.cumulativeFromCoverageStart(asInstant(end)).weightedDays,
+                          oracle(0, end));
+    };
+
+    checkInterval(150 * nanosPerSecond, totalNanos - 150 * nanosPerSecond);
+    std::uint64_t state = 0x243f6a8885a308d3ULL;
+    for (Size i = 0; i < 64; ++i) {
+        state = state * 6364136223846793005ULL + 1;
+        auto first = static_cast<std::int64_t>(state % totalNanos);
+        state = state * 6364136223846793005ULL + 1;
+        auto last = static_cast<std::int64_t>(state % totalNanos);
+        if (last < first)
+            std::swap(first, last);
+        if (first == last)
+            ++last;
+        checkInterval(first, last);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testMixedRateDecimalOracle) {
@@ -726,7 +821,8 @@ BOOST_AUTO_TEST_CASE(testMixedRateDecimalOracle) {
     tables.offsets = {{tables.start, tables.end, 0, false}};
     for (Size day = 0; day < 2; ++day)
         for (Size slot = 0; slot < 288; ++slot)
-            tables.profiles[day].slots[slot].weight = std::stod(rates[(slot * 7 + day) % rates.size()]);
+            tables.profiles[day].slots[slot].weight =
+                std::stod(rates[(slot * 7 + day) % rates.size()]);
     const detail::VarianceClockNumericEngine engine(std::move(tables));
 
     const auto oracle = [&rates](std::int64_t start, std::int64_t end) -> HighPrecision {
@@ -758,7 +854,8 @@ BOOST_AUTO_TEST_CASE(testMixedRateDecimalOracle) {
             std::swap(first, last);
         if (first == last)
             ++last;
-        const auto result = engine.remaining(asInstant(first), engine.prepareExpiry(asInstant(last)));
+        const auto result =
+            engine.remaining(asInstant(first), engine.prepareExpiry(asInstant(last)));
         BOOST_CHECK(result.status == detail::VarianceClockNumericStatus::Ok);
         checkWeightedDays(result.weightedDays, oracle(first, last));
         checkWeightedDays(engine.cumulativeFromCoverageStart(asInstant(last)).weightedDays,
