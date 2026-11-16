@@ -19,7 +19,11 @@ this_include_HEADERS = \
     schedule.hpp \
     timeunit.hpp \
     variancecalendar.hpp \
+    varianceclockinstant.hpp \
+    varianceclocktables.hpp \
     weekday.hpp
+
+noinst_HEADERS = varianceclockdetail.hpp
 
 cpp_files = \
     asx.cpp \
@@ -34,6 +38,7 @@ cpp_files = \
     schedule.cpp \
     timeunit.cpp \
     variancecalendar.cpp \
+    varianceclocktables.cpp \
     weekday.cpp
 
 if UNITY_BUILD

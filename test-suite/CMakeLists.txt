@@ -24,6 +24,7 @@ set(QL_TEST_SOURCES
     businessdayconventions.cpp
     calendars.cpp
     variancecalendar.cpp
+    varianceclock.cpp
     callablebonds.cpp
     capfloor.cpp
     capflooredcoupon.cpp

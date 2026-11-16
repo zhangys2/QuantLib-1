@@ -2874,6 +2874,15 @@
     <ClInclude Include="ql\time\variancecalendar.hpp">
       <Filter>time</Filter>
     </ClInclude>
+    <ClInclude Include="ql\time\varianceclockdetail.hpp">
+      <Filter>time</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\time\varianceclockinstant.hpp">
+      <Filter>time</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\time\varianceclocktables.hpp">
+      <Filter>time</Filter>
+    </ClInclude>
     <ClInclude Include="ql\time\calendar.hpp">
       <Filter>time</Filter>
     </ClInclude>
@@ -6270,6 +6279,9 @@
       <Filter>time</Filter>
     </ClCompile>
     <ClCompile Include="ql\time\variancecalendar.cpp">
+      <Filter>time</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\time\varianceclocktables.cpp">
       <Filter>time</Filter>
     </ClCompile>
     <ClCompile Include="ql\time\calendar.cpp">

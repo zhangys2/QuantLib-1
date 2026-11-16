@@ -912,6 +912,7 @@ set(QL_SOURCES
     time/businessdayconvention.cpp
     time/calendar.cpp
     time/variancecalendar.cpp
+    time/varianceclocktables.cpp
     time/calendars/argentina.cpp
     time/calendars/australia.cpp
     time/calendars/austria.cpp
@@ -2244,6 +2245,9 @@ set(QL_HEADERS
     time/businessdayconvention.hpp
     time/calendar.hpp
     time/variancecalendar.hpp
+    time/varianceclockdetail.hpp
+    time/varianceclockinstant.hpp
+    time/varianceclocktables.hpp
     time/calendars/argentina.hpp
     time/calendars/australia.hpp
     time/calendars/austria.hpp

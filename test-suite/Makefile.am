@@ -25,6 +25,7 @@ QL_TEST_SRCS = \
 	businessdayconventions.cpp \
 	calendars.cpp \
 	variancecalendar.cpp \
+	varianceclock.cpp \
 	callablebonds.cpp \
 	capfloor.cpp \
 	capflooredcoupon.cpp \

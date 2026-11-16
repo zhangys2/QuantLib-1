@@ -1837,6 +1837,9 @@
     <ClInclude Include="ql\time\businessdayconvention.hpp" />
     <ClInclude Include="ql\time\calendar.hpp" />
     <ClInclude Include="ql\time\variancecalendar.hpp" />
+    <ClInclude Include="ql\time\varianceclockdetail.hpp" />
+    <ClInclude Include="ql\time\varianceclockinstant.hpp" />
+    <ClInclude Include="ql\time\varianceclocktables.hpp" />
     <ClInclude Include="ql\time\calendars\all.hpp" />
     <ClInclude Include="ql\time\calendars\argentina.hpp" />
     <ClInclude Include="ql\time\calendars\australia.hpp" />
@@ -2869,6 +2872,7 @@
     <ClCompile Include="ql\time\businessdayconvention.cpp" />
     <ClCompile Include="ql\time\calendar.cpp" />
     <ClCompile Include="ql\time\variancecalendar.cpp" />
+    <ClCompile Include="ql\time\varianceclocktables.cpp" />
     <ClCompile Include="ql\time\calendars\argentina.cpp" />
     <ClCompile Include="ql\time\calendars\australia.cpp" />
     <ClCompile Include="ql\time\calendars\austria.cpp" />
