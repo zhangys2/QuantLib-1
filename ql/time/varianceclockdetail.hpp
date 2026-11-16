@@ -69,9 +69,16 @@ namespace QuantLib {
             cumulativeFromCoverageStart(VarianceClockInstant time,
                                         std::size_t* visitedNodes = nullptr) const noexcept;
             VarianceClockNumericResult
+            cumulativeFromCoverageStart(const VarianceClockNumericPosition& end,
+                                        std::size_t* visitedNodes = nullptr) const noexcept;
+            VarianceClockNumericResult
             remaining(VarianceClockInstant time,
                       const VarianceClockNumericPosition& expiry,
                       std::size_t* visitedNodes = nullptr) const noexcept;
+            bool isEligible(VarianceClockInstant valuation,
+                            VarianceClockInstant start,
+                            const VarianceClockNumericPosition& end,
+                            std::size_t* visitedNodes = nullptr) const noexcept;
 
           private:
             using ProfileTree = std::array<double, 2 * 288>;
@@ -87,6 +94,16 @@ namespace QuantLib {
             std::vector<Size> runProfiles_;
             std::vector<ProfileTree> profileTrees_;
             std::vector<double> runTree_;
+            std::vector<VarianceClockInstant> calibrationTree_;
+        };
+
+        class VarianceClockGeneration {
+          public:
+            explicit VarianceClockGeneration(std::unique_ptr<VarianceClockSnapshot> snapshot);
+            const VarianceClockNumericEngine& engine() const noexcept;
+
+          private:
+            std::unique_ptr<VarianceClockSnapshot> snapshot_;
         };
     }
 }

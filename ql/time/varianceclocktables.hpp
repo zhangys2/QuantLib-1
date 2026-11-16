@@ -34,6 +34,10 @@
 
 namespace QuantLib {
 
+    namespace detail {
+        class VarianceClockGeneration;
+    }
+
     using VarianceClockProfileId = std::uint32_t;
 
     //! Complete clock rate for one local five-minute slot.
@@ -87,6 +91,7 @@ namespace QuantLib {
 
         friend std::unique_ptr<VarianceClockSnapshot>
         makeVarianceClockSnapshot(VarianceClockTables&&);
+        friend class detail::VarianceClockGeneration;
     };
 
     //! Validate the tables and construct a snapshot off the query path.

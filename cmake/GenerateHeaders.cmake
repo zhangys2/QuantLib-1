@@ -53,7 +53,7 @@ function(generate_dir_headers source_dir binary_dir)
     list(FILTER children_hpp EXCLUDE REGEX "bsmoperator.hpp")
     list(FILTER children_hpp EXCLUDE REGEX "bootstraperror.hpp")
     # Keep the incomplete variance clock and its private header out of aggregate headers.
-    list(FILTER children_hpp EXCLUDE REGEX "^varianceclock(detail|instant|tables)\\.hpp$")
+    list(FILTER children_hpp EXCLUDE REGEX "^varianceclock(detail|instant|tables)?\\.hpp$")
 
     if (${source_dir} MATCHES "experimental" AND ${source_dir} MATCHES "exoticoptions")
         list(FILTER children_hpp EXCLUDE REGEX "kirkspreadoptionengine.hpp")

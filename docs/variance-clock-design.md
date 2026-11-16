@@ -1,0 +1,89 @@
+# Variance clock: fixed-snapshot runtime
+
+`VarianceClock` integrates a supplied, market-specific variance-rate schedule.
+Its unit is **weighted days**, not annualized volatility or price variance.
+It does not change the existing `VarianceCalendar::weight` API, which linearly
+interpolates point weights and applies category multipliers. A clock profile
+instead supplies the complete constant rate for each local five-minute slot.
+The cumulative clock is consequently linear *within* a slot, without
+interpolating the rates at its boundaries.
+
+## Inputs and time
+
+Construct `VarianceClockTables`, then pass it to
+`makeVarianceClockSnapshot(std::move(tables))`. Each profile contains 288
+nonnegative finite binary64 weights and a calibration-as-of instant. Local
+dates select profiles; explicit UTC intervals supply offsets and repeated-time
+fold markers. The caller supplies these market and time-zone mappings: the
+clock neither infers holidays and half days nor consults a time-zone database.
+Offsets must be divisible by 300 seconds.
+
+`VarianceClockInstant` represents POSIX seconds and a nonnegative nanosecond
+fraction. Days have 86,400 POSIX seconds and leap seconds are not represented.
+Use `tryCreate` to construct a valid instant; the default is invalid.
+Coverage is a nonempty `[start, end)` interval, and both endpoints are valid
+query instants. Endpoints and transitions can fall inside slots. Each actual
+elapsed interval is counted through spring-forward and fall-back transitions.
+Construction rejects invalid mappings and rates, and conservatively rejects
+`maxWeight * coverageDays > DBL_MAX / 4`.
+
+## Queries and numerical contract
+
+Construct a fixed owner with the snapshot, capture a `VarianceClockView`, and
+prepare a `VarianceClockExpiryToken` for each expiry. A token stores the expiry
+position and generation identity, not a rounded global cumulative value.
+Reuse the captured view and tokens for queries:
+
+- `view.remaining(t, token)` integrates directly over `[t, T)`. It is
+  mathematically `v(T) - v(t)`, but does **not** subtract rounded cumulative
+  values. It sums nonnegative partial slots and balanced range-tree nodes.
+- `view.cumulativeFromCoverageStart(t)` returns the clock from coverage start.
+  Subtracting two such rounded results does not have the error guarantee of
+  `remaining()`.
+- `view.coverageStart()` and `view.coverageEnd()` return invalid instants for
+  an invalid view. A failed `prepareExpiry` leaves its output token unchanged.
+
+For the default IEEE-754 binary64 configuration, the interval acceptance
+budget against an independent reference of at least 50 decimal digits is
+`abs(actual - reference) <= 1e-12 + 1e-10 * abs(reference)` weighted days.
+This is numerical error, not a bound on calibration or market-model error.
+Rate contributions are evaluated as `weight * (duration / 86400)` to avoid
+an avoidable intermediate overflow.
+
+For `remaining`, status precedence is `InvalidView`, `InvalidToken`,
+`StaleToken`, `InvalidInstant`, `OutOfCoverage`, `Expired`,
+`BeforeCalibration`, then `Ok`. A covered `t >= T` returns `Expired` without
+checking calibration. A nonempty interval requires the snapshot
+`availableFrom` and every used profile's calibration-as-of to be no later than
+the valuation instant, including profiles with zero rate. Cumulative queries
+apply the same rule over `[start, t)`. An empty cumulative interval is `Ok`.
+All non-`Ok` results have `weightedDays == 0.0`; an eligible zero-rate interval
+is `Ok` with zero. `varianceClockAsReal` separately converts an `Ok` or
+`Expired` result and rejects other statuses. Construction errors use QuantLib
+error macros; query methods instead return statuses and are `noexcept`.
+
+## Lifetime and scope
+
+Views and tokens retain their immutable generation. Destroy views and tokens
+before destroying their owner: a violation asserts in debug builds. In release
+builds, surviving handles retain and eventually destroy their generation, and
+that destruction is outside any off-query reclamation guarantee. Capture must
+not race with owner destruction. The fixed owner has no activation, retirement,
+or shutdown API yet.
+
+The numeric query implementation performs no intended clock-owned allocation
+or file I/O; the separate allocation and I/O probe is not yet part of this
+ticket. Bundle loading, hashing, CSV/JSON parsing, historical calibration,
+source provenance, and live snapshot swaps are outside this fixed-snapshot
+implementation. A supplied availability cutoff does not itself prove source
+authenticity or point-in-time provenance.
+
+## Design traceability
+
+| Record | Decision and evidence |
+| --- | --- |
+| CLM-002 / EVD-002 / DEC-001 | Preserve the existing `VarianceCalendar` interpolation and category behavior; clock slots are authoritative rates instead. |
+| CLM-007 / EVD-008 / DEC-010 | QuantLib `Real` and shared-pointer types are configurable; the query result stores a `double` and conversion to `Real` is separate. |
+| CLM-008, CLM-009 / EVD-007, EVD-009 / DEC-008, DEC-009 | Sum nonnegative interval pieces, including DST and slot boundaries, against a high-precision numerical budget. The approved DEC-008 amendment replaces indexed prefixes with balanced range-sum trees. |
+| CLM-006 / DEC-006 | Snapshot availability and profile calibration cutoffs gate nonempty intervals; provenance validation is a separate concern. |
+| CLM-011 / DEC-007 | Views and position-only tokens are generation-bound; a mismatched generation is stale. |

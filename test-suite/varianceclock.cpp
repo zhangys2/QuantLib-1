@@ -18,7 +18,9 @@
 */
 
 #include "toplevelfixture.hpp"
+#include "utilities.hpp"
 #include <ql/errors.hpp>
+#include <ql/time/varianceclock.hpp>
 #include <ql/time/varianceclockdetail.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/test/unit_test.hpp>
@@ -29,6 +31,7 @@
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 using namespace QuantLib;
@@ -731,6 +734,11 @@ BOOST_AUTO_TEST_CASE(testLargeWeightsAndIndexedTraversal) {
                           (HighPrecision(std::to_string(end)) - HighPrecision("99.25")) /
                           HighPrecision("86400"));
     BOOST_CHECK_LE(cumulativeVisited, 4 * depth + 64);
+
+    std::size_t eligibilityVisited = 0;
+    BOOST_CHECK(longEngine.isEligible(
+        instant(1), instant(1), longEngine.prepareExpiry(instant(end - 1)), &eligibilityVisited));
+    BOOST_CHECK_LE(eligibilityVisited, 4 * depth + 4);
 }
 
 BOOST_AUTO_TEST_CASE(testMultiRunMixedProfileDecimalOracle) {
@@ -861,6 +869,208 @@ BOOST_AUTO_TEST_CASE(testMixedRateDecimalOracle) {
         checkWeightedDays(engine.cumulativeFromCoverageStart(asInstant(last)).weightedDays,
                           oracle(0, last));
     }
+}
+
+BOOST_AUTO_TEST_CASE(testFutureProfileIsNotEligible) {
+    BOOST_TEST_MESSAGE("Testing variance-clock profile and snapshot availability...");
+
+    VarianceClockTables tables;
+    tables.start = instant(0);
+    tables.end = instant(3 * 86400);
+    tables.availableFrom = instant(50);
+    tables.profiles = {profile(71, 2.0), profile(3, 3.0), profile(19, 5.0)};
+    tables.profiles[0].calibrationAsOf = instant(0);
+    tables.profiles[1].calibrationAsOf = instant(86400 + 300);
+    tables.profiles[2].calibrationAsOf = instant(3 * 86400 + 100);
+    tables.dates = {
+        {Date(3, January, 1970), 19}, {Date(2, January, 1970), 3}, {Date(1, January, 1970), 71}};
+    tables.offsets = {{tables.start, tables.end, 0, false}};
+    VarianceClock clock(makeVarianceClockSnapshot(std::move(tables)));
+    const auto view = clock.capture();
+
+    VarianceClockExpiryToken firstDay, nextDay, afterBoundary;
+    BOOST_REQUIRE(view.prepareExpiry(instant(86400), firstDay) == VarianceClockStatus::Ok);
+    BOOST_REQUIRE(view.prepareExpiry(instant(2 * 86400), nextDay) == VarianceClockStatus::Ok);
+    BOOST_REQUIRE(view.prepareExpiry(instant(86401), afterBoundary) == VarianceClockStatus::Ok);
+
+    const auto future = view.remaining(instant(100), afterBoundary);
+    BOOST_CHECK(future.status == VarianceClockStatus::BeforeCalibration);
+    BOOST_CHECK_EQUAL(future.weightedDays, 0.0);
+    const auto eligible = view.remaining(instant(100), firstDay);
+    BOOST_CHECK(eligible.status == VarianceClockStatus::Ok);
+    checkWeightedDays(eligible.weightedDays,
+                      HighPrecision("2") * HighPrecision("86300") / HighPrecision("86400"));
+
+    const auto unavailable = view.remaining(instant(1), firstDay);
+    BOOST_CHECK(unavailable.status == VarianceClockStatus::BeforeCalibration);
+    BOOST_CHECK_EQUAL(unavailable.weightedDays, 0.0);
+    const auto emptyCumulative = view.cumulativeFromCoverageStart(instant(0));
+    BOOST_CHECK(emptyCumulative.status == VarianceClockStatus::Ok);
+    BOOST_CHECK_EQUAL(emptyCumulative.weightedDays, 0.0);
+    const auto atBoundary = view.cumulativeFromCoverageStart(instant(86400));
+    BOOST_CHECK(atBoundary.status == VarianceClockStatus::Ok);
+    checkWeightedDays(atBoundary.weightedDays, HighPrecision("2"));
+    const auto futureCumulative = view.cumulativeFromCoverageStart(instant(86400 + 100));
+    BOOST_CHECK(futureCumulative.status == VarianceClockStatus::BeforeCalibration);
+    BOOST_CHECK_EQUAL(futureCumulative.weightedDays, 0.0);
+    const auto availableCumulative = view.cumulativeFromCoverageStart(instant(86400 + 300));
+    BOOST_CHECK(availableCumulative.status == VarianceClockStatus::Ok);
+    checkWeightedDays(availableCumulative.weightedDays,
+                      HighPrecision("2") +
+                          HighPrecision("3") * HighPrecision("300") / HighPrecision("86400"));
+    const auto laterEligible = view.remaining(instant(86400 + 300), nextDay);
+    BOOST_CHECK(laterEligible.status == VarianceClockStatus::Ok);
+    checkWeightedDays(laterEligible.weightedDays,
+                      HighPrecision("3") * HighPrecision("86100") / HighPrecision("86400"));
+}
+
+BOOST_AUTO_TEST_CASE(testViewStatusPrecedenceAndTokenSafety) {
+    BOOST_TEST_MESSAGE("Testing variance-clock view status precedence and token safety...");
+
+    static_assert(std::is_trivially_copyable<VarianceClockResult>::value,
+                  "the numeric result must be trivially copyable");
+    static_assert(std::is_standard_layout<VarianceClockResult>::value,
+                  "the numeric result must have standard layout");
+    static_assert(
+        noexcept(std::declval<const VarianceClockView&>().prepareExpiry(
+            std::declval<VarianceClockInstant>(), std::declval<VarianceClockExpiryToken&>())),
+        "expiry preparation must not throw");
+    static_assert(noexcept(std::declval<const VarianceClockView&>().cumulativeFromCoverageStart(
+                      std::declval<VarianceClockInstant>())),
+                  "cumulative query must not throw");
+    static_assert(
+        noexcept(std::declval<const VarianceClockView&>().remaining(
+            std::declval<VarianceClockInstant>(), std::declval<const VarianceClockExpiryToken&>())),
+        "remaining query must not throw");
+
+    VarianceClockTables tables;
+    tables.start = instant(0);
+    tables.end = instant(86400);
+    tables.availableFrom = instant(0);
+    tables.profiles = {profile(1)};
+    tables.dates = {{Date(1, January, 1970), 1}};
+    tables.offsets = {{tables.start, tables.end, 0, false}};
+    auto otherTables = tables;
+    auto unavailableTables = tables;
+    unavailableTables.availableFrom = instant(600);
+    VarianceClock first(makeVarianceClockSnapshot(std::move(tables)));
+    VarianceClock second(makeVarianceClockSnapshot(std::move(otherTables)));
+    VarianceClock unavailable(makeVarianceClockSnapshot(std::move(unavailableTables)));
+    const auto view = first.capture();
+    const auto other = second.capture();
+    const auto notYetAvailable = unavailable.capture();
+    const VarianceClockView invalidView;
+    const VarianceClockExpiryToken invalidToken;
+    VarianceClockExpiryToken token;
+    BOOST_REQUIRE(view.prepareExpiry(instant(300), token) == VarianceClockStatus::Ok);
+    checkInstant(view.coverageStart(), 0);
+    checkInstant(view.coverageEnd(), 86400);
+    BOOST_CHECK(!invalidView.coverageStart().isValid());
+    BOOST_CHECK(!invalidView.coverageEnd().isValid());
+
+    const auto checkError = [](const VarianceClockResult& result, VarianceClockStatus expected) {
+        BOOST_CHECK(result.status == expected);
+        BOOST_CHECK_EQUAL(result.weightedDays, 0.0);
+    };
+    checkError(invalidView.remaining(VarianceClockInstant(), invalidToken),
+               VarianceClockStatus::InvalidView);
+    checkError(view.remaining(VarianceClockInstant(), invalidToken),
+               VarianceClockStatus::InvalidToken);
+    checkError(other.remaining(VarianceClockInstant(), token), VarianceClockStatus::StaleToken);
+    checkError(view.remaining(VarianceClockInstant(), token), VarianceClockStatus::InvalidInstant);
+    checkError(view.remaining(instant(-1), token), VarianceClockStatus::OutOfCoverage);
+    checkError(view.remaining(instant(86401), token), VarianceClockStatus::OutOfCoverage);
+    checkError(invalidView.cumulativeFromCoverageStart(VarianceClockInstant()),
+               VarianceClockStatus::InvalidView);
+    checkError(view.cumulativeFromCoverageStart(VarianceClockInstant()),
+               VarianceClockStatus::InvalidInstant);
+    checkError(view.cumulativeFromCoverageStart(instant(86401)),
+               VarianceClockStatus::OutOfCoverage);
+
+    BOOST_CHECK(invalidView.prepareExpiry(instant(700), token) == VarianceClockStatus::InvalidView);
+    BOOST_CHECK(view.prepareExpiry(VarianceClockInstant(), token) ==
+                VarianceClockStatus::InvalidInstant);
+    BOOST_CHECK(view.prepareExpiry(instant(86401), token) == VarianceClockStatus::OutOfCoverage);
+    const auto preserved = view.remaining(instant(299), token);
+    BOOST_CHECK(preserved.status == VarianceClockStatus::Ok);
+    checkWeightedDays(preserved.weightedDays, HighPrecision("1") / HighPrecision("86400"));
+    QL_CHECK_SMALL(varianceClockAsReal(preserved) - Real(preserved.weightedDays), 1e-14);
+    BOOST_CHECK_THROW(varianceClockAsReal(view.remaining(VarianceClockInstant(), token)), Error);
+
+    VarianceClockExpiryToken unavailableExpiry;
+    BOOST_REQUIRE(notYetAvailable.prepareExpiry(instant(300), unavailableExpiry) ==
+                  VarianceClockStatus::Ok);
+    checkError(notYetAvailable.remaining(instant(299), unavailableExpiry),
+               VarianceClockStatus::BeforeCalibration);
+    checkError(notYetAvailable.remaining(instant(300), unavailableExpiry),
+               VarianceClockStatus::Expired);
+
+    VarianceClockExpiryToken coverageEnd;
+    BOOST_REQUIRE(view.prepareExpiry(instant(86400), coverageEnd) == VarianceClockStatus::Ok);
+    checkError(view.remaining(instant(86400), coverageEnd), VarianceClockStatus::Expired);
+    BOOST_CHECK_THROW(VarianceClock(std::unique_ptr<VarianceClockSnapshot>()), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testAsOfAcrossMiddleRuns) {
+    BOOST_TEST_MESSAGE("Testing variance-clock as-of maxima across middle runs...");
+
+    VarianceClockTables tables;
+    tables.start = instant(0);
+    tables.end = instant(5 * 86400);
+    tables.availableFrom = instant(0);
+    tables.profiles = {profile(1, 1.0), profile(2, 0.0)};
+    tables.profiles[1].calibrationAsOf = instant(4 * 86400);
+    for (Size day = 0; day < 5; ++day)
+        tables.dates.push_back(
+            {Date(1, January, 1970) + static_cast<Integer>(day), day == 2 ? 2U : 1U});
+    tables.offsets = {{tables.start, tables.end, 0, false}};
+    VarianceClock clock(makeVarianceClockSnapshot(std::move(tables)));
+    const auto view = clock.capture();
+    VarianceClockExpiryToken expiry;
+    BOOST_REQUIRE(view.prepareExpiry(instant(4 * 86400), expiry) == VarianceClockStatus::Ok);
+    const auto includingFuture = view.remaining(instant(1), expiry);
+    BOOST_CHECK(includingFuture.status == VarianceClockStatus::BeforeCalibration);
+    BOOST_CHECK_EQUAL(includingFuture.weightedDays, 0.0);
+    const auto excludingFuture = view.remaining(instant(3 * 86400), expiry);
+    BOOST_CHECK(excludingFuture.status == VarianceClockStatus::Ok);
+    checkWeightedDays(excludingFuture.weightedDays, HighPrecision("1"));
+    const auto cumulativeFuture = view.cumulativeFromCoverageStart(instant(3 * 86400));
+    BOOST_CHECK(cumulativeFuture.status == VarianceClockStatus::BeforeCalibration);
+    BOOST_CHECK_EQUAL(cumulativeFuture.weightedDays, 0.0);
+    const auto cumulativeEligible = view.cumulativeFromCoverageStart(instant(4 * 86400));
+    BOOST_CHECK(cumulativeEligible.status == VarianceClockStatus::Ok);
+    checkWeightedDays(cumulativeEligible.weightedDays, HighPrecision("3"));
+}
+
+BOOST_AUTO_TEST_CASE(testFixedViewLifetimeAndZeroRates) {
+    BOOST_TEST_MESSAGE("Testing variance-clock fixed-view lifetime and zero rates...");
+
+    VarianceClockView retained;
+    VarianceClockExpiryToken token;
+    {
+        VarianceClockTables tables;
+        tables.start = instant(0);
+        tables.end = instant(86400);
+        tables.availableFrom = instant(0);
+        tables.profiles = {profile(1, 0.0)};
+        tables.dates = {{Date(1, January, 1970), 1}};
+        tables.offsets = {{tables.start, tables.end, 0, false}};
+        VarianceClock clock(makeVarianceClockSnapshot(std::move(tables)));
+        retained = clock.capture();
+        BOOST_REQUIRE(retained.prepareExpiry(instant(300), token) == VarianceClockStatus::Ok);
+        const auto zero = retained.remaining(instant(0), token);
+        BOOST_CHECK(zero.status == VarianceClockStatus::Ok);
+        BOOST_CHECK_EQUAL(zero.weightedDays, 0.0);
+#ifndef NDEBUG
+        token = VarianceClockExpiryToken();
+        retained = VarianceClockView();
+#endif
+    }
+#ifdef NDEBUG
+    const auto afterOwner = retained.remaining(instant(0), token);
+    BOOST_CHECK(afterOwner.status == VarianceClockStatus::Ok);
+    BOOST_CHECK_EQUAL(afterOwner.weightedDays, 0.0);
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()
