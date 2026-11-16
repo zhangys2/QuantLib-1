@@ -10,8 +10,6 @@
 # replaceable operator new hooks depend on the ELF/GNU toolchain; the parent
 # directory refuses non-Linux systems.
 
-add_library(varianceclock_probe_wrap INTERFACE)
-
 set(QL_VARIANCECLOCK_PROBE_WRAP_OPTIONS
     malloc calloc realloc __cxa_allocate_exception
     open open64 openat fopen fopen64
@@ -41,6 +39,16 @@ function(ql_add_varianceclock_probe target)
     endif()
 endfunction()
 
+function(ql_add_varianceclock_clock_probe target)
+    ql_add_varianceclock_probe(${target})
+    target_sources(${target} PRIVATE
+        ${PROJECT_SOURCE_DIR}/ql/time/varianceclock.cpp
+        ${PROJECT_SOURCE_DIR}/ql/time/varianceclocktables.cpp)
+    target_link_libraries(${target} PRIVATE ql_library)
+    target_compile_definitions(${target}
+        PRIVATE QL_VARIANCECLOCK_PROBE_CLOCK_CONTROLS)
+endfunction()
+
 # Green binary: every positive control must observe exactly one event.
 ql_add_varianceclock_probe(variance_clock_probe)
 
@@ -65,3 +73,13 @@ foreach(symbol IN LISTS QL_VARIANCECLOCK_PROBE_WRAP_OPTIONS)
     set_tests_properties("variance_clock_probe_missing_${identifier}"
         PROPERTIES PASS_REGULAR_EXPRESSION "1 of 23 controls failed")
 endforeach()
+
+ql_add_varianceclock_clock_probe(variance_clock_probe_clock)
+ql_add_varianceclock_clock_probe(variance_clock_probe_clock_red)
+target_compile_definitions(variance_clock_probe_clock_red
+    PRIVATE QL_VARIANCECLOCK_PROBE_DISABLED)
+add_test(NAME variance_clock_probe_clock_controls COMMAND variance_clock_probe_clock)
+add_test(NAME variance_clock_probe_clock_runtime_red COMMAND variance_clock_probe_clock_red)
+set_tests_properties(variance_clock_probe_clock_runtime_red
+    PROPERTIES PASS_REGULAR_EXPRESSION
+               "clock activation positive control observed no allocation")

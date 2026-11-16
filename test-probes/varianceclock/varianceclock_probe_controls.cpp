@@ -26,6 +26,10 @@
 
 #include "varianceclock_probe.hpp"
 
+#ifdef QL_VARIANCECLOCK_PROBE_CLOCK_CONTROLS
+#include <ql/time/varianceclock.hpp>
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -35,6 +39,7 @@
 #include <new>
 #include <sys/types.h>
 #include <unistd.h>
+#include <utility>
 
 namespace vcp = QuantLib::varianceclockprobe;
 
@@ -108,6 +113,31 @@ namespace {
     void* (*volatile mallocCall)(std::size_t) = std::malloc;
     void* (*volatile callocCall)(std::size_t, std::size_t) = std::calloc;
     void* (*volatile reallocCall)(void*, std::size_t) = std::realloc;
+
+#ifdef QL_VARIANCECLOCK_PROBE_CLOCK_CONTROLS
+    QuantLib::VarianceClockInstant probeClockInstant(std::int64_t seconds) {
+        QuantLib::VarianceClockInstant result;
+        if (!QuantLib::VarianceClockInstant::tryCreate(seconds, 0, result))
+            std::abort();
+        return result;
+    }
+
+    QuantLib::VarianceClockTables probeClockTables(double weight) {
+        QuantLib::VarianceClockTables tables;
+        tables.start = probeClockInstant(0);
+        tables.end = probeClockInstant(86400);
+        tables.availableFrom = probeClockInstant(0);
+        QuantLib::VarianceClockProfileInput profile;
+        profile.id = 1;
+        profile.calibrationAsOf = probeClockInstant(0);
+        for (auto& slot : profile.slots)
+            slot.weight = weight;
+        tables.profiles.push_back(std::move(profile));
+        tables.dates.push_back({QuantLib::Date(1, QuantLib::January, 1970), 1});
+        tables.offsets.push_back({tables.start, tables.end, 0, false});
+        return tables;
+    }
+#endif
 
 } // namespace
 
@@ -330,6 +360,51 @@ int main() {
         std::printf("[FAIL] ifstream positive control observed no file I/O\n");
     }
     ::unlink(path);
+#endif
+
+#ifdef QL_VARIANCECLOCK_PROBE_CLOCK_CONTROLS
+    QuantLib::VarianceClock clock(
+        QuantLib::makeVarianceClockSnapshot(probeClockTables(1.0)));
+    auto candidate = QuantLib::makeVarianceClockSnapshot(probeClockTables(2.0));
+
+    vcp::disarmAll();
+    vcp::reset();
+    vcp::arm(vcp::Event::New);
+    clock.activate(std::move(candidate));
+    vcp::disarm(vcp::Event::New);
+    ++controls;
+    if (vcp::count(vcp::Event::New) > 0) {
+        std::printf("[ ok ] clock activation allocation count=%llu\n",
+                    static_cast<unsigned long long>(vcp::count(vcp::Event::New)));
+    } else {
+        ++failures;
+        std::printf("[FAIL] clock activation positive control observed no allocation\n");
+    }
+
+    vcp::disarmAll();
+    vcp::reset();
+    for (std::size_t i = 0; i < static_cast<std::size_t>(vcp::Event::Count); ++i)
+        vcp::arm(static_cast<vcp::Event>(i));
+    bool queryOk = false;
+    {
+        const auto view = clock.capture();
+        QuantLib::VarianceClockExpiryToken expiry;
+        queryOk = view.prepareExpiry(probeClockInstant(600), expiry) ==
+                      QuantLib::VarianceClockStatus::Ok &&
+                  view.remaining(probeClockInstant(0), expiry).status ==
+                      QuantLib::VarianceClockStatus::Ok;
+    }
+    vcp::disarmAll();
+    bool queryAllocated = false;
+    for (std::size_t i = 0; i < static_cast<std::size_t>(vcp::Event::Count); ++i)
+        queryAllocated = queryAllocated || vcp::count(static_cast<vcp::Event>(i)) != 0;
+    ++controls;
+    if (queryOk && !queryAllocated) {
+        std::printf("[ ok ] clock capture/query observed no allocation or I/O\n");
+    } else {
+        ++failures;
+        std::printf("[FAIL] clock capture/query failed or observed allocation/I/O\n");
+    }
 #endif
 
     if (failures == 0) {

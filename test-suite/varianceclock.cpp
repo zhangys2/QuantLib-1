@@ -1174,6 +1174,52 @@ BOOST_AUTO_TEST_CASE(testFixedViewLifetimeAndZeroRates) {
 #endif
 }
 
+BOOST_AUTO_TEST_CASE(testOldTokenRejectedAfterABA) {
+    BOOST_TEST_MESSAGE("Testing variance-clock token invalidation after A-B-A activation...");
+
+    const auto makeTables = [](double weight) {
+        VarianceClockTables tables;
+        tables.start = instant(0);
+        tables.end = instant(86400);
+        tables.availableFrom = instant(0);
+        tables.profiles = {profile(1, weight)};
+        tables.dates = {{Date(1, January, 1970), 1}};
+        tables.offsets = {{tables.start, tables.end, 0, false}};
+        return tables;
+    };
+
+    VarianceClock clock(makeVarianceClockSnapshot(makeTables(1.0)));
+    const auto firstA = clock.capture();
+    VarianceClockExpiryToken firstAToken;
+    BOOST_REQUIRE(firstA.prepareExpiry(instant(600), firstAToken) == VarianceClockStatus::Ok);
+
+    clock.activate(makeVarianceClockSnapshot(makeTables(2.0)));
+    const auto viewB = clock.capture();
+    VarianceClockExpiryToken tokenB;
+    BOOST_REQUIRE(viewB.prepareExpiry(instant(600), tokenB) == VarianceClockStatus::Ok);
+    const auto resultB = viewB.remaining(instant(0), tokenB);
+    BOOST_REQUIRE(resultB.status == VarianceClockStatus::Ok);
+    checkWeightedDays(resultB.weightedDays,
+                      HighPrecision("2") * HighPrecision("600") / HighPrecision("86400"));
+    const auto oldAWhileBActive = firstA.remaining(instant(0), firstAToken);
+    BOOST_REQUIRE(oldAWhileBActive.status == VarianceClockStatus::Ok);
+    checkWeightedDays(oldAWhileBActive.weightedDays,
+                      HighPrecision("600") / HighPrecision("86400"));
+
+    clock.activate(makeVarianceClockSnapshot(makeTables(1.0)));
+    const auto secondA = clock.capture();
+    const auto stale = secondA.remaining(instant(0), firstAToken);
+    BOOST_CHECK(stale.status == VarianceClockStatus::StaleToken);
+    BOOST_CHECK_EQUAL(stale.weightedDays, 0.0);
+
+    VarianceClockExpiryToken secondAToken;
+    BOOST_REQUIRE(secondA.prepareExpiry(instant(600), secondAToken) == VarianceClockStatus::Ok);
+    const auto resultA = secondA.remaining(instant(0), secondAToken);
+    BOOST_REQUIRE(resultA.status == VarianceClockStatus::Ok);
+    checkWeightedDays(resultA.weightedDays,
+                      HighPrecision("600") / HighPrecision("86400"));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE_END()

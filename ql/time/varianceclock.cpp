@@ -18,6 +18,8 @@
 #include <ql/errors.hpp>
 #include <ql/time/varianceclock.hpp>
 #include <ql/time/varianceclockdetail.hpp>
+#include <ql/errors.hpp>
+#include <mutex>
 #include <utility>
 
 namespace QuantLib {
@@ -32,6 +34,12 @@ namespace QuantLib {
 #ifndef NDEBUG
         void assertNoLiveHandles(long references) {
             QL_ASSERT(references == 1, "variance-clock owner destroyed with live handles");
+        }
+
+        void assertNoLiveHandles(
+            const std::vector<ext::shared_ptr<const detail::VarianceClockGeneration>>& generations) {
+            for (const auto& generation : generations)
+                assertNoLiveHandles(generation.use_count());
         }
 #endif
 
@@ -122,11 +130,23 @@ namespace QuantLib {
 #ifndef NDEBUG
         if (generation_)
             assertNoLiveHandles(generation_.use_count());
+        assertNoLiveHandles(retired_);
 #endif
     }
 
     VarianceClockView VarianceClock::capture() const {
+        std::lock_guard<std::mutex> lock(mutex_);
         return VarianceClockView(generation_);
+    }
+
+    void VarianceClock::activate(std::unique_ptr<VarianceClockSnapshot> candidate) {
+        QL_REQUIRE(candidate, "null variance-clock snapshot");
+        auto next = ext::make_shared<detail::VarianceClockGeneration>(std::move(candidate));
+
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (generation_)
+            retired_.push_back(generation_);
+        generation_ = std::move(next);
     }
 
 }

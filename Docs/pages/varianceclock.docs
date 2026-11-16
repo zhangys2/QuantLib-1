@@ -81,17 +81,23 @@ error macros; query methods instead return statuses and are `noexcept`.
 
 ## Lifetime and scope
 
-Views and tokens retain their immutable generation. Destroy views and tokens
-before destroying their owner: a violation aborts in debug builds. In release
-builds, surviving handles retain and eventually destroy their generation, and
-that destruction is outside any off-query reclamation guarantee. Capture must
-not race with owner destruction. The fixed owner has no activation, retirement,
-or shutdown API yet.
+Views and tokens retain their immutable activation generation. Activation is
+mutex-guarded; a new capture observes either the complete old generation or the
+complete new one. An old view remains paired with its old token, while using
+that token with a newly captured view returns `StaleToken`, including after an
+A-to-B-to-equivalent-A sequence. The owner retains each replaced generation
+before publishing its successor, so releasing a view or token cannot destroy
+retired snapshot storage on that reader thread. Reclamation and shutdown are
+not yet provided. Destroy views and tokens before destroying their owner: a
+violation aborts in debug builds. In release builds, surviving handles retain
+and eventually destroy their generation, outside any off-query reclamation
+guarantee. Capture and activation must not race with owner destruction.
 
 The numeric query implementation performs no intended clock-owned allocation
-or file I/O. Bundle loading, hashing, CSV/JSON parsing, historical calibration,
-source provenance, and live snapshot swaps are outside this fixed-snapshot
-implementation. A supplied availability cutoff does not itself prove source
-authenticity or point-in-time provenance.
+or file I/O. Snapshot construction and activation are control-path operations
+and can allocate. Bundle loading, hashing, CSV/JSON parsing, historical
+calibration, and source provenance are outside this implementation. A supplied
+availability cutoff does not itself prove source authenticity or point-in-time
+provenance.
 
 */

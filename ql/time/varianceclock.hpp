@@ -28,6 +28,8 @@
 #include <ql/time/varianceclocktables.hpp>
 #include <ql/types.hpp>
 #include <memory>
+#include <mutex>
+#include <vector>
 
 namespace QuantLib {
 
@@ -86,11 +88,13 @@ namespace QuantLib {
         ext::shared_ptr<const detail::VarianceClockGeneration> generation_;
     };
 
-    //! Fixed-snapshot owner; live replacement and reclamation are not provided.
-    /*! Destroying this owner with live views or tokens violates the lifetime
+    //! Mutex-guarded owner of immutable, replaceable variance-clock snapshots.
+    /*! Activation publishes a new generation while retaining prior generations
+        on the control side. Reclamation and shutdown are not provided yet.
+        Destroying this owner with live views or tokens violates the lifetime
         precondition and aborts in debug builds. In release builds those
-        handles retain the snapshot and can destroy it off the control path.
-        Capture must not race with destruction.
+        handles retain their generation and can destroy it off the control path.
+        Capture and activation must not race with destruction.
     */
     class VarianceClock {
       public:
@@ -100,9 +104,12 @@ namespace QuantLib {
         VarianceClock& operator=(const VarianceClock&) = delete;
 
         VarianceClockView capture() const;
+        void activate(std::unique_ptr<VarianceClockSnapshot> candidate);
 
       private:
+        mutable std::mutex mutex_;
         ext::shared_ptr<const detail::VarianceClockGeneration> generation_;
+        std::vector<ext::shared_ptr<const detail::VarianceClockGeneration>> retired_;
     };
 
 }
