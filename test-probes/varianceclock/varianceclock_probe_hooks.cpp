@@ -125,6 +125,8 @@ namespace varianceclockprobe {
         std::atomic<std::uint8_t> armed_[N];
         std::atomic<std::uint64_t> count_[N];
         std::atomic<std::uint64_t> bytes_[N];
+        thread_local bool countDeletes_ = false;
+        thread_local std::size_t deletes_ = 0;
 
         bool valid(Event event) noexcept {
             return static_cast<std::size_t>(event) < N;
@@ -188,6 +190,21 @@ namespace varianceclockprobe {
                             std::memory_order_relaxed);
         }
 #endif
+    }
+
+    void startDeleteCounting() noexcept {
+        deletes_ = 0;
+        countDeletes_ = true;
+    }
+
+    std::size_t stopDeleteCounting() noexcept {
+        countDeletes_ = false;
+        return deletes_;
+    }
+
+    void recordDelete() noexcept {
+        if (countDeletes_)
+            ++deletes_;
     }
 
     const char* name(Event event) noexcept {
@@ -328,6 +345,7 @@ void* operator new[](std::size_t size,
 // Replaceable deallocation functions -------------------------------------
 
 void operator delete(void* memory) noexcept {
+    QuantLib::varianceclockprobe::recordDelete();
     std::free(memory);
 }
 
@@ -336,6 +354,7 @@ void operator delete[](void* memory) noexcept {
 }
 
 void operator delete(void* memory, std::size_t) noexcept {
+    QuantLib::varianceclockprobe::recordDelete();
     std::free(memory);
 }
 

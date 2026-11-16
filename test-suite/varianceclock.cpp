@@ -29,29 +29,11 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <limits>
 #include <string>
 #include <thread>
 #include <type_traits>
 #include <utility>
-
-namespace varianceClockDeleteProbe {
-    thread_local bool countDeletes = false;
-    thread_local std::size_t deletes = 0;
-}
-
-void operator delete(void* memory) noexcept {
-    if (varianceClockDeleteProbe::countDeletes)
-        ++varianceClockDeleteProbe::deletes;
-    std::free(memory);
-}
-
-void operator delete(void* memory, std::size_t) noexcept {
-    if (varianceClockDeleteProbe::countDeletes)
-        ++varianceClockDeleteProbe::deletes;
-    std::free(memory);
-}
 
 using namespace QuantLib;
 
@@ -1247,43 +1229,6 @@ BOOST_AUTO_TEST_CASE(testOldTokenRejectedAfterABA) {
                       HighPrecision("600") / HighPrecision("86400"));
 }
 
-BOOST_AUTO_TEST_CASE(testRetiredGenerationReleaseStaysOnControlThread) {
-    BOOST_TEST_MESSAGE("Testing variance-clock retired generation ownership...");
-
-    auto makeTables = [](double weight) {
-        VarianceClockTables tables;
-        tables.start = instant(0);
-        tables.end = instant(86400);
-        tables.availableFrom = instant(0);
-        tables.profiles = {profile(1, weight)};
-        tables.dates = {{Date(1, January, 1970), 1}};
-        tables.offsets = {{tables.start, tables.end, 0, false}};
-        return tables;
-    };
-
-    VarianceClock clock(makeVarianceClockSnapshot(makeTables(1.0)));
-    VarianceClockView retiredView = clock.capture();
-    VarianceClockExpiryToken retiredToken;
-    BOOST_REQUIRE(retiredView.prepareExpiry(instant(600), retiredToken) ==
-                  VarianceClockStatus::Ok);
-    clock.activate(makeVarianceClockSnapshot(makeTables(2.0)));
-
-    std::size_t workerDeletes = 0;
-    std::thread releaser([view = std::move(retiredView),
-                          token = std::move(retiredToken),
-                          &workerDeletes]() mutable {
-        varianceClockDeleteProbe::deletes = 0;
-        varianceClockDeleteProbe::countDeletes = true;
-        view = VarianceClockView();
-        token = VarianceClockExpiryToken();
-        varianceClockDeleteProbe::countDeletes = false;
-        workerDeletes = varianceClockDeleteProbe::deletes;
-    });
-    releaser.join();
-
-    BOOST_CHECK_EQUAL(workerDeletes, 0U);
-}
-
 BOOST_AUTO_TEST_CASE(testReclaimWaitsForViewsAndTokens) {
     BOOST_TEST_MESSAGE("Testing variance-clock control-thread reclamation...");
 
@@ -1312,18 +1257,40 @@ BOOST_AUTO_TEST_CASE(testReclaimWaitsForViewsAndTokens) {
     BOOST_CHECK_EQUAL(clock.reclaim(), 0U);
     retiredToken = VarianceClockExpiryToken();
 
-    varianceClockDeleteProbe::deletes = 0;
-    varianceClockDeleteProbe::countDeletes = true;
     const Size reclaimed = clock.reclaim();
-    varianceClockDeleteProbe::countDeletes = false;
     BOOST_CHECK_EQUAL(reclaimed, 1U);
-    BOOST_CHECK_GT(varianceClockDeleteProbe::deletes, 0U);
     const auto active = clock.capture();
     VarianceClockExpiryToken activeToken;
     BOOST_REQUIRE(active.prepareExpiry(instant(600), activeToken) ==
                   VarianceClockStatus::Ok);
     BOOST_CHECK(active.remaining(instant(0), activeToken).status ==
                 VarianceClockStatus::Ok);
+}
+
+BOOST_AUTO_TEST_CASE(testShutdownWaitsForActiveGenerationHandles) {
+    BOOST_TEST_MESSAGE("Testing variance-clock shutdown with active handles...");
+
+    VarianceClockTables tables;
+    tables.start = instant(0);
+    tables.end = instant(86400);
+    tables.availableFrom = instant(0);
+    tables.profiles = {profile(1)};
+    tables.dates = {{Date(1, January, 1970), 1}};
+    tables.offsets = {{tables.start, tables.end, 0, false}};
+
+    VarianceClock clock(makeVarianceClockSnapshot(std::move(tables)));
+    auto activeView = clock.capture();
+    VarianceClockExpiryToken activeToken;
+    BOOST_REQUIRE(activeView.prepareExpiry(instant(600), activeToken) ==
+                  VarianceClockStatus::Ok);
+
+    BOOST_CHECK(!clock.shutdown());
+    BOOST_CHECK(activeView.remaining(instant(0), activeToken).status ==
+                VarianceClockStatus::Ok);
+
+    activeView = VarianceClockView();
+    activeToken = VarianceClockExpiryToken();
+    BOOST_CHECK(clock.shutdown());
 }
 
 BOOST_AUTO_TEST_CASE(testShutdownWaitsForHandlesAndIsTerminal) {

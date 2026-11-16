@@ -19,7 +19,6 @@
 #include <ql/time/varianceclock.hpp>
 #include <ql/time/varianceclockdetail.hpp>
 #include <mutex>
-#include <new>
 #include <utility>
 
 namespace QuantLib {
@@ -37,7 +36,8 @@ namespace QuantLib {
         }
 
         void assertNoLiveHandles(
-            const std::vector<ext::shared_ptr<const detail::VarianceClockGeneration>>& generations) {
+            const std::vector<
+                ext::shared_ptr<const detail::VarianceClockGeneration>>& generations) {
             for (const auto& generation : generations)
                 assertNoLiveHandles(generation.use_count());
         }
@@ -103,10 +103,6 @@ namespace QuantLib {
     VarianceClockResult
     VarianceClockView::remaining(VarianceClockInstant time,
                                  const VarianceClockExpiryToken& expiry) const noexcept {
-#ifdef QL_VARIANCECLOCK_PROBE_INJECT_QUERY_ALLOC
-        void* probeAllocation = ::operator new(1);
-        ::operator delete(probeAllocation);
-#endif
         if (!generation_)
             return {VarianceClockStatus::InvalidView, 0.0};
         if (!expiry.generation_)
@@ -151,16 +147,12 @@ namespace QuantLib {
         std::lock_guard<std::mutex> lock(mutex_);
         QL_REQUIRE(!shutdown_, "cannot activate a shut down variance clock");
         if (generation_) {
-            retired_.reserve(retired_.size() + 1);
             retired_.push_back(generation_);
         }
         generation_ = std::move(next);
     }
 
     Size VarianceClock::reclaim() {
-#ifdef QL_VARIANCECLOCK_PROBE_DISABLE_RECLAIM
-        return 0;
-#else
         std::vector<ext::shared_ptr<const detail::VarianceClockGeneration>> releasing;
         {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -176,7 +168,6 @@ namespace QuantLib {
             }
         }
         return static_cast<Size>(releasing.size());
-#endif
     }
 
     bool VarianceClock::shutdown() {

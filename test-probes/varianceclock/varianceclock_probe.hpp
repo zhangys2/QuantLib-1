@@ -77,6 +77,15 @@ namespace varianceclockprobe {
     //! Human-readable event name.
     const char* name(Event event) noexcept;
 
+    //! Count deletes on the calling thread until stopDeleteCounting().
+    void startDeleteCounting() noexcept;
+
+    //! Stop counting and return deletes observed on the calling thread.
+    std::size_t stopDeleteCounting() noexcept;
+
+    //! Records one delete when counting is enabled on the calling thread.
+    void recordDelete() noexcept;
+
 } // namespace varianceclockprobe
 } // namespace QuantLib
 

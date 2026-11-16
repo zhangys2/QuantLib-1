@@ -38,6 +38,7 @@
 #include <fstream>
 #include <new>
 #include <sys/types.h>
+#include <thread>
 #include <unistd.h>
 #include <utility>
 
@@ -454,11 +455,37 @@ int main() {
 
     QuantLib::VarianceClock reclaimClock(
         QuantLib::makeVarianceClockSnapshot(probeClockTables(1.0)));
+    auto retiredView = reclaimClock.capture();
+    QuantLib::VarianceClockExpiryToken retiredToken;
+    const bool retiredTokenReady =
+        retiredView.prepareExpiry(probeClockInstant(600), retiredToken) ==
+        QuantLib::VarianceClockStatus::Ok;
     reclaimClock.activate(
         QuantLib::makeVarianceClockSnapshot(probeClockTables(2.0)));
+    std::size_t workerDeletes = 0;
+    std::thread releaser([view = std::move(retiredView),
+                          token = std::move(retiredToken),
+                          &workerDeletes]() mutable {
+        vcp::startDeleteCounting();
+        view = QuantLib::VarianceClockView();
+        token = QuantLib::VarianceClockExpiryToken();
+        workerDeletes = vcp::stopDeleteCounting();
+    });
+    releaser.join();
     ++controls;
-    if (reclaimClock.reclaim() == 1) {
-        std::printf("[ ok ] clock reclaim released one retired generation\n");
+    if (retiredTokenReady && workerDeletes == 0) {
+        std::printf("[ ok ] retired generation release stayed off reader thread\n");
+    } else {
+        reportCustomFailure("retired generation release",
+                            "deleted a generation on the reader thread");
+    }
+
+    vcp::startDeleteCounting();
+    const auto reclaimed = reclaimClock.reclaim();
+    const std::size_t controlDeletes = vcp::stopDeleteCounting();
+    ++controls;
+    if (reclaimed == 1 && controlDeletes > 0) {
+        std::printf("[ ok ] clock reclaim released one retired generation on control thread\n");
     } else {
         reportCustomFailure("clock reclaim positive control",
                             "failed to reclaim one retired generation");

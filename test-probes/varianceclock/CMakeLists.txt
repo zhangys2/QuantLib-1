@@ -39,10 +39,41 @@ function(ql_add_varianceclock_probe target)
     endif()
 endfunction()
 
+function(ql_generate_varianceclock_mutant target mutation)
+    set(source_file "${PROJECT_SOURCE_DIR}/ql/time/varianceclock.cpp")
+    file(READ "${source_file}" source)
+
+    if("${mutation}" STREQUAL "query_alloc")
+        set(before "const noexcept {\n        if (!generation_)")
+        set(after "const noexcept {\n        void* probeAllocation = ::operator new(1);\n        ::operator delete(probeAllocation);\n        if (!generation_)")
+        string(REPLACE "${before}" "${after}" mutated "${source}")
+        string(REPLACE "#include <mutex>" "#include <mutex>\n#include <new>"
+                       mutated "${mutated}")
+    elseif("${mutation}" STREQUAL "disable_reclaim")
+        string(REPLACE "if (generation->use_count() == 1) {"
+                       "if (generation->use_count() == 0) {"
+                       mutated "${source}")
+    else()
+        message(FATAL_ERROR "unknown variance-clock mutation: ${mutation}")
+    endif()
+
+    if("${mutated}" STREQUAL "${source}")
+        message(FATAL_ERROR "variance-clock mutation did not change ${source_file}")
+    endif()
+    set(template "${CMAKE_CURRENT_BINARY_DIR}/${target}.cpp.in")
+    file(WRITE "${template}" "${mutated}")
+    configure_file("${template}" "${CMAKE_CURRENT_BINARY_DIR}/${target}.cpp" @ONLY)
+endfunction()
+
 function(ql_add_varianceclock_clock_probe target)
+    set(clock_source "${PROJECT_SOURCE_DIR}/ql/time/varianceclock.cpp")
+    if(ARGC GREATER 1)
+        ql_generate_varianceclock_mutant(${target} "${ARGV1}")
+        set(clock_source "${CMAKE_CURRENT_BINARY_DIR}/${target}.cpp")
+    endif()
     ql_add_varianceclock_probe(${target})
     target_sources(${target} PRIVATE
-        ${PROJECT_SOURCE_DIR}/ql/time/varianceclock.cpp
+        "${clock_source}"
         ${PROJECT_SOURCE_DIR}/ql/time/varianceclocktables.cpp)
     target_link_libraries(${target} PRIVATE ql_library)
     target_compile_definitions(${target}
@@ -85,18 +116,14 @@ set_tests_properties(variance_clock_probe_clock_runtime_red
     PROPERTIES PASS_REGULAR_EXPRESSION
                "clock activation positive control observed no allocation")
 
-ql_add_varianceclock_clock_probe(variance_clock_probe_clock_query_red)
-target_compile_definitions(variance_clock_probe_clock_query_red
-    PRIVATE QL_VARIANCECLOCK_PROBE_INJECT_QUERY_ALLOC)
+ql_add_varianceclock_clock_probe(variance_clock_probe_clock_query_red query_alloc)
 add_test(NAME variance_clock_probe_clock_query_runtime_red
     COMMAND variance_clock_probe_clock_query_red)
 set_tests_properties(variance_clock_probe_clock_query_runtime_red
     PROPERTIES PASS_REGULAR_EXPRESSION
         "(^|\n)\\[FAIL\\] clock capture/query failed or observed allocation/I/O")
 
-ql_add_varianceclock_clock_probe(variance_clock_probe_clock_reclaim_red)
-target_compile_definitions(variance_clock_probe_clock_reclaim_red
-    PRIVATE QL_VARIANCECLOCK_PROBE_DISABLE_RECLAIM)
+ql_add_varianceclock_clock_probe(variance_clock_probe_clock_reclaim_red disable_reclaim)
 add_test(NAME variance_clock_probe_clock_reclaim_runtime_red
     COMMAND variance_clock_probe_clock_reclaim_red)
 set_tests_properties(variance_clock_probe_clock_reclaim_runtime_red
