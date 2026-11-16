@@ -18,13 +18,15 @@
 */
 
 /*! \file varianceclockdetail.hpp
-    \brief internal variance-clock run construction
+    \brief internal variance-clock run construction and numeric engine
 */
 
 #ifndef quantlib_variance_clock_detail_hpp
 #define quantlib_variance_clock_detail_hpp
 
 #include <ql/time/varianceclocktables.hpp>
+#include <array>
+#include <cstddef>
 #include <vector>
 
 namespace QuantLib {
@@ -40,6 +42,46 @@ namespace QuantLib {
 
         //! Validate and normalize the tables and split their covered UTC interval.
         std::vector<VarianceClockRun> buildVarianceClockRuns(VarianceClockTables& tables);
+
+        enum class VarianceClockNumericStatus { Ok, Expired };
+
+        struct VarianceClockNumericResult {
+            VarianceClockNumericStatus status;
+            double weightedDays;
+        };
+
+        struct VarianceClockNumericPosition {
+            VarianceClockInstant time;
+            Size run;
+            Size slot;
+        };
+
+        //! Numeric operations require valid instants within the inclusive coverage endpoints.
+        class VarianceClockNumericEngine {
+          public:
+            explicit VarianceClockNumericEngine(VarianceClockTables&& tables);
+
+            VarianceClockInstant coverageStart() const noexcept;
+            VarianceClockInstant coverageEnd() const noexcept;
+            VarianceClockNumericPosition prepareExpiry(VarianceClockInstant time) const noexcept;
+            VarianceClockNumericResult cumulativeFromCoverageStart(
+                VarianceClockInstant time, std::size_t* visitedNodes = nullptr) const noexcept;
+            VarianceClockNumericResult remaining(
+                VarianceClockInstant time, const VarianceClockNumericPosition& expiry,
+                std::size_t* visitedNodes = nullptr) const noexcept;
+
+          private:
+            using ProfileTree = std::array<double, 2 * 288>;
+            Size endpointSlot(Size run, VarianceClockInstant time) const noexcept;
+            double runValue(Size run, VarianceClockInstant start, VarianceClockInstant end,
+                            Size endSlot, std::size_t* visitedNodes) const noexcept;
+
+            VarianceClockTables tables_;
+            std::vector<VarianceClockRun> runs_;
+            std::vector<Size> runProfiles_;
+            std::vector<ProfileTree> profileTrees_;
+            std::vector<double> runTree_;
+        };
 
     }
 }

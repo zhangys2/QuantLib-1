@@ -912,6 +912,7 @@ set(QL_SOURCES
     time/businessdayconvention.cpp
     time/calendar.cpp
     time/variancecalendar.cpp
+    # Keep this private header in the target without installing it.
     time/varianceclockdetail.hpp
     time/varianceclocktables.cpp
     time/calendars/argentina.cpp
