@@ -36,7 +36,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -GNinja -DBOOST_ROOT=/usr -DCMAKE_BUILD_TYPE=Release -DQL_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -L
+        cmake .. -GNinja -DBOOST_ROOT=/usr -DCMAKE_BUILD_TYPE=Release -DQL_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DQL_BUILD_VARIANCECLOCK_PROBE=ON -L
         cat ql/config.hpp
         cmake --build . --verbose
         sudo cmake --install .
@@ -44,6 +44,9 @@ jobs:
     - name: Test
       run: |
         quantlib-test-suite --log_level=message
+    - name: Run variance-clock probe
+      run: |
+        ctest --test-dir build -R variance_clock_probe --output-on-failure
     - name: Run benchmark
       run: |
         quantlib-benchmark --size=1

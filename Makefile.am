@@ -27,7 +27,12 @@ EXTRA_DIST = \
 	QuantLib.vcxproj \
 	QuantLib.vcxproj.filters \
 	README.md \
-	autogen.sh
+	autogen.sh \
+	test-probes/varianceclock/CMakeLists.txt \
+	test-probes/varianceclock/varianceclock_probe.hpp \
+	test-probes/varianceclock/varianceclock_probe_controls.cpp \
+	test-probes/varianceclock/varianceclock_probe_hooks.cpp \
+	test-probes/varianceclock/varianceclock_probe.vcxproj
 
 .PHONY: examples check-examples
 examples:

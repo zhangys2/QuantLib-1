@@ -59,6 +59,7 @@ option(QL_NULL_AS_FUNCTIONS "Enable the implementation of Null as template funct
 option(QL_INSTALL_BENCHMARK "Install benchmark" ON)
 option(QL_INSTALL_EXAMPLES "Install examples" ON)
 option(QL_INSTALL_TEST_SUITE "Install test suite" ON)
+option(QL_BUILD_VARIANCECLOCK_PROBE "Build the standalone variance-clock probe (Linux only)" OFF)
 option(QL_TAGGED_LAYOUT "Library names use layout tags" ${MSVC})
 option(QL_USE_CLANG_TIDY "Use clang-tidy when building" OFF)
 option(QL_USE_INDEXED_COUPON "Use indexed coupons instead of par coupons" OFF)
@@ -255,6 +256,16 @@ if (QL_BUILD_EXAMPLES)
 endif()
 if (QL_BUILD_TEST_SUITE)
     add_subdirectory(test-suite)
+endif()
+
+# The standalone variance-clock probe is Linux-only: it relies on GNU ld
+# --wrap and replaceable allocation hooks.  It is outside ql/ and test-suite/
+# and never part of the ordinary suite or a sanitizer run.
+if (QL_BUILD_VARIANCECLOCK_PROBE)
+    if (NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        message(FATAL_ERROR "QL_BUILD_VARIANCECLOCK_PROBE is supported only on Linux")
+    endif()
+    add_subdirectory(test-probes/varianceclock)
 endif()
 
 if ('${CMAKE_CXX_COMPILER_ID}' MATCHES 'Clang' AND  QL_BUILD_FUZZ_TEST_SUITE)
