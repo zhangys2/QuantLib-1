@@ -184,17 +184,31 @@ namespace QuantLib {
                                        std::numeric_limits<std::size_t>::max() / 2,
                                    "variance-clock warning accounting overflow");
                         const auto newCapacity = oldCapacity == 0 ? 1 : oldCapacity * 2;
-                        QL_REQUIRE(newCapacity - oldCapacity <=
-                                       (std::numeric_limits<std::size_t>::max() - bytes) /
-                                           sizeof(VarianceClockBundleWarning),
+                        QL_REQUIRE(oldCapacity <=
+                                       std::numeric_limits<std::size_t>::max() /
+                                           sizeof(VarianceClockBundleWarning) &&
+                                       newCapacity <=
+                                           std::numeric_limits<std::size_t>::max() /
+                                               sizeof(VarianceClockBundleWarning),
                                    "variance-clock warning accounting overflow");
-                        bytes += (newCapacity - oldCapacity) *
-                                 sizeof(VarianceClockBundleWarning);
-                        QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
-                                                context.storageCharge.bytes(),
+                        const auto oldBufferBytes =
+                            oldCapacity * sizeof(VarianceClockBundleWarning);
+                        const auto newBufferBytes =
+                            newCapacity * sizeof(VarianceClockBundleWarning);
+                        QL_REQUIRE(bytes <=
+                                       std::numeric_limits<std::size_t>::max() - newBufferBytes,
                                    "variance-clock warning accounting overflow");
-                        context.storageCharge.resize(context.storageCharge.bytes() + bytes);
+                        bytes += newBufferBytes;
+                        const auto previousCharge = context.storageCharge.bytes();
+                        QL_REQUIRE(previousCharge >= oldBufferBytes &&
+                                       bytes <= std::numeric_limits<std::size_t>::max() -
+                                                     previousCharge,
+                                   "variance-clock warning accounting overflow");
+                        // The old and new buffers coexist until reserve has moved the elements.
+                        context.storageCharge.resize(previousCharge + bytes);
                         context.warnings.reserve(newCapacity);
+                        context.storageCharge.resize(context.storageCharge.bytes() -
+                                                      oldBufferBytes);
                     } else {
                         QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
                                                 context.storageCharge.bytes(),
