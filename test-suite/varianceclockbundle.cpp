@@ -3538,6 +3538,375 @@ BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
+BOOST_AUTO_TEST_CASE(testSlotMatrixRowsAcceptAndRejectEveryConstraint) {
+    BOOST_TEST_MESSAGE("Testing every row of the slot-evidence method matrix both ways...");
+    const std::string ids = csvEvidenceIds();
+    // Minimum direct returns 5, gap-pool threshold 2. Tails are the eleven fields after the
+    // minute: source group, target returns, source returns, target dates, source dates, method,
+    // grouping, gap-pool count, fallback ID, warning codes, evidence IDs (appended below).
+    const auto build = [&ids](bool zeroRate, const std::string& tail,
+                              const std::string& evidence) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.calibrationSettings.minimumDirectReturns = 5;
+        fixture.manifest.calibrationSettings.gapPoolReturnThreshold = 2U;
+        if (zeroRate)
+            useZeroWeightProfile(fixture);
+        rewriteSlotRows(fixture, tail + "," + (evidence.empty() ? ids : evidence));
+        return fixture;
+    };
+    struct Case {
+        bool zeroRate;
+        const char* tail;
+        const char* message;  // empty: accepted
+        const char* evidence;
+    };
+    const std::vector<Case> cases = {
+        // direct: returns >= minimum, dates >= 1, nothing pooled, weight > 0
+        {false, ",5,not_applicable,1,not_applicable,direct,,not_applicable,,", "", ""},
+        {false, ",9,not_applicable,3,not_applicable,direct,,not_applicable,,", "", ""},
+        {false, ",4,not_applicable,1,not_applicable,direct,,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,not_applicable,0,not_applicable,direct,,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,not_applicable,unknown,not_applicable,direct,,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, ",unknown,not_applicable,1,not_applicable,direct,,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, "s,5,not_applicable,1,not_applicable,direct,,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,0,1,not_applicable,direct,,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,not_applicable,1,0,direct,,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,not_applicable,1,not_applicable,direct,label,not_applicable,,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,not_applicable,1,not_applicable,direct,,2,,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,not_applicable,1,not_applicable,direct,,not_applicable,fb,",
+         "invalid direct slot evidence", ""},
+        {false, ",5,not_applicable,1,not_applicable,direct,,not_applicable,,",
+         "invalid direct slot evidence", "\"[]\""},
+        // pooled: returns < minimum, dates >= 1, integer source counts (0 allowed), gap >= 2
+        {false, "s,4,0,1,0,pooled,g,2,,", "", ""},
+        {false, "s,0,3,1,2,pooled,g,7,,", "", ""},
+        {false, "s,5,0,1,0,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,0,0,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,unknown,0,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,unknown,0,1,0,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, ",4,0,1,0,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,1,0,pooled,,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,1,0,pooled,g,1,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,1,0,pooled,g,not_applicable,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,not_applicable,1,0,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,,1,0,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,1,not_applicable,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,1,,pooled,g,2,,", "invalid pooled slot evidence", ""},
+        {false, "s,4,0,1,0,pooled,g,2,fb,", "invalid pooled slot evidence", ""},
+        {false, "s,4,x,1,0,pooled,g,2,,", "source count", ""},
+        {false, "s,4,01,1,0,pooled,g,2,,", "source count", ""},
+        {false, "s,4,-1,1,0,pooled,g,2,,", "source count", ""},
+        {false, "s,4,4294967296,1,0,pooled,g,2,,", "source count", ""},
+        {false, "s,4,0,1,x,pooled,g,2,,", "source dates", ""},
+        {false, "s,4,0,1,4294967296,pooled,g,2,,", "source dates", ""},
+        // zero: integer counts (0 allowed), nothing pooled, weight exactly 0
+        {true, ",0,not_applicable,0,not_applicable,zero,,not_applicable,,", "", ""},
+        {true, ",7,not_applicable,3,not_applicable,zero,,not_applicable,,", "", ""},
+        {true, ",unknown,not_applicable,0,not_applicable,zero,,not_applicable,,",
+         "invalid zero slot evidence", ""},
+        {true, ",0,not_applicable,unknown,not_applicable,zero,,not_applicable,,",
+         "invalid zero slot evidence", ""},
+        {true, ",unknown,not_applicable,unknown,not_applicable,zero,,not_applicable,,",
+         "invalid zero slot evidence", ""},
+        {true, "s,0,not_applicable,0,not_applicable,zero,,not_applicable,,",
+         "invalid zero slot evidence", ""},
+        {true, ",0,0,0,not_applicable,zero,,not_applicable,,", "invalid zero slot evidence", ""},
+        {true, ",0,not_applicable,0,0,zero,,not_applicable,,", "invalid zero slot evidence", ""},
+        {true, ",0,not_applicable,0,not_applicable,zero,label,not_applicable,,",
+         "invalid zero slot evidence", ""},
+        {true, ",0,not_applicable,0,not_applicable,zero,,2,,", "invalid zero slot evidence", ""},
+        {true, ",0,not_applicable,0,not_applicable,zero,,not_applicable,fb,",
+         "invalid zero slot evidence", ""},
+        {true, ",0,not_applicable,0,not_applicable,zero,,not_applicable,,",
+         "invalid zero slot evidence", "\"[]\""},
+        // fallback: integer or unknown target counts, nothing pooled, fallback ID, weight > 0
+        {false, ",unknown,not_applicable,unknown,not_applicable,fallback,,not_applicable,fb,",
+         "", ""},
+        {false, ",3,not_applicable,0,not_applicable,fallback,,not_applicable,fb,", "", ""},
+        {false, ",unknown,not_applicable,1,not_applicable,fallback,,not_applicable,fb,", "", ""},
+        {false, ",3,not_applicable,unknown,not_applicable,fallback,,not_applicable,fb,", "", ""},
+        {false, ",3,not_applicable,1,not_applicable,fallback,,not_applicable,,",
+         "invalid fallback slot evidence", ""},
+        {false, "s,3,not_applicable,1,not_applicable,fallback,,not_applicable,fb,",
+         "invalid fallback slot evidence", ""},
+        {false, ",3,0,1,not_applicable,fallback,,not_applicable,fb,",
+         "invalid fallback slot evidence", ""},
+        {false, ",3,not_applicable,1,0,fallback,,not_applicable,fb,",
+         "invalid fallback slot evidence", ""},
+        {false, ",3,not_applicable,1,not_applicable,fallback,label,not_applicable,fb,",
+         "invalid fallback slot evidence", ""},
+        {false, ",3,not_applicable,1,not_applicable,fallback,,2,fb,",
+         "invalid fallback slot evidence", ""},
+        {false, ",3,not_applicable,1,not_applicable,fallback,,not_applicable,fb,",
+         "invalid fallback slot evidence", "\"[]\""},
+        // target counts are never not_applicable or empty, for any method
+        {false, ",not_applicable,not_applicable,1,not_applicable,fallback,,not_applicable,fb,",
+         "target count", ""},
+        {false, ",3,not_applicable,not_applicable,not_applicable,fallback,,not_applicable,fb,",
+         "target dates", ""},
+        {false, ",,not_applicable,1,not_applicable,direct,,not_applicable,,", "target count", ""},
+        {false, ",5,not_applicable,,not_applicable,direct,,not_applicable,,", "target dates", ""},
+        // the rate must agree with the method
+        {true, ",5,not_applicable,1,not_applicable,direct,,not_applicable,,",
+         "zero method and profile weight disagree", ""},
+        {false, ",0,not_applicable,0,not_applicable,zero,,not_applicable,,",
+         "zero method and profile weight disagree", ""}};
+    for (const Case& item : cases) {
+        const auto fixture = build(item.zeroRate, item.tail, item.evidence);
+        if (std::string(item.message).empty()) {
+            std::string failure;
+            try {
+                parseBundleTables(fixture);
+            } catch (const Error& e) {
+                failure = e.what();
+            }
+            BOOST_CHECK_MESSAGE(failure.empty(),
+                                "rejected valid row " << item.tail << ": " << failure);
+        } else {
+            checkBundleTablesRejectedWith(fixture, item.message);
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testDecimalGrammarRejectionsNameTheGrammar) {
+    BOOST_TEST_MESSAGE("Testing frozen decimal grammar in each decimal column...");
+    for (const char* good : {"0.5", "1", "1e3", "1E-3", "1e+3", "0.5E+2", "0.010", "10",
+                             "123456789.000000001"}) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.referenceVariancePer5m = "1";
+        replaceAll(fixture.profiles, "0.01,1", std::string(good) + "," + good);
+        BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+    }
+    for (const char* bad : {"1e", "1e+", "1.5e-", "1E", "+1", ".5", "5.", "007", "00", "-.5",
+                            "1_0", "0x1p3", "1e5.5", "1ee5", "1.2.3", "inf", "nan", "--1",
+                            "\"1,5\"", "\" 1\"", "\"1 \""}) {
+        auto variance = validBundleTableFixture();
+        variance.manifest.referenceVariancePer5m = "1";
+        replaceAll(variance.profiles, "0.01,1", std::string(bad) + ",1");
+        checkBundleTablesRejectedWith(variance, "invalid decimal grammar in variance_per_5m");
+
+        auto weight = validBundleTableFixture();
+        weight.manifest.referenceVariancePer5m = "1";
+        replaceAll(weight.profiles, "0.01,1", std::string("1,") + bad);
+        checkBundleTablesRejectedWith(weight, "invalid decimal grammar in weight");
+
+        auto reference = validBundleTableFixture();
+        reference.manifest.referenceVariancePer5m = bad;
+        checkBundleTablesRejectedWith(reference, "invalid decimal grammar");
+    }
+    // A well-formed negative rate is a value error, not a grammar error.
+    auto negative = validBundleTableFixture();
+    negative.manifest.referenceVariancePer5m = "1";
+    replaceAll(negative.profiles, "0.01,1", "-1,-1");
+    checkBundleTablesRejectedWith(negative, "nonnegative decimal");
+    // An exponent that overflows a double is rejected.
+    auto huge = validBundleTableFixture();
+    huge.manifest.referenceVariancePer5m = "1";
+    replaceAll(huge.profiles, "0.01,1", "1e999,1e999");
+    checkBundleTablesRejectedWith(huge, "nonnegative decimal");
+}
+
+BOOST_AUTO_TEST_CASE(testIntegerGrammarsInEveryColumn) {
+    BOOST_TEST_MESSAGE("Testing canonical unsigned and signed integer grammars...");
+    for (const char* bad : {"-1", "+1", "01", "1.0", "1e3", " 1", "x", "0x1", "4294967296"}) {
+        auto fixture = validBundleTableFixture();
+        replaceProfileLine(fixture, "1,0,0.01,1\n", std::string(bad) + ",0,0.01,1\n");
+        checkBundleTablesRejectedWith(fixture, "profile_id");
+    }
+    for (const char* bad : {"65536", "01", "-5", "5.0"}) {
+        auto fixture = validBundleTableFixture();
+        replaceProfileLine(fixture, "1,5,0.01,1\n", std::string("1,") + bad + ",0.01,1\n");
+        checkBundleTablesRejectedWith(fixture, "minute_of_day");
+    }
+    // Closed market days with no sessions, so any offset can be tested on its own.
+    const auto offsets = [](const std::string& value) {
+        auto fixture = validBundleTableFixture();
+        replaceMarketDay(fixture, ",full_day,true,", ",holiday,false,");
+        fixture.sessionSegments =
+            fixture.sessionSegments.substr(0, fixture.sessionSegments.find('\n') + 1);
+        useOffsetRuns(fixture, "2024-01-01T00:00:00Z,2025-01-01T00:00:00Z," + value + ",0\n");
+        return fixture;
+    };
+    for (const char* good : {"0", "1", "-1", "3600", "-3600", "2147483647", "-2147483648"})
+        BOOST_CHECK_NO_THROW(parseBundleTables(offsets(good)));
+    for (const char* bad : {"2147483648", "-2147483649", "1.0", "+1", " 1", "1 ", "--1", "1a",
+                            "00", "-0", "-00", "-01"})
+        checkBundleTablesRejectedWith(offsets(bad), "signed integer");
+    checkBundleTablesRejectedWith(offsets("-"), "signed integer");
+    checkBundleTablesRejectedWith(offsets(""), "signed integer");
+}
+
+BOOST_AUTO_TEST_CASE(testUtcInstantGrammarAndNanosecondScaling) {
+    BOOST_TEST_MESSAGE("Testing the strict UTC instant grammar and fractional scaling...");
+    const auto withStart = [](const std::string& start) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.coverageStartUtc = start;
+        fixture.manifest.clockOriginUtc = start;
+        useOffsetRuns(fixture, start + ",2025-01-01T00:00:00Z,0,0\n");
+        return fixture;
+    };
+    struct Good {
+        const char* text;
+        unsigned int nanoseconds;
+    };
+    for (const Good& good : {Good{"2024-01-01T00:00:00Z", 0},
+                             Good{"2024-01-01T00:00:00.1Z", 100000000},
+                             Good{"2024-01-01T00:00:00.5Z", 500000000},
+                             Good{"2024-01-01T00:00:00.01Z", 10000000},
+                             Good{"2024-01-01T00:00:00.000000001Z", 1},
+                             Good{"2024-01-01T00:00:00.123456789Z", 123456789},
+                             Good{"2024-01-01T00:00:00.999999999Z", 999999999},
+                             Good{"2024-01-01T00:00:59Z", 0}}) {
+        const auto parsed = parseBundleTables(withStart(good.text));
+        BOOST_CHECK_EQUAL(parsed.tables.start.nanosecond(), good.nanoseconds);
+    }
+    struct Bad {
+        const char* text;
+        const char* message;
+    };
+    for (const Bad& bad : {Bad{"2024-01-01t00:00:00Z", "invalid strict UTC timestamp"},
+                           Bad{"2024-01-01 00:00:00Z", "invalid strict UTC timestamp"},
+                           Bad{"2024-01-01T00:00:00", "invalid strict UTC timestamp"},
+                           Bad{"2024-01-01T00:00Z", "invalid strict UTC timestamp"},
+                           Bad{"2024-1-01T00:00:00Z", "invalid strict UTC timestamp"},
+                           Bad{"2024-01-01T00:00:00z", "must end with Z"},
+                           Bad{"2024-01-01T00:00:00+00:00", "must end with Z"},
+                           Bad{"2024-01-01T00:00:00Z ", "must end with Z"},
+                           Bad{"2024-01-01T00:00:00ZZ", "must end with Z"},
+                           Bad{"2024-01-01T00:00:00.Z", "invalid UTC fractional seconds"},
+                           Bad{"2024-01-01T00:00:00.1234567890Z",
+                               "invalid UTC fractional seconds"},
+                           Bad{"2024-01-01T00:00:00.12a4Z", "invalid UTC fractional seconds"},
+                           Bad{"2024-01-01T24:00:00Z", "invalid UTC time"},
+                           Bad{"2024-01-01T00:60:00Z", "invalid UTC time"},
+                           Bad{"2024-01-01T00:00:60Z", "invalid UTC time"},
+                           Bad{"2024-01-01T0a:00:00Z", "invalid UTC timestamp"},
+                           Bad{"2024-02-30T00:00:00Z", "invalid Gregorian date"},
+                           Bad{"2023-02-29T00:00:00Z", "invalid Gregorian date"},
+                           Bad{"2024-13-01T00:00:00Z", "invalid Gregorian date"},
+                           Bad{"2024-00-01T00:00:00Z", "invalid Gregorian date"},
+                           Bad{"2024-01-00T00:00:00Z", "invalid Gregorian date"}})
+        checkBundleTablesRejectedWith(withStart(bad.text), bad.message);
+}
+
+BOOST_AUTO_TEST_CASE(testMarketDayDatesStayInsideTheQuantLibRange) {
+    BOOST_TEST_MESSAGE("Testing Gregorian dates at the QuantLib calendar limits...");
+    BOOST_REQUIRE_EQUAL(isoDate(Date::minDate()), "1901-01-01");
+    BOOST_REQUIRE_EQUAL(isoDate(Date::maxDate()), "2199-12-31");
+    const auto withClosedDay = [](const std::string& date) {
+        auto fixture = validBundleTableFixture();
+        fixture.marketDays += date + ",holiday,false,1,group,date_override\n";
+        return fixture;
+    };
+    for (const char* good : {"1901-01-01", "2199-12-31", "2000-02-29", "2024-02-29"})
+        BOOST_CHECK_NO_THROW(parseBundleTables(withClosedDay(good)));
+    // A well-formed date outside the calendar range, and malformed or impossible dates.
+    for (const char* bad : {"1900-12-31", "2200-01-01"})
+        checkBundleTablesRejectedWith(withClosedDay(bad), "out of bound");
+    for (const char* bad : {"2100-02-29", "2023-02-29", "0000-01-01", "2024-04-31", "2024-01-00",
+                            "2024-00-10", "2024-13-10", "2024-01-1", "24-01-01", "2024/01/01",
+                            "2024-01-011", "2024-01-01 "})
+        checkBundleTablesRejectedWith(withClosedDay(bad), "invalid Gregorian date");
+}
+
+BOOST_AUTO_TEST_CASE(testTableRowAndByteLimitsPerTable) {
+    BOOST_TEST_MESSAGE("Testing the 400,000-row and 32 MiB limits for each table...");
+    BOOST_CHECK_EQUAL(QuantLib::detail::VarianceClockLoadBudget::defaultLimit,
+                      256U * 1024U * 1024U);
+    const auto manyRows = [](const std::string& header, const std::string& row) {
+        std::string text = header;
+        text.reserve(header.size() + 400001U * row.size());
+        for (std::size_t i = 0; i < 400001U; ++i)
+            text += row;
+        return text;
+    };
+    const auto headerOf = [](const std::string& csv) { return csv.substr(0, csv.find('\n') + 1); };
+    auto base = validBundleTableFixture();
+    {
+        auto fixture = base;
+        fixture.profiles = manyRows(headerOf(base.profiles), "1,0,0.01,1\n");
+        checkBundleTablesRejectedWith(fixture, "400,000 data rows");
+    }
+    {
+        auto fixture = base;
+        fixture.marketDays = manyRows(headerOf(base.marketDays),
+                                      "2024-01-01,holiday,false,1,group,date_override\n");
+        checkBundleTablesRejectedWith(fixture, "400,000 data rows");
+    }
+    {
+        auto fixture = base;
+        fixture.sessionSegments = manyRows(
+            headerOf(base.sessionSegments),
+            "2024-01-01,2024-01-01T09:30:00Z,2024-01-01T10:00:00Z,s,,,,calendar\n");
+        checkBundleTablesRejectedWith(fixture, "400,000 data rows");
+    }
+    {
+        auto fixture = base;
+        fixture.timezoneMapping = manyRows(headerOf(base.timezoneMapping),
+                                           "2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,0,0\n");
+        checkBundleTablesRejectedWith(fixture, "400,000 data rows");
+    }
+
+    // One byte over 32 MiB is refused for every table before any parsing or charging.
+    const std::string oversized(32U * 1024U * 1024U + 1U, 'x');
+    for (std::string BundleTableFixture::*table :
+         {&BundleTableFixture::profiles, &BundleTableFixture::marketDays,
+          &BundleTableFixture::sessionSegments, &BundleTableFixture::timezoneMapping,
+          &BundleTableFixture::slotEvidence}) {
+        auto fixture = validBundleTableFixture();
+        fixture.*table = oversized;
+        checkBundleTablesRejectedWith(fixture, "exceeds size limit");
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testStreamedSlotEvidenceFailuresReleaseTheBudget) {
+    BOOST_TEST_MESSAGE("Testing that failures while streaming slot rows leave no charge...");
+    const auto rejected = [](const BundleTableFixture& fixture, const char* expected) {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        std::optional<QuantLib::detail::ParsedVarianceClockTables> escaped;
+        try {
+            escaped.emplace(QuantLib::detail::parseVarianceClockBundleData(
+                fixture.manifest, fixture.csv(), budget));
+            BOOST_ERROR("accepted tables; expected: " << expected);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find(expected) != std::string::npos,
+                                "expected \"" << expected << "\" but got: " << e.what());
+        }
+        BOOST_CHECK(!escaped);
+        BOOST_CHECK_EQUAL(budget.used(), 0U);
+    };
+    auto last = validBundleTableFixture();
+    last.slotEvidence.replace(last.slotEvidence.rfind(",direct,"), 8, ",bogus,");
+    rejected(last, "invalid estimation method");
+    auto middle = validBundleTableFixture();
+    replaceSlotEvidence(middle, "1,group,100,", "1,group,101,");
+    rejected(middle, "five-minute grid");
+    auto duplicate = validBundleTableFixture();
+    duplicate.slotEvidence += duplicate.slotEvidence.substr(
+        duplicate.slotEvidence.find('\n') + 1,
+        duplicate.slotEvidence.find('\n', duplicate.slotEvidence.find('\n') + 1) -
+            duplicate.slotEvidence.find('\n'));
+    rejected(duplicate, "duplicate slot-evidence key");
+    auto missing = validBundleTableFixture();
+    missing.slotEvidence.erase(missing.slotEvidence.rfind("1,group,1435,"));
+    rejected(missing, "exactly 288 slot evidence rows");
+    auto unselected = validBundleTableFixture();
+    replaceAll(unselected.slotEvidence, ",group,", ",other,");
+    rejected(unselected, "unselected pair");
+    auto malformed = validBundleTableFixture();
+    malformed.slotEvidence += "1,group\n";
+    rejected(malformed, "field count");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(VarianceClockHashTests)
