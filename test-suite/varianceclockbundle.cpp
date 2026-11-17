@@ -1659,6 +1659,41 @@ namespace {
 
 }
 
+namespace {
+
+    void checkBundleTablesRejectedWith(
+        const BundleTableFixture& fixture,
+        const char* expected,
+        std::size_t budgetLimit = QuantLib::detail::VarianceClockLoadBudget::defaultLimit) {
+        try {
+            parseBundleTables(fixture, budgetLimit);
+            BOOST_ERROR("accepted tables; expected a rejection mentioning: " << expected);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find(expected) != std::string::npos,
+                                "expected \"" << expected << "\" but got: " << e.what());
+        }
+    }
+
+    // Replaces every slot-evidence row of the fixture's single (profile 1, "group") pair by
+    // rows made of `tail`, the thirteen fields after the minute: source_group_id through
+    // evidence_ids_json. An empty evidence tail uses the default one-ID array.
+    void rewriteSlotRows(BundleTableFixture& fixture, const std::string& tail) {
+        std::string rows = fixture.slotEvidence.substr(0, fixture.slotEvidence.find('\n') + 1);
+        for (unsigned int minute = 0; minute < 1440; minute += 5)
+            rows += "1,group," + std::to_string(minute) + "," + tail + "\n";
+        fixture.slotEvidence = rows;
+    }
+
+    void useZeroWeightProfile(BundleTableFixture& fixture) {
+        replaceAll(fixture.profiles, "0.01,1", "0,0");
+    }
+
+    void useOffsetRuns(BundleTableFixture& fixture, const std::string& rows) {
+        fixture.timezoneMapping = "start_utc,end_utc,offset_seconds,fold\n" + rows;
+    }
+
+}
+
 BOOST_AUTO_TEST_CASE(testRejectsMissingProfileSlot) {
     BOOST_TEST_MESSAGE("Testing rejection of a profile with one missing five-minute slot...");
     auto fixture = validBundleTableFixture();
@@ -1985,8 +2020,8 @@ BOOST_AUTO_TEST_CASE(testWeightConsistencyRejectsTwoPicounitRelativeError) {
     BOOST_TEST_MESSAGE("Testing rejection at two picounits of relative rate error...");
     auto fixture = validBundleTableFixture();
     fixture.manifest.referenceVariancePer5m = "1";
-    replaceProfileLine(fixture, "0.01,1", "1,1.000000000002");
-    checkBundleTablesRejected(fixture);
+    replaceAll(fixture.profiles, "0.01,1", "1,1.000000000002");
+    checkBundleTablesRejectedWith(fixture, "does not match variance rate");
 }
 
 BOOST_AUTO_TEST_CASE(testWeightConsistencyAcceptsExactZero) {
@@ -2010,6 +2045,436 @@ BOOST_AUTO_TEST_CASE(testDecimalParsingIgnoresGlobalNumpunct) {
     GlobalLocaleGuard localeGuard;
     auto fixture = validBundleTableFixture();
     BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+}
+
+BOOST_AUTO_TEST_CASE(testLoadBudgetReservesReleasesAndReconciles) {
+    BOOST_TEST_MESSAGE("Testing load-budget reservation, release, resize and moves...");
+    using QuantLib::detail::VarianceClockLoadBudget;
+    VarianceClockLoadBudget budget(100);
+    BOOST_CHECK_EQUAL(budget.limit(), 100U);
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+    BOOST_CHECK_EQUAL(budget.remaining(), 100U);
+    {
+        auto first = budget.reserve(60);
+        BOOST_CHECK_EQUAL(first.bytes(), 60U);
+        BOOST_CHECK_EQUAL(budget.used(), 60U);
+        BOOST_CHECK_EQUAL(budget.remaining(), 40U);
+        // A refused reservation changes nothing; the limit itself is allowed.
+        BOOST_CHECK_THROW(budget.reserve(41), Error);
+        BOOST_CHECK_THROW(budget.reserve(static_cast<std::size_t>(-1)), Error);
+        BOOST_CHECK_EQUAL(budget.used(), 60U);
+        auto second = budget.reserve(40);
+        BOOST_CHECK_EQUAL(budget.used(), 100U);
+        BOOST_CHECK_EQUAL(budget.remaining(), 0U);
+        BOOST_CHECK_THROW(budget.reserve(1), Error);
+
+        second.release();
+        BOOST_CHECK_EQUAL(second.bytes(), 0U);
+        BOOST_CHECK_EQUAL(budget.used(), 60U);
+        second.release();  // releasing twice is harmless
+        BOOST_CHECK_EQUAL(budget.used(), 60U);
+        BOOST_CHECK_THROW(second.resize(1), Error);
+
+        // Reconcile a reservation with the actual size: shrink, grow, and refuse excess.
+        first.resize(10);
+        BOOST_CHECK_EQUAL(first.bytes(), 10U);
+        BOOST_CHECK_EQUAL(budget.used(), 10U);
+        first.resize(100);
+        BOOST_CHECK_EQUAL(budget.used(), 100U);
+        BOOST_CHECK_THROW(first.resize(101), Error);
+        BOOST_CHECK_EQUAL(first.bytes(), 100U);
+        BOOST_CHECK_EQUAL(budget.used(), 100U);
+        first.resize(0);
+        BOOST_CHECK_EQUAL(budget.used(), 0U);
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+
+    {
+        auto source = budget.reserve(30);
+        auto moved = std::move(source);
+        BOOST_CHECK_EQUAL(budget.used(), 30U);
+        BOOST_CHECK_EQUAL(moved.bytes(), 30U);
+        BOOST_CHECK_EQUAL(source.bytes(), 0U);
+        BOOST_CHECK_THROW(source.resize(1), Error);
+
+        auto other = budget.reserve(10);
+        BOOST_CHECK_EQUAL(budget.used(), 40U);
+        other = std::move(moved);  // the overwritten reservation is released
+        BOOST_CHECK_EQUAL(budget.used(), 30U);
+        BOOST_CHECK_EQUAL(other.bytes(), 30U);
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+
+    VarianceClockLoadBudget::Reservation empty;
+    BOOST_CHECK_EQUAL(empty.bytes(), 0U);
+    empty.release();
+    BOOST_CHECK_THROW(empty.resize(1), Error);
+    BOOST_CHECK_NO_THROW(budget.reserve(100));
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testBundleTablesChargeAndReleaseTheLoadBudget) {
+    BOOST_TEST_MESSAGE("Testing that parsing charges its retained output and releases it...");
+    using QuantLib::detail::VarianceClockLoadBudget;
+    const auto fixture = validBundleTableFixture();
+
+    // The smallest budget that admits the fixture, found by bisection.
+    std::size_t low = 0;
+    std::size_t high = VarianceClockLoadBudget::defaultLimit;
+    while (low + 1 < high) {
+        const std::size_t middle = low + (high - low) / 2;
+        bool accepted = true;
+        try {
+            parseBundleTables(fixture, middle);
+        } catch (const Error&) {
+            accepted = false;
+        }
+        (accepted ? high : low) = middle;
+    }
+    const std::size_t smallest = high;
+    // The parser holds decoded text for the rows it reads, so it must reserve at least the
+    // size of the CSV bytes before it starts.
+    const std::size_t inputBytes = fixture.profiles.size() + fixture.marketDays.size() +
+                                   fixture.sessionSegments.size() +
+                                   fixture.timezoneMapping.size() + fixture.slotEvidence.size();
+    BOOST_CHECK_GE(smallest, inputBytes);
+    BOOST_CHECK_LT(smallest, 64U * 1024U * 1024U);
+
+    // At the threshold parsing succeeds and keeps charging exactly its retained output;
+    // one byte less is refused before anything is retained.
+    {
+        auto parsed = parseBundleTables(fixture, smallest);
+        const std::size_t retained =
+            parsed.tables.profiles.capacity() *
+                sizeof(QuantLib::VarianceClockProfileInput) +
+            parsed.tables.dates.capacity() *
+                sizeof(QuantLib::VarianceClockDateInput) +
+            parsed.tables.offsets.capacity() *
+                sizeof(QuantLib::VarianceClockOffsetInput);
+        BOOST_CHECK_EQUAL(parsed.budget->used(), retained);
+        BOOST_CHECK_EQUAL(parsed.tables.storageCharge.bytes(), retained);
+        BOOST_CHECK_LE(parsed.budget->used(), smallest);
+    }
+    QuantLib::detail::VarianceClockLoadBudget refused(smallest - 1);
+    BOOST_CHECK_THROW(QuantLib::detail::parseVarianceClockBundleData(
+                          fixture.manifest, fixture.csv(), refused),
+                      Error);
+    BOOST_CHECK_EQUAL(refused.used(), 0U);
+
+    // The retained charge is released with the result.
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    {
+        auto tables = QuantLib::detail::parseVarianceClockBundleData(
+            fixture.manifest, fixture.csv(), budget);
+        BOOST_CHECK_GT(budget.used(), 0U);
+        BOOST_CHECK_EQUAL(budget.used(), tables.storageCharge.bytes());
+        auto moved = std::move(tables);
+        BOOST_CHECK_EQUAL(budget.used(), moved.storageCharge.bytes());
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectedTablesReleaseEveryReservation) {
+    BOOST_TEST_MESSAGE("Testing that a late validation failure leaves no budget charged...");
+    // Every rejection, early or after the retained-output charge, returns the budget to zero
+    // and exposes no partial tables.
+    auto early = validBundleTableFixture();
+    early.profiles += "1,0,0.01,1\n";
+    auto late = validBundleTableFixture();
+    late.sessionSegments =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
+    auto malformed = validBundleTableFixture();
+    malformed.slotEvidence += "1,group\n";
+    for (const BundleTableFixture* fixture : {&early, &late, &malformed}) {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        std::optional<QuantLib::detail::ParsedVarianceClockTables> escaped;
+        BOOST_CHECK_THROW(escaped.emplace(QuantLib::detail::parseVarianceClockBundleData(
+                              fixture->manifest, fixture->csv(), budget)),
+                          Error);
+        BOOST_CHECK(!escaped);
+        BOOST_CHECK_EQUAL(budget.used(), 0U);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidMarketDayEnumerations) {
+    BOOST_TEST_MESSAGE("Testing rejection of unknown market-day enumeration values...");
+    for (const char* value : {"yes", "TRUE", "True", "1", ""}) {
+        auto fixture = validBundleTableFixture();
+        replaceMarketDay(fixture, ",full_day,true,", std::string(",full_day,") + value + ",");
+        checkBundleTablesRejectedWith(fixture, "invalid is_open");
+    }
+    for (const char* value : {"bogus", "Full_Day", "half_day", ""}) {
+        auto fixture = validBundleTableFixture();
+        replaceMarketDay(fixture, ",full_day,true,", std::string(",") + value + ",true,");
+        checkBundleTablesRejectedWith(fixture, "invalid market date type");
+    }
+    for (const char* value : {"bogus", "DATE_OVERRIDE", ""}) {
+        auto fixture = validBundleTableFixture();
+        replaceMarketDay(fixture, ",group,date_override", std::string(",group,") + value);
+        checkBundleTablesRejectedWith(fixture, "invalid selection reason");
+    }
+    for (const char* type : {"early_close", "holiday", "weekend", "special"}) {
+        auto fixture = validBundleTableFixture();
+        replaceMarketDay(fixture, ",full_day,", std::string(",") + type + ",");
+        BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidBundleIdentifiers) {
+    BOOST_TEST_MESSAGE("Testing identifier length, whitespace and control rules in tables...");
+    for (const std::string& group : {std::string(" group"), std::string("group "),
+                                     std::string("gr\x01oup"), std::string(129, 'g'),
+                                     std::string("gr\x7f" "oup")}) {
+        auto fixture = validBundleTableFixture();
+        replaceAll(fixture.marketDays, ",group,", "," + group + ",");
+        replaceAll(fixture.slotEvidence, ",group,", "," + group + ",");
+        checkBundleTablesRejectedWith(fixture, "target group ID");
+    }
+    auto longest = validBundleTableFixture();
+    replaceAll(longest.marketDays, ",group,", "," + std::string(128, 'g') + ",");
+    replaceAll(longest.slotEvidence, ",group,", "," + std::string(128, 'g') + ",");
+    BOOST_CHECK_NO_THROW(parseBundleTables(longest));
+
+    auto session = validBundleTableFixture();
+    replaceSession(session, ",session,", ", session,");
+    checkBundleTablesRejectedWith(session, "session ID");
+    auto evidence = validBundleTableFixture();
+    replaceSession(evidence, ",calendar\n", ",calendar\x01\n");
+    checkBundleTablesRejectedWith(evidence, "session evidence ID");
+    auto source = validBundleTableFixture();
+    replaceSession(source, ",source,", ",source ,");
+    checkBundleTablesRejectedWith(source, "source session ID");
+}
+
+BOOST_AUTO_TEST_CASE(testChecksSessionOffsetClaimAgainstTheRunAtItsStart) {
+    BOOST_TEST_MESSAGE("Testing session offset claims against the timezone run at start...");
+    // Offset 0 until 12:00Z, then +1 hour.
+    const std::string runs =
+        "2024-01-01T00:00:00Z,2024-01-01T12:00:00Z,0,0\n"
+        "2024-01-01T12:00:00Z,2025-01-01T00:00:00Z,3600,1\n";
+    auto withClaim = [&runs](const std::string& start, const std::string& end,
+                             const std::string& claim) {
+        auto fixture = validBundleTableFixture();
+        useOffsetRuns(fixture, runs);
+        fixture.sessionSegments =
+            fixture.sessionSegments.substr(0, fixture.sessionSegments.find('\n') + 1) +
+            "2024-01-01," + start + "," + end + ",session,,," + claim + ",calendar\n";
+        return fixture;
+    };
+    // A segment spanning the change takes the run containing its start.
+    BOOST_CHECK_NO_THROW(parseBundleTables(
+        withClaim("2024-01-01T11:00:00Z", "2024-01-01T14:00:00Z", "0")));
+    checkBundleTablesRejectedWith(
+        withClaim("2024-01-01T11:00:00Z", "2024-01-01T14:00:00Z", "3600"),
+        "offset claim disagrees");
+    // A segment beginning exactly at the boundary uses the new run.
+    BOOST_CHECK_NO_THROW(parseBundleTables(
+        withClaim("2024-01-01T12:00:00Z", "2024-01-01T14:00:00Z", "3600")));
+    checkBundleTablesRejectedWith(
+        withClaim("2024-01-01T12:00:00Z", "2024-01-01T14:00:00Z", "0"),
+        "offset claim disagrees");
+    // An empty claim is allowed; noncanonical spellings are not.
+    BOOST_CHECK_NO_THROW(parseBundleTables(
+        withClaim("2024-01-01T12:00:00Z", "2024-01-01T14:00:00Z", "")));
+    for (const char* claim : {"+3600", "-0", "3600.0", "abc", "2147483648"})
+        checkBundleTablesRejectedWith(
+            withClaim("2024-01-01T12:00:00Z", "2024-01-01T14:00:00Z", claim), "signed integer");
+}
+
+BOOST_AUTO_TEST_CASE(testSessionSegmentsStayInsideTheirLocalDate) {
+    BOOST_TEST_MESSAGE("Testing half-open session intervals against the local date...");
+    auto session = [](const std::string& start, const std::string& end, int offset) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.coverageStartUtc = "2023-12-30T00:00:00Z";
+        fixture.manifest.clockOriginUtc = fixture.manifest.coverageStartUtc;
+        useOffsetRuns(fixture, "2023-12-30T00:00:00Z,2025-01-01T00:00:00Z," +
+                                   std::to_string(offset) + ",0\n");
+        fixture.sessionSegments =
+            fixture.sessionSegments.substr(0, fixture.sessionSegments.find('\n') + 1) +
+            "2024-01-01," + start + "," + end + ",session,,,,calendar\n";
+        return fixture;
+    };
+    // The end instant is exclusive: ending at local midnight stays inside the date.
+    BOOST_CHECK_NO_THROW(parseBundleTables(
+        session("2024-01-01T09:00:00Z", "2024-01-02T00:00:00Z", 0)));
+    checkBundleTablesRejectedWith(
+        session("2024-01-01T09:00:00Z", "2024-01-02T00:00:00.000000001Z", 0),
+        "crosses its declared local date");
+    checkBundleTablesRejectedWith(
+        session("2024-01-01T09:00:00Z", "2024-01-02T00:00:01Z", 0),
+        "crosses its declared local date");
+    checkBundleTablesRejectedWith(
+        session("2023-12-31T23:59:59Z", "2024-01-01T10:00:00Z", 0),
+        "crosses its declared local date");
+    BOOST_CHECK_NO_THROW(parseBundleTables(
+        session("2024-01-01T00:00:00Z", "2024-01-01T10:00:00Z", 0)));
+    // The local date follows the supplied offset, not UTC.
+    BOOST_CHECK_NO_THROW(parseBundleTables(
+        session("2023-12-31T23:00:00Z", "2024-01-01T10:00:00Z", 3600)));
+    checkBundleTablesRejectedWith(
+        session("2023-12-31T22:59:59Z", "2024-01-01T10:00:00Z", 3600),
+        "crosses its declared local date");
+    BOOST_CHECK_NO_THROW(parseBundleTables(
+        session("2024-01-01T05:00:00Z", "2024-01-02T04:59:59Z", -18000)));
+    checkBundleTablesRejectedWith(
+        session("2024-01-01T05:00:00Z", "2024-01-02T05:00:01Z", -18000),
+        "crosses its declared local date");
+    // Empty and reversed intervals.
+    checkBundleTablesRejectedWith(
+        session("2024-01-01T10:00:00Z", "2024-01-01T10:00:00Z", 0), "empty session segment");
+    checkBundleTablesRejectedWith(
+        session("2024-01-01T11:00:00Z", "2024-01-01T10:00:00Z", 0), "empty session segment");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsSessionDateAbsentFromMarketDaysByName) {
+    BOOST_TEST_MESSAGE("Testing the session-date membership rule on its own...");
+    auto fixture = validBundleTableFixture();
+    fixture.sessionSegments +=
+        "2024-01-02,2024-01-02T09:30:00Z,2024-01-02T16:00:00Z,session,,,0,calendar\n";
+    checkBundleTablesRejectedWith(fixture, "absent from market days");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsMarketDayWithUnknownProfileByName) {
+    BOOST_TEST_MESSAGE("Testing a market day that selects an unknown profile...");
+    auto fixture = validBundleTableFixture();
+    fixture.marketDays += "2024-01-02,holiday,false,3,group,date_override\n";
+    checkBundleTablesRejectedWith(fixture, "unknown profile");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidTimezoneMappingRuns) {
+    BOOST_TEST_MESSAGE("Testing timezone mapping fold, range, contiguity and coverage...");
+    auto rejected = [](const std::string& rows, const char* expected) {
+        auto fixture = validBundleTableFixture();
+        useOffsetRuns(fixture, rows);
+        checkBundleTablesRejectedWith(fixture, expected);
+    };
+    rejected("2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,0,2\n", "invalid timezone fold");
+    rejected("2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,0,\n", "invalid timezone fold");
+    rejected("2024-01-01T00:00:00Z,2024-01-01T00:00:00Z,0,0\n"
+             "2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,0,0\n",
+             "empty timezone mapping range");
+    rejected("2024-01-01T00:00:00Z,2024-06-01T00:00:00Z,0,0\n"
+             "2024-06-02T00:00:00Z,2025-01-01T00:00:00Z,0,0\n",
+             "not contiguous");
+    rejected("2024-01-01T00:00:00Z,2024-06-01T00:00:00Z,0,0\n"
+             "2024-05-31T00:00:00Z,2025-01-01T00:00:00Z,0,0\n",
+             "not contiguous");
+    rejected("2024-01-01T00:00:01Z,2025-01-01T00:00:00Z,0,0\n", "does not cover");
+    rejected("2024-01-01T00:00:00Z,2024-12-31T23:59:59Z,0,0\n", "does not cover");
+    rejected("2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,2147483648,0\n", "signed integer");
+    rejected("2024-01-01T00:00:00Z,2025-01-01T00:00:00Z,+0,0\n", "signed integer");
+    rejected("", "does not cover");
+
+    // Coverage need not end at a run boundary, but must be fully covered.
+    auto exact = validBundleTableFixture();
+    useOffsetRuns(exact, "2024-01-01T00:00:00Z,2026-01-01T00:00:00Z,0,0\n");
+    BOOST_CHECK_EQUAL(parseBundleTables(exact).tables.offsets.size(), 1U);
+
+    auto empty = validBundleTableFixture();
+    empty.manifest.coverageEndUtc = empty.manifest.coverageStartUtc;
+    checkBundleTablesRejectedWith(empty, "coverage is empty");
+    auto reversed = validBundleTableFixture();
+    reversed.manifest.coverageEndUtc = "2023-01-01T00:00:00Z";
+    checkBundleTablesRejectedWith(reversed, "coverage is empty");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsProfileCalibrationMismatch) {
+    BOOST_TEST_MESSAGE("Testing manifest profile calibrations against the profile table...");
+    auto unreferenced = validBundleTableFixture();
+    unreferenced.manifest.profileCalibrations.push_back({2, "2024-01-01T00:00:00Z", {"price"}});
+    checkBundleTablesRejectedWith(unreferenced, "unreferenced profile calibration");
+    auto missing = validBundleTableFixture();
+    missing.manifest.profileCalibrations.clear();
+    checkBundleTablesRejectedWith(missing, "missing profile calibration");
+    auto duplicate = validBundleTableFixture();
+    duplicate.manifest.profileCalibrations.push_back(
+        duplicate.manifest.profileCalibrations.front());
+    checkBundleTablesRejectedWith(duplicate, "duplicate profile calibration");
+    auto grammar = validBundleTableFixture();
+    grammar.manifest.profileCalibrations.front().calibrationAsOfUtc = "2024-01-01 00:00:00";
+    checkBundleTablesRejectedWith(grammar, "UTC");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidProfileRates) {
+    BOOST_TEST_MESSAGE("Testing profile reference variance and rate validation...");
+    auto reference = validBundleTableFixture();
+    reference.manifest.referenceVariancePer5m = "0";
+    checkBundleTablesRejectedWith(reference, "reference variance must be positive");
+    auto negative = validBundleTableFixture();
+    replaceAll(negative.profiles, "0.01,1", "-0.01,-1");
+    checkBundleTablesRejectedWith(negative, "nonnegative decimal");
+    for (const char* bad : {"abc", "", "1e", "0x10", "\"1,5\"", "inf", "nan", "+1"}) {
+        auto fixture = validBundleTableFixture();
+        replaceAll(fixture.profiles, "0.01,1", std::string(bad) + ",1");
+        checkBundleTablesRejectedWith(fixture, "decimal");
+    }
+    // An extra row for the first slot past the end of the day.
+    auto beyond = validBundleTableFixture();
+    beyond.profiles += "1,1440,0.01,1\n";
+    checkBundleTablesRejectedWith(beyond, "five-minute grid");
+}
+
+BOOST_AUTO_TEST_CASE(testSlotEvidenceMethodRules) {
+    BOOST_TEST_MESSAGE("Testing slot-evidence method rules for pooled, zero and unknown...");
+    const std::string ids = csvEvidenceIds();
+    // Minimum direct returns 5 with a gap-pool threshold of 2: a pooled slot.
+    auto pooled = [&ids](const std::string& tail) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.calibrationSettings.minimumDirectReturns = 5;
+        fixture.manifest.calibrationSettings.gapPoolReturnThreshold = 2U;
+        rewriteSlotRows(fixture, tail + "," + ids);
+        return fixture;
+    };
+    const std::string goodPooled = "src,1,2,1,1,pooled,label,2,,";
+    BOOST_CHECK_NO_THROW(parseBundleTables(pooled(goodPooled)));
+    for (const char* bad : {
+             "src,1,2,1,1,pooled,label,1,,",       // gap-pool count below the threshold
+             "src,5,2,1,1,pooled,label,2,,",       // target returns not below the minimum
+             ",1,2,1,1,pooled,label,2,,",          // no source group
+             "src,1,2,1,1,pooled,,2,,",            // no grouping label
+             "src,1,not_applicable,1,1,pooled,label,2,,",
+             "src,1,2,1,1,pooled,label,not_applicable,,",
+             "src,1,2,1,1,pooled,label,2,fb,"})    // fallback ID on a pooled row
+        checkBundleTablesRejectedWith(pooled(bad), "invalid pooled slot evidence");
+
+    auto noThreshold = pooled(goodPooled);
+    noThreshold.manifest.calibrationSettings.gapPoolReturnThreshold.reset();
+    checkBundleTablesRejectedWith(noThreshold, "invalid pooled slot evidence");
+
+    // A zero slot needs a zero rate, exact counts, no pooling data and cited evidence.
+    auto zero = [&ids](const std::string& tail, const std::string& evidence) {
+        auto fixture = validBundleTableFixture();
+        useZeroWeightProfile(fixture);
+        rewriteSlotRows(fixture, tail + "," + evidence);
+        return fixture;
+    };
+    const std::string goodZero = ",5,not_applicable,1,not_applicable,zero,,not_applicable,,";
+    BOOST_CHECK_NO_THROW(parseBundleTables(zero(goodZero, ids)));
+    for (const char* bad : {
+             "src,5,not_applicable,1,not_applicable,zero,,not_applicable,,",
+             ",unknown,not_applicable,1,not_applicable,zero,,not_applicable,,",
+             ",5,3,1,not_applicable,zero,,not_applicable,,",
+             ",5,not_applicable,1,not_applicable,zero,label,not_applicable,,",
+             ",5,not_applicable,1,not_applicable,zero,,3,,",
+             ",5,not_applicable,1,not_applicable,zero,,not_applicable,fb,"})
+        checkBundleTablesRejectedWith(zero(bad, ids), "invalid zero slot evidence");
+    checkBundleTablesRejectedWith(zero(goodZero, csvEvidenceIds("[]")),
+                                  "invalid zero slot evidence");
+
+    // Method names are exact.
+    for (const char* method : {"bogus", "Direct", ""}) {
+        auto fixture = validBundleTableFixture();
+        rewriteSlotRows(fixture, std::string(",1,not_applicable,1,not_applicable,") + method +
+                                     ",,not_applicable,,," + ids);
+        checkBundleTablesRejectedWith(fixture, "invalid estimation method");
+    }
+
+    // A fallback slot may have an unknown return count.
+    auto fallback = validBundleTableFixture();
+    rewriteSlotRows(fallback,
+                    ",unknown,not_applicable,1,not_applicable,fallback,,not_applicable,fb,," + ids);
+    BOOST_CHECK_NO_THROW(parseBundleTables(fallback));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
