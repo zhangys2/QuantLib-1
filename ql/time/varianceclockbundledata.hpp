@@ -52,10 +52,9 @@ namespace QuantLib {
 
               private:
                 friend class VarianceClockLoadBudget;
-                Reservation(std::shared_ptr<VarianceClockBundleBudgetState> state,
-                            std::size_t bytes) noexcept;
+                Reservation(VarianceClockLoadBudget* budget, std::size_t bytes) noexcept;
 
-                std::shared_ptr<VarianceClockBundleBudgetState> state_;
+                VarianceClockLoadBudget* budget_ = nullptr;
                 std::size_t bytes_ = 0;
             };
 
@@ -68,11 +67,12 @@ namespace QuantLib {
             std::size_t limit() const noexcept;
             std::size_t used() const noexcept;
             std::size_t remaining() const noexcept;
-            VarianceClockBundleBudgetAllocator<VarianceClockBundleWarning>
-            warningAllocator() const noexcept;
-
           private:
-            std::shared_ptr<VarianceClockBundleBudgetState> state_;
+            void increase(std::size_t bytes);
+            void decrease(std::size_t bytes) noexcept;
+
+            std::size_t limit_;
+            std::size_t used_ = 0;
         };
 
         struct VarianceClockBundleCsvBytes {

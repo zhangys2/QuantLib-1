@@ -62,7 +62,7 @@ namespace QuantLib {
                 const EvidenceMap& evidence;
                 std::set<std::string>& used;
                 const std::vector<VarianceClockProfileInput>& profiles;
-                VarianceClockBundleWarningVector& warnings;
+                std::vector<VarianceClockBundleWarning>& warnings;
                 VarianceClockLoadBudget& budget;
                 VarianceClockLoadBudget::Reservation& storageCharge;
             };
@@ -207,10 +207,69 @@ namespace QuantLib {
                                    std::numeric_limits<std::size_t>::max() - bytes,
                                "variance-clock warning accounting overflow");
                     bytes += target.capacity();
-                    QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
-                                            context.storageCharge.bytes(),
-                               "variance-clock warning accounting overflow");
-                    context.storageCharge.resize(context.storageCharge.bytes() + bytes);
+                    const auto previousCharge = context.storageCharge.bytes();
+                    if (context.warnings.size() == context.warnings.capacity()) {
+                        QL_REQUIRE(context.warnings.capacity() <
+                                       std::numeric_limits<std::size_t>::max(),
+                                   "variance-clock warning accounting overflow");
+                        const auto oldCapacity = context.warnings.capacity();
+                        QL_REQUIRE(oldCapacity <=
+                                       std::numeric_limits<std::size_t>::max() /
+                                           sizeof(VarianceClockBundleWarning),
+                                   "variance-clock warning accounting overflow");
+                        const auto oldBufferBytes =
+                            oldCapacity * sizeof(VarianceClockBundleWarning);
+                        QL_REQUIRE(previousCharge >= oldBufferBytes,
+                                   "variance-clock warning budget mismatch");
+                        const auto requestedCapacity = context.warnings.size() + 1;
+                        QL_REQUIRE(requestedCapacity <=
+                                       std::numeric_limits<std::size_t>::max() /
+                                           sizeof(VarianceClockBundleWarning),
+                                   "variance-clock warning accounting overflow");
+                        const auto requestedBytes =
+                            requestedCapacity * sizeof(VarianceClockBundleWarning);
+                        QL_REQUIRE(requestedBytes <=
+                                       std::numeric_limits<std::size_t>::max() / 2,
+                                   "variance-clock warning accounting overflow");
+                        const auto nonBufferCharge = previousCharge - oldBufferBytes;
+                        QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
+                                                nonBufferCharge &&
+                                       oldBufferBytes <= std::numeric_limits<std::size_t>::max() -
+                                                             nonBufferCharge - bytes &&
+                                       2 * requestedBytes <=
+                                           std::numeric_limits<std::size_t>::max() -
+                                               nonBufferCharge - bytes - oldBufferBytes,
+                                   "variance-clock warning accounting overflow");
+                        context.storageCharge.resize(nonBufferCharge + bytes +
+                                                     oldBufferBytes + 2 * requestedBytes);
+                        try {
+                            context.warnings.reserve(requestedCapacity);
+                        } catch (...) {
+                            context.storageCharge.resize(previousCharge);
+                            throw;
+                        }
+                        QL_REQUIRE(context.warnings.capacity() <=
+                                       std::numeric_limits<std::size_t>::max() /
+                                           sizeof(VarianceClockBundleWarning),
+                                   "variance-clock warning accounting overflow");
+                        const auto actualBufferBytes =
+                            context.warnings.capacity() * sizeof(VarianceClockBundleWarning);
+                        QL_REQUIRE(actualBufferBytes <=
+                                       std::numeric_limits<std::size_t>::max() -
+                                           nonBufferCharge - bytes,
+                                   "variance-clock warning accounting overflow");
+                        // std::vector::reserve may allocate more than requested. Reconcile
+                        // the retained charge after allocation; the 2x pre-charge is
+                        // conservative in practice, but the standard does not cap this
+                        // implementation-chosen capacity multiplier.
+                        context.storageCharge.resize(nonBufferCharge + bytes +
+                                                     actualBufferBytes);
+                    } else {
+                        QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
+                                                previousCharge,
+                                   "variance-clock warning accounting overflow");
+                        context.storageCharge.resize(previousCharge + bytes);
+                    }
                     context.warnings.push_back(
                         {expectedCode, "warning", profile, std::move(target),
                          static_cast<std::uint16_t>(minute), std::move(ids)});
@@ -365,7 +424,7 @@ namespace QuantLib {
                 profile->calibrationAsOf = calibrationAsOf;
             }
 
-            VarianceClockBundleWarningVector warnings(budget.warningAllocator());
+            std::vector<VarianceClockBundleWarning> warnings;
             StreamContext context{manifest, evidence, used, parsed.profiles, warnings, budget,
                                   parsed.storageCharge};
             QL_REQUIRE(visitVarianceClockCsvRows(csv.sessionSegments,
@@ -383,19 +442,46 @@ namespace QuantLib {
                                 right.minuteOfDay, right.evidenceIds);
             };
             std::sort(warnings.begin(), warnings.end(), warningOrder);
-            std::vector<VarianceClockManifestWarning> manifestWarnings = manifest.warnings;
+            auto manifestWarningCharge = budget.reserve(0);
+            std::vector<const VarianceClockManifestWarning*> manifestWarnings;
+            if (!manifest.warnings.empty()) {
+                QL_REQUIRE(manifest.warnings.size() <=
+                               std::numeric_limits<std::size_t>::max() /
+                                   sizeof(const VarianceClockManifestWarning*),
+                           "variance-clock warning accounting overflow");
+                const auto requestedBytes =
+                    manifest.warnings.size() * sizeof(const VarianceClockManifestWarning*);
+                QL_REQUIRE(requestedBytes <= std::numeric_limits<std::size_t>::max() / 2,
+                           "variance-clock warning accounting overflow");
+                manifestWarningCharge.resize(2 * requestedBytes);
+                try {
+                    manifestWarnings.reserve(manifest.warnings.size());
+                } catch (...) {
+                    manifestWarningCharge.release();
+                    throw;
+                }
+                QL_REQUIRE(manifestWarnings.capacity() <=
+                               std::numeric_limits<std::size_t>::max() /
+                                   sizeof(const VarianceClockManifestWarning*),
+                           "variance-clock warning accounting overflow");
+                const auto actualBytes =
+                    manifestWarnings.capacity() * sizeof(const VarianceClockManifestWarning*);
+                manifestWarningCharge.resize(actualBytes);
+                for (const auto& warning : manifest.warnings)
+                    manifestWarnings.push_back(&warning);
+            }
             std::sort(manifestWarnings.begin(), manifestWarnings.end(),
-                      [](const auto& left, const auto& right) {
-                          return std::tie(left.code, left.profileId, left.targetGroupId,
-                                          left.minuteOfDay, left.evidenceIds) <
-                                 std::tie(right.code, right.profileId, right.targetGroupId,
-                                          right.minuteOfDay, right.evidenceIds);
+                      [](const auto* left, const auto* right) {
+                          return std::tie(left->code, left->profileId, left->targetGroupId,
+                                          left->minuteOfDay, left->evidenceIds) <
+                                 std::tie(right->code, right->profileId, right->targetGroupId,
+                                          right->minuteOfDay, right->evidenceIds);
                       });
             QL_REQUIRE(warnings.size() == manifestWarnings.size(),
                        "manifest warnings differ from derived warnings");
             for (std::size_t i = 0; i < warnings.size(); ++i) {
                 const auto& derived = warnings[i];
-                const auto& supplied = manifestWarnings[i];
+                const auto& supplied = *manifestWarnings[i];
                 QL_REQUIRE(supplied.severity == "warning" && supplied.code == derived.code &&
                                supplied.profileId == derived.profileId &&
                                supplied.targetGroupId == derived.targetGroupId &&

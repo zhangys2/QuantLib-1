@@ -27,13 +27,14 @@
 #include <ql/time/varianceclockbundletypes.hpp>
 #include <ql/time/varianceclockbundledata.hpp>
 #include <ql/time/varianceclockcsv.hpp>
+#include <vector>
 
 namespace QuantLib {
     namespace detail {
 
         struct VarianceClockValidatedBundle {
             VarianceClockTables tables;
-            VarianceClockBundleWarningVector warnings;
+            std::vector<VarianceClockBundleWarning> warnings;
             VarianceClockBundleProvenance provenance;
             VarianceClockLoadBudget::Reservation storageCharge;
         };

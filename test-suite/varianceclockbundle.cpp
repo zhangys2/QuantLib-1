@@ -45,6 +45,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <type_traits>
 #include <utility>
 #include <vector>
 #include <random>
@@ -2711,18 +2712,17 @@ BOOST_AUTO_TEST_CASE(testLoadBudgetReservesReleasesAndReconciles) {
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 
-BOOST_AUTO_TEST_CASE(testWarningAllocatorChargesRequestsWithoutCapacityAssumptions) {
-    BOOST_TEST_MESSAGE("Testing warning allocations are budgeted by allocator request...");
-    using QuantLib::VarianceClockBundleWarning;
+BOOST_AUTO_TEST_CASE(testLoadBudgetRejectsOverflowWithoutLeakingCharge) {
+    BOOST_TEST_MESSAGE("Testing load-budget overflow rejection and reservation cleanup...");
     using QuantLib::detail::VarianceClockLoadBudget;
 
-    VarianceClockLoadBudget budget(sizeof(VarianceClockBundleWarning));
-    auto allocator = budget.warningAllocator();
-    auto* warning = allocator.allocate(1);
-    BOOST_CHECK_EQUAL(budget.used(), sizeof(VarianceClockBundleWarning));
-    BOOST_CHECK_THROW(allocator.allocate(2), Error);
-    BOOST_CHECK_EQUAL(budget.used(), sizeof(VarianceClockBundleWarning));
-    allocator.deallocate(warning, 1);
+    VarianceClockLoadBudget budget(std::numeric_limits<std::size_t>::max());
+    auto reservation = budget.reserve(std::numeric_limits<std::size_t>::max());
+    BOOST_CHECK_EQUAL(budget.used(), std::numeric_limits<std::size_t>::max());
+    BOOST_CHECK_EQUAL(budget.remaining(), 0U);
+    BOOST_CHECK_THROW(budget.reserve(1), Error);
+    BOOST_CHECK_EQUAL(budget.used(), std::numeric_limits<std::size_t>::max());
+    reservation.release();
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 
@@ -4062,6 +4062,21 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
     }
     BOOST_REQUIRE_EQUAL(heapIds, 288U);
     BOOST_CHECK_GE(warningCharge, stored);
+}
+
+BOOST_AUTO_TEST_CASE(testLoadedWarningVectorUsesThePublicStandardVectorType) {
+    BOOST_TEST_MESSAGE("Testing the public warning vector type and copy independence...");
+    using PublicWarnings = std::vector<VarianceClockBundleWarning>;
+    static_assert(std::is_same<decltype(VarianceClockLoadedBundle::warnings),
+                               PublicWarnings>::value,
+                  "loaded warnings must use the frozen std::vector API");
+
+    VarianceClockLoadedBundle loaded;
+    loaded.warnings.push_back({"code", "warning", 1, "group", 5, {"evidence"}});
+    PublicWarnings copy = loaded.warnings;
+    copy.front().code = "changed";
+    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "code");
+    BOOST_CHECK_EQUAL(copy.front().code, "changed");
 }
 
 BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
