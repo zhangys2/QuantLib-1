@@ -296,6 +296,10 @@ namespace QuantLib {
 
         } // namespace
 
+        VarianceClockInstant parseVarianceClockInstant(std::string_view text) {
+            return parseInstant(text);
+        }
+
         VarianceClockLoadBudget::Reservation::Reservation(VarianceClockLoadBudget* budget,
                                                            std::size_t bytes) noexcept
         : budget_(budget), bytes_(bytes) {}

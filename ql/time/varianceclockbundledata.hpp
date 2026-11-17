@@ -101,6 +101,8 @@ namespace QuantLib {
             std::vector<VarianceClockOffsetInput> offsets;
         };
 
+        VarianceClockInstant parseVarianceClockInstant(std::string_view text);
+
         ParsedVarianceClockTables parseVarianceClockBundleData(
             const VarianceClockManifest& manifest,
             const VarianceClockBundleCsvBytes& csv,

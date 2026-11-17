@@ -3143,7 +3143,11 @@ BOOST_AUTO_TEST_CASE(testSlotEvidenceMethodRules) {
     BOOST_CHECK_NO_THROW(parseBundleTables(fallback));
 }
 
+BOOST_AUTO_TEST_SUITE_END()
+
 BOOST_AUTO_TEST_SUITE(VarianceClockBundleEvidenceTests)
+
+using namespace VarianceClockBundleTableTests;
 
 BOOST_AUTO_TEST_CASE(testRejectsMissingSlotEvidence) {
     BOOST_TEST_MESSAGE("Testing rejection of a selected slot without evidence...");
@@ -3173,6 +3177,102 @@ BOOST_AUTO_TEST_CASE(testRejectsDanglingEvidenceId) {
                     ",1,not_applicable,1,not_applicable,direct,,not_applicable,,," +
                         csvEvidenceIds(R"(["unknown-id"])"));
     checkBundleEvidenceRejectedWith(fixture, "missing slot evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testSlotEvidenceNeedsAtLeastOnePriceInput) {
+    BOOST_TEST_MESSAGE("Testing a slot may cite non-price evidence alongside price evidence...");
+    auto fixture = validBundleTableFixture();
+    const auto mixedIds = csvEvidenceIds(R"(["calendar","price"])");
+    replaceAll(fixture.slotEvidence, csvEvidenceIds(), mixedIds);
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    BOOST_CHECK_NO_THROW(validateBundleEvidence(fixture, budget));
+
+    auto noPrice = validBundleTableFixture();
+    replaceAll(noPrice.slotEvidence, csvEvidenceIds(), csvEvidenceIds(R"(["calendar"])"));
+    checkBundleEvidenceRejectedWith(noPrice, "price_input evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsClockOriginDifferentFromCoverageStart) {
+    BOOST_TEST_MESSAGE("Testing clock_origin_utc equals coverage_start_utc...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.clockOriginUtc = "2024-01-01T00:00:01Z";
+    checkBundleEvidenceRejectedWith(fixture, "clock_origin_utc must equal coverage_start_utc");
+}
+
+BOOST_AUTO_TEST_CASE(testPublishedEvidenceTimestampIsParsed) {
+    BOOST_TEST_MESSAGE("Testing a present published_at_utc uses strict instant grammar...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence[2].publishedAtUtc = "2024-01-01 00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "invalid strict UTC timestamp");
+}
+
+BOOST_AUTO_TEST_CASE(testEvidenceNullabilityRequiresVerifiableProvenance) {
+    BOOST_TEST_MESSAGE("Testing nullable evidence fields retain required provenance...");
+    auto missingDigestSupport = validBundleTableFixture();
+    missingDigestSupport.manifest.evidence[0].contentSha256 = std::nullopt;
+    missingDigestSupport.manifest.evidence[0].attestationRef = std::nullopt;
+    checkBundleEvidenceRejectedWith(
+        missingDigestSupport, "evidence without content_sha256 requires attestation_ref");
+}
+
+BOOST_AUTO_TEST_CASE(testEvidenceRecordLimitAndBudgetedWarnings) {
+    BOOST_TEST_MESSAGE("Testing evidence-record and derived-warning resource limits...");
+    auto exactLimit = validBundleTableFixture();
+    auto& calibration = exactLimit.manifest.profileCalibrations.front();
+    for (std::size_t i = 0; i < 3997; ++i) {
+        const std::string id = "extra-" + std::to_string(i);
+        exactLimit.manifest.evidence.push_back(
+            {id, "price_input", "feed", std::string("r1"), std::nullopt,
+             "2024-01-01T00:00:00Z", "memory:" + id, std::nullopt, "receipt:" + id});
+        calibration.evidenceIds.push_back(id);
+    }
+    BOOST_REQUIRE_EQUAL(exactLimit.manifest.evidence.size(), 4000U);
+    {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        BOOST_CHECK_NO_THROW(validateBundleEvidence(exactLimit, budget));
+    }
+    exactLimit.manifest.evidence.push_back(
+        {"extra-over-limit", "price_input", "feed", std::string("r1"), std::nullopt,
+         "2024-01-01T00:00:00Z", "memory:extra-over-limit", std::nullopt,
+         "receipt:extra-over-limit"});
+    checkBundleEvidenceRejectedWith(exactLimit, "evidence record limit (4,000)");
+
+    auto noWarnings = validBundleTableFixture();
+    std::size_t ordinaryCharge = 0;
+    {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        const auto loaded = validateBundleEvidence(noWarnings, budget);
+        ordinaryCharge = budget.used();
+        BOOST_REQUIRE(ordinaryCharge != 0);
+    }
+    auto withWarnings = validBundleTableFixture();
+    useZeroWeightProfile(withWarnings);
+    rewriteSlotRows(withWarnings,
+                    ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
+                    "ZERO_RATE_SLOT," +
+                        csvEvidenceIds());
+    for (unsigned int minute = 0; minute < 1440; minute += 5)
+        withWarnings.manifest.warnings.push_back(
+            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
+             {"price"}});
+    std::size_t warningCharge = 0;
+    {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        const auto loaded = validateBundleEvidence(withWarnings, budget);
+        warningCharge = budget.used();
+        BOOST_REQUIRE_EQUAL(loaded.warnings.size(), 288U);
+    }
+    BOOST_CHECK_GT(warningCharge, ordinaryCharge);
+    QuantLib::detail::VarianceClockLoadBudget insufficient(warningCharge - 1);
+    try {
+        (void)validateBundleEvidence(withWarnings, insufficient);
+        BOOST_ERROR("accepted derived warnings with insufficient load budget");
+    } catch (const Error& e) {
+        BOOST_CHECK_MESSAGE(std::string(e.what()).find("variance-clock load exceeds size limit") !=
+                                std::string::npos,
+                            "unexpected resource rejection: " << e.what());
+    }
+    BOOST_CHECK_EQUAL(insufficient.used(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(testStrictAvailabilityEqualsGeneratedAt) {
@@ -3585,6 +3685,10 @@ BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
+BOOST_AUTO_TEST_SUITE(VarianceClockBundleTableAdditionalTests)
+
+using namespace VarianceClockBundleTableTests;
+
 BOOST_AUTO_TEST_CASE(testSlotMatrixRowsAcceptAndRejectEveryConstraint) {
     BOOST_TEST_MESSAGE("Testing every row of the slot-evidence method matrix both ways...");
     const std::string ids = csvEvidenceIds();
@@ -3952,6 +4056,88 @@ BOOST_AUTO_TEST_CASE(testStreamedSlotEvidenceFailuresReleaseTheBudget) {
     auto malformed = validBundleTableFixture();
     malformed.slotEvidence += "1,group\n";
     rejected(malformed, "field count");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsExplicitConflictingLocalOffset) {
+    BOOST_TEST_MESSAGE("Testing an explicit offset claim must match the run at segment start...");
+    auto fixture = validBundleTableFixture();
+    replaceSession(fixture, ",source,0,calendar\n", ",source,3600,calendar\n");
+    checkBundleTablesRejectedWith(fixture, "session local offset claim disagrees");
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsEquivalentInstantWithoutConflictClaim) {
+    BOOST_TEST_MESSAGE("Testing an absent local-offset claim is accepted...");
+    auto fixture = validBundleTableFixture();
+    replaceSession(fixture, ",source,0,calendar\n", ",source,,calendar\n");
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsDstSpanningSegmentWithStartOffsetClaim) {
+    BOOST_TEST_MESSAGE("Testing an offset claim is checked at segment start across DST...");
+    auto fixture = validBundleTableFixture();
+    useOffsetRuns(fixture,
+                  "2024-01-01T00:00:00Z,2024-01-01T10:00:00Z,0,0\n"
+                  "2024-01-01T10:00:00Z,2025-01-01T00:00:00Z,3600,0\n");
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsClaimMatchingOnlyLaterOffsetRun) {
+    BOOST_TEST_MESSAGE("Testing a later offset run cannot satisfy the start claim...");
+    auto fixture = validBundleTableFixture();
+    replaceSession(fixture, ",source,0,calendar\n", ",source,3600,calendar\n");
+    useOffsetRuns(fixture,
+                  "2024-01-01T00:00:00Z,2024-01-01T10:00:00Z,0,0\n"
+                  "2024-01-01T10:00:00Z,2025-01-01T00:00:00Z,3600,0\n");
+    checkBundleTablesRejectedWith(fixture, "session local offset claim disagrees");
+}
+
+BOOST_AUTO_TEST_CASE(testRunBoundaryUsesNewHalfOpenOffsetRun) {
+    BOOST_TEST_MESSAGE("Testing a segment at a run boundary uses the new offset...");
+    auto fixture = validBundleTableFixture();
+    replaceSession(fixture, "2024-01-01T09:30:00Z", "2024-01-01T10:00:00Z");
+    replaceSession(fixture, ",source,0,calendar\n", ",source,3600,calendar\n");
+    useOffsetRuns(fixture,
+                  "2024-01-01T00:00:00Z,2024-01-01T10:00:00Z,0,0\n"
+                  "2024-01-01T10:00:00Z,2025-01-01T00:00:00Z,3600,0\n");
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+}
+
+BOOST_AUTO_TEST_CASE(testKeepsDirectEvidenceDuringMarketClosedHours) {
+    BOOST_TEST_MESSAGE("Testing direct slot evidence remains required on closed market days...");
+    auto fixture = validBundleTableFixture();
+    replaceMarketDay(fixture, ",full_day,true,", ",holiday,false,");
+    fixture.sessionSegments.erase(fixture.sessionSegments.find('\n') + 1);
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    BOOST_CHECK_NO_THROW(validateBundleEvidence(fixture, budget));
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOrphanProfile) {
+    BOOST_TEST_MESSAGE("Testing every parsed profile must be selected by a market day...");
+    auto fixture = validBundleTableFixture();
+    for (unsigned int minute = 0; minute < 1440; minute += 5)
+        fixture.profiles += "2," + std::to_string(minute) + ",0.01,1\n";
+    auto secondCalibration = fixture.manifest.profileCalibrations.front();
+    secondCalibration.profileId = 2;
+    fixture.manifest.profileCalibrations.push_back(std::move(secondCalibration));
+    checkBundleTablesRejectedWith(fixture, "unreferenced profile");
+}
+
+BOOST_AUTO_TEST_CASE(testDistinguishesUnknownZeroAndNotApplicableCounts) {
+    BOOST_TEST_MESSAGE("Testing fallback target counts distinguish unknown, zero and N/A...");
+    auto fixture = validBundleTableFixture();
+    rewriteSlotRows(
+        fixture, ",unknown,not_applicable,0,not_applicable,fallback,,not_applicable,fb,,"
+                 + csvEvidenceIds());
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+    rewriteSlotRows(
+        fixture, ",0,not_applicable,0,not_applicable,fallback,,not_applicable,fb,,"
+                 + csvEvidenceIds());
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+    rewriteSlotRows(
+        fixture,
+        ",not_applicable,not_applicable,0,not_applicable,fallback,,not_applicable,fb,,"
+        + csvEvidenceIds());
+    checkBundleTablesRejectedWith(fixture, "target count");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -4508,5 +4694,4 @@ BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
 BOOST_AUTO_TEST_SUITE_END()

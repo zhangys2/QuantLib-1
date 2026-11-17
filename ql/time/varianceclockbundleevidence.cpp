@@ -37,61 +37,6 @@ namespace QuantLib {
 
             using EvidenceMap = std::map<std::string, const VarianceClockManifestEvidence*>;
 
-            int digits(std::string_view value, std::size_t pos, std::size_t count) {
-                QL_REQUIRE(pos + count <= value.size(), "invalid strict UTC timestamp");
-                int result = 0;
-                for (std::size_t i = 0; i < count; ++i) {
-                    const char c = value[pos + i];
-                    QL_REQUIRE(c >= '0' && c <= '9', "invalid strict UTC timestamp");
-                    result = result * 10 + c - '0';
-                }
-                return result;
-            }
-
-            VarianceClockInstant parseInstant(std::string_view value) {
-                QL_REQUIRE(value.size() >= 20 && value[4] == '-' && value[7] == '-' &&
-                               value[10] == 'T' && value[13] == ':' && value[16] == ':',
-                           "invalid strict UTC timestamp");
-                const int year = digits(value, 0, 4);
-                const int month = digits(value, 5, 2);
-                const int day = digits(value, 8, 2);
-                QL_REQUIRE(month >= 1 && month <= 12, "invalid UTC date");
-                const Date date(day, static_cast<Month>(month), year);
-                QL_REQUIRE(date.dayOfMonth() == day && static_cast<int>(date.month()) == month &&
-                               date.year() == year,
-                           "invalid UTC date");
-                const int hour = digits(value, 11, 2);
-                const int minute = digits(value, 14, 2);
-                const int second = digits(value, 17, 2);
-                QL_REQUIRE(hour < 24 && minute < 60 && second < 60, "invalid UTC time");
-                std::uint32_t nanos = 0;
-                std::size_t pos = 19;
-                if (pos < value.size() && value[pos] == '.') {
-                    ++pos;
-                    unsigned int count = 0;
-                    while (pos < value.size() && value[pos] >= '0' && value[pos] <= '9' &&
-                           count < 9) {
-                        nanos = nanos * 10 + static_cast<unsigned int>(value[pos++] - '0');
-                        ++count;
-                    }
-                    QL_REQUIRE(count > 0 && (pos == value.size() || value[pos] == 'Z'),
-                               "invalid UTC fractional seconds");
-                    while (count++ < 9)
-                        nanos *= 10;
-                }
-                QL_REQUIRE(pos + 1 == value.size() && value[pos] == 'Z',
-                           "UTC timestamp must end with Z");
-                const auto seconds =
-                    (static_cast<std::int64_t>(date.serialNumber() -
-                                               Date(1, January, 1970).serialNumber()) *
-                     86400) +
-                    hour * 3600 + minute * 60 + second;
-                VarianceClockInstant result;
-                QL_REQUIRE(VarianceClockInstant::tryCreate(seconds, nanos, result),
-                           "invalid UTC instant");
-                return result;
-            }
-
             std::string decode(const std::string_view* fields, std::size_t index) {
                 return decodeVarianceClockCsvField(fields[index]);
             }
@@ -114,8 +59,8 @@ namespace QuantLib {
                 const EvidenceMap& evidence;
                 std::set<std::string>& used;
                 const std::vector<VarianceClockProfileInput>& profiles;
-                const std::vector<VarianceClockOffsetInput>& offsets;
                 std::vector<VarianceClockBundleWarning>& warnings;
+                VarianceClockLoadBudget::Reservation& storageCharge;
             };
 
             bool checkSession(void* opaque, const std::string_view* fields, std::size_t) {
@@ -125,24 +70,6 @@ namespace QuantLib {
                                                    "dangling session evidence ID");
                 requireRole(item, "calendar_source", "session segment");
                 context.used.insert(id);
-                const auto claim = decode(fields, 6);
-                if (!claim.empty()) {
-                    std::int32_t claimed = 0;
-                    const auto parsed =
-                        std::from_chars(claim.data(), claim.data() + claim.size(), claimed);
-                    QL_REQUIRE(parsed.ec == std::errc() &&
-                                   parsed.ptr == claim.data() + claim.size(),
-                               "invalid claimed local offset");
-                    const auto start = parseInstant(decode(fields, 1));
-                    const auto run = std::find_if(
-                        context.offsets.begin(), context.offsets.end(),
-                        [start](const auto& value) {
-                            return value.start <= start && start < value.end;
-                        });
-                    QL_REQUIRE(run != context.offsets.end() &&
-                                   run->offsetSeconds == claimed,
-                               "claimed local offset conflicts with timezone mapping");
-                }
                 return true;
             }
 
@@ -154,13 +81,17 @@ namespace QuantLib {
                 const auto fallbackId = decode(fields, 11);
                 const auto warningCode = decode(fields, 12);
                 QL_REQUIRE(!evidenceIds.empty(), "missing slot evidence");
+                bool hasPriceInput = false;
                 for (const auto& id : evidenceIds) {
                     const auto& item = requireEvidence(context.evidence, id,
                                                        "missing slot evidence");
-                    if (method == "direct" || method == "pooled" || method == "zero")
-                        requireRole(item, "price_input", "slot evidence");
+                    if (item.role == "price_input")
+                        hasPriceInput = true;
                     context.used.insert(id);
                 }
+                if (method == "direct" || method == "pooled" || method == "zero")
+                    QL_REQUIRE(hasPriceInput,
+                               "slot evidence must cite at least one price_input evidence ID");
                 if (method == "fallback") {
                     const auto approval = std::find_if(
                         context.manifest.fallbackApprovals.begin(),
@@ -236,6 +167,40 @@ namespace QuantLib {
                     auto ids = evidenceIds;
                     std::sort(ids.begin(), ids.end());
                     ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+                    QL_REQUIRE(ids.capacity() <=
+                                   std::numeric_limits<std::size_t>::max() /
+                                       sizeof(std::string),
+                               "variance-clock warning accounting overflow");
+                    std::size_t bytes = ids.capacity() * sizeof(std::string);
+                    for (const auto& id : ids) {
+                        QL_REQUIRE(id.capacity() <=
+                                       std::numeric_limits<std::size_t>::max() - bytes,
+                                   "variance-clock warning accounting overflow");
+                        bytes += id.capacity();
+                    }
+                    if (context.warnings.size() == context.warnings.capacity()) {
+                        const auto oldCapacity = context.warnings.capacity();
+                        QL_REQUIRE(oldCapacity <=
+                                       std::numeric_limits<std::size_t>::max() / 2,
+                                   "variance-clock warning accounting overflow");
+                        const auto newCapacity = oldCapacity == 0 ? 1 : oldCapacity * 2;
+                        QL_REQUIRE(newCapacity - oldCapacity <=
+                                       (std::numeric_limits<std::size_t>::max() - bytes) /
+                                           sizeof(VarianceClockBundleWarning),
+                                   "variance-clock warning accounting overflow");
+                        bytes += (newCapacity - oldCapacity) *
+                                 sizeof(VarianceClockBundleWarning);
+                        QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
+                                                context.storageCharge.bytes(),
+                                   "variance-clock warning accounting overflow");
+                        context.storageCharge.resize(context.storageCharge.bytes() + bytes);
+                        context.warnings.reserve(newCapacity);
+                    } else {
+                        QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
+                                                context.storageCharge.bytes(),
+                                   "variance-clock warning accounting overflow");
+                        context.storageCharge.resize(context.storageCharge.bytes() + bytes);
+                    }
                     context.warnings.push_back(
                         {expectedCode, "warning", profile, target,
                          static_cast<std::uint16_t>(minute), std::move(ids)});
@@ -254,6 +219,8 @@ namespace QuantLib {
             QL_REQUIRE(mode == VarianceClockLoadMode::Strict ||
                            mode == VarianceClockLoadMode::Reconstruction,
                        "invalid variance-clock load mode");
+            QL_REQUIRE(manifest.evidence.size() <= 4000,
+                       "evidence record limit (4,000) exceeded");
             constexpr std::size_t perEvidence = 512;
             QL_REQUIRE(csv.sessionSegments.size() <=
                            std::numeric_limits<std::size_t>::max() - csv.slotEvidence.size(),
@@ -271,11 +238,13 @@ namespace QuantLib {
             parsed.storageCharge.resize(parsed.storageCharge.bytes() + validationBytes);
             QL_ENSURE(budget.used() >= parsed.storageCharge.bytes(),
                      "variance-clock evidence load budget mismatch");
-            const auto generatedAt = parseInstant(manifest.generatedAtUtc);
-            const auto coverageEnd = parseInstant(manifest.coverageEndUtc);
-            const auto priceCutoff = parseInstant(manifest.priceCutoffUtc);
-            const auto calendarAsOf = parseInstant(manifest.calendarAsOfUtc);
-            const auto timezoneAsOf = parseInstant(manifest.timezoneAsOfUtc);
+            const auto generatedAt = parseVarianceClockInstant(manifest.generatedAtUtc);
+            const auto coverageEnd = parseVarianceClockInstant(manifest.coverageEndUtc);
+            const auto priceCutoff = parseVarianceClockInstant(manifest.priceCutoffUtc);
+            const auto calendarAsOf = parseVarianceClockInstant(manifest.calendarAsOfUtc);
+            const auto timezoneAsOf = parseVarianceClockInstant(manifest.timezoneAsOfUtc);
+            QL_REQUIRE(parsed.start == parseVarianceClockInstant(manifest.clockOriginUtc),
+                       "clock_origin_utc must equal coverage_start_utc");
             QL_REQUIRE(mode != VarianceClockLoadMode::Strict || generatedAt < coverageEnd,
                        "Strict generated_at_utc must be before coverage_end_utc");
             QL_REQUIRE(priceCutoff <= generatedAt, "price cutoff is after generated_at_utc");
@@ -287,7 +256,11 @@ namespace QuantLib {
             for (const auto& item : manifest.evidence) {
                 QL_REQUIRE(evidence.emplace(item.evidenceId, &item).second,
                            "duplicate evidence ID");
-                const auto availableAt = parseInstant(item.availableAtUtc);
+                const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
+                if (item.publishedAtUtc)
+                    (void)parseVarianceClockInstant(*item.publishedAtUtc);
+                QL_REQUIRE(item.contentSha256 || item.attestationRef,
+                           "evidence without content_sha256 requires attestation_ref");
                 QL_REQUIRE(availableAt <= generatedAt,
                            "evidence is available after generated_at_utc");
                 if (latestAvailability < availableAt)
@@ -300,7 +273,7 @@ namespace QuantLib {
                 const auto& item = requireEvidence(evidence, id, "dangling calendar evidence ID");
                 requireRole(item, "calendar_source", "calendar evidence");
                 used.insert(id);
-                const auto availableAt = parseInstant(item.availableAtUtc);
+                const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
                 if (latestCalendar < availableAt)
                     latestCalendar = availableAt;
             }
@@ -313,7 +286,7 @@ namespace QuantLib {
                 const auto& item = requireEvidence(evidence, id, "dangling timezone evidence ID");
                 requireRole(item, "timezone_rules", "timezone evidence");
                 used.insert(id);
-                const auto availableAt = parseInstant(item.availableAtUtc);
+                const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
                 if (latestTimezone < availableAt)
                     latestTimezone = availableAt;
             }
@@ -365,11 +338,12 @@ namespace QuantLib {
                                                        "dangling profile calibration evidence ID");
                     requireRole(item, "price_input", "profile calibration");
                     used.insert(id);
-                    const auto availableAt = parseInstant(item.availableAtUtc);
+                    const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
                     if (calibrationEvidence < availableAt)
                         calibrationEvidence = availableAt;
                 }
-                const auto calibrationAsOf = parseInstant(calibration.calibrationAsOfUtc);
+                const auto calibrationAsOf =
+                    parseVarianceClockInstant(calibration.calibrationAsOfUtc);
                 QL_REQUIRE(calibrationEvidence <= calibrationAsOf,
                            "calibration precedes cited evidence");
                 QL_REQUIRE(calibrationAsOf <= priceCutoff,
@@ -382,8 +356,8 @@ namespace QuantLib {
             }
 
             std::vector<VarianceClockBundleWarning> warnings;
-            StreamContext context{manifest, evidence, used, parsed.profiles, parsed.offsets,
-                                  warnings};
+            StreamContext context{manifest, evidence, used, parsed.profiles, warnings,
+                                  parsed.storageCharge};
             QL_REQUIRE(visitVarianceClockCsvRows(csv.sessionSegments,
                                                  VarianceClockCsvSchema::SessionSegments,
                                                  &context, checkSession),
