@@ -130,6 +130,26 @@ namespace {
         input.replace(position, before.size(), after);
     }
 
+    std::string manifestWithOptionalSections() {
+        std::string input = minimalManifest();
+        replaceOnce(input, "\"gap_pool_return_threshold\": null",
+                    "\"gap_pool_return_threshold\": 3");
+        replaceOnce(input, "\"fallback_approvals\": []",
+                    "\"fallback_approvals\": [{\"fallback_id\": \"fb\", \"approved\": true, "
+                    "\"approval_evidence_ids\": [\"approval\"], "
+                    "\"source_evidence_ids\": [\"price\"]}]");
+        replaceOnce(input, "\"warnings\": []",
+                    "\"warnings\": [{\"code\": \"ZERO_RATE_SLOT\", \"severity\": \"warning\", "
+                    "\"profile_id\": 1, \"target_group_id\": \"group\", \"minute_of_day\": 5, "
+                    "\"evidence_ids\": [\"price\"]}]");
+        replaceOnce(input, "\"continuous_futures_lineage\": null",
+                    "\"continuous_futures_lineage\": {\"construction_method\": \"roll\", "
+                    "\"source_instrument\": \"ES\", \"continuous_symbol\": \"ES1\", "
+                    "\"roll_rule\": \"volume\", \"roll_schedule_evidence_ids\": [\"roll\"], "
+                    "\"contract_mapping_evidence_ids\": [\"map\"]}");
+        return input;
+    }
+
     // A rejection raised by the JSON stage (SAX handler or lexer) rather than by a
     // later schema check; the message comes from parseJson().
     bool isJsonStageError(const Error& e) {
@@ -423,6 +443,77 @@ BOOST_AUTO_TEST_CASE(testEvidenceIdsJsonRejectsTooManyIds) {
     BOOST_CHECK_THROW(parseEvidenceIdsJson(array(257)), Error);
 }
 
+BOOST_AUTO_TEST_CASE(testEnforcesIdentifierByteLimit) {
+    BOOST_TEST_MESSAGE("Testing the 128-byte manifest and evidence-ID limit...");
+    const std::string accepted(128, 'x');
+    const std::string rejected(129, 'x');
+    std::string manifest = minimalManifest();
+    replaceOnce(manifest, "\"snapshot_id\": \"snapshot\"",
+                "\"snapshot_id\": \"" + accepted + "\"");
+    BOOST_CHECK_NO_THROW(parseVarianceClockManifest(manifest));
+    manifest = minimalManifest();
+    replaceOnce(manifest, "\"snapshot_id\": \"snapshot\"",
+                "\"snapshot_id\": \"" + rejected + "\"");
+    BOOST_CHECK_THROW(parseVarianceClockManifest(manifest), Error);
+
+    BOOST_CHECK_EQUAL(parseEvidenceIdsJson("[\"" + accepted + "\"]").size(), 1U);
+    BOOST_CHECK_THROW(parseEvidenceIdsJson("[\"" + rejected + "\"]"), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsManifestIdentifiersWithWhitespaceOrControls) {
+    BOOST_TEST_MESSAGE("Testing manifest identifier whitespace and control-character rules...");
+    const std::vector<std::pair<std::string, std::string>> minimalEdits = {
+        {"\"snapshot_id\": \"snapshot\"", "\"snapshot_id\": \" snapshot\""},
+        {"\"snapshot_id\": \"snapshot\"", "\"snapshot_id\": \"snapshot \""},
+        {"\"snapshot_id\": \"snapshot\"", "\"snapshot_id\": \"\\u00a0snapshot\""},
+        {"\"market_id\": \"market\"", "\"market_id\": \"mar\\u0000ket\""},
+        {"\"iana_zone\": \"Etc/UTC\"", "\"iana_zone\": \"Etc/UTC\\u0085\""},
+        {"\"calendar_version\": \"calendar-v1\"", "\"calendar_version\": \"calendar\\u001fv1\""},
+        {"\"timezone_database\": \"tzdb\"", "\"timezone_database\": \"tz\\u007fdb\""},
+        {"\"timezone_version\": \"2024a\"", "\"timezone_version\": \"2024a\\u009f\""},
+        {"\"evidence_id\": \"calendar\"", "\"evidence_id\": \"calendar\\u0000\""},
+        {"\"source_id\": \"calendar-feed\"", "\"source_id\": \" calendar-feed\""},
+        {"\"revision_id\": \"2024a\"", "\"revision_id\": \"2024a\\u0085\""},
+    };
+    for (const auto& edit : minimalEdits) {
+        std::string input = minimalManifest();
+        replaceOnce(input, edit.first, edit.second);
+        BOOST_CHECK_THROW(parseVarianceClockManifest(input), Error);
+    }
+
+    const std::vector<std::pair<std::string, std::string>> optionalEdits = {
+        {"\"fallback_id\": \"fb\"", "\"fallback_id\": \"fb\\u0000\""},
+        {"\"target_group_id\": \"group\"", "\"target_group_id\": \" group\""},
+        {"\"source_instrument\": \"ES\"", "\"source_instrument\": \"ES\\u007f\""},
+        {"\"continuous_symbol\": \"ES1\"", "\"continuous_symbol\": \"ES1\\u0085\""},
+    };
+    for (const auto& edit : optionalEdits) {
+        std::string input = manifestWithOptionalSections();
+        replaceOnce(input, edit.first, edit.second);
+        BOOST_CHECK_THROW(parseVarianceClockManifest(input), Error);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidEvidenceArrayIdentifiers) {
+    BOOST_TEST_MESSAGE("Testing identifier rules in manifest and embedded evidence-ID arrays...");
+    for (const std::string& input : {
+             std::string(R"([" leading"])"), std::string(R"(["trailing "])"),
+             std::string(R"(["inside\u0000control"])"),
+             std::string(R"(["\u0085control"])")})
+        BOOST_CHECK_THROW(parseEvidenceIdsJson(input), Error);
+
+    std::string manifest = minimalManifest();
+    replaceOnce(manifest, "\"calendar_evidence_ids\": [\"calendar\"]",
+                "\"calendar_evidence_ids\": [\"calendar\\u0000\"]");
+    BOOST_CHECK_THROW(parseVarianceClockManifest(manifest), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsManifestUtf8Bom) {
+    BOOST_TEST_MESSAGE("Testing rejection of a leading UTF-8 BOM in the manifest...");
+    const std::string input = std::string("\xEF\xBB\xBF", 3) + minimalManifest();
+    BOOST_CHECK_THROW(parseVarianceClockManifest(input), Error);
+}
+
 BOOST_AUTO_TEST_CASE(testRejectsInvalidScalarValues) {
     BOOST_TEST_MESSAGE("Testing rejection of out-of-schema scalar manifest values...");
     const std::vector<std::pair<std::string, std::string>> edits = {
@@ -451,22 +542,7 @@ BOOST_AUTO_TEST_CASE(testRejectsInvalidScalarValues) {
 
 BOOST_AUTO_TEST_CASE(testAcceptsOptionalVersionOneSections) {
     BOOST_TEST_MESSAGE("Testing acceptance of populated optional manifest sections...");
-    std::string input = minimalManifest();
-    replaceOnce(input, "\"gap_pool_return_threshold\": null",
-                "\"gap_pool_return_threshold\": 3");
-    replaceOnce(input, "\"fallback_approvals\": []",
-                "\"fallback_approvals\": [{\"fallback_id\": \"fb\", \"approved\": true, "
-                "\"approval_evidence_ids\": [\"approval\"], "
-                "\"source_evidence_ids\": [\"price\"]}]");
-    replaceOnce(input, "\"warnings\": []",
-                "\"warnings\": [{\"code\": \"ZERO_RATE_SLOT\", \"severity\": \"warning\", "
-                "\"profile_id\": 1, \"target_group_id\": \"group\", \"minute_of_day\": 5, "
-                "\"evidence_ids\": [\"price\"]}]");
-    replaceOnce(input, "\"continuous_futures_lineage\": null",
-                "\"continuous_futures_lineage\": {\"construction_method\": \"roll\", "
-                "\"source_instrument\": \"ES\", \"continuous_symbol\": \"ES1\", "
-                "\"roll_rule\": \"volume\", \"roll_schedule_evidence_ids\": [\"roll\"], "
-                "\"contract_mapping_evidence_ids\": [\"map\"]}");
+    const std::string input = manifestWithOptionalSections();
     const auto manifest = parseVarianceClockManifest(input);
     BOOST_REQUIRE(manifest.calibrationSettings.gapPoolReturnThreshold);
     BOOST_CHECK_EQUAL(*manifest.calibrationSettings.gapPoolReturnThreshold, 3U);

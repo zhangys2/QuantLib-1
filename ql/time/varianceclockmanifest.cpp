@@ -201,8 +201,88 @@ namespace QuantLib {
                 return result;
             }
 
+            std::uint32_t nextCodePoint(const std::string& value, std::size_t& position) {
+                const auto first = static_cast<unsigned char>(value[position]);
+                if (first <= 0x7F) {
+                    ++position;
+                    return first;
+                }
+
+                std::size_t length;
+                std::uint32_t codePoint;
+                if (first >= 0xC2 && first <= 0xDF) {
+                    length = 2;
+                    codePoint = first & 0x1F;
+                } else if (first >= 0xE0 && first <= 0xEF) {
+                    length = 3;
+                    codePoint = first & 0x0F;
+                } else if (first >= 0xF0 && first <= 0xF4) {
+                    length = 4;
+                    codePoint = first & 0x07;
+                } else {
+                    QL_FAIL("invalid UTF-8 in identifier");
+                }
+
+                QL_REQUIRE(position + length <= value.size(),
+                           "truncated UTF-8 in identifier");
+                const auto second = static_cast<unsigned char>(value[position + 1]);
+                QL_REQUIRE((second & 0xC0) == 0x80, "invalid UTF-8 in identifier");
+                if (first == 0xE0)
+                    QL_REQUIRE(second >= 0xA0, "overlong UTF-8 in identifier");
+                else if (first == 0xED)
+                    QL_REQUIRE(second <= 0x9F, "surrogate in UTF-8 identifier");
+                else if (first == 0xF0)
+                    QL_REQUIRE(second >= 0x90, "overlong UTF-8 in identifier");
+                else if (first == 0xF4)
+                    QL_REQUIRE(second <= 0x8F, "out-of-range UTF-8 identifier");
+
+                for (std::size_t i = 1; i < length; ++i) {
+                    const auto continuation =
+                        static_cast<unsigned char>(value[position + i]);
+                    QL_REQUIRE((continuation & 0xC0) == 0x80,
+                               "invalid UTF-8 in identifier");
+                    codePoint = (codePoint << 6) | (continuation & 0x3F);
+                }
+                position += length;
+                return codePoint;
+            }
+
+            bool isUnicodeWhitespace(std::uint32_t codePoint) {
+                return (codePoint >= 0x09 && codePoint <= 0x0D) || codePoint == 0x20 ||
+                       codePoint == 0x85 || codePoint == 0xA0 || codePoint == 0x1680 ||
+                       (codePoint >= 0x2000 && codePoint <= 0x200A) ||
+                       codePoint == 0x2028 || codePoint == 0x2029 || codePoint == 0x202F ||
+                       codePoint == 0x205F || codePoint == 0x3000;
+            }
+
+            std::string identifierValue(const Json& value, const std::string& name) {
+                std::string result = stringValue(value, name);
+                QL_REQUIRE(result.size() <= 128, name << " exceeds 128 UTF-8 bytes");
+
+                std::size_t position = 0;
+                std::uint32_t firstCodePoint = 0;
+                std::uint32_t lastCodePoint = 0;
+                while (position < result.size()) {
+                    const std::uint32_t codePoint = nextCodePoint(result, position);
+                    QL_REQUIRE(!(codePoint <= 0x1F ||
+                                 (codePoint >= 0x7F && codePoint <= 0x9F)),
+                               name << " must not contain control characters");
+                    if (firstCodePoint == 0)
+                        firstCodePoint = codePoint;
+                    lastCodePoint = codePoint;
+                }
+                QL_REQUIRE(!isUnicodeWhitespace(firstCodePoint) &&
+                               !isUnicodeWhitespace(lastCodePoint),
+                           name << " must not have surrounding whitespace");
+                return result;
+            }
+
             std::string requiredString(const Json& value, const char* key) {
                 return stringValue(field(value, key), key);
+            }
+
+            std::string requiredIdentifier(const Json& value, const char* key) {
+                return identifierValue(field(value, key), key);
             }
 
             std::optional<std::string> optionalString(const Json& value, const char* key) {
@@ -210,6 +290,13 @@ namespace QuantLib {
                 if (item.is_null())
                     return std::nullopt;
                 return stringValue(item, key);
+            }
+
+            std::optional<std::string> optionalIdentifier(const Json& value, const char* key) {
+                const Json& item = field(value, key);
+                if (item.is_null())
+                    return std::nullopt;
+                return identifierValue(item, key);
             }
 
             std::uint32_t uint32Value(const Json& value, const std::string& name) {
@@ -229,7 +316,7 @@ namespace QuantLib {
                 std::set<std::string> unique;
                 result.reserve(value.size());
                 for (const Json& item : value) {
-                    std::string text = stringValue(item, name);
+                    std::string text = identifierValue(item, name);
                     QL_REQUIRE(unique.insert(text).second, name << " contains duplicate values");
                     result.push_back(std::move(text));
                 }
@@ -270,25 +357,25 @@ namespace QuantLib {
                 result.formatVersion = uint32Value(field(root, "format_version"),
                                                    "format_version");
                 QL_REQUIRE(result.formatVersion == 1, "unsupported manifest format_version");
-                result.snapshotId = requiredString(root, "snapshot_id");
+                result.snapshotId = requiredIdentifier(root, "snapshot_id");
                 result.generatedAtUtc = requiredString(root, "generated_at_utc");
                 result.coverageStartUtc = requiredString(root, "coverage_start_utc");
                 result.coverageEndUtc = requiredString(root, "coverage_end_utc");
                 result.clockOriginUtc = requiredString(root, "clock_origin_utc");
-                result.marketId = requiredString(root, "market_id");
-                result.ianaZone = requiredString(root, "iana_zone");
+                result.marketId = requiredIdentifier(root, "market_id");
+                result.ianaZone = requiredIdentifier(root, "iana_zone");
                 result.referenceVariancePer5m = requiredString(root, "reference_variance_per_5m");
                 result.referenceUnit = requiredString(root, "reference_unit");
                 QL_REQUIRE(result.referenceUnit == "variance_per_5m",
                            "unsupported reference_unit");
                 result.priceCutoffUtc = requiredString(root, "price_cutoff_utc");
-                result.calendarVersion = requiredString(root, "calendar_version");
+                result.calendarVersion = requiredIdentifier(root, "calendar_version");
                 result.calendarAsOfUtc = requiredString(root, "calendar_as_of_utc");
                 result.calendarEvidenceIds =
                     stringArray(field(root, "calendar_evidence_ids"),
                                 "calendar_evidence_ids", true);
-                result.timezoneDatabase = requiredString(root, "timezone_database");
-                result.timezoneVersion = requiredString(root, "timezone_version");
+                result.timezoneDatabase = requiredIdentifier(root, "timezone_database");
+                result.timezoneVersion = requiredIdentifier(root, "timezone_version");
                 result.timezoneAsOfUtc = requiredString(root, "timezone_as_of_utc");
                 result.timezoneEvidenceIds =
                     stringArray(field(root, "timezone_evidence_ids"),
@@ -350,7 +437,7 @@ namespace QuantLib {
                          "published_at_utc", "available_at_utc", "uri", "content_sha256",
                          "attestation_ref"}, "evidence");
                     VarianceClockManifestEvidence entry{};
-                    entry.evidenceId = requiredString(item, "evidence_id");
+                    entry.evidenceId = requiredIdentifier(item, "evidence_id");
                     QL_REQUIRE(evidenceIds.insert(entry.evidenceId).second,
                                "duplicate evidence_id");
                     entry.role = requiredString(item, "role");
@@ -358,8 +445,8 @@ namespace QuantLib {
                         {"price_input", "calendar_source", "timezone_rules",
                          "fallback_approval", "continuous_roll_mapping", "other_required_source"},
                         "evidence role");
-                    entry.sourceId = requiredString(item, "source_id");
-                    entry.revisionId = optionalString(item, "revision_id");
+                    entry.sourceId = requiredIdentifier(item, "source_id");
+                    entry.revisionId = optionalIdentifier(item, "revision_id");
                     entry.publishedAtUtc = optionalString(item, "published_at_utc");
                     entry.availableAtUtc = requiredString(item, "available_at_utc");
                     entry.uri = optionalString(item, "uri");
@@ -379,7 +466,7 @@ namespace QuantLib {
                         {"fallback_id", "approved", "approval_evidence_ids",
                          "source_evidence_ids"}, "fallback approval");
                     VarianceClockManifestFallbackApproval entry{};
-                    entry.fallbackId = requiredString(item, "fallback_id");
+                    entry.fallbackId = requiredIdentifier(item, "fallback_id");
                     QL_REQUIRE(fallbackIds.insert(entry.fallbackId).second,
                                "duplicate fallback_id");
                     const Json& approved = field(item, "approved");
@@ -407,7 +494,7 @@ namespace QuantLib {
                     entry.severity = requiredString(item, "severity");
                     QL_REQUIRE(entry.severity == "warning", "unsupported warning severity");
                     entry.profileId = uint32Value(field(item, "profile_id"), "profile_id");
-                    entry.targetGroupId = requiredString(item, "target_group_id");
+                    entry.targetGroupId = requiredIdentifier(item, "target_group_id");
                     const std::uint32_t minute =
                         uint32Value(field(item, "minute_of_day"), "minute_of_day");
                     QL_REQUIRE(minute <= 1435 && minute % 5 == 0,
@@ -436,8 +523,8 @@ namespace QuantLib {
                          "contract_mapping_evidence_ids"}, "continuous_futures_lineage");
                     VarianceClockManifestContinuousFuturesLineage entry{};
                     entry.constructionMethod = requiredString(lineage, "construction_method");
-                    entry.sourceInstrument = requiredString(lineage, "source_instrument");
-                    entry.continuousSymbol = requiredString(lineage, "continuous_symbol");
+                    entry.sourceInstrument = requiredIdentifier(lineage, "source_instrument");
+                    entry.continuousSymbol = requiredIdentifier(lineage, "continuous_symbol");
                     entry.rollRule = requiredString(lineage, "roll_rule");
                     entry.rollScheduleEvidenceIds =
                         stringArray(field(lineage, "roll_schedule_evidence_ids"),
@@ -454,6 +541,8 @@ namespace QuantLib {
         }
 
         VarianceClockManifest parseVarianceClockManifest(std::string_view bytes) {
+            QL_REQUIRE(bytes.substr(0, 3) != std::string_view("\xEF\xBB\xBF", 3),
+                       "UTF-8 BOM is not permitted in manifest JSON");
             return parseManifest(parseJson(bytes, maxManifestBytes));
         }
 
