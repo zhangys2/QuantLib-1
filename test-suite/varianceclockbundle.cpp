@@ -36,6 +36,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -771,6 +772,34 @@ namespace {
         return rows.continueParsing;
     }
 
+    struct CsvStopAfter {
+        std::size_t stopAt;
+        std::size_t seen;
+        bool fail = false;
+        std::string lastFirstField;
+    };
+
+    bool stopAfterRows(void* context, const std::string_view* fields, std::size_t) {
+        auto& state = *static_cast<CsvStopAfter*>(context);
+        ++state.seen;
+        state.lastFirstField = std::string(fields[0]);
+        if (state.seen == state.stopAt) {
+            if (state.fail)
+                throw std::runtime_error("visitor failure");
+            return false;
+        }
+        return true;
+    }
+
+    bool decodesSuccessfully(const std::string& lexeme) {
+        try {
+            decodeVarianceClockCsvField(lexeme);
+            return true;
+        } catch (const Error&) {
+            return false;
+        }
+    }
+
 }
 
 BOOST_AUTO_TEST_CASE(testParsesQuotedCommaEscapedQuoteAndEmbeddedNewline) {
@@ -852,6 +881,106 @@ BOOST_AUTO_TEST_CASE(testRejectsLeadingBomAndAllowsEmbeddedUfeff) {
                                           &rows, collectCsvRow));
     BOOST_REQUIRE_EQUAL(rows.calls, 1U);
     BOOST_CHECK_EQUAL(decodeVarianceClockCsvField(rows.lastRow[1]), embedded);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsMismatchedQuotedHeaders) {
+    BOOST_TEST_MESSAGE("Testing rejection of quoted CSV headers that decode differently...");
+    const char* wrongHeader = "wrong variance-clock CSV header";
+    const std::vector<std::string> rejected = {
+        "\"start_ut\",end_utc,offset_seconds,fold\n",
+        "\"start_utcx\",end_utc,offset_seconds,fold\n",
+        "\"START_UTC\",end_utc,offset_seconds,fold\n",
+        "\"start\"\"utc\",end_utc,offset_seconds,fold\n",
+        "\"\",end_utc,offset_seconds,fold\n",
+        "start_utc,end_utc,offset_seconds,\"fold \"\n",
+        "start_utc,end_utc,\"offset_secondS\",fold\n"};
+    for (const std::string& header : rejected)
+        checkCsvRejected(header, wrongHeader);
+
+    // Every header field may be quoted when it decodes to the frozen name.
+    CsvRows rows;
+    BOOST_CHECK(visitVarianceClockCsvRows(
+        "\"start_utc\",\"end_utc\",\"offset_seconds\",\"fold\"\n",
+        VarianceClockCsvSchema::TimezoneMapping, &rows, collectCsvRow));
+    BOOST_CHECK_EQUAL(rows.calls, 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testDecodesCsvFieldEdgeCases) {
+    BOOST_TEST_MESSAGE("Testing CSV field decoding of quotes, whitespace and UTF-8...");
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField("\"\"\"\""), "\"");
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField("\"\"\"a\"\"\""), "\"a\"");
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField("\"a\"\"\"\"b\""), "a\"\"b");
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField("\"line1\nline2\""), "line1\nline2");
+    // Nothing is trimmed or normalised, and U+FEFF is ordinary data.
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField(" a "), " a ");
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField("\" a \""), " a ");
+    const std::string euro = "\xE2\x82\xAC";
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField(euro), euro);
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField("\"" + euro + "\""), euro);
+    const std::string feff = "\xEF\xBB\xBF";
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField(feff + "id"), feff + "id");
+    // A JSON array cell as it is stored in slot_evidence.csv.
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField("\"[\"\"a\"\",\"\"b\"\"]\""), "[\"a\",\"b\"]");
+    // The field size limit counts the lexeme.
+    BOOST_CHECK_EQUAL(decodeVarianceClockCsvField(std::string(oneMiB, 'x')).size(), oneMiB);
+    BOOST_CHECK_THROW(decodeVarianceClockCsvField(std::string(oneMiB + 1U, 'x')), Error);
+    BOOST_CHECK_THROW(decodeVarianceClockCsvField("\"" + std::string(oneMiB - 1U, 'x') + "\""),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidCsvFieldLexemes) {
+    BOOST_TEST_MESSAGE("Testing that the CSV field decoder rejects non-field lexemes...");
+    const std::vector<std::string> invalid = {
+        "a,b",          "a\nb",          "a\r\nb",   "a\rb",      "a\"b",  "\"a\"b",
+        "\"a\" ",       "\"",            "\"a",      "\"a\"\"",   "\"a\"\"\"b", "\"\"\"",
+        std::string("a\0b", 3), std::string("\xC0\x80", 2), std::string("\xE2\x82", 2),
+        std::string("\"\xED\xA0\x80\"", 5)};
+    for (const std::string& lexeme : invalid)
+        BOOST_CHECK_MESSAGE(!decodesSuccessfully(lexeme), "decoded invalid lexeme");
+}
+
+BOOST_AUTO_TEST_CASE(testCsvRowVisitorContract) {
+    BOOST_TEST_MESSAGE("Testing the CSV row visitor contract...");
+    BOOST_CHECK_THROW(visitVarianceClockCsvRows(tzHeader, VarianceClockCsvSchema::TimezoneMapping,
+                                                nullptr, nullptr),
+                      Error);
+
+    // Header-only input visits no rows and reports completion.
+    CsvRows none;
+    BOOST_CHECK(visitVarianceClockCsvRows(tzHeader, VarianceClockCsvSchema::TimezoneMapping,
+                                          &none, collectCsvRow));
+    BOOST_CHECK_EQUAL(none.calls, 0U);
+
+    // Rows arrive in file order; stopping on the second row reports false.
+    const std::string input = tzHeader + "a,b,0,0\nc,d,1,0\ne,f,2,0\n";
+    CsvStopAfter stop{2, 0};
+    BOOST_CHECK(!visitVarianceClockCsvRows(input, VarianceClockCsvSchema::TimezoneMapping, &stop,
+                                           stopAfterRows));
+    BOOST_CHECK_EQUAL(stop.seen, 2U);
+    BOOST_CHECK_EQUAL(stop.lastFirstField, "c");
+
+    // An exception from the visitor propagates and ends the scan.
+    CsvStopAfter thrower{2, 0};
+    thrower.fail = true;
+    BOOST_CHECK_THROW(visitVarianceClockCsvRows(input, VarianceClockCsvSchema::TimezoneMapping,
+                                                &thrower, stopAfterRows),
+                      std::runtime_error);
+    BOOST_CHECK_EQUAL(thrower.seen, 2U);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsRecordsWithTooManyFields) {
+    BOOST_TEST_MESSAGE("Testing CSV records and headers with far more fields than expected...");
+    // The visitor's field array is fixed-size; a hostile record must be rejected on count
+    // before it can overrun it (run under ASAN/UBSAN to see the overrun, if any).
+    for (std::size_t count : {5U, 9U, 15U, 20U, 1000U}) {
+        std::string row;
+        for (std::size_t i = 0; i < count; ++i)
+            row += (i == 0 ? "x" : ",x");
+        checkCsvRejected(tzHeader + row + "\n", "wrong field count");
+        checkCsvRejected(row + "\n", "wrong field count");
+        checkCsvRejected(slotHeader + row + "\n", "wrong field count",
+                         VarianceClockCsvSchema::SlotEvidence);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsUnterminatedQuote) {
