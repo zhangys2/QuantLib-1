@@ -20,9 +20,9 @@ noinst_HEADERS = \
     detail/variancesha256.hpp
 
 cpp_files = \
-    detail/variancesha256.cpp \
     dataformatters.cpp \
     dataparsers.cpp \
+    detail/variancesha256.cpp \
     tracing.cpp
 
 if UNITY_BUILD

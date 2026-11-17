@@ -2955,9 +2955,9 @@
     <ClCompile Include="ql\time\schedule.cpp" />
     <ClCompile Include="ql\time\timeunit.cpp" />
     <ClCompile Include="ql\time\weekday.cpp" />
-    <ClCompile Include="ql\utilities\detail\variancesha256.cpp" />
     <ClCompile Include="ql\utilities\dataformatters.cpp" />
     <ClCompile Include="ql\utilities\dataparsers.cpp" />
+    <ClCompile Include="ql\utilities\detail\variancesha256.cpp" />
     <ClCompile Include="ql\utilities\tracing.cpp" />
     <ClCompile Include="ql\cashflow.cpp" />
     <ClCompile Include="ql\currency.cpp" />

@@ -5927,13 +5927,13 @@
     <ClCompile Include="ql\termstructures\credit\survivalprobabilitystructure.cpp">
       <Filter>termstructures\credit</Filter>
     </ClCompile>
-    <ClCompile Include="ql\utilities\detail\variancesha256.cpp">
-      <Filter>utilities</Filter>
-    </ClCompile>
     <ClCompile Include="ql\utilities\dataformatters.cpp">
       <Filter>utilities</Filter>
     </ClCompile>
     <ClCompile Include="ql\utilities\dataparsers.cpp">
+      <Filter>utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\utilities\detail\variancesha256.cpp">
       <Filter>utilities</Filter>
     </ClCompile>
     <ClCompile Include="ql\utilities\tracing.cpp">

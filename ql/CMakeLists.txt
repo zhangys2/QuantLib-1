@@ -991,9 +991,9 @@ set(QL_SOURCES
     time/timeunit.cpp
     time/weekday.cpp
     timegrid.cpp
-    utilities/detail/variancesha256.cpp
     utilities/dataformatters.cpp
     utilities/dataparsers.cpp
+    utilities/detail/variancesha256.cpp
     utilities/tracing.cpp
     version.cpp
 )

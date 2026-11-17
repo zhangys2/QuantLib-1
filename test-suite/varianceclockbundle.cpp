@@ -1903,6 +1903,15 @@ namespace {
         return digest.finishHex();
     }
 
+    std::string sha256HexInChunks(std::string_view bytes, std::size_t chunk) {
+        QuantLib::detail::VarianceSha256 digest;
+        for (std::size_t i = 0; i < bytes.size(); i += chunk) {
+            digest.update(bytes.substr(i, chunk));
+            digest.update(std::string_view());  // an empty update changes nothing
+        }
+        return digest.finishHex();
+    }
+
 }
 
 BOOST_AUTO_TEST_CASE(testSha256EmptyVector) {
@@ -1980,6 +1989,85 @@ BOOST_AUTO_TEST_CASE(testSha256MatchesPrecomputedOracle) {
     }};
     for (const auto& vector : vectors)
         BOOST_CHECK_EQUAL(sha256Hex(byteRange(vector.first)), vector.second);
+}
+
+BOOST_AUTO_TEST_CASE(testSha256NistTwoBlockVector) {
+    BOOST_TEST_MESSAGE("Testing the SHA-256 896-bit two-block NIST vector...");
+    BOOST_CHECK_EQUAL(
+        sha256Hex("abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopq"
+                  "klmnopqrlmnopqrsmnopqrstnopqrstu"),
+        "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1");
+}
+
+BOOST_AUTO_TEST_CASE(testSha256NistMillionAVector) {
+    BOOST_TEST_MESSAGE("Testing the SHA-256 one-million-'a' NIST vector...");
+    const std::string input(1000000, 'a');
+    BOOST_CHECK_EQUAL(sha256Hex(input),
+                      "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
+    BOOST_CHECK_EQUAL(sha256HexInChunks(input, 1000),
+                      "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
+}
+
+BOOST_AUTO_TEST_CASE(testSha256ChunkedUpdatesMatchOracle) {
+    BOOST_TEST_MESSAGE("Testing SHA-256 under every chunking of boundary-length inputs...");
+    const std::vector<std::pair<std::size_t, std::string_view>> vectors = {
+        {0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        {1, "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"},
+        {55, "463eb28e72f82e0a96c0a4cc53690c571281131f672aa229e0d45ae59b598b59"},
+        {56, "da2ae4d6b36748f2a318f23e7ab1dfdf45acdc9d049bd80e59de82a60895f562"},
+        {57, "2fe741af801cc238602ac0ec6a7b0c3a8a87c7fc7d7f02a3fe03d1c12eac4d8f"},
+        {63, "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"},
+        {64, "fdeab9acf3710362bd2658cdc9a29e8f9c757fcf9811603a8c447cd1d9151108"},
+        {65, "4bfd2c8b6f1eec7a2afeb48b934ee4b2694182027e6d0fc075074f2fabb31781"},
+        {119, "da18797ed7c3a777f0847f429724a2d8cd5138e6ed2895c3fa1a6d39d18f7ec6"},
+        {120, "f52b23db1fbb6ded89ef42a23ce0c8922c45f25c50b568a93bf1c075420bbb7c"},
+        {121, "335a461692b30bba1d647cc71604e88e676c90e4c22455d0b8c83f4bd7c8ac9b"},
+        {127, "92ca0fa6651ee2f97b884b7246a562fa71250fedefe5ebf270d31c546bfea976"},
+        {128, "471fb943aa23c511f6f72f8d1652d9c880cfa392ad80503120547703e56a2be5"},
+        {129, "5099c6a56203f9687f7d33f4bfdf576d31dc91f6b695ecea38b2770c87631135"},
+        {130, "8d39b60b9c767c58975b270c1d6b13c9b4507e5aee7ad496a3528e4c7f880721"},
+        {191, "d280f473c251cb75c91880ea0eca2a2f1cda3152bef54a38c4a3aedad615c819"},
+        {192, "8b4a544837a1a0280fa8a7c82865c27a1064b3cc6281fda0753566b9bb104a87"},
+        {193, "7daafa7aed7d63d06a98b7b6f785eab5427d084f30d5c9ee6dd0d2f3ada329e6"},
+        {255, "3f8591112c6bbe5c963965954e293108b7208ed2af893e500d859368c654eabe"},
+        {256, "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880"}
+    };
+    const std::vector<std::size_t> chunks = {1,  2,  3,  5,   31,  32,  33, 63,
+                                             64, 65, 100, 127, 128, 129, 200};
+    for (const auto& vector : vectors) {
+        const std::string input = byteRange(vector.first);
+        BOOST_CHECK_EQUAL(sha256Hex(input), vector.second);
+        for (std::size_t chunk : chunks)
+            BOOST_CHECK_MESSAGE(sha256HexInChunks(input, chunk) == vector.second,
+                                "length " << vector.first << " chunk " << chunk);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testSha256HighBytesAreUnsigned) {
+    BOOST_TEST_MESSAGE("Testing SHA-256 of bytes with the high bit set...");
+    const std::vector<std::pair<std::size_t, std::string_view>> vectors = {
+        {1, "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89"},
+        {55, "aadaed00a3c5fbb8072ae7f1984ba8199fbe5272de427d11eaf31583af37db51"},
+        {56, "528ff50ab05e77bbbd224a9ec86165dbb6824a9a9efb544be0a1d57d5b416457"},
+        {64, "8667e718294e9e0df1d30600ba3eeb201f764aad2dad72748643e4a285e1d1f7"},
+        {65, "855c9a28fff2bbbd71327165554a00c6fdd44d5d58c1f12b8fdff29b5d67f001"},
+        {128, "e9175db65a9789096ca9cb5524d3abc2107df03e3c9ba3af1aca628f9c5d3bd2"}
+    };
+    for (const auto& vector : vectors) {
+        const std::string input(vector.first, static_cast<char>(0xFF));
+        BOOST_CHECK_EQUAL(sha256Hex(input), vector.second);
+        BOOST_CHECK_EQUAL(sha256HexInChunks(input, 7), vector.second);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testSha256RejectsUseAfterFinish) {
+    BOOST_TEST_MESSAGE("Testing that a finished SHA-256 digest cannot be reused...");
+    QuantLib::detail::VarianceSha256 digest;
+    digest.update("abc");
+    BOOST_CHECK_EQUAL(digest.finishHex(),
+                      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    BOOST_CHECK_THROW(digest.finishHex(), Error);
+    BOOST_CHECK_THROW(digest.update("d"), Error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
