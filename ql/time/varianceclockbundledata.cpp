@@ -234,26 +234,29 @@ namespace QuantLib {
                 return value;
             }
 
-            Date parseDate(std::string_view text) {
+            Date parseDate(std::string_view text,
+                           const char* errorMessage = "invalid Gregorian date") {
                 QL_REQUIRE(text.size() == 10 && text[4] == '-' && text[7] == '-',
-                           "invalid Gregorian date");
+                           errorMessage);
                 const int year = fixedDigits(text, 0, 4);
                 const int month = fixedDigits(text, 5, 2);
                 const int day = fixedDigits(text, 8, 2);
                 QL_REQUIRE(year > 0 && month >= 1 && month <= 12 && day >= 1 &&
                                day <= monthLength(year, month),
-                           "invalid Gregorian date");
+                           errorMessage);
                 const Date result(day, static_cast<Month>(month), year);
                 QL_REQUIRE(result >= Date::minDate() && result <= Date::maxDate(),
                            "date is outside QuantLib range");
                 return result;
             }
 
-            VarianceClockInstant parseInstant(std::string_view text) {
+            VarianceClockInstant parseInstant(
+                std::string_view text,
+                const char* dateErrorMessage = "invalid Gregorian date") {
                 QL_REQUIRE(text.size() >= 20 && text[4] == '-' && text[7] == '-' &&
                                text[10] == 'T' && text[13] == ':' && text[16] == ':',
                            "invalid strict UTC timestamp");
-                const Date date = parseDate(text.substr(0, 10));
+                const Date date = parseDate(text.substr(0, 10), dateErrorMessage);
                 const int hour = fixedDigits(text, 11, 2);
                 const int minute = fixedDigits(text, 14, 2);
                 const int second = fixedDigits(text, 17, 2);
@@ -297,7 +300,7 @@ namespace QuantLib {
         } // namespace
 
         VarianceClockInstant parseVarianceClockInstant(std::string_view text) {
-            return parseInstant(text);
+            return parseInstant(text, "invalid UTC date");
         }
 
         VarianceClockLoadBudget::Reservation::Reservation(VarianceClockLoadBudget* budget,

@@ -3147,6 +3147,7 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(VarianceClockBundleEvidenceTests)
 
+// The fixtures and helpers of the table suite are reused here.
 using namespace VarianceClockBundleTableTests;
 
 BOOST_AUTO_TEST_CASE(testRejectsMissingSlotEvidence) {
@@ -3681,6 +3682,262 @@ BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
     auto fixture = validBundleTableFixture();
     fixture.manifest.generatedAtUtc = fixture.manifest.coverageEndUtc;
     checkBundleEvidenceRejectedWith(fixture, "before coverage_end_utc");
+}
+
+namespace {
+
+    void addEvidence(BundleTableFixture& fixture, const std::string& id, const std::string& role) {
+        fixture.manifest.evidence.push_back(
+            {id, role, id + "-feed", std::string("r1"), std::nullopt, "2024-01-01T00:00:00Z",
+             "memory:" + id, std::nullopt, "receipt:" + id});
+    }
+
+    // A fixture whose every slot is an approved fallback; `tail` is the thirteen fields after
+    // the minute (the evidence IDs are appended). Manifest warnings are left to the caller.
+    BundleTableFixture fallbackFixture(const std::string& tail, bool approved = true) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.fallbackApprovals.push_back({"fb", approved, {"approval"}, {"price"}});
+        addEvidence(fixture, "approval", "fallback_approval");
+        rewriteSlotRows(fixture, tail + csvEvidenceIds(R"(["price","approval"])"));
+        return fixture;
+    }
+
+    void addFallbackWarnings(BundleTableFixture& fixture) {
+        for (unsigned int minute = 0; minute < 1440; minute += 5)
+            fixture.manifest.warnings.push_back(
+                {"UNKNOWN_COUNT_FALLBACK", "warning", 1, "group",
+                 static_cast<std::uint16_t>(minute), {"approval", "price"}});
+    }
+
+    const char* const unknownFallbackTail =
+        ",unknown,not_applicable,unknown,not_applicable,fallback,,not_applicable,fb,"
+        "UNKNOWN_COUNT_FALLBACK,";
+
+}
+
+BOOST_AUTO_TEST_CASE(testManifestInstantGrammarIsStrict) {
+    BOOST_TEST_MESSAGE("Testing the strict UTC instant grammar for generated_at_utc...");
+    const auto withGenerated = [](const std::string& text) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.generatedAtUtc = text;
+        return fixture;
+    };
+    struct Good {
+        const char* text;
+        std::uint32_t nanoseconds;
+    };
+    for (const Good& good : {Good{"2024-01-02T00:00:00Z", 0},
+                             Good{"2024-01-02T00:00:00.5Z", 500000000},
+                             Good{"2024-01-02T00:00:00.1Z", 100000000},
+                             Good{"2024-01-02T00:00:00.01Z", 10000000},
+                             Good{"2024-01-02T00:00:00.000000001Z", 1},
+                             Good{"2024-01-02T00:00:00.123456789Z", 123456789}}) {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        const auto loaded = validateBundleEvidence(withGenerated(good.text), budget);
+        BOOST_CHECK_EQUAL(loaded.tables.availableFrom.unixSeconds(), 1704153600);
+        BOOST_CHECK_EQUAL(loaded.tables.availableFrom.nanosecond(), good.nanoseconds);
+    }
+    struct Bad {
+        const char* text;
+        const char* message;
+    };
+    for (const Bad& bad : {Bad{"2024-01-02t00:00:00Z", "invalid strict UTC timestamp"},
+                           Bad{"2024-01-02T00:00:00", "invalid strict UTC timestamp"},
+                           Bad{"2024-01-02 00:00:00Z", "invalid strict UTC timestamp"},
+                           Bad{"2024-01-02T00:00:00z", "must end with Z"},
+                           Bad{"2024-01-02T00:00:00ZZ", "must end with Z"},
+                           Bad{"2024-01-02T00:00:00+00:00", "must end with Z"},
+                           Bad{"2024-01-02T00:00:00.Z", "invalid UTC fractional seconds"},
+                           Bad{"2024-01-02T00:00:00.1234567890Z",
+                               "invalid UTC fractional seconds"},
+                           Bad{"2024-01-02T24:00:00Z", "invalid UTC time"},
+                           Bad{"2024-01-02T00:60:00Z", "invalid UTC time"},
+                           Bad{"2024-01-02T00:00:60Z", "invalid UTC time"},
+                           Bad{"2024-13-02T00:00:00Z", "invalid UTC date"}})
+        checkBundleEvidenceRejectedWith(withGenerated(bad.text), bad.message);
+}
+
+BOOST_AUTO_TEST_CASE(testSessionSourceEvidenceNeedsCalendarRole) {
+    BOOST_TEST_MESSAGE("Testing session source evidence is checked on its own...");
+    auto wrongRole = validBundleTableFixture();
+    addEvidence(wrongRole, "other", "other_required_source");
+    replaceSession(wrongRole, ",calendar\n", ",other\n");
+    checkBundleEvidenceRejectedWith(wrongRole, "session segment has wrong evidence role");
+
+    auto dangling = validBundleTableFixture();
+    replaceSession(dangling, ",calendar\n", ",missing\n");
+    checkBundleEvidenceRejectedWith(dangling, "dangling session evidence ID");
+
+    // A second calendar source cited only by the session is valid and counts as used.
+    auto accepted = validBundleTableFixture();
+    addEvidence(accepted, "calendar2", "calendar_source");
+    replaceSession(accepted, ",calendar\n", ",calendar2\n");
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    BOOST_CHECK_NO_THROW(validateBundleEvidence(accepted, budget));
+}
+
+BOOST_AUTO_TEST_CASE(testSlotEvidenceWithoutPriceInputIsRejected) {
+    BOOST_TEST_MESSAGE("Testing that a direct slot cannot rest on non-price evidence alone...");
+    auto fixture = validBundleTableFixture();
+    rewriteSlotRows(fixture, ",1,not_applicable,1,not_applicable,direct,,not_applicable,,," +
+                                 csvEvidenceIds(R"(["calendar"])"));
+    // "price" is then cited by the calibration only, so nothing else can fail first.
+    checkBundleEvidenceRejectedWith(fixture, "slot evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testFallbackApprovalRulesInTheValidator) {
+    BOOST_TEST_MESSAGE("Testing fallback approval flag, union and evidence roles...");
+    const std::string knownTail =
+        ",1,not_applicable,1,not_applicable,fallback,,not_applicable,fb,,";
+    BOOST_CHECK_NO_THROW([&] {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        return validateBundleEvidence(fallbackFixture(knownTail), budget);
+    }());
+    checkBundleEvidenceRejectedWith(fallbackFixture(knownTail, false),
+                                    "fallback lacks manifest approval");
+
+    auto superset = fallbackFixture(knownTail);
+    addEvidence(superset, "other", "other_required_source");
+    rewriteSlotRows(superset, knownTail + csvEvidenceIds(R"(["price","approval","other"])"));
+    checkBundleEvidenceRejectedWith(superset, "approval union");
+    auto subset = fallbackFixture(knownTail);
+    rewriteSlotRows(subset, knownTail + csvEvidenceIds(R"(["approval"])"));
+    checkBundleEvidenceRejectedWith(subset, "approval union");
+
+    auto approvalRole = validBundleTableFixture();
+    approvalRole.manifest.fallbackApprovals.push_back({"fb", true, {"price"}, {"price"}});
+    checkBundleEvidenceRejectedWith(approvalRole, "fallback approval has wrong evidence role");
+    auto sourceRole = validBundleTableFixture();
+    addEvidence(sourceRole, "approval", "fallback_approval");
+    sourceRole.manifest.fallbackApprovals.push_back({"fb", true, {"approval"}, {"approval"}});
+    checkBundleEvidenceRejectedWith(sourceRole,
+                                    "fallback source evidence has fallback_approval role");
+}
+
+BOOST_AUTO_TEST_CASE(testWarningDerivationUsesEveryUnknownCount) {
+    BOOST_TEST_MESSAGE("Testing UNKNOWN_COUNT_FALLBACK for each unknown target count...");
+    for (const char* tail :
+         {",unknown,not_applicable,1,not_applicable,fallback,,not_applicable,fb,"
+          "UNKNOWN_COUNT_FALLBACK,",
+          ",3,not_applicable,unknown,not_applicable,fallback,,not_applicable,fb,"
+          "UNKNOWN_COUNT_FALLBACK,",
+          unknownFallbackTail}) {
+        auto fixture = fallbackFixture(tail);
+        addFallbackWarnings(fixture);
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        BOOST_CHECK_EQUAL(validateBundleEvidence(fixture, budget).warnings.size(), 288U);
+        // The same rows without the serialized slot code are inconsistent.
+        std::string withoutCode = tail;
+        withoutCode.erase(withoutCode.rfind("UNKNOWN_COUNT_FALLBACK"));
+        auto missing = fallbackFixture(withoutCode + ",");
+        addFallbackWarnings(missing);
+        checkBundleEvidenceRejectedWith(missing, "slot warning codes differ from derived set");
+    }
+    // Known counts derive nothing, and a serialized code is then rejected.
+    auto known = fallbackFixture(
+        ",3,not_applicable,1,not_applicable,fallback,,not_applicable,fb,UNKNOWN_COUNT_FALLBACK,");
+    checkBundleEvidenceRejectedWith(known, "slot warning codes differ from derived set");
+    auto bogus = fallbackFixture(
+        ",3,not_applicable,1,not_applicable,fallback,,not_applicable,fb,BOGUS,");
+    checkBundleEvidenceRejectedWith(bogus, "unknown slot warning code");
+}
+
+BOOST_AUTO_TEST_CASE(testManifestWarningsMustMatchEveryField) {
+    BOOST_TEST_MESSAGE("Testing that each serialized warning field must equal the derived one...");
+    const auto base = [] {
+        auto fixture = fallbackFixture(unknownFallbackTail);
+        addFallbackWarnings(fixture);
+        return fixture;
+    };
+    {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        BOOST_CHECK_NO_THROW(validateBundleEvidence(base(), budget));
+    }
+    const std::string message = "manifest warnings differ from derived warnings";
+    auto profile = base();
+    profile.manifest.warnings.back().profileId = 2;
+    checkBundleEvidenceRejectedWith(profile, message.c_str());
+    auto target = base();
+    target.manifest.warnings.back().targetGroupId = "other";
+    checkBundleEvidenceRejectedWith(target, message.c_str());
+    auto minute = base();
+    minute.manifest.warnings[0].minuteOfDay = 1;
+    checkBundleEvidenceRejectedWith(minute, message.c_str());
+    auto code = base();
+    code.manifest.warnings[0].code = "ZERO_RATE_SLOT";
+    checkBundleEvidenceRejectedWith(code, message.c_str());
+    auto ids = base();
+    ids.manifest.warnings[0].evidenceIds = {"price"};
+    checkBundleEvidenceRejectedWith(ids, message.c_str());
+    auto fewer = base();
+    fewer.manifest.warnings.pop_back();
+    checkBundleEvidenceRejectedWith(fewer, message.c_str());
+    auto more = base();
+    more.manifest.warnings.push_back(more.manifest.warnings.front());
+    checkBundleEvidenceRejectedWith(more, message.c_str());
+
+    // The serialized order does not matter, and the result is sorted by slot.
+    auto reordered = base();
+    std::reverse(reordered.manifest.warnings.begin(), reordered.manifest.warnings.end());
+    std::string& csv = reordered.slotEvidence;
+    std::vector<std::string> lines;
+    for (std::size_t from = 0; from < csv.size();) {
+        const auto end = csv.find('\n', from);
+        lines.push_back(csv.substr(from, end - from + 1));
+        from = end + 1;
+    }
+    std::reverse(lines.begin() + 1, lines.end());
+    csv.clear();
+    for (const auto& line : lines)
+        csv += line;
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    const auto loaded = validateBundleEvidence(reordered, budget);
+    BOOST_REQUIRE_EQUAL(loaded.warnings.size(), 288U);
+    for (std::size_t i = 0; i < loaded.warnings.size(); ++i) {
+        BOOST_CHECK_EQUAL(loaded.warnings[i].minuteOfDay, 5U * i);
+        BOOST_CHECK_EQUAL(loaded.warnings[i].severity, "warning");
+        BOOST_CHECK_EQUAL(loaded.warnings[i].profileId, 1U);
+        BOOST_CHECK_EQUAL(loaded.warnings[i].targetGroupId, "group");
+    }
+    const std::vector<std::string> expectedIds = {"approval", "price"};
+    BOOST_CHECK_EQUAL_COLLECTIONS(loaded.warnings[0].evidenceIds.begin(),
+                                  loaded.warnings[0].evidenceIds.end(), expectedIds.begin(),
+                                  expectedIds.end());
+}
+
+BOOST_AUTO_TEST_CASE(testCalibrationAndCalendarEvidenceRoles) {
+    BOOST_TEST_MESSAGE("Testing role and presence rules for calibration and calendar evidence...");
+    auto calibrationRole = validBundleTableFixture();
+    calibrationRole.manifest.profileCalibrations[0].evidenceIds = {"calendar"};
+    checkBundleEvidenceRejectedWith(calibrationRole, "profile calibration has wrong evidence role");
+    auto noEvidence = validBundleTableFixture();
+    noEvidence.manifest.profileCalibrations[0].evidenceIds.clear();
+    checkBundleEvidenceRejectedWith(noEvidence, "profile calibration has no evidence");
+    auto calendarRole = validBundleTableFixture();
+    calendarRole.manifest.calendarEvidenceIds = {"calendar", "price"};
+    checkBundleEvidenceRejectedWith(calendarRole, "calendar evidence has wrong evidence role");
+    auto timezoneRole = validBundleTableFixture();
+    timezoneRole.manifest.timezoneEvidenceIds = {"timezone", "price"};
+    checkBundleEvidenceRejectedWith(timezoneRole, "timezone evidence has wrong evidence role");
+}
+
+BOOST_AUTO_TEST_CASE(testReconstructionIgnoresCoverageEndStrictDoesNot) {
+    BOOST_TEST_MESSAGE("Testing generated_at_utc against coverage end in both modes...");
+    auto history = validBundleTableFixture();
+    history.manifest.generatedAtUtc = "2025-01-02T00:00:00Z";
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    const auto loaded = validateBundleEvidence(history, budget,
+                                               VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK(loaded.provenance.reconstructed);
+    BOOST_CHECK_EQUAL(loaded.tables.availableFrom.unixSeconds(), 1704067200);
+    checkBundleEvidenceRejectedWith(history, "before coverage_end_utc");
+
+    auto justBefore = validBundleTableFixture();
+    justBefore.manifest.generatedAtUtc = "2024-12-31T23:59:59Z";
+    QuantLib::detail::VarianceClockLoadBudget other;
+    const auto strict = validateBundleEvidence(justBefore, other);
+    BOOST_CHECK(!strict.provenance.reconstructed);
+    BOOST_CHECK_EQUAL(strict.tables.availableFrom.unixSeconds(), 1735689599);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
