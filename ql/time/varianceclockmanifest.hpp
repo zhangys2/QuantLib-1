@@ -116,6 +116,7 @@ namespace QuantLib {
 
         VarianceClockManifest parseVarianceClockManifest(std::string_view bytes);
         std::vector<std::string> parseEvidenceIdsJson(std::string_view bytes);
+        void validateVarianceClockIdentifier(std::string_view value, const char* name);
 
     }
 }

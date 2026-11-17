@@ -203,7 +203,7 @@ namespace QuantLib {
                 return result;
             }
 
-            std::uint32_t nextCodePoint(const std::string& value, std::size_t& position) {
+            std::uint32_t nextCodePoint(std::string_view value, std::size_t& position) {
                 const auto first = static_cast<unsigned char>(value[position]);
                 if (first <= 0x7F) {
                     ++position;
@@ -259,23 +259,7 @@ namespace QuantLib {
 
             std::string identifierValue(const Json& value, const std::string& name) {
                 std::string result = stringValue(value, name);
-                QL_REQUIRE(result.size() <= 128, name << " exceeds 128 UTF-8 bytes");
-
-                std::size_t position = 0;
-                std::uint32_t firstCodePoint = 0;
-                std::uint32_t lastCodePoint = 0;
-                while (position < result.size()) {
-                    const std::uint32_t codePoint = nextCodePoint(result, position);
-                    QL_REQUIRE(!(codePoint <= 0x1F ||
-                                 (codePoint >= 0x7F && codePoint <= 0x9F)),
-                               name << " must not contain control characters");
-                    if (firstCodePoint == 0)
-                        firstCodePoint = codePoint;
-                    lastCodePoint = codePoint;
-                }
-                QL_REQUIRE(!isUnicodeWhitespace(firstCodePoint) &&
-                               !isUnicodeWhitespace(lastCodePoint),
-                           name << " must not have surrounding whitespace");
+                validateVarianceClockIdentifier(result, name.c_str());
                 return result;
             }
 
@@ -540,6 +524,27 @@ namespace QuantLib {
                 return result;
             }
 
+        }
+
+        void validateVarianceClockIdentifier(std::string_view value, const char* name) {
+            QL_REQUIRE(!value.empty(), name << " must not be empty");
+            QL_REQUIRE(value.size() <= 128, name << " exceeds 128 UTF-8 bytes");
+
+            std::size_t position = 0;
+            std::uint32_t firstCodePoint = 0;
+            std::uint32_t lastCodePoint = 0;
+            while (position < value.size()) {
+                const std::uint32_t codePoint = nextCodePoint(value, position);
+                QL_REQUIRE(!(codePoint <= 0x1F ||
+                             (codePoint >= 0x7F && codePoint <= 0x9F)),
+                           name << " must not contain control characters");
+                if (firstCodePoint == 0)
+                    firstCodePoint = codePoint;
+                lastCodePoint = codePoint;
+            }
+            QL_REQUIRE(!isUnicodeWhitespace(firstCodePoint) &&
+                           !isUnicodeWhitespace(lastCodePoint),
+                       name << " must not have surrounding whitespace");
         }
 
         VarianceClockManifest parseVarianceClockManifest(std::string_view bytes) {

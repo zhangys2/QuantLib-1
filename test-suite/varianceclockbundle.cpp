@@ -1583,6 +1583,15 @@ namespace {
                twoDigits(static_cast<int>(daySeconds % 60)) + "Z";
     }
 
+    std::string isoDate(const Date& date) {
+        const auto twoDigits = [](int value) {
+            return std::string(value < 10 ? "0" : "") + std::to_string(value);
+        };
+        return std::to_string(date.year()) + "-" +
+               twoDigits(static_cast<int>(date.month())) + "-" +
+               twoDigits(date.dayOfMonth());
+    }
+
     BundleTableFixture validBundleTableFixture() {
         BundleTableFixture result{
             parseVarianceClockManifest(minimalManifest()),
@@ -1979,13 +1988,42 @@ BOOST_AUTO_TEST_CASE(testRejectsMissingMethodEvidenceIds) {
     checkBundleTablesRejected(fixture);
 }
 
+BOOST_AUTO_TEST_CASE(testAcceptsZeroRowsWithNoDistinctDates) {
+    BOOST_TEST_MESSAGE("Testing zero rows with integer zero distinct-date counts...");
+    auto fixture = validBundleTableFixture();
+    useZeroWeightProfile(fixture);
+    rewriteSlotRows(fixture, ",0,not_applicable,0,not_applicable,zero,,not_applicable,,"
+                             "ZERO_RATE_SLOT," +
+                                 csvEvidenceIds());
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsFallbackRowsWithUnknownTargetCounts) {
+    BOOST_TEST_MESSAGE("Testing fallback rows with unknown target counts...");
+    auto fixture = validBundleTableFixture();
+    rewriteSlotRows(fixture, ",unknown,not_applicable,unknown,not_applicable,fallback,,"
+                             "not_applicable,fb,UNKNOWN_COUNT_FALLBACK," +
+                                 csvEvidenceIds());
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsPooledRowsWithZeroSourceCounts) {
+    BOOST_TEST_MESSAGE("Testing pooled rows with zero source counts and a met gap threshold...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.calibrationSettings.gapPoolReturnThreshold = 1;
+    rewriteSlotRows(fixture, "source,0,0,1,0,pooled,group,1,,," + csvEvidenceIds());
+    BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+}
+
 BOOST_AUTO_TEST_CASE(testRejectsInjectedSmallValidationBudget) {
     BOOST_TEST_MESSAGE("Testing rejection before exceeding an injected validation budget...");
     auto fixture = validBundleTableFixture();
     QuantLib::detail::VarianceClockLoadBudget budget(1024);
-    BOOST_CHECK_THROW(
+    BOOST_CHECK_EXCEPTION(
         QuantLib::detail::parseVarianceClockBundleData(fixture.manifest, fixture.csv(), budget),
-        Error);
+        Error, [](const Error& e) {
+            return std::string(e.what()).find("exceeds size limit") != std::string::npos;
+        });
     BOOST_CHECK_LE(budget.used(), budget.limit());
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
@@ -2006,6 +2044,91 @@ BOOST_AUTO_TEST_CASE(testParsesMaximumSlotRowsWithinFileAndRuntimeLimits) {
     BOOST_REQUIRE_LE(fixture.timezoneMapping.size(), 32U * 1024U * 1024U);
     const auto parsed = parseBundleTables(fixture);
     BOOST_CHECK_EQUAL(parsed.tables.offsets.size(), static_cast<std::size_t>(rows));
+}
+
+BOOST_AUTO_TEST_CASE(testStreamsLargeSlotEvidenceWithinBudget) {
+    BOOST_TEST_MESSAGE("Testing streaming of a large slot-evidence table under a bounded budget...");
+    constexpr std::size_t targetGroups = 1300;
+    constexpr std::size_t slotsPerPair = 288;
+    auto fixture = validBundleTableFixture();
+    fixture.marketDays =
+        "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n";
+    fixture.sessionSegments =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
+    fixture.slotEvidence =
+        "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
+        "source_return_count,target_distinct_local_date_count,source_distinct_local_date_count,"
+        "estimation_method,grouping_label,gap_pool_return_count,fallback_id,warning_codes,"
+        "evidence_ids_json\n";
+    fixture.manifest.calibrationSettings.gapPoolReturnThreshold = 1;
+    const std::string evidence = csvEvidenceIds(R"(["p"])");
+    Date day(1, January, 2024);
+    for (std::size_t group = 0; group < targetGroups; ++group, ++day) {
+        const std::string localDate = isoDate(day);
+        const std::string targetGroup = "g" + std::to_string(group);
+        fixture.marketDays += localDate + ",holiday,false,1," + targetGroup +
+                              ",date_override\n";
+        for (unsigned int minute = 0; minute < 1440; minute += 5) {
+            fixture.slotEvidence +=
+                "1," + targetGroup + "," + std::to_string(minute) +
+                ",source,0,1,1,1,pooled,group,1,,," + evidence + "\n";
+        }
+    }
+    BOOST_REQUIRE_EQUAL(targetGroups * slotsPerPair, 374400U);
+    BOOST_REQUIRE_LE(fixture.slotEvidence.size(), 32U * 1024U * 1024U);
+
+    const auto csv = fixture.csv();
+    const std::size_t capturedBytes = csv.profiles.size() + csv.marketDays.size() +
+                                      csv.sessionSegments.size() + csv.timezoneMapping.size() +
+                                      csv.slotEvidence.size();
+    QuantLib::detail::VarianceClockLoadBudget budget(32U * 1024U * 1024U);
+    auto captured = budget.reserve(capturedBytes);
+    const auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+        fixture.manifest, csv, budget);
+    BOOST_CHECK_EQUAL(parsed.dates.size(), targetGroups);
+    BOOST_CHECK_LE(budget.used(), budget.limit());
+}
+
+BOOST_AUTO_TEST_CASE(testProfileOutputReservationUsesProfileCount) {
+    BOOST_TEST_MESSAGE("Testing profile-output reservation against distinct profile count...");
+    constexpr std::size_t profileCount = 400;
+    constexpr std::size_t slotsPerProfile = 288;
+    auto fixture = validBundleTableFixture();
+    fixture.profiles = "profile_id,minute_of_day,variance_per_5m,weight\n";
+    fixture.marketDays =
+        "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n";
+    fixture.sessionSegments =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
+    fixture.slotEvidence =
+        "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
+        "source_return_count,target_distinct_local_date_count,source_distinct_local_date_count,"
+        "estimation_method,grouping_label,gap_pool_return_count,fallback_id,warning_codes,"
+        "evidence_ids_json\n";
+    fixture.manifest.profileCalibrations.clear();
+    const std::string evidence = csvEvidenceIds();
+    Date day(1, January, 2024);
+    for (std::size_t index = 0; index < profileCount; ++index, ++day) {
+        const std::uint32_t profile = static_cast<std::uint32_t>(index + 1);
+        const std::string profileId = std::to_string(profile);
+        fixture.marketDays += isoDate(day) + ",holiday,false," + profileId +
+                              ",group,date_override\n";
+        fixture.manifest.profileCalibrations.push_back(
+            {profile, "2024-01-01T00:00:00Z", {"price"}});
+        for (unsigned int minute = 0; minute < 1440; minute += 5) {
+            fixture.profiles += profileId + "," + std::to_string(minute) + ",0.01,1\n";
+            fixture.slotEvidence +=
+                profileId + ",group," + std::to_string(minute) +
+                ",,1,not_applicable,1,not_applicable,direct,,not_applicable,,," +
+                evidence + "\n";
+        }
+    }
+    BOOST_REQUIRE_EQUAL(profileCount * slotsPerProfile, 115200U);
+    BOOST_REQUIRE_LE(fixture.slotEvidence.size(), 32U * 1024U * 1024U);
+    const auto parsed = parseBundleTables(fixture);
+    BOOST_CHECK_EQUAL(parsed.tables.profiles.size(), profileCount);
+    BOOST_CHECK_EQUAL(parsed.tables.dates.size(), profileCount);
 }
 
 BOOST_AUTO_TEST_CASE(testWeightConsistencyAcceptsHalfPicounitRelativeError) {
@@ -2221,6 +2344,72 @@ BOOST_AUTO_TEST_CASE(testRejectsInvalidMarketDayEnumerations) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(testAcceptsEveryFrozenSelectionReason) {
+    BOOST_TEST_MESSAGE("Testing every selection_reason allowed by the frozen schema...");
+    for (const char* reason : {"date_override", "date_type_session_pattern",
+                               "date_type_session_pattern_weekday", "base_profile_fallback"}) {
+        auto fixture = validBundleTableFixture();
+        replaceMarketDay(fixture, ",group,date_override", std::string(",group,") + reason);
+        BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+    }
+    for (const char* reason : {"regular", "emergency_override", "closed_override"}) {
+        auto fixture = validBundleTableFixture();
+        replaceMarketDay(fixture, ",group,date_override", std::string(",group,") + reason);
+        checkBundleTablesRejectedWith(fixture, "invalid selection reason");
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testTradingDateMustBeGregorian) {
+    BOOST_TEST_MESSAGE("Testing optional trading_date Gregorian grammar...");
+    auto valid = validBundleTableFixture();
+    replaceSession(valid, ",session,,source,0,calendar",
+                   ",session,2024-02-29,source,0,calendar");
+    BOOST_CHECK_NO_THROW(parseBundleTables(valid));
+
+    for (const char* value : {"2023-02-29", "2024-13-01", "2024-2-09", "not-a-date"}) {
+        auto invalid = validBundleTableFixture();
+        replaceSession(invalid, ",session,,source,0,calendar",
+                       std::string(",session,") + value + ",source,0,calendar");
+        checkBundleTablesRejectedWith(invalid, "invalid Gregorian date");
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testDecimalGrammarMatchesFrozenRule) {
+    BOOST_TEST_MESSAGE("Testing accepted and rejected frozen decimal grammar forms...");
+    for (const auto& input : {std::pair<std::string, std::string>{"0.5", "0.5"},
+                              {"1", "1"},
+                              {"1e3", "1000"},
+                              {"1E-3", "0.001"}}) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.referenceVariancePer5m = "1";
+        replaceAll(fixture.profiles, "0.01,1", input.first + "," + input.second);
+        BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+    }
+    for (const auto& input : {std::pair<std::string, std::string>{".5", "0.5"},
+                              {"5.", "5"},
+                              {"007", "7"}}) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.referenceVariancePer5m = "1";
+        replaceAll(fixture.profiles, "0.01,1", input.first + "," + input.second);
+        checkBundleTablesRejectedWith(fixture, "invalid decimal grammar");
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testSignedIntegerGrammarRejectsLeadingZeroes) {
+    BOOST_TEST_MESSAGE("Testing signed-integer leading-zero rejection in both CSV columns...");
+    for (const char* value : {"00", "01", "-01"}) {
+        auto offset = validBundleTableFixture();
+        replaceOnce(offset.timezoneMapping, "Z,0,0\n", std::string("Z,") + value + ",0\n");
+        checkBundleTablesRejectedWith(offset, "invalid canonical signed integer");
+
+        auto claim = validBundleTableFixture();
+        replaceOnce(claim.timezoneMapping, "Z,0,0\n", std::string("Z,") + value + ",0\n");
+        replaceSession(claim, ",source,0,calendar",
+                       std::string(",source,") + value + ",calendar");
+        checkBundleTablesRejectedWith(claim, "invalid canonical signed integer");
+    }
+}
+
 BOOST_AUTO_TEST_CASE(testRejectsInvalidBundleIdentifiers) {
     BOOST_TEST_MESSAGE("Testing identifier length, whitespace and control rules in tables...");
     for (const std::string& group : {std::string(" group"), std::string("group "),
@@ -2245,6 +2434,28 @@ BOOST_AUTO_TEST_CASE(testRejectsInvalidBundleIdentifiers) {
     auto source = validBundleTableFixture();
     replaceSession(source, ",source,", ",source ,");
     checkBundleTablesRejectedWith(source, "source session ID");
+}
+
+BOOST_AUTO_TEST_CASE(testBundleIdentifiersUseManifestUnicodeRules) {
+    BOOST_TEST_MESSAGE("Testing table identifiers against B1 Unicode whitespace and controls...");
+    const std::vector<std::pair<std::string, std::string>> rejected = {
+        {std::string("\xC2\xA0") + "group", "surrounding whitespace"},
+        {"group" + std::string("\xC2\xA0"), "surrounding whitespace"},
+        {std::string("\xE3\x80\x80") + "g", "surrounding whitespace"},
+        {"g" + std::string("\xE2\x80\xA8"), "surrounding whitespace"},
+        {std::string("\xC2\x85") + "g", "control characters"}};
+    for (const auto& item : rejected) {
+        auto fixture = validBundleTableFixture();
+        replaceAll(fixture.marketDays, ",group,", "," + item.first + ",");
+        replaceAll(fixture.slotEvidence, ",group,", "," + item.first + ",");
+        checkBundleTablesRejectedWith(fixture, item.second.c_str());
+    }
+
+    auto interiorWhitespace = validBundleTableFixture();
+    const std::string embedded = std::string("g") + "\xE3\x80\x80" + "x";
+    replaceAll(interiorWhitespace.marketDays, ",group,", "," + embedded + ",");
+    replaceAll(interiorWhitespace.slotEvidence, ",group,", "," + embedded + ",");
+    BOOST_CHECK_NO_THROW(parseBundleTables(interiorWhitespace));
 }
 
 BOOST_AUTO_TEST_CASE(testChecksSessionOffsetClaimAgainstTheRunAtItsStart) {
