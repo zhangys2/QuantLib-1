@@ -167,6 +167,8 @@ namespace QuantLib {
 
             Json parseJson(std::string_view bytes, std::size_t maxBytes) {
                 QL_REQUIRE(bytes.size() <= maxBytes, "JSON input exceeds size limit");
+                QL_REQUIRE(bytes.substr(0, 3) != std::string_view("\xEF\xBB\xBF", 3),
+                           "UTF-8 BOM is not permitted in JSON input");
                 SaxBuilder sax;
                 try {
                     const bool parsed = Json::sax_parse(bytes.begin(), bytes.end(), &sax,
@@ -541,8 +543,6 @@ namespace QuantLib {
         }
 
         VarianceClockManifest parseVarianceClockManifest(std::string_view bytes) {
-            QL_REQUIRE(bytes.substr(0, 3) != std::string_view("\xEF\xBB\xBF", 3),
-                       "UTF-8 BOM is not permitted in manifest JSON");
             return parseManifest(parseJson(bytes, maxManifestBytes));
         }
 

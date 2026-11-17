@@ -169,6 +169,15 @@ namespace {
         return input;
     }
 
+    bool isEvidenceIdsAccepted(const std::string& input) {
+        try {
+            parseEvidenceIdsJson(input);
+            return true;
+        } catch (const Error&) {
+            return false;
+        }
+    }
+
     // A rejection raised by the JSON stage (SAX handler or lexer) rather than by a
     // later schema check; the message comes from parseJson().
     bool isJsonStageError(const Error& e) {
@@ -528,9 +537,65 @@ BOOST_AUTO_TEST_CASE(testRejectsInvalidEvidenceArrayIdentifiers) {
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsManifestUtf8Bom) {
-    BOOST_TEST_MESSAGE("Testing rejection of a leading UTF-8 BOM in the manifest...");
-    const std::string input = std::string("\xEF\xBB\xBF", 3) + minimalManifest();
-    BOOST_CHECK_THROW(parseVarianceClockManifest(input), Error);
+    BOOST_TEST_MESSAGE("Testing rejection of a leading UTF-8 BOM in JSON input...");
+    const std::string bom("\xEF\xBB\xBF", 3);
+    BOOST_CHECK_THROW(parseVarianceClockManifest(bom + minimalManifest()), Error);
+    // The evidence-ID helper shares the JSON stage, so it rejects a BOM as well.
+    BOOST_CHECK_THROW(parseEvidenceIdsJson(bom + "[\"a\"]"), Error);
+    BOOST_CHECK_EQUAL(parseEvidenceIdsJson("[\"a\"]").size(), 1U);
+}
+
+BOOST_AUTO_TEST_CASE(testIdentifierWhitespaceCoversEveryUnicodeSpace) {
+    BOOST_TEST_MESSAGE("Testing leading and trailing Unicode whitespace in identifiers...");
+    // Unicode White_Space code points that are not control characters.
+    const std::vector<std::string> spaces = {
+        "\\u0020", "\\u00a0", "\\u1680", "\\u2000", "\\u2005", "\\u200a", "\\u2028",
+        "\\u2029", "\\u202f", "\\u205f", "\\u3000"};
+    // Neighbours that are not White_Space: they are ordinary identifier characters.
+    const std::vector<std::string> notSpaces = {
+        "\\u00a1", "\\u167f", "\\u1681", "\\u1fff", "\\u200b", "\\u2027", "\\u202e",
+        "\\u205e", "\\u2060", "\\u2fff", "\\u3001"};
+    for (const std::string& space : spaces) {
+        for (const std::string& pattern :
+             {space + "id", "id" + space, space + "id" + space}) {
+            std::string manifest = minimalManifest();
+            replaceOnce(manifest, "\"snapshot_id\": \"snapshot\"",
+                        "\"snapshot_id\": \"" + pattern + "\"");
+            BOOST_CHECK_MESSAGE(!isAccepted(manifest), "accepted " << pattern);
+            BOOST_CHECK_MESSAGE(!isEvidenceIdsAccepted("[\"" + pattern + "\"]"),
+                                "accepted array element " << pattern);
+        }
+        // Interior whitespace is permitted.
+        std::string interior = minimalManifest();
+        replaceOnce(interior, "\"snapshot_id\": \"snapshot\"",
+                    "\"snapshot_id\": \"a" + space + "b\"");
+        BOOST_CHECK_MESSAGE(isAccepted(interior), "rejected interior " << space);
+    }
+    for (const std::string& other : notSpaces) {
+        for (const std::string& pattern : {other + "id", "id" + other}) {
+            std::string manifest = minimalManifest();
+            replaceOnce(manifest, "\"snapshot_id\": \"snapshot\"",
+                        "\"snapshot_id\": \"" + pattern + "\"");
+            BOOST_CHECK_MESSAGE(isAccepted(manifest), "rejected " << pattern);
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testIdentifierLimitCountsUtf8Bytes) {
+    BOOST_TEST_MESSAGE("Testing that the identifier limit counts UTF-8 bytes, not characters...");
+    const std::string euro = "\xE2\x82\xAC";
+    std::string accepted;
+    for (int i = 0; i < 42; ++i)
+        accepted += euro;
+    accepted += "xx";
+    BOOST_REQUIRE_EQUAL(accepted.size(), 128U);
+    BOOST_CHECK_EQUAL(parseEvidenceIdsJson("[\"" + accepted + "\"]").size(), 1U);
+    BOOST_CHECK_THROW(parseEvidenceIdsJson("[\"" + accepted + "x\"]"), Error);
+    std::string rejected;
+    for (int i = 0; i < 43; ++i)
+        rejected += euro;
+    BOOST_REQUIRE_EQUAL(rejected.size(), 129U);
+    BOOST_CHECK_THROW(parseEvidenceIdsJson("[\"" + rejected + "\"]"), Error);
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsInvalidScalarValues) {
