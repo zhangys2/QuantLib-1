@@ -24,8 +24,9 @@
 #ifndef quantlib_variance_clock_csv_hpp
 #define quantlib_variance_clock_csv_hpp
 
+#include <cstddef>
+#include <string>
 #include <string_view>
-#include <vector>
 
 namespace QuantLib {
     namespace detail {
@@ -38,18 +39,18 @@ namespace QuantLib {
             SlotEvidence
         };
 
-        struct VarianceClockCsvRecord {
-            std::vector<std::string_view> fields;
-        };
+        using VarianceClockCsvRowVisitor =
+            bool (*)(void*, const std::string_view*, std::size_t);
 
-        struct VarianceClockCsvTable {
-            std::vector<VarianceClockCsvRecord> records;
-        };
+        // The field array and its views are valid only during the callback.
+        // Returns false if the visitor stops early; true means all rows were parsed.
+        bool visitVarianceClockCsvRows(std::string_view bytes,
+                                       VarianceClockCsvSchema schema,
+                                       void* context,
+                                       VarianceClockCsvRowVisitor visitor);
 
-        // Field views contain the original CSV lexemes, including quote syntax.
-        // The input buffer must outlive the returned table.
-        VarianceClockCsvTable parseVarianceClockCsv(std::string_view bytes,
-                                                    VarianceClockCsvSchema schema);
+        // Decode one valid raw field lexeme, removing quote syntax and unescaping "".
+        std::string decodeVarianceClockCsvField(std::string_view lexeme);
 
     }
 }

@@ -78,11 +78,6 @@ namespace QuantLib {
                     const auto first = static_cast<unsigned char>(bytes[i]);
                     QL_REQUIRE(first != 0, "NUL byte in variance-clock CSV");
 
-                    if (i + 2 < bytes.size() && first == 0xEF &&
-                        static_cast<unsigned char>(bytes[i + 1]) == 0xBB &&
-                        static_cast<unsigned char>(bytes[i + 2]) == 0xBF)
-                        QL_FAIL("UTF-8 BOM in variance-clock CSV");
-
                     if (first <= 0x7F) {
                         ++i;
                         continue;
@@ -188,27 +183,60 @@ namespace QuantLib {
                 return bytes.substr(start, length);
             }
 
+            bool decodedFieldEquals(std::string_view lexeme, std::string_view expected) {
+                if (lexeme.empty() || lexeme.front() != '"')
+                    return lexeme == expected;
+                if (lexeme.size() < 2 || lexeme.back() != '"')
+                    return false;
+
+                std::size_t decodedPosition = 0;
+                for (std::size_t i = 1; i + 1 < lexeme.size(); ++i) {
+                    char value = lexeme[i];
+                    if (value == '"') {
+                        if (i + 2 >= lexeme.size() || lexeme[i + 1] != '"')
+                            return false;
+                        ++i;
+                    }
+                    if (decodedPosition >= expected.size() ||
+                        expected[decodedPosition] != value)
+                        return false;
+                    ++decodedPosition;
+                }
+                return decodedPosition == expected.size();
+            }
+
         }
 
-        VarianceClockCsvTable parseVarianceClockCsv(std::string_view bytes,
-                                                    VarianceClockCsvSchema schema) {
+        bool visitVarianceClockCsvRows(std::string_view bytes,
+                                       VarianceClockCsvSchema schema,
+                                       void* context,
+                                       VarianceClockCsvRowVisitor visitor) {
             QL_REQUIRE(bytes.size() <= maxCsvBytes,
                        "variance-clock CSV exceeds 32 MiB");
+            QL_REQUIRE(visitor != nullptr, "null variance-clock CSV row visitor");
+            QL_REQUIRE(!(bytes.size() >= 3 &&
+                         static_cast<unsigned char>(bytes[0]) == 0xEF &&
+                         static_cast<unsigned char>(bytes[1]) == 0xBB &&
+                         static_cast<unsigned char>(bytes[2]) == 0xBF),
+                       "UTF-8 BOM in variance-clock CSV");
             validateUtf8(bytes);
             QL_REQUIRE(!bytes.empty(), "empty variance-clock CSV");
 
             std::size_t expectedCount = 0;
             const auto* header = expectedHeader(schema, expectedCount);
-            VarianceClockCsvTable result;
+            std::array<std::string_view, 14> fields{};
             bool isHeader = true;
             std::size_t position = 0;
+            std::size_t dataRows = 0;
 
             while (position < bytes.size()) {
                 const std::size_t recordStart = position;
-                VarianceClockCsvRecord record;
+                std::size_t fieldCount = 0;
                 bool finishedRecord = false;
                 while (!finishedRecord) {
-                    record.fields.push_back(parseField(bytes, position));
+                    QL_REQUIRE(fieldCount < expectedCount,
+                               "wrong field count in variance-clock CSV");
+                    fields[fieldCount++] = parseField(bytes, position);
                     QL_REQUIRE(position - recordStart <= maxCsvRecordBytes,
                                "variance-clock CSV record exceeds 4 MiB");
                     if (position == bytes.size()) {
@@ -221,21 +249,44 @@ namespace QuantLib {
                     }
                 }
 
-                QL_REQUIRE(record.fields.size() == expectedCount,
+                QL_REQUIRE(fieldCount == expectedCount,
                            "wrong field count in variance-clock CSV");
                 if (isHeader) {
                     for (std::size_t i = 0; i < expectedCount; ++i)
-                        QL_REQUIRE(record.fields[i] == header[i],
+                        QL_REQUIRE(decodedFieldEquals(fields[i], header[i]),
                                    "wrong variance-clock CSV header");
                     isHeader = false;
                 } else {
-                    QL_REQUIRE(result.records.size() < maxCsvRows,
+                    QL_REQUIRE(dataRows < maxCsvRows,
                                "variance-clock CSV exceeds 400,000 data rows");
-                    result.records.push_back(std::move(record));
+                    ++dataRows;
+                    if (!visitor(context, fields.data(), fieldCount))
+                        return false;
                 }
             }
 
             QL_REQUIRE(!isHeader, "missing variance-clock CSV header");
+            return true;
+        }
+
+        std::string decodeVarianceClockCsvField(std::string_view lexeme) {
+            QL_REQUIRE(lexeme.size() <= maxCsvFieldBytes,
+                       "variance-clock CSV field exceeds 1 MiB");
+            validateUtf8(lexeme);
+            std::size_t position = 0;
+            const std::string_view parsed = parseField(lexeme, position);
+            QL_REQUIRE(position == lexeme.size() && parsed.size() == lexeme.size(),
+                       "invalid variance-clock CSV field lexeme");
+            if (lexeme.empty() || lexeme.front() != '"')
+                return std::string(lexeme);
+
+            std::string result;
+            result.reserve(lexeme.size() - 2);
+            for (std::size_t i = 1; i + 1 < lexeme.size(); ++i) {
+                if (lexeme[i] == '"')
+                    ++i;
+                result.push_back(lexeme[i]);
+            }
             return result;
         }
 
