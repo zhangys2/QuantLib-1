@@ -168,6 +168,28 @@ namespace QuantLib {
                 return path;
             }
 
+            bool hasDotPathComponent(std::string_view path) {
+#if defined(_WIN32)
+                const auto isSeparator = [](char c) { return c == '\\' || c == '/'; };
+                std::size_t position =
+                    path.size() >= 2 && path[1] == ':' ? 2U : 0U;
+#else
+                const auto isSeparator = [](char c) { return c == '/'; };
+                std::size_t position = 0;
+#endif
+                while (position < path.size()) {
+                    while (position < path.size() && isSeparator(path[position]))
+                        ++position;
+                    const std::size_t start = position;
+                    while (position < path.size() && !isSeparator(path[position]))
+                        ++position;
+                    const std::string_view component = path.substr(start, position - start);
+                    if (component == "." || component == "..")
+                        return true;
+                }
+                return false;
+            }
+
         } // namespace
 
         class VarianceClockDirectorySource::Impl {
@@ -175,6 +197,11 @@ namespace QuantLib {
             explicit Impl(std::string path) : path_(normalizeRootPath(std::move(path))) {
                 QL_REQUIRE(!path_.empty() && path_.find('\0') == std::string::npos,
                            "invalid native variance-clock bundle path");
+                QL_REQUIRE(!hasDotPathComponent(path_),
+                           "variance-clock bundle root path contains a dot component");
+                // Root entries are checked once at construction. B5 must construct this
+                // source inside each load call, and callers must not mutate the root during
+                // capture; Windows reads still use full paths rather than the opened handle.
 #if defined(_WIN32)
                 ScopedHandle root(CreateFileA(
                     path_.c_str(), FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES,

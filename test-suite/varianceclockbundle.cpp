@@ -1839,6 +1839,51 @@ BOOST_AUTO_TEST_CASE(testDirectoryRejectsUnusableRoots) {
     BOOST_CHECK_THROW(VarianceClockDirectorySource(link.string() + "/"), Error);
 }
 
+BOOST_AUTO_TEST_CASE(testDirectoryRejectsDotComponentsInRootPath) {
+    BOOST_TEST_MESSAGE("Testing rejection of dot and dot-dot root path components...");
+    TemporaryDirectory temporary;
+    const std::string root = temporary.path.string();
+    const std::string leaf = temporary.path.filename().string();
+    const auto checkRejected = [](const std::string& path) {
+        try {
+            VarianceClockDirectorySource source(path);
+            BOOST_ERROR("accepted root path containing a dot component: " << path);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find("dot component") != std::string::npos,
+                                "wrong rejection for \"" << path << "\": " << e.what());
+        }
+    };
+    for (const auto& path : {root + "/.", root + "/./", root + "//.",
+                             root + "/../" + leaf})
+        checkRejected(path);
+#if defined(_WIN32)
+    for (const auto& path : {root + "\\.", root + "\\.\\", root + "\\\\.",
+                             root + "\\..\\" + leaf})
+        checkRejected(path);
+#endif
+
+    const auto recognizedChild = temporary.path / "profiles.csv";
+    std::filesystem::create_directory(recognizedChild);
+    checkRejected(recognizedChild.string() + "/..");
+#if defined(_WIN32)
+    checkRejected(recognizedChild.string() + "\\..");
+#endif
+
+    const auto target = temporary.path / "target";
+    std::filesystem::create_directory(target);
+    const auto link = temporary.path / "root-link";
+    std::error_code error;
+    std::filesystem::create_directory_symlink(target, link, error);
+    if (error) {
+        BOOST_TEST_MESSAGE("Skipping symlink path variants: " << error.message());
+        return;
+    }
+    const std::string symlink = link.string();
+    for (const auto& path : {symlink + "/.", symlink + "/./", symlink + "//.",
+                             symlink + "/../target"})
+        checkRejected(path);
+}
+
 BOOST_AUTO_TEST_CASE(testDirectoryRejectsNonRegularAndOversizedInputs) {
     BOOST_TEST_MESSAGE("Testing rejection of directories and FIFOs named like inputs...");
     TemporaryDirectory temporary;
