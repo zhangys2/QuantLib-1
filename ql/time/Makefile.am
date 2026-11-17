@@ -24,7 +24,7 @@ this_include_HEADERS = \
     varianceclocktables.hpp \
     weekday.hpp
 
-noinst_HEADERS = varianceclockdetail.hpp
+noinst_HEADERS = varianceclockdetail.hpp varianceclockmanifest.hpp
 
 cpp_files = \
     asx.cpp \
@@ -40,6 +40,7 @@ cpp_files = \
     timeunit.cpp \
     variancecalendar.cpp \
     varianceclock.cpp \
+    varianceclockmanifest.cpp \
     varianceclocktables.cpp \
     weekday.cpp
 

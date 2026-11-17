@@ -25,6 +25,7 @@ set(QL_TEST_SOURCES
     calendars.cpp
     variancecalendar.cpp
     varianceclock.cpp
+    varianceclockbundle.cpp
     callablebonds.cpp
     capfloor.cpp
     capflooredcoupon.cpp
