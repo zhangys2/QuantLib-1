@@ -76,6 +76,14 @@ and load mode. SHA-256 establishes byte equality with the manifest, not publishe
 authenticity or the truth/completeness of the underlying market data. The query
 path continues to perform no file I/O.
 
+The directory wrapper builds a new source on every call and checks the bundle root
+when it does: the root must be a real directory (a symlink or reparse point as the
+final component is rejected), may contain only the six bundle files, and its path
+must not contain `.` or `..` components, including relative forms such as
+`./bundle`; pass an absolute or otherwise dot-free path. The root must not be
+modified while a load runs. The manifest has no digest of its own; it is validated
+structurally and the CSV files are verified against it.
+
 ## Queries and numerical contract
 
 Construct a fixed owner with the snapshot, capture a `VarianceClockView`, and

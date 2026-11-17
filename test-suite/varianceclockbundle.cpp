@@ -4612,10 +4612,17 @@ namespace {
         std::filesystem::path path;
 
         LoaderTemporaryDirectory() {
-            static std::uint64_t next = 0;
-            path = std::filesystem::temp_directory_path() /
-                   ("quantlib-variance-clock-loader-" + std::to_string(++next));
-            std::filesystem::create_directory(path);
+            // Random names: concurrent test processes and leftovers cannot collide.
+            std::random_device device;
+            for (int attempt = 0; attempt < 100; ++attempt) {
+                path = std::filesystem::temp_directory_path() /
+                       ("quantlib-variance-clock-loader-" + std::to_string(device()) + "-" +
+                        std::to_string(device()));
+                std::error_code error;
+                if (std::filesystem::create_directory(path, error) && !error)
+                    return;
+            }
+            BOOST_FAIL("cannot create a temporary loader test directory");
         }
 
         ~LoaderTemporaryDirectory() {
@@ -4623,6 +4630,16 @@ namespace {
             std::filesystem::remove_all(path, error);
         }
     };
+
+    void writeLoaderFiles(const std::filesystem::path& directory,
+                          const CompleteBundleSource& source) {
+        for (const auto& file : source.files) {
+            std::ofstream output(directory / file.first, std::ios::binary);
+            output.write(reinterpret_cast<const char*>(file.second.data()),
+                         static_cast<std::streamsize>(file.second.size()));
+            BOOST_REQUIRE(output.good());
+        }
+    }
 
     std::string loaderSha256(std::string_view bytes) {
         detail::VarianceSha256 digest;
@@ -4948,6 +4965,122 @@ BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
     fixture.manifest.generatedAtUtc = fixture.manifest.coverageEndUtc;
     checkLoaderRejected(validCompleteBundleSource(fixture),
                         "Strict generated_at_utc must be before coverage_end_utc");
+}
+
+BOOST_AUTO_TEST_CASE(testProvenanceListsEverySortedEvidenceId) {
+    BOOST_TEST_MESSAGE("Testing provenance carries the sorted validated evidence IDs...");
+    const auto loaded = loadVarianceClockBundle(validCompleteBundleSource(loaderFixture()));
+    // The manifest lists calendar, timezone, price; the result is sorted.
+    const std::vector<std::string> expected = {"calendar", "price", "timezone"};
+    BOOST_CHECK_EQUAL_COLLECTIONS(loaded.provenance.validatedEvidenceIds.begin(),
+                                  loaded.provenance.validatedEvidenceIds.end(),
+                                  expected.begin(), expected.end());
+    BOOST_CHECK_EQUAL(loaded.provenance.snapshotId, "snapshot");
+    BOOST_CHECK(loaded.warnings.empty());
+}
+
+BOOST_AUTO_TEST_CASE(testProvenanceAvailabilityAndModeInBothModes) {
+    BOOST_TEST_MESSAGE("Testing provenance availability and mode for Strict and Reconstruction...");
+    auto fixture = loaderFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    const auto strict = loadVarianceClockBundle(validCompleteBundleSource(fixture));
+    BOOST_CHECK(strict.provenance.mode == VarianceClockLoadMode::Strict);
+    BOOST_CHECK(!strict.provenance.reconstructed);
+    BOOST_CHECK_EQUAL(strict.provenance.availableFrom.unixSeconds(), 1704110400);
+    const auto reconstructed = loadVarianceClockBundle(validCompleteBundleSource(fixture),
+                                                       VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK(reconstructed.provenance.mode == VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK(reconstructed.provenance.reconstructed);
+    BOOST_CHECK_EQUAL(reconstructed.provenance.availableFrom.unixSeconds(), 1704067200);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidLoadModeWithoutPartialResult) {
+    BOOST_TEST_MESSAGE("Testing an out-of-range load mode is rejected by the loader...");
+    std::optional<VarianceClockLoadedBundle> result;
+    try {
+        result.emplace(loadVarianceClockBundle(validCompleteBundleSource(loaderFixture()),
+                                               static_cast<VarianceClockLoadMode>(99)));
+        BOOST_ERROR("accepted an invalid load mode");
+    } catch (const Error& e) {
+        BOOST_CHECK(std::string(e.what()).find("invalid variance-clock load mode") !=
+                    std::string::npos);
+    }
+    BOOST_CHECK(!result);
+}
+
+BOOST_AUTO_TEST_CASE(testLoadedSnapshotOutlivesTheSourceAndBuffers) {
+    BOOST_TEST_MESSAGE("Testing the loaded snapshot owns its data after the load returns...");
+    std::unique_ptr<VarianceClockSnapshot> snapshot;
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto loaded = loadVarianceClockBundle(source);
+        snapshot = std::move(loaded.snapshot);
+        for (auto& file : source.files)
+            std::fill(file.second.begin(), file.second.end(), static_cast<unsigned char>('z'));
+    }
+    VarianceClock clock(std::move(snapshot));
+    const auto view = clock.capture();
+    VarianceClockExpiryToken token;
+    VarianceClockInstant expiry;
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704153600, 0, expiry));
+    BOOST_CHECK(view.prepareExpiry(expiry, token) == VarianceClockStatus::Ok);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryWrapperHonoursTheLoadMode) {
+    BOOST_TEST_MESSAGE("Testing the directory wrapper forwards the requested load mode...");
+    auto fixture = loaderFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    LoaderTemporaryDirectory directory;
+    writeLoaderFiles(directory.path, validCompleteBundleSource(fixture));
+    const auto strict = loadVarianceClockBundleFromDirectory(directory.path.string());
+    BOOST_CHECK(strict.provenance.mode == VarianceClockLoadMode::Strict);
+    BOOST_CHECK_EQUAL(strict.provenance.availableFrom.unixSeconds(), 1704110400);
+    const auto reconstructed = loadVarianceClockBundleFromDirectory(
+        directory.path.string(), VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK(reconstructed.provenance.mode == VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK_EQUAL(reconstructed.provenance.availableFrom.unixSeconds(), 1704067200);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryWrapperChecksTheRootOnEveryLoad) {
+    BOOST_TEST_MESSAGE("Testing that each directory load builds a fresh source...");
+    LoaderTemporaryDirectory directory;
+    writeLoaderFiles(directory.path, validCompleteBundleSource(loaderFixture()));
+    BOOST_CHECK(loadVarianceClockBundleFromDirectory(directory.path.string()).snapshot);
+    // An entry added after the first load is seen by the second one.
+    { std::ofstream(directory.path / "README") << "x"; }
+    try {
+        loadVarianceClockBundleFromDirectory(directory.path.string());
+        BOOST_ERROR("accepted a root with an extra entry");
+    } catch (const Error& e) {
+        BOOST_CHECK(std::string(e.what()).find("unrecognized") != std::string::npos);
+    }
+    std::filesystem::remove(directory.path / "README");
+    BOOST_CHECK(loadVarianceClockBundleFromDirectory(directory.path.string()).snapshot);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryWrapperRejectionsLeaveNoResult) {
+    BOOST_TEST_MESSAGE("Testing directory-wrapper failures: digest, missing file, bad path...");
+    LoaderTemporaryDirectory directory;
+    auto source = validCompleteBundleSource(loaderFixture());
+    source.files.at("market_days.csv").front() ^= 1U;
+    writeLoaderFiles(directory.path, source);
+    try {
+        loadVarianceClockBundleFromDirectory(directory.path.string());
+        BOOST_ERROR("accepted a tampered directory bundle");
+    } catch (const Error& e) {
+        BOOST_CHECK(std::string(e.what()).find("digest mismatch for market_days.csv") !=
+                    std::string::npos);
+    }
+    std::filesystem::remove(directory.path / "slot_evidence.csv");
+    BOOST_CHECK_THROW(loadVarianceClockBundleFromDirectory(directory.path.string()), Error);
+    BOOST_CHECK_THROW(
+        loadVarianceClockBundleFromDirectory((directory.path / "missing").string()), Error);
+    try {
+        loadVarianceClockBundleFromDirectory(directory.path.string() + "/.");
+        BOOST_ERROR("accepted a root with a dot component");
+    } catch (const Error& e) {
+        BOOST_CHECK(std::string(e.what()).find("dot component") != std::string::npos);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
