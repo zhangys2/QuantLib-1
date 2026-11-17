@@ -22,8 +22,11 @@
 #include <ql/errors.hpp>
 #include <ql/time/varianceclockcsv.hpp>
 #include <ql/time/varianceclockbundledata.hpp>
+#include <ql/time/varianceclockbundleevidence.hpp>
+#include <ql/time/varianceclockbundletypes.hpp>
 #include <ql/time/varianceclockbundlesource.hpp>
 #include <ql/time/varianceclockmanifest.hpp>
+#include <ql/time/varianceclock.hpp>
 #include <ql/utilities/detail/variancesha256.hpp>
 #include <boost/test/unit_test.hpp>
 #include <array>
@@ -1992,6 +1995,15 @@ namespace {
         return result;
     }
 
+    BundleTableFixture shortCoverageBundleFixture() {
+        auto result = validBundleTableFixture();
+        result.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+        result.manifest.coverageEndUtc = "2024-01-02T00:00:00Z";
+        replaceOnce(result.timezoneMapping, "2025-01-01T00:00:00Z",
+                    "2024-01-02T00:00:00Z");
+        return result;
+    }
+
     struct ParsedBundleTables {
         std::unique_ptr<QuantLib::detail::VarianceClockLoadBudget> budget;
         QuantLib::detail::ParsedVarianceClockTables tables;
@@ -2052,6 +2064,31 @@ namespace {
             BOOST_CHECK_MESSAGE(std::string(e.what()).find(expected) != std::string::npos,
                                 "expected \"" << expected << "\" but got: " << e.what());
         }
+    }
+
+    QuantLib::VarianceClockLoadedBundle validateBundleEvidence(
+        const BundleTableFixture& fixture,
+        QuantLib::detail::VarianceClockLoadBudget& budget,
+        QuantLib::VarianceClockLoadMode mode = QuantLib::VarianceClockLoadMode::Strict) {
+        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+            fixture.manifest, fixture.csv(), budget);
+        return QuantLib::detail::validateVarianceClockBundleEvidence(
+            fixture.manifest, fixture.csv(), std::move(parsed), mode, budget);
+    }
+
+    void checkBundleEvidenceRejectedWith(const BundleTableFixture& fixture,
+                                         const char* expected,
+                                         QuantLib::VarianceClockLoadMode mode =
+                                             QuantLib::VarianceClockLoadMode::Strict) {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        try {
+            (void)validateBundleEvidence(fixture, budget, mode);
+            BOOST_ERROR("accepted bundle; expected a rejection mentioning: " << expected);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find(expected) != std::string::npos,
+                                "expected \"" << expected << "\" but got: " << e.what());
+        }
+        BOOST_CHECK_EQUAL(budget.used(), 0U);
     }
 
     // Replaces every slot-evidence row of the fixture's single (profile 1, "group") pair by
@@ -3058,6 +3095,448 @@ BOOST_AUTO_TEST_CASE(testSlotEvidenceMethodRules) {
                     ",unknown,not_applicable,1,not_applicable,fallback,,not_applicable,fb,," + ids);
     BOOST_CHECK_NO_THROW(parseBundleTables(fallback));
 }
+
+BOOST_AUTO_TEST_SUITE(VarianceClockBundleEvidenceTests)
+
+BOOST_AUTO_TEST_CASE(testRejectsMissingSlotEvidence) {
+    BOOST_TEST_MESSAGE("Testing rejection of a selected slot without evidence...");
+    auto fixture = validBundleTableFixture();
+    rewriteSlotRows(fixture,
+                    ",1,not_applicable,1,not_applicable,direct,,not_applicable,,," +
+                        csvEvidenceIds(R"(["unlisted"])"));
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+        fixture.manifest, fixture.csv(), *budget);
+    try {
+        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
+            fixture.manifest, fixture.csv(), std::move(parsed),
+            VarianceClockLoadMode::Strict, *budget);
+        BOOST_ERROR("accepted selected slot without evidence");
+    } catch (const Error& e) {
+        BOOST_CHECK_MESSAGE(std::string(e.what()).find("missing slot evidence") !=
+                                std::string::npos,
+                            "unexpected rejection: " << e.what());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsDanglingEvidenceId) {
+    BOOST_TEST_MESSAGE("Testing slot evidence IDs must resolve to manifest evidence...");
+    auto fixture = validBundleTableFixture();
+    rewriteSlotRows(fixture,
+                    ",1,not_applicable,1,not_applicable,direct,,not_applicable,,," +
+                        csvEvidenceIds(R"(["unknown-id"])"));
+    checkBundleEvidenceRejectedWith(fixture, "missing slot evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testStrictAvailabilityEqualsGeneratedAt) {
+    BOOST_TEST_MESSAGE("Testing strict bundle availability equals generated_at_utc...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-02T00:00:00Z";
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto loaded = validateBundleEvidence(fixture, *budget);
+    VarianceClockInstant expected;
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704153600, 0, expected));
+    BOOST_CHECK(loaded.tables.availableFrom == expected);
+    BOOST_CHECK(!loaded.provenance.reconstructed);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidLoadMode) {
+    BOOST_TEST_MESSAGE("Testing load mode rejects values outside the public enumeration...");
+    auto fixture = validBundleTableFixture();
+    checkBundleEvidenceRejectedWith(
+        fixture, "invalid variance-clock load mode",
+        static_cast<VarianceClockLoadMode>(99));
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsCalendarEvidenceWrongRole) {
+    BOOST_TEST_MESSAGE("Testing calendar evidence role enforcement...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence[0].role = "timezone_rules";
+    checkBundleEvidenceRejectedWith(fixture, "wrong evidence role");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsNonCalendarEvidenceInSessionSource) {
+    BOOST_TEST_MESSAGE("Testing session source evidence must have calendar role...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence[0].role = "other_required_source";
+    checkBundleEvidenceRejectedWith(fixture, "wrong evidence role");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsTimezoneEvidenceWrongRole) {
+    BOOST_TEST_MESSAGE("Testing timezone evidence role enforcement...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence[1].role = "calendar_source";
+    checkBundleEvidenceRejectedWith(fixture, "wrong evidence role");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsDuplicateEvidenceId) {
+    BOOST_TEST_MESSAGE("Testing duplicate evidence IDs are rejected...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence.push_back(fixture.manifest.evidence.front());
+    checkBundleEvidenceRejectedWith(fixture, "duplicate evidence ID");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsNonPriceEvidenceInProfileCalibration) {
+    BOOST_TEST_MESSAGE("Testing profile calibration evidence must have price role...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence[2].role = "other_required_source";
+    checkBundleEvidenceRejectedWith(fixture, "wrong evidence role");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsEmptyCalendarEvidenceIds) {
+    BOOST_TEST_MESSAGE("Testing calendar evidence IDs cannot be empty...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.calendarEvidenceIds.clear();
+    checkBundleEvidenceRejectedWith(fixture, "empty calendar evidence IDs");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsEmptyTimezoneEvidenceIds) {
+    BOOST_TEST_MESSAGE("Testing timezone evidence IDs cannot be empty...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.timezoneEvidenceIds.clear();
+    checkBundleEvidenceRejectedWith(fixture, "empty timezone evidence IDs");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsDuplicateProfileCalibration) {
+    BOOST_TEST_MESSAGE("Testing duplicate profile calibrations are rejected...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.profileCalibrations.push_back(fixture.manifest.profileCalibrations.front());
+    checkBundleEvidenceRejectedWith(fixture, "duplicate profile calibration");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsDanglingProfileCalibration) {
+    BOOST_TEST_MESSAGE("Testing profile calibrations must resolve to loaded profiles...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.profileCalibrations.front().profileId = 2;
+    checkBundleEvidenceRejectedWith(fixture, "missing profile calibration");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOrphanEvidence) {
+    BOOST_TEST_MESSAGE("Testing evidence not cited by any source is rejected...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence.push_back(
+        {"orphan", "other_required_source", "feed", std::string("r1"), std::nullopt,
+         "2024-01-01T00:00:00Z", std::string("memory:orphan"), std::nullopt,
+         std::string("receipt:orphan")});
+    checkBundleEvidenceRejectedWith(fixture, "orphan evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testContinuousFuturesEvidenceRequiresLineageRole) {
+    BOOST_TEST_MESSAGE("Testing continuous-futures evidence role enforcement...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.continuousFuturesLineage =
+        QuantLib::detail::VarianceClockManifestContinuousFuturesLineage{
+            "roll", "ES", "ES1", "volume", {"roll"}, {"mapping"}};
+    fixture.manifest.evidence.push_back(
+        {"roll", "continuous_roll_mapping", "roll-feed", std::string("r1"), std::nullopt,
+         "2024-01-01T00:00:00Z", std::string("memory:roll"), std::nullopt,
+         std::string("receipt:roll")});
+    fixture.manifest.evidence.push_back(
+        {"mapping", "continuous_roll_mapping", "mapping-feed", std::string("r1"), std::nullopt,
+         "2024-01-01T00:00:00Z", std::string("memory:mapping"), std::nullopt,
+         std::string("receipt:mapping")});
+    {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        auto loaded = validateBundleEvidence(fixture, budget);
+        BOOST_CHECK(!loaded.provenance.reconstructed);
+    }
+    fixture.manifest.evidence.back().role = "other_required_source";
+    checkBundleEvidenceRejectedWith(fixture, "wrong evidence role");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsEvidenceAvailableAfterGeneratedAt) {
+    BOOST_TEST_MESSAGE("Testing evidence availability cannot follow generated_at_utc...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.evidence[2].availableAtUtc = "2024-01-02T00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "evidence is available after generated_at_utc");
+}
+
+BOOST_AUTO_TEST_CASE(testEvidenceValidationBudgetBoundary) {
+    BOOST_TEST_MESSAGE("Testing exact full-load budget and one-byte-under rejection...");
+    const auto fixture = validBundleTableFixture();
+    const auto loadsWithin = [&fixture](std::size_t limit) {
+        QuantLib::detail::VarianceClockLoadBudget budget(limit);
+        try {
+            auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+                fixture.manifest, fixture.csv(), budget);
+            auto loaded = QuantLib::detail::validateVarianceClockBundleEvidence(
+                fixture.manifest, fixture.csv(), std::move(parsed), VarianceClockLoadMode::Strict,
+                budget);
+            return true;
+        } catch (const Error&) {
+            BOOST_CHECK_EQUAL(budget.used(), 0U);
+            return false;
+        }
+    };
+    std::size_t lower = 0;
+    std::size_t upper = QuantLib::detail::VarianceClockLoadBudget::defaultLimit;
+    BOOST_REQUIRE(loadsWithin(upper));
+    while (lower < upper) {
+        const auto middle = lower + (upper - lower) / 2;
+        if (loadsWithin(middle))
+            upper = middle;
+        else
+            lower = middle + 1;
+    }
+    BOOST_REQUIRE(loadsWithin(lower));
+    if (lower > 0) {
+        QuantLib::detail::VarianceClockLoadBudget insufficient(lower - 1);
+        try {
+            auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+                fixture.manifest, fixture.csv(), insufficient);
+            (void)QuantLib::detail::validateVarianceClockBundleEvidence(
+                fixture.manifest, fixture.csv(), std::move(parsed),
+                VarianceClockLoadMode::Strict, insufficient);
+            BOOST_ERROR("accepted bundle below the minimum load budget");
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(
+                std::string(e.what()).find("variance-clock load exceeds size limit") !=
+                    std::string::npos,
+                "unexpected rejection: " << e.what());
+        }
+        BOOST_CHECK_EQUAL(insufficient.used(), 0U);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsCalendarAsOfAfterGeneratedAt) {
+    BOOST_TEST_MESSAGE("Testing calendar as-of cannot follow generated_at_utc...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-01T00:00:00Z";
+    fixture.manifest.calendarAsOfUtc = "2024-01-02T00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "calendar as-of is after generated_at_utc");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsTimezoneAsOfAfterGeneratedAt) {
+    BOOST_TEST_MESSAGE("Testing timezone as-of cannot follow generated_at_utc...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-01T00:00:00Z";
+    fixture.manifest.timezoneAsOfUtc = "2024-01-02T00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "timezone as-of is after generated_at_utc");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsCalendarAsOfBeforeCitedEvidence) {
+    BOOST_TEST_MESSAGE("Testing calendar as-of cannot precede cited evidence...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
+    fixture.manifest.evidence[0].availableAtUtc = "2024-01-02T00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "calendar as-of precedes cited evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsTimezoneAsOfBeforeCitedEvidence) {
+    BOOST_TEST_MESSAGE("Testing timezone as-of cannot precede cited evidence...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
+    fixture.manifest.evidence[1].availableAtUtc = "2024-01-02T00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "timezone as-of precedes cited evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsCalibrationBeforeCitedEvidence) {
+    BOOST_TEST_MESSAGE("Testing calibration as-of cannot precede cited price evidence...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc = "2023-12-31T00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "calibration precedes cited evidence");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsCalibrationAfterPriceCutoff) {
+    BOOST_TEST_MESSAGE("Testing calibration as-of cannot follow price cutoff...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
+    fixture.manifest.priceCutoffUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.calibrationSettings.priceCutoffUtc = fixture.manifest.priceCutoffUtc;
+    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc = "2024-01-03T00:00:00Z";
+    checkBundleEvidenceRejectedWith(fixture, "calibration is after price cutoff");
+}
+
+BOOST_AUTO_TEST_CASE(testUsesLatestInputAvailabilityForCalibration) {
+    BOOST_TEST_MESSAGE("Testing calibration follows the latest cited input availability...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
+    fixture.manifest.priceCutoffUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.calibrationSettings.priceCutoffUtc = fixture.manifest.priceCutoffUtc;
+    fixture.manifest.evidence[2].availableAtUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc = "2024-01-02T00:00:00Z";
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto loaded = validateBundleEvidence(fixture, *budget);
+    VarianceClockInstant expected;
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704153600, 0, expected));
+    BOOST_CHECK(loaded.tables.profiles.front().calibrationAsOf == expected);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsPriceCutoffAfterGeneratedAt) {
+    BOOST_TEST_MESSAGE("Testing price cutoff cannot follow generated_at_utc...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-01T00:00:00Z";
+    fixture.manifest.priceCutoffUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.calibrationSettings.priceCutoffUtc = fixture.manifest.priceCutoffUtc;
+    checkBundleEvidenceRejectedWith(fixture, "price cutoff is after generated_at_utc");
+}
+
+BOOST_AUTO_TEST_CASE(testReconstructionUsesMaximumEvidenceAvailabilityForSnapshot) {
+    BOOST_TEST_MESSAGE("Testing reconstruction availability uses evidence availability...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-02T00:00:00Z";
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    auto loaded = validateBundleEvidence(
+        fixture, budget, VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK(loaded.provenance.reconstructed);
+    BOOST_CHECK_EQUAL(loaded.tables.availableFrom.unixSeconds(),
+                     1704067200);
+    BOOST_CHECK_EQUAL(budget.used(), loaded.storageCharge.bytes());
+}
+
+BOOST_AUTO_TEST_CASE(testReconstructionProvenanceIsExplicit) {
+    BOOST_TEST_MESSAGE("Testing reconstruction mode records explicit provenance...");
+    auto fixture = validBundleTableFixture();
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    auto loaded = validateBundleEvidence(fixture, budget, VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK(loaded.provenance.reconstructed);
+    BOOST_CHECK_EQUAL(loaded.provenance.snapshotId, "snapshot");
+}
+
+BOOST_AUTO_TEST_CASE(testStrictModeReportsBeforeCalibrationForEarlierValuation) {
+    BOOST_TEST_MESSAGE("Testing strict availability rejects an earlier valuation...");
+    auto fixture = shortCoverageBundleFixture();
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto loaded = validateBundleEvidence(fixture, *budget);
+    auto snapshot = makeVarianceClockSnapshot(std::move(loaded.tables));
+    VarianceClock clock(std::move(snapshot));
+    const auto view = clock.capture();
+    VarianceClockExpiryToken token;
+    VarianceClockInstant expiry;
+    VarianceClockInstant earlier;
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704153600, 0, expiry));
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704110340, 0, earlier));
+    BOOST_CHECK(view.prepareExpiry(expiry, token) == VarianceClockStatus::Ok);
+    BOOST_CHECK(view.remaining(earlier, token).status == VarianceClockStatus::BeforeCalibration);
+}
+
+BOOST_AUTO_TEST_CASE(testReconstructionAvailabilityAcceptsEarlierValuation) {
+    BOOST_TEST_MESSAGE("Testing reconstruction availability admits earlier valuation...");
+    auto fixture = shortCoverageBundleFixture();
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto loaded = validateBundleEvidence(fixture, *budget,
+                                         VarianceClockLoadMode::Reconstruction);
+    auto snapshot = makeVarianceClockSnapshot(std::move(loaded.tables));
+    VarianceClock clock(std::move(snapshot));
+    const auto view = clock.capture();
+    VarianceClockExpiryToken token;
+    VarianceClockInstant expiry;
+    VarianceClockInstant earlier;
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704153600, 0, expiry));
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704110340, 0, earlier));
+    BOOST_CHECK(view.prepareExpiry(expiry, token) == VarianceClockStatus::Ok);
+    BOOST_CHECK(view.remaining(earlier, token).status == VarianceClockStatus::Ok);
+}
+
+BOOST_AUTO_TEST_CASE(testGeneratedAtRaisesSnapshotAvailability) {
+    BOOST_TEST_MESSAGE("Testing generated_at_utc sets later strict availability...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-02T00:00:00Z";
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto loaded = validateBundleEvidence(fixture, *budget);
+    BOOST_CHECK_EQUAL(loaded.tables.availableFrom.unixSeconds(), 1704153600);
+}
+
+BOOST_AUTO_TEST_CASE(testWarnsForZeroRateSlot) {
+    BOOST_TEST_MESSAGE("Testing zero-rate slot warnings are derived...");
+    auto fixture = validBundleTableFixture();
+    useZeroWeightProfile(fixture);
+    rewriteSlotRows(fixture,
+                    ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
+                    "ZERO_RATE_SLOT," +
+                        csvEvidenceIds());
+    for (unsigned int minute = 0; minute < 1440; minute += 5)
+        fixture.manifest.warnings.push_back(
+            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
+             {"price"}});
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto loaded = validateBundleEvidence(fixture, *budget);
+    BOOST_CHECK_EQUAL(loaded.warnings.size(), 288U);
+    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "ZERO_RATE_SLOT");
+}
+
+BOOST_AUTO_TEST_CASE(testManifestWarningsMustEqualDerivedWarnings) {
+    BOOST_TEST_MESSAGE("Testing serialized warnings must equal derived slot warnings...");
+    auto fixture = validBundleTableFixture();
+    useZeroWeightProfile(fixture);
+    rewriteSlotRows(fixture,
+                    ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
+                    "ZERO_RATE_SLOT," +
+                        csvEvidenceIds());
+    checkBundleEvidenceRejectedWith(fixture, "manifest warnings differ from derived warnings");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsSlotWarningThatDiffersFromDerivedWarning) {
+    BOOST_TEST_MESSAGE("Testing slot warning codes must match the derived code...");
+    auto fixture = validBundleTableFixture();
+    useZeroWeightProfile(fixture);
+    rewriteSlotRows(fixture,
+                    ",5,not_applicable,1,not_applicable,zero,,not_applicable,,,"
+                    + csvEvidenceIds());
+    checkBundleEvidenceRejectedWith(fixture, "slot warning codes differ from derived set");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsFallbackWithoutManifestApproval) {
+    BOOST_TEST_MESSAGE("Testing fallback rows require a named manifest approval...");
+    auto fixture = validBundleTableFixture();
+    rewriteSlotRows(fixture,
+                    ",unknown,not_applicable,1,not_applicable,fallback,,not_applicable,fb,"
+                    "UNKNOWN_COUNT_FALLBACK," +
+                        csvEvidenceIds());
+    checkBundleEvidenceRejectedWith(fixture, "fallback lacks manifest approval");
+}
+
+BOOST_AUTO_TEST_CASE(testWarnsForApprovedUnknownCountFallback) {
+    BOOST_TEST_MESSAGE("Testing approved unknown-count fallback warnings are derived...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.fallbackApprovals.push_back({"fb", true, {"approval"}, {"price"}});
+    fixture.manifest.evidence.push_back(
+        {"approval", "fallback_approval", "approval-feed", std::string("r1"), std::nullopt,
+         "2024-01-01T00:00:00Z", std::string("memory:approval"), std::nullopt,
+         std::string("receipt:approval")});
+    rewriteSlotRows(fixture,
+                    ",unknown,not_applicable,1,not_applicable,fallback,,not_applicable,fb,"
+                    "UNKNOWN_COUNT_FALLBACK," +
+                        csvEvidenceIds(R"(["price","approval"])"));
+    for (unsigned int minute = 0; minute < 1440; minute += 5)
+        fixture.manifest.warnings.push_back(
+            {"UNKNOWN_COUNT_FALLBACK", "warning", 1, "group",
+             static_cast<std::uint16_t>(minute), {"approval", "price"}});
+    auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
+    auto loaded = validateBundleEvidence(fixture, *budget);
+    BOOST_CHECK_EQUAL(loaded.warnings.size(), 288U);
+    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "UNKNOWN_COUNT_FALLBACK");
+}
+
+BOOST_AUTO_TEST_CASE(testFallbackEvidenceMatchesApprovalUnionAsSet) {
+    BOOST_TEST_MESSAGE("Testing fallback evidence matches the approval union independent of order...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.fallbackApprovals.push_back({"fb", true, {"approval"}, {"other"}});
+    fixture.manifest.evidence.push_back(
+        {"approval", "fallback_approval", "approval-feed", std::string("r1"), std::nullopt,
+         "2024-01-01T00:00:00Z", std::string("memory:approval"), std::nullopt,
+         std::string("receipt:approval")});
+    fixture.manifest.evidence.push_back(
+        {"other", "other_required_source", "other-feed", std::string("r1"), std::nullopt,
+         "2024-01-01T00:00:00Z", std::string("memory:other"), std::nullopt,
+         std::string("receipt:other")});
+    rewriteSlotRows(fixture,
+                    ",1,not_applicable,1,not_applicable,fallback,,not_applicable,fb,,"
+                    + csvEvidenceIds(R"(["other","approval"])"));
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    const auto loaded = validateBundleEvidence(fixture, budget);
+    BOOST_CHECK(loaded.warnings.empty());
+    BOOST_CHECK(!loaded.provenance.reconstructed);
+}
+
+BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
+    BOOST_TEST_MESSAGE("Testing Strict mode requires generated_at_utc before coverage end...");
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.generatedAtUtc = fixture.manifest.coverageEndUtc;
+    checkBundleEvidenceRejectedWith(fixture, "before coverage_end_utc");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE_END()
 

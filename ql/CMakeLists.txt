@@ -914,6 +914,7 @@ set(QL_SOURCES
     time/variancecalendar.cpp
     time/varianceclock.cpp
     time/varianceclockbundledata.cpp
+    time/varianceclockbundleevidence.cpp
     time/varianceclockbundlesource.cpp
     time/varianceclockcsv.cpp
     time/varianceclockmanifest.cpp
@@ -2254,6 +2255,7 @@ set(QL_HEADERS
     time/calendar.hpp
     time/variancecalendar.hpp
     time/varianceclock.hpp
+    time/varianceclockbundletypes.hpp
     time/varianceclockinstant.hpp
     time/varianceclocktables.hpp
     time/calendars/argentina.hpp
@@ -2354,6 +2356,7 @@ set(QL_HEADERS
 
 set(QL_PRIVATE_HEADERS
     time/varianceclockbundledata.hpp
+    time/varianceclockbundleevidence.hpp
     time/varianceclockbundlesource.hpp
     time/varianceclockcsv.hpp
     time/varianceclockmanifest.hpp
