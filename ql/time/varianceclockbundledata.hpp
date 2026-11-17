@@ -85,15 +85,20 @@ namespace QuantLib {
         };
 
         struct ParsedVarianceClockTables {
+            ParsedVarianceClockTables() = default;
+            ParsedVarianceClockTables(const ParsedVarianceClockTables&) = delete;
+            ParsedVarianceClockTables& operator=(const ParsedVarianceClockTables&) = delete;
+            ParsedVarianceClockTables(ParsedVarianceClockTables&&) noexcept = default;
+            ParsedVarianceClockTables& operator=(ParsedVarianceClockTables&& other) noexcept;
+
+            // The budget must outlive this result; release the charge after its
+            // vectors have destroyed their accounted capacity.
+            VarianceClockLoadBudget::Reservation storageCharge;
             VarianceClockInstant start;
             VarianceClockInstant end;
             std::vector<VarianceClockProfileInput> profiles;
             std::vector<VarianceClockDateInput> dates;
             std::vector<VarianceClockOffsetInput> offsets;
-
-            // The budget must outlive this result so the retained-output charge
-            // can be released when this value is destroyed.
-            VarianceClockLoadBudget::Reservation storageCharge;
         };
 
         ParsedVarianceClockTables parseVarianceClockBundleData(

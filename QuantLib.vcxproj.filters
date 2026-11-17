@@ -2883,10 +2883,13 @@
     <ClInclude Include="ql\time\varianceclock.hpp">
       <Filter>time</Filter>
     </ClInclude>
-    <ClInclude Include="ql\time\varianceclockcsv.hpp">
+    <ClInclude Include="ql\time\varianceclockbundledata.hpp">
       <Filter>time</Filter>
     </ClInclude>
-    <ClInclude Include="ql\time\varianceclockbundledata.hpp">
+    <ClInclude Include="ql\time\varianceclockbundlesource.hpp">
+      <Filter>time</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\time\varianceclockcsv.hpp">
       <Filter>time</Filter>
     </ClInclude>
     <ClInclude Include="ql\time\varianceclockdetail.hpp">
@@ -6305,10 +6308,13 @@
     <ClCompile Include="ql\time\varianceclock.cpp">
       <Filter>time</Filter>
     </ClCompile>
-    <ClCompile Include="ql\time\varianceclockcsv.cpp">
+    <ClCompile Include="ql\time\varianceclockbundledata.cpp">
       <Filter>time</Filter>
     </ClCompile>
-    <ClCompile Include="ql\time\varianceclockbundledata.cpp">
+    <ClCompile Include="ql\time\varianceclockbundlesource.cpp">
+      <Filter>time</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\time\varianceclockcsv.cpp">
       <Filter>time</Filter>
     </ClCompile>
     <ClCompile Include="ql\time\varianceclockmanifest.cpp">

@@ -287,6 +287,19 @@ namespace QuantLib {
             used_ -= bytes;
         }
 
+        ParsedVarianceClockTables& ParsedVarianceClockTables::operator=(
+            ParsedVarianceClockTables&& other) noexcept {
+            if (this != &other) {
+                profiles = std::move(other.profiles);
+                dates = std::move(other.dates);
+                offsets = std::move(other.offsets);
+                start = other.start;
+                end = other.end;
+                storageCharge = std::move(other.storageCharge);
+            }
+            return *this;
+        }
+
         ParsedVarianceClockTables parseVarianceClockBundleData(
             const VarianceClockManifest& manifest,
             const VarianceClockBundleCsvBytes& csv,
@@ -401,7 +414,8 @@ namespace QuantLib {
                 const auto profile =
                     std::find_if(result.profiles.begin(), result.profiles.end(),
                                  [id](const auto& item) { return item.id == id; });
-                QL_REQUIRE(profile != result.profiles.end(), "market day references unknown profile");
+                QL_REQUIRE(profile != result.profiles.end(),
+                           "market day references unknown profile");
                 validateIdentifier(row[4], "target group ID");
                 QL_REQUIRE(row[5] == "regular" || row[5] == "date_override" ||
                                row[5] == "emergency_override" ||
@@ -459,7 +473,8 @@ namespace QuantLib {
                            "zero method and profile weight disagree");
                 if (method == "direct")
                     QL_REQUIRE(targetCount && *targetCount >=
-                                                   manifest.calibrationSettings.minimumDirectReturns &&
+                                                   manifest.calibrationSettings
+                                                       .minimumDirectReturns &&
                                    row[5] == "not_applicable" && row[6] != "not_applicable" &&
                                    unsignedInteger<std::uint32_t>(row[6], "target dates") >= 1 &&
                                    row[7] == "not_applicable" && row[3].empty() &&
@@ -468,7 +483,8 @@ namespace QuantLib {
                                "invalid direct slot evidence");
                 if (method == "pooled")
                     QL_REQUIRE(targetCount && *targetCount <
-                                                   manifest.calibrationSettings.minimumDirectReturns &&
+                                                   manifest.calibrationSettings
+                                                       .minimumDirectReturns &&
                                    manifest.calibrationSettings.gapPoolReturnThreshold &&
                                    !row[3].empty() && row[5] != "not_applicable" &&
                                    unsignedInteger<std::uint32_t>(row[5], "source count") > 0 &&
@@ -550,8 +566,11 @@ namespace QuantLib {
                 QL_REQUIRE(start < end, "empty session segment");
                 const auto firstRun = std::find_if(
                     result.offsets.begin(), result.offsets.end(),
-                    [&start](const auto& offset) { return offset.start <= start && start < offset.end; });
-                QL_REQUIRE(firstRun != result.offsets.end(), "session start lacks timezone mapping");
+                    [&start](const auto& offset) {
+                        return offset.start <= start && start < offset.end;
+                    });
+                QL_REQUIRE(firstRun != result.offsets.end(),
+                           "session start lacks timezone mapping");
                 if (!row[6].empty())
                     QL_REQUIRE(signedInt32(row[6]) == firstRun->offsetSeconds,
                                "session local offset claim disagrees with timezone mapping");

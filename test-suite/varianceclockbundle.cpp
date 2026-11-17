@@ -22,16 +22,23 @@
 #include <ql/errors.hpp>
 #include <ql/time/varianceclockcsv.hpp>
 #include <ql/time/varianceclockbundledata.hpp>
+#include <ql/time/varianceclockbundlesource.hpp>
 #include <ql/time/varianceclockmanifest.hpp>
 #include <ql/utilities/detail/variancesha256.hpp>
 #include <boost/test/unit_test.hpp>
 #include <array>
 #include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <locale>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -1057,6 +1064,283 @@ BOOST_AUTO_TEST_CASE(testCsvScanningIgnoresGlobalNumpunct) {
     BOOST_REQUIRE_EQUAL(table.records.size(), 2U);
     BOOST_CHECK_EQUAL(table.records[0].fields[2], "123");
     BOOST_CHECK_EQUAL(table.records[1].fields[2], "\"1,5\"");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(VarianceClockBundleSourceTests)
+
+namespace {
+
+    using QuantLib::detail::VarianceClockBundleSource;
+    using QuantLib::detail::VarianceClockCapturedBundle;
+    using QuantLib::detail::VarianceClockDirectorySource;
+    using QuantLib::detail::VarianceClockLoadBudget;
+    using QuantLib::detail::captureVarianceClockBundle;
+    using QuantLib::detail::isVarianceClockBundleFileName;
+
+    const std::array<std::string, 5> bundleCsvNames{{
+        "profiles.csv", "market_days.csv", "session_segments.csv", "timezone_mapping.csv",
+        "slot_evidence.csv"}};
+
+    std::string bundleDigest(std::string_view bytes) {
+        QuantLib::detail::VarianceSha256 hash;
+        hash.update(bytes);
+        return hash.finishHex();
+    }
+
+    std::vector<unsigned char> byteVector(std::string_view bytes) {
+        return std::vector<unsigned char>(bytes.begin(), bytes.end());
+    }
+
+    struct FakeBundleSource : VarianceClockBundleSource {
+        std::map<std::string, std::vector<unsigned char>> files;
+        mutable std::vector<std::string> readOrder;
+        mutable std::map<std::string, std::size_t> requestedLimits;
+        std::string maliciousName;
+        std::vector<unsigned char> maliciousBytes;
+
+        std::vector<unsigned char> read(const std::string& flatName,
+                                        std::size_t maxBytes) const override {
+            readOrder.push_back(flatName);
+            requestedLimits.emplace(flatName, maxBytes);
+            if (flatName == maliciousName)
+                return maliciousBytes;
+            const auto file = files.find(flatName);
+            QL_REQUIRE(file != files.end(), "missing fake bundle file");
+            return file->second;
+        }
+    };
+
+    FakeBundleSource validFakeBundle() {
+        FakeBundleSource source;
+        const std::array<std::string, 5> csvContents{{
+            "profiles bytes\n", "market days bytes\n", "session bytes\n", "timezone bytes\n",
+            "slot evidence bytes\n"}};
+        std::string manifest = minimalManifest();
+        for (std::size_t i = 0; i < bundleCsvNames.size(); ++i) {
+            const std::string before = "\"" + bundleCsvNames[i] + "\": \"" +
+                                       std::string(64, '0') + "\"";
+            const std::string after =
+                "\"" + bundleCsvNames[i] + "\": \"" + bundleDigest(csvContents[i]) + "\"";
+            replaceOnce(manifest, before, after);
+            source.files.emplace(bundleCsvNames[i], byteVector(csvContents[i]));
+        }
+        source.files.emplace("manifest.json", byteVector(manifest));
+        return source;
+    }
+
+    struct TemporaryDirectory {
+        std::filesystem::path path;
+
+        TemporaryDirectory() {
+            const char* home = std::getenv("HOME");
+            BOOST_REQUIRE(home);
+            path = std::filesystem::path(home) / "tmp" /
+                   ("variance-clock-b3b-" + std::to_string(
+                       std::filesystem::path(home).string().size()) +
+                    "-" + std::to_string(reinterpret_cast<std::uintptr_t>(this)));
+            std::filesystem::create_directories(path.parent_path());
+            std::filesystem::remove_all(path);
+            std::filesystem::create_directory(path);
+        }
+
+        ~TemporaryDirectory() {
+            std::error_code error;
+            std::filesystem::remove_all(path, error);
+        }
+    };
+
+    const std::array<std::string, 6> allBundleNames{{
+        "manifest.json", "profiles.csv", "market_days.csv", "session_segments.csv",
+        "timezone_mapping.csv", "slot_evidence.csv"}};
+
+}
+
+BOOST_AUTO_TEST_CASE(testSourceReadLimitIsRecheckedByLoader) {
+    BOOST_TEST_MESSAGE("Testing that the loader rejects source bytes above maxBytes...");
+    auto source = validFakeBundle();
+    source.maliciousName = "manifest.json";
+    source.maliciousBytes.resize(4U * 1024U * 1024U + 1U);
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+    BOOST_CHECK_EQUAL(source.readOrder.size(), 1U);
+    BOOST_CHECK_EQUAL(source.requestedLimits.at("manifest.json"), 4U * 1024U * 1024U);
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testCapturesCsvBytesInManifestOrder) {
+    BOOST_TEST_MESSAGE("Testing one-time manifest-ordered capture and digest verification...");
+    auto source = validFakeBundle();
+    VarianceClockLoadBudget budget;
+    {
+        const auto captured = captureVarianceClockBundle(source, budget);
+        const std::vector<std::string> expected{
+            "manifest.json", "profiles.csv", "market_days.csv", "session_segments.csv",
+            "timezone_mapping.csv", "slot_evidence.csv"};
+        const auto csv = captured.csvBytes();
+        BOOST_CHECK_EQUAL_COLLECTIONS(source.readOrder.begin(), source.readOrder.end(),
+                                      expected.begin(), expected.end());
+        BOOST_CHECK_EQUAL(csv.profiles, "profiles bytes\n");
+        BOOST_CHECK_EQUAL(csv.slotEvidence, "slot evidence bytes\n");
+        BOOST_CHECK_GT(budget.used(), 0U);
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsDigestMismatch) {
+    BOOST_TEST_MESSAGE("Testing rejection of a captured CSV with a digest mismatch...");
+    auto source = validFakeBundle();
+    source.files.at("profiles.csv").push_back('x');
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsMissingBundleFile) {
+    BOOST_TEST_MESSAGE("Testing rejection of a missing required bundle file...");
+    auto source = validFakeBundle();
+    source.files.erase("profiles.csv");
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsBundleSizeLimit) {
+    BOOST_TEST_MESSAGE("Testing rejection of a source response above the CSV size limit...");
+    auto source = validFakeBundle();
+    source.maliciousName = "profiles.csv";
+    source.maliciousBytes.resize(32U * 1024U * 1024U + 1U);
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsTraversalAndAbsolutePaths) {
+    BOOST_TEST_MESSAGE("Testing rejection of path components in bundle input names...");
+    const std::array<std::string, 7> invalid{{
+        "../manifest.json", "./manifest.json", "dir/profiles.csv", "/etc/passwd",
+        "manifest.json/..", "profiles.csv/extra", ""}};
+    for (const auto& name : invalid)
+        BOOST_CHECK(!isVarianceClockBundleFileName(name));
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsWindowsPathAliases) {
+    BOOST_TEST_MESSAGE("Testing portable rejection of Windows path aliases...");
+    const std::array<std::string, 12> invalid{{
+        R"(C:\x)", R"(C:x)", R"(\\server\share)", R"(\\?\C:\x)", R"(\\.\device)",
+        R"(profiles.csv\)", R"(profiles.csv.)", R"(profiles.csv )", "Profiles.csv",
+        "profiles.CSV", "profiles.csv//", R"(profiles.csv\.)"}};
+    for (const auto& name : invalid)
+        BOOST_CHECK(!isVarianceClockBundleFileName(name));
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOneByteChangeInProfilesCsv) {
+    BOOST_TEST_MESSAGE("Testing digest mismatch after one changed profiles.csv byte...");
+    auto source = validFakeBundle();
+    source.files.at("profiles.csv")[0] ^= 1U;
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOneByteChangeInMarketDaysCsv) {
+    BOOST_TEST_MESSAGE("Testing digest mismatch after one changed market_days.csv byte...");
+    auto source = validFakeBundle();
+    source.files.at("market_days.csv")[0] ^= 1U;
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOneByteChangeInSessionSegmentsCsv) {
+    BOOST_TEST_MESSAGE("Testing digest mismatch after one changed session_segments.csv byte...");
+    auto source = validFakeBundle();
+    source.files.at("session_segments.csv")[0] ^= 1U;
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOneByteChangeInTimezoneMappingCsv) {
+    BOOST_TEST_MESSAGE("Testing digest mismatch after one changed timezone_mapping.csv byte...");
+    auto source = validFakeBundle();
+    source.files.at("timezone_mapping.csv")[0] ^= 1U;
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOneByteChangeInSlotEvidenceCsv) {
+    BOOST_TEST_MESSAGE("Testing digest mismatch after one changed slot_evidence.csv byte...");
+    auto source = validFakeBundle();
+    source.files.at("slot_evidence.csv")[0] ^= 1U;
+    VarianceClockLoadBudget budget;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(source, budget), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryRejectsSymlinkedRoot) {
+    BOOST_TEST_MESSAGE("Testing rejection of a bundle root symlink...");
+    TemporaryDirectory temporary;
+    const auto target = temporary.path / "target";
+    std::filesystem::create_directory(target);
+    const auto link = temporary.path / "root-link";
+    std::error_code error;
+    std::filesystem::create_directory_symlink(target, link, error);
+    if (error) {
+        BOOST_TEST_MESSAGE("Skipping root-symlink filesystem check because symlink creation "
+                           "is unavailable: " << error.message());
+        return;
+    }
+    BOOST_CHECK_THROW(VarianceClockDirectorySource(link.string()), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsExtraDirectoryEntries) {
+    BOOST_TEST_MESSAGE("Testing rejection of unrecognized bundle-root entries...");
+    TemporaryDirectory temporary;
+    std::ofstream extra(temporary.path / "README");
+    extra << "unexpected";
+    extra.close();
+    BOOST_CHECK_THROW(VarianceClockDirectorySource(temporary.path.string()), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryReadsBinaryBytesFromOpenedFile) {
+    BOOST_TEST_MESSAGE("Testing binary reads from the checked input handle...");
+    TemporaryDirectory temporary;
+    const std::string payload("line1\r\nline2\0tail", 17);
+    std::ofstream file(temporary.path / "profiles.csv", std::ios::binary);
+    file.write(payload.data(), static_cast<std::streamsize>(payload.size()));
+    file.close();
+    VarianceClockDirectorySource source(temporary.path.string());
+    const auto bytes = source.read("profiles.csv", 32);
+    BOOST_CHECK_EQUAL(bytes.size(), payload.size());
+    BOOST_CHECK_EQUAL_COLLECTIONS(bytes.begin(), bytes.end(), payload.begin(), payload.end());
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryChecksFileSizeBeforeAllocation) {
+    BOOST_TEST_MESSAGE("Testing opened-handle size rejection before bounded input reads...");
+    TemporaryDirectory temporary;
+    std::ofstream file(temporary.path / "profiles.csv", std::ios::binary);
+    file << "larger than limit";
+    file.close();
+    VarianceClockDirectorySource source(temporary.path.string());
+    BOOST_CHECK_THROW(source.read("profiles.csv", 4), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsSymlinkedInputs) {
+    BOOST_TEST_MESSAGE("Testing rejection of a symlinked bundle input...");
+    TemporaryDirectory temporary;
+    const auto target = std::filesystem::path(temporary.path.string() + "-target.csv");
+    std::ofstream file(target);
+    file << "bytes";
+    file.close();
+    std::error_code error;
+    std::filesystem::create_symlink(target, temporary.path / "profiles.csv", error);
+    if (error) {
+        BOOST_TEST_MESSAGE("Skipping input-symlink filesystem check because symlink creation "
+                           "is unavailable: " << error.message());
+        std::filesystem::remove(target);
+        return;
+    }
+    VarianceClockDirectorySource source(temporary.path.string());
+    BOOST_CHECK_THROW(source.read("profiles.csv", 32), Error);
+    std::filesystem::remove(target);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
