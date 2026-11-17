@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include <ql/time/varianceclockbundlesource.hpp>
+#include <ql/time/varianceclockbundlecapture.hpp>
 #include <ql/errors.hpp>
 #include <ql/utilities/detail/variancesha256.hpp>
 #include <algorithm>

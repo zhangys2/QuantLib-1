@@ -245,7 +245,7 @@ namespace QuantLib {
 
         } // namespace
 
-        VarianceClockLoadedBundle validateVarianceClockBundleEvidence(
+        VarianceClockValidatedBundle validateVarianceClockBundleEvidence(
             const VarianceClockManifest& manifest,
             const VarianceClockBundleCsvBytes& csv,
             ParsedVarianceClockTables&& parsed,
@@ -422,7 +422,7 @@ namespace QuantLib {
             for (const auto& item : manifest.evidence)
                 QL_REQUIRE(used.count(item.evidenceId) != 0, "orphan evidence");
 
-            VarianceClockLoadedBundle result;
+            VarianceClockValidatedBundle result;
             result.tables.start = parsed.start;
             result.tables.end = parsed.end;
             result.tables.availableFrom =
@@ -431,6 +431,8 @@ namespace QuantLib {
             result.tables.dates = std::move(parsed.dates);
             result.tables.offsets = std::move(parsed.offsets);
             result.provenance.snapshotId = manifest.snapshotId;
+            result.provenance.availableFrom = result.tables.availableFrom;
+            result.provenance.mode = mode;
             result.provenance.reconstructed = mode == VarianceClockLoadMode::Reconstruction;
             result.warnings = std::move(warnings);
             result.storageCharge = std::move(parsed.storageCharge);

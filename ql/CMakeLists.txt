@@ -913,6 +913,7 @@ set(QL_SOURCES
     time/calendar.cpp
     time/variancecalendar.cpp
     time/varianceclock.cpp
+    time/varianceclockbundle.cpp
     time/varianceclockbundledata.cpp
     time/varianceclockbundleevidence.cpp
     time/varianceclockbundlesource.cpp
@@ -2255,6 +2256,8 @@ set(QL_HEADERS
     time/calendar.hpp
     time/variancecalendar.hpp
     time/varianceclock.hpp
+    time/varianceclockbundle.hpp
+    time/varianceclockbundlesource.hpp
     time/varianceclockbundletypes.hpp
     time/varianceclockinstant.hpp
     time/varianceclocktables.hpp
@@ -2355,9 +2358,9 @@ set(QL_HEADERS
 )
 
 set(QL_PRIVATE_HEADERS
+    time/varianceclockbundlecapture.hpp
     time/varianceclockbundledata.hpp
     time/varianceclockbundleevidence.hpp
-    time/varianceclockbundlesource.hpp
     time/varianceclockcsv.hpp
     time/varianceclockmanifest.hpp
     utilities/detail/thirdparty/nlohmann/json.hpp

@@ -24,8 +24,9 @@
 #ifndef quantlib_variance_clock_bundle_types_hpp
 #define quantlib_variance_clock_bundle_types_hpp
 
-#include <ql/time/varianceclockbundledata.hpp>
+#include <ql/time/varianceclocktables.hpp>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -44,14 +45,16 @@ namespace QuantLib {
 
     struct VarianceClockBundleProvenance {
         std::string snapshotId;
+        std::vector<std::string> validatedEvidenceIds;
+        VarianceClockInstant availableFrom;
+        VarianceClockLoadMode mode = VarianceClockLoadMode::Strict;
         bool reconstructed = false;
     };
 
     struct VarianceClockLoadedBundle {
-        VarianceClockTables tables;
+        std::unique_ptr<VarianceClockSnapshot> snapshot;
         std::vector<VarianceClockBundleWarning> warnings;
         VarianceClockBundleProvenance provenance;
-        detail::VarianceClockLoadBudget::Reservation storageCharge;
     };
 
 }

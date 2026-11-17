@@ -25,12 +25,20 @@
 #define quantlib_variance_clock_bundle_evidence_hpp
 
 #include <ql/time/varianceclockbundletypes.hpp>
+#include <ql/time/varianceclockbundledata.hpp>
 #include <ql/time/varianceclockcsv.hpp>
 
 namespace QuantLib {
     namespace detail {
 
-        VarianceClockLoadedBundle validateVarianceClockBundleEvidence(
+        struct VarianceClockValidatedBundle {
+            VarianceClockTables tables;
+            std::vector<VarianceClockBundleWarning> warnings;
+            VarianceClockBundleProvenance provenance;
+            VarianceClockLoadBudget::Reservation storageCharge;
+        };
+
+        VarianceClockValidatedBundle validateVarianceClockBundleEvidence(
             const VarianceClockManifest& manifest,
             const VarianceClockBundleCsvBytes& csv,
             ParsedVarianceClockTables&& parsed,

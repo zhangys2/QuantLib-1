@@ -2883,6 +2883,12 @@
     <ClInclude Include="ql\time\varianceclock.hpp">
       <Filter>time</Filter>
     </ClInclude>
+    <ClInclude Include="ql\time\varianceclockbundle.hpp">
+      <Filter>time</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\time\varianceclockbundlecapture.hpp">
+      <Filter>time</Filter>
+    </ClInclude>
     <ClInclude Include="ql\time\varianceclockbundledata.hpp">
       <Filter>time</Filter>
     </ClInclude>
@@ -6312,6 +6318,9 @@
       <Filter>time</Filter>
     </ClCompile>
     <ClCompile Include="ql\time\varianceclock.cpp">
+      <Filter>time</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\time\varianceclockbundle.cpp">
       <Filter>time</Filter>
     </ClCompile>
     <ClCompile Include="ql\time\varianceclockbundledata.cpp">

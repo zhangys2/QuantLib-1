@@ -1838,6 +1838,8 @@
     <ClInclude Include="ql\time\calendar.hpp" />
     <ClInclude Include="ql\time\variancecalendar.hpp" />
     <ClInclude Include="ql\time\varianceclock.hpp" />
+    <ClInclude Include="ql\time\varianceclockbundle.hpp" />
+    <ClInclude Include="ql\time\varianceclockbundlecapture.hpp" />
     <ClInclude Include="ql\time\varianceclockbundledata.hpp" />
     <ClInclude Include="ql\time\varianceclockbundleevidence.hpp" />
     <ClInclude Include="ql\time\varianceclockbundlesource.hpp" />
@@ -2882,6 +2884,7 @@
     <ClCompile Include="ql\time\calendar.cpp" />
     <ClCompile Include="ql\time\variancecalendar.cpp" />
     <ClCompile Include="ql\time\varianceclock.cpp" />
+    <ClCompile Include="ql\time\varianceclockbundle.cpp" />
     <ClCompile Include="ql\time\varianceclockbundledata.cpp" />
     <ClCompile Include="ql\time\varianceclockbundleevidence.cpp" />
     <ClCompile Include="ql\time\varianceclockbundlesource.cpp" />

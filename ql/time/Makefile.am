@@ -20,13 +20,16 @@ this_include_HEADERS = \
     timeunit.hpp \
     variancecalendar.hpp \
     varianceclock.hpp \
+    varianceclockbundle.hpp \
+    varianceclockbundlesource.hpp \
     varianceclockbundletypes.hpp \
     varianceclockinstant.hpp \
     varianceclocktables.hpp \
     weekday.hpp
 
-noinst_HEADERS = varianceclockbundledata.hpp varianceclockbundleevidence.hpp \
-    varianceclockbundlesource.hpp varianceclockcsv.hpp varianceclockdetail.hpp \
+noinst_HEADERS = varianceclockbundlecapture.hpp varianceclockbundledata.hpp \
+    varianceclockbundleevidence.hpp varianceclockcsv.hpp \
+    varianceclockdetail.hpp \
     varianceclockmanifest.hpp
 
 cpp_files = \
@@ -43,6 +46,7 @@ cpp_files = \
     timeunit.cpp \
     variancecalendar.cpp \
     varianceclock.cpp \
+    varianceclockbundle.cpp \
     varianceclockbundledata.cpp \
     varianceclockbundleevidence.cpp \
     varianceclockbundlesource.cpp \

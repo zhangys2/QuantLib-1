@@ -25,6 +25,8 @@
 #include <ql/time/varianceclockbundleevidence.hpp>
 #include <ql/time/varianceclockbundletypes.hpp>
 #include <ql/time/varianceclockbundlesource.hpp>
+#include <ql/time/varianceclockbundlecapture.hpp>
+#include <ql/time/varianceclockbundle.hpp>
 #include <ql/time/varianceclockmanifest.hpp>
 #include <ql/time/varianceclock.hpp>
 #include <ql/utilities/detail/variancesha256.hpp>
@@ -2066,7 +2068,7 @@ namespace {
         }
     }
 
-    QuantLib::VarianceClockLoadedBundle validateBundleEvidence(
+    QuantLib::detail::VarianceClockValidatedBundle validateBundleEvidence(
         const BundleTableFixture& fixture,
         QuantLib::detail::VarianceClockLoadBudget& budget,
         QuantLib::VarianceClockLoadMode mode = QuantLib::VarianceClockLoadMode::Strict) {
@@ -4092,6 +4094,372 @@ BOOST_AUTO_TEST_CASE(testSha256RejectsUseAfterFinish) {
                       "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     BOOST_CHECK_THROW(digest.finishHex(), Error);
     BOOST_CHECK_THROW(digest.update("d"), Error);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(VarianceBundleLoaderTests)
+
+namespace {
+
+    struct CompleteBundleSource final : detail::VarianceClockBundleSource {
+        std::map<std::string, std::vector<unsigned char>> files;
+        mutable std::vector<std::string> readOrder;
+        mutable std::vector<std::size_t> readLimits;
+        std::string oversizedName;
+
+        std::vector<unsigned char> read(const std::string& name,
+                                        std::size_t maxBytes) const override {
+            readOrder.push_back(name);
+            readLimits.push_back(maxBytes);
+            const auto found = files.find(name);
+            QL_REQUIRE(found != files.end(), "missing loader test file");
+            if (name == oversizedName)
+                return std::vector<unsigned char>(maxBytes + 1U, 'x');
+            return found->second;
+        }
+    };
+
+    struct LoaderTemporaryDirectory {
+        std::filesystem::path path;
+
+        LoaderTemporaryDirectory() {
+            static std::uint64_t next = 0;
+            path = std::filesystem::temp_directory_path() /
+                   ("quantlib-variance-clock-loader-" + std::to_string(++next));
+            std::filesystem::create_directory(path);
+        }
+
+        ~LoaderTemporaryDirectory() {
+            std::error_code error;
+            std::filesystem::remove_all(path, error);
+        }
+    };
+
+    std::string loaderSha256(std::string_view bytes) {
+        detail::VarianceSha256 digest;
+        digest.update(bytes);
+        return digest.finishHex();
+    }
+
+    struct LoaderTableFixture {
+        detail::VarianceClockManifest manifest;
+        std::string profiles, marketDays, sessionSegments, timezoneMapping, slotEvidence;
+    };
+
+    LoaderTableFixture loaderFixture() {
+        LoaderTableFixture fixture{
+            detail::parseVarianceClockManifest(minimalManifest()),
+            "profile_id,minute_of_day,variance_per_5m,weight\n",
+            "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n",
+            "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+            "claimed_local_offset_seconds,source_evidence_id\n",
+            "start_utc,end_utc,offset_seconds,fold\n",
+            "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
+            "source_return_count,target_distinct_local_date_count,source_distinct_local_date_count,"
+            "estimation_method,grouping_label,gap_pool_return_count,fallback_id,warning_codes,"
+            "evidence_ids_json\n"};
+        for (unsigned int minute = 0; minute < 1440; minute += 5)
+            fixture.profiles += "1," + std::to_string(minute) + ",0.01,1\n";
+        fixture.marketDays += "2024-01-01,full_day,true,1,group,date_override\n";
+        fixture.sessionSegments +=
+            "2024-01-01,2024-01-01T09:30:00Z,2024-01-01T16:00:00Z,session,,source,0,calendar\n";
+        fixture.manifest.coverageEndUtc = "2024-01-02T00:00:00Z";
+        fixture.timezoneMapping += "2024-01-01T00:00:00Z,2024-01-02T00:00:00Z,0,0\n";
+        for (unsigned int minute = 0; minute < 1440; minute += 5)
+            fixture.slotEvidence +=
+                "1,group," + std::to_string(minute) +
+                ",,1,not_applicable,1,not_applicable,direct,,not_applicable,,,\"[\"\"price\"\"]\"\n";
+        return fixture;
+    }
+
+    void rewriteLoaderSlotRows(LoaderTableFixture& fixture, const std::string& tail) {
+        std::string rows = fixture.slotEvidence.substr(0, fixture.slotEvidence.find('\n') + 1);
+        for (unsigned int minute = 0; minute < 1440; minute += 5)
+            rows += "1,group," + std::to_string(minute) + "," + tail + "\n";
+        fixture.slotEvidence = std::move(rows);
+    }
+
+    void checkLoaderRejected(const CompleteBundleSource& source, const std::string& message) {
+        try {
+            (void)loadVarianceClockBundle(source);
+            BOOST_ERROR("accepted invalid bundle; expected error containing: " << message);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find(message) != std::string::npos,
+                                "expected \"" << message << "\" but got: " << e.what());
+        }
+    }
+
+    CompleteBundleSource validCompleteBundleSource(const LoaderTableFixture& fixture) {
+        CompleteBundleSource source;
+        const std::array<std::pair<const char*, const std::string*>, 5> csv = {{
+            {"profiles.csv", &fixture.profiles},
+            {"market_days.csv", &fixture.marketDays},
+            {"session_segments.csv", &fixture.sessionSegments},
+            {"timezone_mapping.csv", &fixture.timezoneMapping},
+            {"slot_evidence.csv", &fixture.slotEvidence}}};
+        std::string manifest = minimalManifest();
+        replaceOnce(manifest, "\"generated_at_utc\": \"2024-01-01T00:00:00Z\"",
+                    "\"generated_at_utc\": \"" + fixture.manifest.generatedAtUtc + "\"");
+        replaceOnce(manifest, "\"coverage_end_utc\": \"2025-01-01T00:00:00Z\"",
+                    "\"coverage_end_utc\": \"" + fixture.manifest.coverageEndUtc + "\"");
+        if (!fixture.manifest.warnings.empty()) {
+            std::string warnings = "\"warnings\": [";
+            for (std::size_t i = 0; i < fixture.manifest.warnings.size(); ++i) {
+                const auto& warning = fixture.manifest.warnings[i];
+                if (i != 0)
+                    warnings += ",";
+                warnings += "{\"code\":\"" + warning.code + "\",\"severity\":\"" +
+                            warning.severity + "\",\"profile_id\":" +
+                            std::to_string(warning.profileId) + ",\"target_group_id\":\"" +
+                            warning.targetGroupId + "\",\"minute_of_day\":" +
+                            std::to_string(warning.minuteOfDay) + ",\"evidence_ids\":[\"price\"]}";
+            }
+            warnings += "]";
+            replaceOnce(manifest, "\"warnings\": []", warnings);
+        }
+        for (const auto& item : csv) {
+            const std::string zeros(64, '0');
+            replaceOnce(manifest, "\"" + std::string(item.first) + "\": \"" + zeros + "\"",
+                        "\"" + std::string(item.first) + "\": \"" +
+                            loaderSha256(*item.second) + "\"");
+            source.files[item.first] =
+                std::vector<unsigned char>(item.second->begin(), item.second->end());
+        }
+        source.files["manifest.json"] = std::vector<unsigned char>(manifest.begin(), manifest.end());
+        return source;
+    }
+
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsTamperedBundleWithoutReplacingActiveClock) {
+    BOOST_TEST_MESSAGE("Testing tampered bundle rejection without active-clock replacement...");
+    auto active = loadVarianceClockBundle(validCompleteBundleSource(loaderFixture()));
+    VarianceClock clock(std::move(active.snapshot));
+    const auto before = clock.capture().coverageStart();
+    auto source = validCompleteBundleSource(loaderFixture());
+    source.files.at("profiles.csv").back() ^= 1U;
+    checkLoaderRejected(source, "digest mismatch for profiles.csv");
+    BOOST_CHECK(clock.capture().coverageStart() == before);
+}
+
+BOOST_AUTO_TEST_CASE(testLoadsValidBundleIntoPhaseASnapshot) {
+    BOOST_TEST_MESSAGE("Testing a valid six-file bundle creates a Phase A snapshot...");
+    const auto loaded = loadVarianceClockBundle(validCompleteBundleSource(loaderFixture()));
+    BOOST_REQUIRE(loaded.snapshot);
+    BOOST_CHECK_EQUAL(loaded.provenance.snapshotId, "snapshot");
+    BOOST_CHECK_EQUAL(loaded.snapshot->coverageStart().unixSeconds(), 1704067200);
+    BOOST_CHECK_EQUAL(loaded.snapshot->coverageEnd().unixSeconds(), 1704153600);
+}
+
+BOOST_AUTO_TEST_CASE(testReturnsWarningsAndProvenance) {
+    BOOST_TEST_MESSAGE("Testing the loader returns structured warnings and provenance...");
+    const auto loaded = loadVarianceClockBundle(validCompleteBundleSource(loaderFixture()));
+    BOOST_CHECK(loaded.provenance.mode == VarianceClockLoadMode::Strict);
+    BOOST_CHECK(!loaded.provenance.reconstructed);
+    BOOST_CHECK_EQUAL(loaded.provenance.availableFrom.unixSeconds(), 1704067200);
+    BOOST_CHECK(!loaded.provenance.validatedEvidenceIds.empty());
+}
+
+BOOST_AUTO_TEST_CASE(testThrowsWithoutPartialResult) {
+    BOOST_TEST_MESSAGE("Testing failed loading exposes no partial result...");
+    auto source = validCompleteBundleSource(loaderFixture());
+    source.files.at("slot_evidence.csv").front() ^= 1U;
+    std::optional<VarianceClockLoadedBundle> result;
+    try {
+        result.emplace(loadVarianceClockBundle(source));
+        BOOST_ERROR("accepted tampered slot evidence");
+    } catch (const Error& e) {
+        BOOST_CHECK_MESSAGE(std::string(e.what()).find("digest mismatch for slot_evidence.csv") !=
+                                std::string::npos,
+                            "unexpected rejection: " << e.what());
+    }
+    BOOST_CHECK(!result);
+}
+
+BOOST_AUTO_TEST_CASE(testDoesNotMutateActiveClockOnFailure) {
+    BOOST_TEST_MESSAGE("Testing a failed load leaves the active clock unchanged...");
+    auto active = loadVarianceClockBundle(validCompleteBundleSource(loaderFixture()));
+    VarianceClock clock(std::move(active.snapshot));
+    const auto before = clock.capture();
+    auto source = validCompleteBundleSource(loaderFixture());
+    source.files.at("profiles.csv").back() ^= 1U;
+    checkLoaderRejected(source, "digest mismatch for profiles.csv");
+    BOOST_CHECK(clock.capture().coverageStart() == before.coverageStart());
+}
+
+BOOST_AUTO_TEST_CASE(testReadsEachInputExactlyOnceAndParsesCapturedBytes) {
+    BOOST_TEST_MESSAGE("Testing each input is read once and parsed from captured bytes...");
+    auto source = validCompleteBundleSource(loaderFixture());
+    const auto loaded = loadVarianceClockBundle(source);
+    BOOST_REQUIRE(loaded.snapshot);
+    BOOST_REQUIRE_EQUAL(source.readOrder.size(), 6U);
+    BOOST_CHECK_EQUAL(source.readOrder[0], "manifest.json");
+    BOOST_CHECK_EQUAL(source.readOrder[1], "profiles.csv");
+    BOOST_CHECK_EQUAL(source.readOrder[5], "slot_evidence.csv");
+}
+
+BOOST_AUTO_TEST_CASE(testReadsManifestThenCsvsInFixedOrder) {
+    BOOST_TEST_MESSAGE("Testing the exact manifest-then-CSV source read order...");
+    auto source = validCompleteBundleSource(loaderFixture());
+    (void)loadVarianceClockBundle(source);
+    const std::vector<std::string> expected = {
+        "manifest.json", "profiles.csv", "market_days.csv", "session_segments.csv",
+        "timezone_mapping.csv", "slot_evidence.csv"};
+    BOOST_CHECK(source.readOrder == expected);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
+    BOOST_TEST_MESSAGE("Testing the native-directory wrapper delegates to bundle loading...");
+    const auto source = validCompleteBundleSource(loaderFixture());
+    LoaderTemporaryDirectory directory;
+    for (const auto& file : source.files) {
+        std::ofstream output(directory.path / file.first, std::ios::binary);
+        output.write(reinterpret_cast<const char*>(file.second.data()),
+                     static_cast<std::streamsize>(file.second.size()));
+        BOOST_REQUIRE(output.good());
+    }
+    auto loaded = loadVarianceClockBundleFromDirectory(directory.path.string());
+    BOOST_CHECK(loaded.snapshot);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsSourceResultLargerThanMaxBytes) {
+    BOOST_TEST_MESSAGE("Testing source responses cannot exceed the requested read limit...");
+    auto source = validCompleteBundleSource(loaderFixture());
+    source.oversizedName = "manifest.json";
+    checkLoaderRejected(source, "more bytes than requested");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOneByteChangesInEveryCsv) {
+    BOOST_TEST_MESSAGE("Testing end-to-end integrity checks for every captured CSV...");
+    for (const char* name : {"profiles.csv", "market_days.csv", "session_segments.csv",
+                             "timezone_mapping.csv", "slot_evidence.csv"}) {
+        auto source = validCompleteBundleSource(loaderFixture());
+        source.files.at(name).front() ^= 1U;
+        checkLoaderRejected(source, std::string("digest mismatch for ") + name);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsConflictingExplicitOffsetClaim) {
+    BOOST_TEST_MESSAGE("Testing an explicit local-offset claim against captured mappings...");
+    auto fixture = loaderFixture();
+    replaceOnce(fixture.sessionSegments, "source,0,calendar", "source,3600,calendar");
+    checkLoaderRejected(validCompleteBundleSource(fixture),
+                        "session local offset claim disagrees with timezone mapping");
+}
+
+BOOST_AUTO_TEST_CASE(testReturnsStructuredWarningsWithEvidenceIds) {
+    BOOST_TEST_MESSAGE("Testing warning identity and evidence IDs survive loading...");
+    auto fixture = loaderFixture();
+    replaceAll(fixture.profiles, "0.01,1", "0,0");
+    rewriteLoaderSlotRows(fixture,
+                    ",0,not_applicable,0,not_applicable,zero,,not_applicable,,"
+                    "ZERO_RATE_SLOT,\"[\"\"price\"\"]\"");
+    for (unsigned int minute = 0; minute < 1440; minute += 5)
+        fixture.manifest.warnings.push_back(
+            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
+             {"price"}});
+    const auto loaded = loadVarianceClockBundle(validCompleteBundleSource(fixture));
+    BOOST_REQUIRE_EQUAL(loaded.warnings.size(), 288U);
+    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "ZERO_RATE_SLOT");
+    BOOST_CHECK_EQUAL(loaded.warnings.front().evidenceIds.front(), "price");
+}
+
+BOOST_AUTO_TEST_CASE(testLoadsFallbackApprovalsAndUnknownCountWarnings) {
+    BOOST_TEST_MESSAGE("Testing end-to-end fallback approvals and unknown-count warnings...");
+    auto fixture = loaderFixture();
+    rewriteLoaderSlotRows(
+        fixture,
+        ",unknown,not_applicable,unknown,not_applicable,fallback,,not_applicable,fb,"
+        "UNKNOWN_COUNT_FALLBACK,\"[\"\"approval\"\",\"\"price\"\"]\"");
+    auto source = validCompleteBundleSource(fixture);
+    std::string manifest(source.files.at("manifest.json").begin(),
+                         source.files.at("manifest.json").end());
+    replaceOnce(manifest, "\"fallback_approvals\": []",
+                "\"fallback_approvals\": [{\"fallback_id\":\"fb\",\"approved\":true,"
+                "\"approval_evidence_ids\":[\"approval\"],"
+                "\"source_evidence_ids\":[\"price\"]}]");
+    replaceOnce(manifest,
+                "\"evidence_id\": \"price\",\n      \"role\": \"price_input\",\n"
+                "      \"source_id\": \"prices\",\n      \"revision_id\": \"r1\",\n"
+                "      \"published_at_utc\": \"2024-01-01T00:00:00Z\",\n"
+                "      \"available_at_utc\": \"2024-01-01T00:00:00Z\",\n"
+                "      \"uri\": \"memory:prices\",\n"
+                "      \"content_sha256\": \"0000000000000000000000000000000000000000000000000000000000000000\",\n"
+                "      \"attestation_ref\": null\n    }",
+                "\"evidence_id\": \"price\",\n      \"role\": \"price_input\",\n"
+                "      \"source_id\": \"prices\",\n      \"revision_id\": \"r1\",\n"
+                "      \"published_at_utc\": \"2024-01-01T00:00:00Z\",\n"
+                "      \"available_at_utc\": \"2024-01-01T00:00:00Z\",\n"
+                "      \"uri\": \"memory:prices\",\n"
+                "      \"content_sha256\": \"0000000000000000000000000000000000000000000000000000000000000000\",\n"
+                "      \"attestation_ref\": null\n    }, {\"evidence_id\":\"approval\","
+                "\"role\":\"fallback_approval\",\"source_id\":\"approval-feed\","
+                "\"revision_id\":\"r1\",\"published_at_utc\":null,"
+                "\"available_at_utc\":\"2024-01-01T00:00:00Z\","
+                "\"uri\":\"memory:approval\",\"content_sha256\":null,"
+                "\"attestation_ref\":\"receipt:approval\"}");
+    std::string warnings = "\"warnings\": [";
+    for (unsigned int minute = 0; minute < 1440; minute += 5) {
+        if (minute != 0)
+            warnings += ",";
+        warnings += "{\"code\":\"UNKNOWN_COUNT_FALLBACK\",\"severity\":\"warning\","
+                    "\"profile_id\":1,\"target_group_id\":\"group\",\"minute_of_day\":" +
+                    std::to_string(minute) +
+                    ",\"evidence_ids\":[\"approval\",\"price\"]}";
+    }
+    warnings += "]";
+    replaceOnce(manifest, "\"warnings\": []", warnings);
+    source.files["manifest.json"] =
+        std::vector<unsigned char>(manifest.begin(), manifest.end());
+    const auto loaded = loadVarianceClockBundle(source);
+    BOOST_REQUIRE_EQUAL(loaded.warnings.size(), 288U);
+    BOOST_CHECK(loaded.warnings.front().code == "UNKNOWN_COUNT_FALLBACK");
+    BOOST_CHECK(loaded.warnings.front().evidenceIds ==
+                std::vector<std::string>({"approval", "price"}));
+}
+
+BOOST_AUTO_TEST_CASE(testStrictModeReportsBeforeCalibrationForEarlierValuation) {
+    BOOST_TEST_MESSAGE("Testing Strict snapshots retain generated-time availability...");
+    auto fixture = loaderFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    auto source = validCompleteBundleSource(fixture);
+    auto loaded = loadVarianceClockBundle(source);
+    VarianceClock clock(std::move(loaded.snapshot));
+    const auto view = clock.capture();
+    VarianceClockExpiryToken token;
+    VarianceClockInstant expiry, earlier;
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704153600, 0, expiry));
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704110340, 0, earlier));
+    BOOST_CHECK(view.prepareExpiry(expiry, token) == VarianceClockStatus::Ok);
+    BOOST_CHECK(view.remaining(earlier, token).status == VarianceClockStatus::BeforeCalibration);
+}
+
+BOOST_AUTO_TEST_CASE(testReconstructionModeAcceptsEarlierValuationAndLabelsProvenance) {
+    BOOST_TEST_MESSAGE("Testing explicit Reconstruction omits generated time from availability...");
+    auto fixture = loaderFixture();
+    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    auto loaded = loadVarianceClockBundle(validCompleteBundleSource(fixture),
+                                          VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK(loaded.provenance.reconstructed);
+    BOOST_CHECK(loaded.provenance.mode == VarianceClockLoadMode::Reconstruction);
+    BOOST_CHECK_EQUAL(loaded.provenance.availableFrom.unixSeconds(), 1704067200);
+    VarianceClock clock(std::move(loaded.snapshot));
+    const auto view = clock.capture();
+    VarianceClockExpiryToken token;
+    VarianceClockInstant expiry, earlier;
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704153600, 0, expiry));
+    BOOST_REQUIRE(VarianceClockInstant::tryCreate(1704110340, 0, earlier));
+    BOOST_CHECK(view.prepareExpiry(expiry, token) == VarianceClockStatus::Ok);
+    BOOST_CHECK(view.remaining(earlier, token).status == VarianceClockStatus::Ok);
+}
+
+BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
+    BOOST_TEST_MESSAGE("Testing Strict mode rejects generation at the coverage end...");
+    auto fixture = loaderFixture();
+    fixture.manifest.generatedAtUtc = fixture.manifest.coverageEndUtc;
+    checkLoaderRejected(validCompleteBundleSource(fixture),
+                        "Strict generated_at_utc must be before coverage_end_utc");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

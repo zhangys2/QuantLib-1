@@ -18,25 +18,19 @@
 */
 
 /*! \file varianceclockbundlesource.hpp
-    \brief internal variance-clock bundle byte sources
+    \brief variance-clock bundle byte source interface
 */
 
 #ifndef quantlib_variance_clock_bundle_source_hpp
 #define quantlib_variance_clock_bundle_source_hpp
 
-#include <ql/time/varianceclockbundledata.hpp>
-#include <array>
+#include <cstddef>
 #include <memory>
 #include <string>
-#include <string_view>
-#include <utility>
 #include <vector>
 
 namespace QuantLib {
     namespace detail {
-
-        class VarianceClockBundleSource;
-        struct VarianceClockCapturedBundle;
 
         class VarianceClockBundleSource {
           public:
@@ -60,63 +54,6 @@ namespace QuantLib {
             class Impl;
             std::unique_ptr<Impl> impl_;
         };
-
-        class VarianceClockVerifiedBytes {
-          public:
-            VarianceClockVerifiedBytes(const VarianceClockVerifiedBytes&) = delete;
-            VarianceClockVerifiedBytes& operator=(const VarianceClockVerifiedBytes&) = delete;
-            VarianceClockVerifiedBytes(VarianceClockVerifiedBytes&& other) noexcept
-            : charge_(std::move(other.charge_)), bytes_(std::move(other.bytes_)) {}
-            VarianceClockVerifiedBytes& operator=(VarianceClockVerifiedBytes&& other) noexcept {
-                if (this != &other) {
-                    bytes_ = std::move(other.bytes_);
-                    charge_ = std::move(other.charge_);
-                }
-                return *this;
-            }
-
-            std::string_view bytes() const noexcept;
-
-          private:
-            friend class VarianceClockCapturedBundle;
-            friend VarianceClockCapturedBundle captureVarianceClockBundle(
-                const VarianceClockBundleSource&, VarianceClockLoadBudget&);
-
-            VarianceClockVerifiedBytes() = default;
-            // Destroy bytes before releasing their accounted capacity.
-            VarianceClockLoadBudget::Reservation charge_;
-            std::vector<unsigned char> bytes_;
-        };
-
-        class VarianceClockCapturedBundle {
-          public:
-            VarianceClockCapturedBundle(const VarianceClockCapturedBundle&) = delete;
-            VarianceClockCapturedBundle& operator=(const VarianceClockCapturedBundle&) = delete;
-            VarianceClockCapturedBundle(VarianceClockCapturedBundle&&) noexcept = default;
-            VarianceClockCapturedBundle& operator=(
-                VarianceClockCapturedBundle&&) noexcept = default;
-
-            const VarianceClockManifest& manifest() const noexcept;
-            VarianceClockBundleCsvBytes csvBytes() const noexcept;
-
-          private:
-            friend VarianceClockCapturedBundle captureVarianceClockBundle(
-                const VarianceClockBundleSource&, VarianceClockLoadBudget&);
-
-            VarianceClockCapturedBundle() = default;
-
-            VarianceClockManifest manifest_;
-            VarianceClockVerifiedBytes profiles_;
-            VarianceClockVerifiedBytes marketDays_;
-            VarianceClockVerifiedBytes sessionSegments_;
-            VarianceClockVerifiedBytes timezoneMapping_;
-            VarianceClockVerifiedBytes slotEvidence_;
-        };
-
-        bool isVarianceClockBundleFileName(std::string_view name) noexcept;
-        VarianceClockCapturedBundle captureVarianceClockBundle(
-            const VarianceClockBundleSource& source,
-            VarianceClockLoadBudget& budget);
 
     }
 }
