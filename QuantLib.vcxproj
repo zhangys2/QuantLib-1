@@ -1924,6 +1924,7 @@
     <ClInclude Include="ql\utilities\clone.hpp" />
     <ClInclude Include="ql\utilities\dataformatters.hpp" />
     <ClInclude Include="ql\utilities\dataparsers.hpp" />
+    <ClInclude Include="ql\utilities\detail\thirdparty\nlohmann\json.hpp" />
     <ClInclude Include="ql\utilities\null.hpp" />
     <ClInclude Include="ql\utilities\null_deleter.hpp" />
     <ClInclude Include="ql\utilities\observablevalue.hpp" />

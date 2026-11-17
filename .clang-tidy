@@ -81,6 +81,7 @@ Checks: >
           -readability-use-anyofallof,
           -readability-use-std-min-max,
 HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '.*/ql/utilities/detail/thirdparty/nlohmann/json\.hpp'
 FormatStyle: none
 CheckOptions:
   - key:   cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor

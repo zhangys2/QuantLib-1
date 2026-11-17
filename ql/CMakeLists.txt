@@ -2347,6 +2347,10 @@ set(QL_HEADERS
     volatilitymodel.hpp
 )
 
+set(QL_PRIVATE_HEADERS
+    utilities/detail/thirdparty/nlohmann/json.hpp
+)
+
 set(QL_CONFIGURED_HEADERS
     ${PROJECT_BINARY_DIR}/ql/config.hpp
     ${PROJECT_BINARY_DIR}/ql/qldefines.hpp)
@@ -2480,6 +2484,7 @@ add_custom_command(OUTPUT ${QL_GENERATED_HEADERS}
 add_library(ql_library
     ${QL_SOURCES}
     ${QL_HEADERS}
+    ${QL_PRIVATE_HEADERS}
     ${QL_CONFIGURED_HEADERS}
     ${QL_GENERATED_HEADERS})
 

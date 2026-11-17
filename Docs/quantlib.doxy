@@ -136,7 +136,8 @@ RECURSIVE              = YES
 EXCLUDE                = ql_basepath//ql/config.hpp \
                          ql_basepath//ql/config.msvc.hpp
 EXCLUDE_SYMLINKS       = NO
-EXCLUDE_PATTERNS       = */all.hpp
+EXCLUDE_PATTERNS       = */all.hpp \
+                         */utilities/detail/thirdparty/*
 EXCLUDE_SYMBOLS        =
 EXAMPLE_PATH           = ql_basepath/Examples \
                          .

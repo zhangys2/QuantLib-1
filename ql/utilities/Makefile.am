@@ -15,6 +15,9 @@ this_include_HEADERS = \
     variants.hpp \
     vectors.hpp
 
+noinst_HEADERS = \
+    detail/thirdparty/nlohmann/json.hpp
+
 cpp_files = \
     dataformatters.cpp \
     dataparsers.cpp \

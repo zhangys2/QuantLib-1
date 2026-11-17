@@ -27,6 +27,8 @@ EXTRA_DIST = \
 	QuantLib.vcxproj \
 	QuantLib.vcxproj.filters \
 	README.md \
+	ql/utilities/detail/thirdparty/LICENSE-nlohmann-json.txt \
+	ql/utilities/detail/thirdparty/THIRD_PARTY_NOTICES.md \
 	autogen.sh \
 	test-probes/varianceclock/CMakeLists.txt \
 	test-probes/varianceclock/varianceclock_probe.hpp \
