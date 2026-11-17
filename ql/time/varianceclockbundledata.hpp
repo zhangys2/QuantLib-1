@@ -25,6 +25,7 @@
 #define quantlib_variance_clock_bundle_data_hpp
 
 #include <ql/time/varianceclockmanifest.hpp>
+#include <ql/time/varianceclockbundletypes.hpp>
 #include <ql/time/varianceclocktables.hpp>
 #include <cstddef>
 #include <string_view>
@@ -51,13 +52,14 @@ namespace QuantLib {
 
               private:
                 friend class VarianceClockLoadBudget;
-                Reservation(VarianceClockLoadBudget* budget, std::size_t bytes) noexcept;
+                Reservation(std::shared_ptr<VarianceClockBundleBudgetState> state,
+                            std::size_t bytes) noexcept;
 
-                VarianceClockLoadBudget* budget_ = nullptr;
+                std::shared_ptr<VarianceClockBundleBudgetState> state_;
                 std::size_t bytes_ = 0;
             };
 
-            explicit VarianceClockLoadBudget(std::size_t limit = defaultLimit) noexcept;
+            explicit VarianceClockLoadBudget(std::size_t limit = defaultLimit);
             VarianceClockLoadBudget(const VarianceClockLoadBudget&) = delete;
             VarianceClockLoadBudget& operator=(const VarianceClockLoadBudget&) = delete;
             VarianceClockLoadBudget(VarianceClockLoadBudget&&) = delete;
@@ -66,14 +68,11 @@ namespace QuantLib {
             std::size_t limit() const noexcept;
             std::size_t used() const noexcept;
             std::size_t remaining() const noexcept;
+            VarianceClockBundleBudgetAllocator<VarianceClockBundleWarning>
+            warningAllocator() const noexcept;
 
           private:
-            friend class Reservation;
-            void increase(std::size_t bytes);
-            void decrease(std::size_t bytes) noexcept;
-
-            std::size_t limit_;
-            std::size_t used_ = 0;
+            std::shared_ptr<VarianceClockBundleBudgetState> state_;
         };
 
         struct VarianceClockBundleCsvBytes {

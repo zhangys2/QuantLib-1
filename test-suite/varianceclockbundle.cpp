@@ -2545,6 +2545,26 @@ BOOST_AUTO_TEST_CASE(testStreamsLargeSlotEvidenceWithinBudget) {
     BOOST_CHECK_LE(budget.used(), budget.limit());
 }
 
+BOOST_AUTO_TEST_CASE(testRejectsSlotParserScratchBeforeMaterializingOversizedField) {
+    BOOST_TEST_MESSAGE("Testing slot parser scratch is charged before decoding...");
+    auto fixture = validBundleTableFixture();
+    const std::string oversizedField(900U * 1024U, 'x');
+    replaceOnce(fixture.slotEvidence, csvEvidenceIds(),
+                "\"" + oversizedField + "\"");
+    QuantLib::detail::VarianceClockLoadBudget budget(80U * 1024U * 1024U);
+    try {
+        (void)QuantLib::detail::parseVarianceClockBundleData(
+            fixture.manifest, fixture.csv(), budget);
+        BOOST_ERROR("accepted oversized slot-evidence parser scratch");
+    } catch (const Error& error) {
+        BOOST_CHECK_MESSAGE(
+            std::string(error.what()).find("variance-clock load exceeds size limit") !=
+                std::string::npos,
+            "unexpected parser-scratch error: " << error.what());
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
 BOOST_AUTO_TEST_CASE(testProfileOutputReservationUsesProfileCount) {
     BOOST_TEST_MESSAGE("Testing profile-output reservation against distinct profile count...");
     constexpr std::size_t profileCount = 400;
@@ -2688,6 +2708,21 @@ BOOST_AUTO_TEST_CASE(testLoadBudgetReservesReleasesAndReconciles) {
     empty.release();
     BOOST_CHECK_THROW(empty.resize(1), Error);
     BOOST_CHECK_NO_THROW(budget.reserve(100));
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testWarningAllocatorChargesRequestsWithoutCapacityAssumptions) {
+    BOOST_TEST_MESSAGE("Testing warning allocations are budgeted by allocator request...");
+    using QuantLib::VarianceClockBundleWarning;
+    using QuantLib::detail::VarianceClockLoadBudget;
+
+    VarianceClockLoadBudget budget(sizeof(VarianceClockBundleWarning));
+    auto allocator = budget.warningAllocator();
+    auto* warning = allocator.allocate(1);
+    BOOST_CHECK_EQUAL(budget.used(), sizeof(VarianceClockBundleWarning));
+    BOOST_CHECK_THROW(allocator.allocate(2), Error);
+    BOOST_CHECK_EQUAL(budget.used(), sizeof(VarianceClockBundleWarning));
+    allocator.deallocate(warning, 1);
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 

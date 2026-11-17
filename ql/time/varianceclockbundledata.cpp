@@ -303,13 +303,40 @@ namespace QuantLib {
             return parseInstant(text, "invalid UTC date");
         }
 
-        VarianceClockLoadBudget::Reservation::Reservation(VarianceClockLoadBudget* budget,
-                                                           std::size_t bytes) noexcept
-        : budget_(budget), bytes_(bytes) {}
+        VarianceClockBundleBudgetState::VarianceClockBundleBudgetState(
+            std::size_t limit) noexcept
+        : limit_(limit) {}
+
+        void VarianceClockBundleBudgetState::increase(std::size_t bytes) {
+            auto current = used_.load(std::memory_order_relaxed);
+            while (true) {
+                QL_REQUIRE(bytes <= limit_ - current,
+                           "variance-clock load exceeds size limit");
+                if (used_.compare_exchange_weak(current, current + bytes,
+                                                std::memory_order_relaxed))
+                    return;
+            }
+        }
+
+        void VarianceClockBundleBudgetState::decrease(std::size_t bytes) noexcept {
+            used_.fetch_sub(bytes, std::memory_order_relaxed);
+        }
+
+        std::size_t VarianceClockBundleBudgetState::used() const noexcept {
+            return used_.load(std::memory_order_relaxed);
+        }
+
+        std::size_t VarianceClockBundleBudgetState::limit() const noexcept {
+            return limit_;
+        }
+
+        VarianceClockLoadBudget::Reservation::Reservation(
+            std::shared_ptr<VarianceClockBundleBudgetState> state,
+            std::size_t bytes) noexcept
+        : state_(std::move(state)), bytes_(bytes) {}
 
         VarianceClockLoadBudget::Reservation::Reservation(Reservation&& other) noexcept
-        : budget_(other.budget_), bytes_(other.bytes_) {
-            other.budget_ = nullptr;
+        : state_(std::move(other.state_)), bytes_(other.bytes_) {
             other.bytes_ = 0;
         }
 
@@ -317,9 +344,8 @@ namespace QuantLib {
         VarianceClockLoadBudget::Reservation::operator=(Reservation&& other) noexcept {
             if (this != &other) {
                 release();
-                budget_ = other.budget_;
+                state_ = std::move(other.state_);
                 bytes_ = other.bytes_;
-                other.budget_ = nullptr;
                 other.bytes_ = 0;
             }
             return *this;
@@ -334,49 +360,45 @@ namespace QuantLib {
         }
 
         void VarianceClockLoadBudget::Reservation::resize(std::size_t bytes) {
-            QL_REQUIRE(budget_, "cannot resize a released load-budget reservation");
+            QL_REQUIRE(state_, "cannot resize a released load-budget reservation");
             if (bytes > bytes_)
-                budget_->increase(bytes - bytes_);
+                state_->increase(bytes - bytes_);
             else
-                budget_->decrease(bytes_ - bytes);
+                state_->decrease(bytes_ - bytes);
             bytes_ = bytes;
         }
 
         void VarianceClockLoadBudget::Reservation::release() noexcept {
-            if (budget_) {
-                budget_->decrease(bytes_);
-                budget_ = nullptr;
+            if (state_) {
+                state_->decrease(bytes_);
+                state_.reset();
                 bytes_ = 0;
             }
         }
 
-        VarianceClockLoadBudget::VarianceClockLoadBudget(std::size_t limit) noexcept
-        : limit_(limit) {}
+        VarianceClockLoadBudget::VarianceClockLoadBudget(std::size_t limit)
+        : state_(std::make_shared<VarianceClockBundleBudgetState>(limit)) {}
 
         VarianceClockLoadBudget::Reservation VarianceClockLoadBudget::reserve(std::size_t bytes) {
-            increase(bytes);
-            return Reservation(this, bytes);
+            state_->increase(bytes);
+            return Reservation(state_, bytes);
         }
 
         std::size_t VarianceClockLoadBudget::limit() const noexcept {
-            return limit_;
+            return state_->limit();
         }
 
         std::size_t VarianceClockLoadBudget::used() const noexcept {
-            return used_;
+            return state_->used();
         }
 
         std::size_t VarianceClockLoadBudget::remaining() const noexcept {
-            return limit_ - used_;
+            return limit() - used();
         }
 
-        void VarianceClockLoadBudget::increase(std::size_t bytes) {
-            QL_REQUIRE(bytes <= remaining(), "variance-clock load exceeds size limit");
-            used_ += bytes;
-        }
-
-        void VarianceClockLoadBudget::decrease(std::size_t bytes) noexcept {
-            used_ -= bytes;
+        VarianceClockBundleBudgetAllocator<VarianceClockBundleWarning>
+        VarianceClockLoadBudget::warningAllocator() const noexcept {
+            return VarianceClockBundleBudgetAllocator<VarianceClockBundleWarning>(state_);
         }
 
         ParsedVarianceClockTables& ParsedVarianceClockTables::operator=(
@@ -558,12 +580,21 @@ namespace QuantLib {
                         recordBytes += fields[i].size();
                     constexpr std::size_t rowFixedScratch =
                         128U * 1024U + 14U * (sizeof(std::string) + 32U);
+                    // Bound the JSON DOM, strings, per-array storage and allocator overhead
+                    // before decoding. Valid evidence_ids_json is at most 64 KiB.
+                    constexpr std::size_t parserScratchPerByte = 128U;
                     QL_REQUIRE(recordBytes <=
                                    (std::numeric_limits<std::size_t>::max() - rowFixedScratch) /
                                        2U,
                                "variance-clock CSV accounting overflow");
-                    auto rowScratch =
-                        context.budget->reserve(rowFixedScratch + 2U * recordBytes);
+                    const auto rowAndDecodedScratch = rowFixedScratch + 2U * recordBytes;
+                    QL_REQUIRE(fields[13].size() <=
+                                   (std::numeric_limits<std::size_t>::max() -
+                                    rowAndDecodedScratch) /
+                                       parserScratchPerByte,
+                               "variance-clock CSV accounting overflow");
+                    auto rowScratch = context.budget->reserve(
+                        rowAndDecodedScratch + parserScratchPerByte * fields[13].size());
                     std::array<std::string, 14> row;
                     for (std::size_t i = 0; i < count; ++i)
                         row[i] = decodeVarianceClockCsvField(fields[i]);

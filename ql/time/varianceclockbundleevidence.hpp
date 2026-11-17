@@ -33,7 +33,7 @@ namespace QuantLib {
 
         struct VarianceClockValidatedBundle {
             VarianceClockTables tables;
-            std::vector<VarianceClockBundleWarning> warnings;
+            VarianceClockBundleWarningVector warnings;
             VarianceClockBundleProvenance provenance;
             VarianceClockLoadBudget::Reservation storageCharge;
         };

@@ -29,6 +29,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 namespace QuantLib {
@@ -36,6 +37,8 @@ namespace QuantLib {
         namespace {
 
             using EvidenceMap = std::map<std::string, const VarianceClockManifestEvidence*>;
+            static_assert(std::is_nothrow_move_constructible<VarianceClockBundleWarning>::value,
+                          "warning vector growth must not copy warning payloads");
 
             std::string decode(const std::string_view* fields, std::size_t index) {
                 return decodeVarianceClockCsvField(fields[index]);
@@ -59,7 +62,8 @@ namespace QuantLib {
                 const EvidenceMap& evidence;
                 std::set<std::string>& used;
                 const std::vector<VarianceClockProfileInput>& profiles;
-                std::vector<VarianceClockBundleWarning>& warnings;
+                VarianceClockBundleWarningVector& warnings;
+                VarianceClockLoadBudget& budget;
                 VarianceClockLoadBudget::Reservation& storageCharge;
             };
 
@@ -75,6 +79,27 @@ namespace QuantLib {
 
             bool checkSlots(void* opaque, const std::string_view* fields, std::size_t) {
                 auto& context = *static_cast<StreamContext*>(opaque);
+                std::size_t recordBytes = 0;
+                for (std::size_t i = 0; i < 14; ++i) {
+                    QL_REQUIRE(fields[i].size() <=
+                                   std::numeric_limits<std::size_t>::max() - recordBytes,
+                               "variance-clock evidence accounting overflow");
+                    recordBytes += fields[i].size();
+                }
+                constexpr std::size_t fixedScratch =
+                    128U * 1024U + 14U * (sizeof(std::string) + 32U);
+                // Reserve before decoding/parsing so invalid large JSON cannot allocate first.
+                constexpr std::size_t parserScratchPerByte = 128U;
+                QL_REQUIRE(recordBytes <=
+                               (std::numeric_limits<std::size_t>::max() - fixedScratch) / 2U,
+                           "variance-clock evidence accounting overflow");
+                const auto rowScratchBase = fixedScratch + 2U * recordBytes;
+                QL_REQUIRE(fields[13].size() <=
+                               (std::numeric_limits<std::size_t>::max() - rowScratchBase) /
+                                   parserScratchPerByte,
+                           "variance-clock evidence accounting overflow");
+                auto rowScratch = context.budget.reserve(
+                    rowScratchBase + parserScratchPerByte * fields[13].size());
                 const auto idsJson = decode(fields, 13);
                 const auto evidenceIds = parseEvidenceIdsJson(idsJson);
                 const auto method = decode(fields, 8);
@@ -130,7 +155,7 @@ namespace QuantLib {
                                "invalid slot profile ID");
                     return result;
                 }();
-                const auto target = decode(fields, 1);
+                auto target = decode(fields, 1);
                 const auto minute = [&]() {
                     unsigned int result = 0;
                     const auto text = decode(fields, 2);
@@ -178,45 +203,16 @@ namespace QuantLib {
                                    "variance-clock warning accounting overflow");
                         bytes += id.capacity();
                     }
-                    if (context.warnings.size() == context.warnings.capacity()) {
-                        const auto oldCapacity = context.warnings.capacity();
-                        QL_REQUIRE(oldCapacity <=
-                                       std::numeric_limits<std::size_t>::max() / 2,
-                                   "variance-clock warning accounting overflow");
-                        const auto newCapacity = oldCapacity == 0 ? 1 : oldCapacity * 2;
-                        QL_REQUIRE(oldCapacity <=
-                                       std::numeric_limits<std::size_t>::max() /
-                                           sizeof(VarianceClockBundleWarning) &&
-                                       newCapacity <=
-                                           std::numeric_limits<std::size_t>::max() /
-                                               sizeof(VarianceClockBundleWarning),
-                                   "variance-clock warning accounting overflow");
-                        const auto oldBufferBytes =
-                            oldCapacity * sizeof(VarianceClockBundleWarning);
-                        const auto newBufferBytes =
-                            newCapacity * sizeof(VarianceClockBundleWarning);
-                        QL_REQUIRE(bytes <=
-                                       std::numeric_limits<std::size_t>::max() - newBufferBytes,
-                                   "variance-clock warning accounting overflow");
-                        bytes += newBufferBytes;
-                        const auto previousCharge = context.storageCharge.bytes();
-                        QL_REQUIRE(previousCharge >= oldBufferBytes &&
-                                       bytes <= std::numeric_limits<std::size_t>::max() -
-                                                     previousCharge,
-                                   "variance-clock warning accounting overflow");
-                        // The old and new buffers coexist until reserve has moved the elements.
-                        context.storageCharge.resize(previousCharge + bytes);
-                        context.warnings.reserve(newCapacity);
-                        context.storageCharge.resize(context.storageCharge.bytes() -
-                                                      oldBufferBytes);
-                    } else {
-                        QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
-                                                context.storageCharge.bytes(),
-                                   "variance-clock warning accounting overflow");
-                        context.storageCharge.resize(context.storageCharge.bytes() + bytes);
-                    }
+                    QL_REQUIRE(target.capacity() <=
+                                   std::numeric_limits<std::size_t>::max() - bytes,
+                               "variance-clock warning accounting overflow");
+                    bytes += target.capacity();
+                    QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() -
+                                            context.storageCharge.bytes(),
+                               "variance-clock warning accounting overflow");
+                    context.storageCharge.resize(context.storageCharge.bytes() + bytes);
                     context.warnings.push_back(
-                        {expectedCode, "warning", profile, target,
+                        {expectedCode, "warning", profile, std::move(target),
                          static_cast<std::uint16_t>(minute), std::move(ids)});
                 }
                 return true;
@@ -369,8 +365,8 @@ namespace QuantLib {
                 profile->calibrationAsOf = calibrationAsOf;
             }
 
-            std::vector<VarianceClockBundleWarning> warnings;
-            StreamContext context{manifest, evidence, used, parsed.profiles, warnings,
+            VarianceClockBundleWarningVector warnings(budget.warningAllocator());
+            StreamContext context{manifest, evidence, used, parsed.profiles, warnings, budget,
                                   parsed.storageCharge};
             QL_REQUIRE(visitVarianceClockCsvRows(csv.sessionSegments,
                                                  VarianceClockCsvSchema::SessionSegments,
