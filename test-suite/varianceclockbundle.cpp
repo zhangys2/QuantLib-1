@@ -3940,6 +3940,95 @@ BOOST_AUTO_TEST_CASE(testReconstructionIgnoresCoverageEndStrictDoesNot) {
     BOOST_CHECK_EQUAL(strict.tables.availableFrom.unixSeconds(), 1735689599);
 }
 
+BOOST_AUTO_TEST_CASE(testPriceInputRuleCoversPooledAndZeroSlots) {
+    BOOST_TEST_MESSAGE("Testing the price_input citation rule for pooled and zero slots...");
+    const std::string calendarOnly = csvEvidenceIds(R"(["calendar"])");
+    const std::string mixed = csvEvidenceIds(R"(["calendar","price"])");
+    const auto pooled = [](const std::string& evidence) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.calibrationSettings.minimumDirectReturns = 5;
+        fixture.manifest.calibrationSettings.gapPoolReturnThreshold = 2U;
+        rewriteSlotRows(fixture, "s,4,0,1,0,pooled,g,2,,," + evidence);
+        return fixture;
+    };
+    const auto zero = [](const std::string& evidence) {
+        auto fixture = validBundleTableFixture();
+        useZeroWeightProfile(fixture);
+        rewriteSlotRows(fixture,
+                        ",0,not_applicable,0,not_applicable,zero,,not_applicable,,"
+                        "ZERO_RATE_SLOT," +
+                            evidence);
+        for (unsigned int minute = 0; minute < 1440; minute += 5)
+            fixture.manifest.warnings.push_back(
+                {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
+                 {"calendar", "price"}});
+        return fixture;
+    };
+    const char* message = "at least one price_input";
+    checkBundleEvidenceRejectedWith(pooled(calendarOnly), message);
+    checkBundleEvidenceRejectedWith(zero(calendarOnly), message);
+    // One price_input citation is enough; other roles may accompany it.
+    {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        BOOST_CHECK_NO_THROW(validateBundleEvidence(pooled(mixed), budget));
+    }
+    {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        BOOST_CHECK_EQUAL(validateBundleEvidence(zero(mixed), budget).warnings.size(), 288U);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
+    BOOST_TEST_MESSAGE("Testing that derived warnings are charged for what they store...");
+    // A long evidence ID does not fit the string's inline (small-string) buffer, so its
+    // characters are a separate heap allocation that the charge must cover.
+    const std::string longId(40, 'p');
+    auto plain = validBundleTableFixture();
+    auto warned = validBundleTableFixture();
+    useZeroWeightProfile(warned);
+    warned.manifest.evidence[2].evidenceId = longId;
+    warned.manifest.profileCalibrations[0].evidenceIds = {longId};
+    rewriteSlotRows(warned,
+                    ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
+                    "ZERO_RATE_SLOT," +
+                        csvEvidenceIds("[\"" + longId + "\"]"));
+    for (unsigned int minute = 0; minute < 1440; minute += 5)
+        warned.manifest.warnings.push_back(
+            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
+             {longId}});
+    QuantLib::detail::VarianceClockLoadBudget plainBudget;
+    const auto plainResult = validateBundleEvidence(plain, plainBudget);
+    QuantLib::detail::VarianceClockLoadBudget warnedBudget;
+    const auto warnedResult = validateBundleEvidence(warned, warnedBudget);
+    BOOST_REQUIRE_EQUAL(warnedResult.warnings.size(), 288U);
+    // The budget also counts the slot CSV bytes, which differ between the fixtures.
+    const std::size_t csvDifference = warned.slotEvidence.size() - plain.slotEvidence.size();
+    BOOST_REQUIRE_GE(warnedBudget.used(), plainBudget.used() + csvDifference);
+    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used() - csvDifference;
+
+    // What the warnings really occupy: the warning vector, each ID vector, and the heap
+    // characters of every ID that is not stored inline in its std::string object. Inline
+    // (small-string) characters are part of sizeof(std::string) and are not counted again,
+    // so this is a lower bound; the charge may exceed it.
+    const auto onHeap = [](const std::string& text) {
+        const auto object = reinterpret_cast<std::uintptr_t>(&text);
+        const auto characters = reinterpret_cast<std::uintptr_t>(text.data());
+        return characters < object || characters >= object + sizeof(std::string);
+    };
+    std::size_t stored = warnedResult.warnings.capacity() * sizeof(VarianceClockBundleWarning);
+    std::size_t heapIds = 0;
+    for (const auto& warning : warnedResult.warnings) {
+        stored += warning.evidenceIds.capacity() * sizeof(std::string);
+        for (const auto& id : warning.evidenceIds)
+            if (onHeap(id)) {
+                stored += id.capacity();
+                ++heapIds;
+            }
+    }
+    BOOST_REQUIRE_EQUAL(heapIds, 288U);
+    BOOST_CHECK_GE(warningCharge, stored);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(VarianceClockBundleTableAdditionalTests)
