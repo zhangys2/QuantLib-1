@@ -913,6 +913,7 @@ set(QL_SOURCES
     time/calendar.cpp
     time/variancecalendar.cpp
     time/varianceclock.cpp
+    time/varianceclockcsv.cpp
     time/varianceclockmanifest.cpp
     # Keep this private header in the target without installing it.
     time/varianceclockdetail.hpp
@@ -2350,6 +2351,7 @@ set(QL_HEADERS
 
 set(QL_PRIVATE_HEADERS
     time/varianceclockmanifest.hpp
+    time/varianceclockcsv.hpp
     utilities/detail/thirdparty/nlohmann/json.hpp
 )
 

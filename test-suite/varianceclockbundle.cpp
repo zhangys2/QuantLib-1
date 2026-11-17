@@ -20,12 +20,15 @@
 #include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/errors.hpp>
+#include <ql/time/varianceclockcsv.hpp>
 #include <ql/time/varianceclockmanifest.hpp>
 #include <boost/test/unit_test.hpp>
+#include <array>
 #include <locale>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace QuantLib;
@@ -33,7 +36,9 @@ using namespace QuantLib;
 namespace {
 
     using QuantLib::detail::VarianceClockManifest;
+    using QuantLib::detail::VarianceClockCsvSchema;
     using QuantLib::detail::parseEvidenceIdsJson;
+    using QuantLib::detail::parseVarianceClockCsv;
     using QuantLib::detail::parseVarianceClockManifest;
 
     std::string minimalManifest() {
@@ -343,6 +348,234 @@ BOOST_AUTO_TEST_CASE(testJsonParsingIgnoresGlobalNumpunct) {
     GlobalLocaleGuard localeGuard;
     const auto manifest = parseVarianceClockManifest(minimalManifest());
     BOOST_CHECK_EQUAL(manifest.calibrationSettings.minimumDirectReturns, 1U);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(VarianceBundleCsvTests)
+
+BOOST_AUTO_TEST_CASE(testParsesQuotedCommaEscapedQuoteAndEmbeddedNewline) {
+    BOOST_TEST_MESSAGE("Testing CSV quoted commas, escaped quotes, and embedded newlines...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\n"
+        "a,\"b,c\",\"d\"\"e\",\"line1\nline2\"\n";
+    const auto table =
+        parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping);
+    BOOST_REQUIRE_EQUAL(table.records.size(), 1U);
+    BOOST_REQUIRE_EQUAL(table.records[0].fields.size(), 4U);
+    BOOST_CHECK_EQUAL(table.records[0].fields[0], "a");
+    BOOST_CHECK_EQUAL(table.records[0].fields[1], "\"b,c\"");
+    BOOST_CHECK_EQUAL(table.records[0].fields[2], "\"d\"\"e\"");
+    BOOST_CHECK_EQUAL(table.records[0].fields[3], "\"line1\nline2\"");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsUnterminatedQuote) {
+    BOOST_TEST_MESSAGE("Testing rejection of an unterminated CSV quote...");
+    const std::string input = "start_utc,end_utc,offset_seconds,fold\na,\"b,c,d";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsQuoteInUnquotedField) {
+    BOOST_TEST_MESSAGE("Testing rejection of a quote in an unquoted CSV field...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\na,ab\"c,d,e\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsBytesAfterClosingQuote) {
+    BOOST_TEST_MESSAGE("Testing rejection of bytes after a closing CSV quote...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\n\"a\"x,b,c,d\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsCrLfAndLf) {
+    BOOST_TEST_MESSAGE("Testing acceptance of CRLF and LF CSV record endings...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\r\n"
+        "a,b,0,0\r\n"
+        "c,d,1,0\n";
+    const auto table =
+        parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping);
+    BOOST_REQUIRE_EQUAL(table.records.size(), 2U);
+    BOOST_CHECK_EQUAL(table.records[0].fields[0], "a");
+    BOOST_CHECK_EQUAL(table.records[1].fields[0], "c");
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsMultibyteUtf8) {
+    BOOST_TEST_MESSAGE("Testing acceptance of valid multibyte UTF-8 in CSV...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\na," + std::string("\xE2\x82\xAC", 3) +
+        ",0,0\n";
+    const auto table =
+        parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping);
+    BOOST_REQUIRE_EQUAL(table.records.size(), 1U);
+    BOOST_CHECK_EQUAL(table.records[0].fields[1], std::string("\xE2\x82\xAC", 3));
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOverlongUtf8) {
+    BOOST_TEST_MESSAGE("Testing rejection of overlong UTF-8 in CSV...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\na," + std::string("\xC0\xAF", 2) +
+        ",0,0\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsUtf8Surrogate) {
+    BOOST_TEST_MESSAGE("Testing rejection of a UTF-8 encoded surrogate in CSV...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\na," + std::string("\xED\xA0\x80", 3) +
+        ",0,0\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsTruncatedUtf8) {
+    BOOST_TEST_MESSAGE("Testing rejection of a truncated UTF-8 sequence in CSV...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\na," + std::string("\xE2\x82", 2) +
+        ",0,0\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsNulByte) {
+    BOOST_TEST_MESSAGE("Testing rejection of a NUL byte in CSV...");
+    std::string input = "start_utc,end_utc,offset_seconds,fold\n";
+    input.append("a,\0,c,d\n", 8);
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testDistinguishesEmptyAndQuotedEmptyFields) {
+    BOOST_TEST_MESSAGE("Testing distinction between empty and quoted-empty CSV fields...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\n,\"\",0,0\n";
+    const auto table =
+        parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping);
+    BOOST_REQUIRE_EQUAL(table.records.size(), 1U);
+    BOOST_CHECK(table.records[0].fields[0].empty());
+    BOOST_CHECK_EQUAL(table.records[0].fields[1], "\"\"");
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsFinalRecordWithoutNewline) {
+    BOOST_TEST_MESSAGE("Testing acceptance of a final CSV record without a newline...");
+    const std::string input = "start_utc,end_utc,offset_seconds,fold\na,b,0,0";
+    const auto table =
+        parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping);
+    BOOST_REQUIRE_EQUAL(table.records.size(), 1U);
+    BOOST_CHECK_EQUAL(table.records[0].fields[3], "0");
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsBlankLine) {
+    BOOST_TEST_MESSAGE("Testing rejection of a blank CSV record...");
+    const std::string input = "start_utc,end_utc,offset_seconds,fold\n\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsBareCr) {
+    BOOST_TEST_MESSAGE("Testing rejection of a bare CR in CSV...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\na,b\r,c,d\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsHeaderOnlySyntax) {
+    BOOST_TEST_MESSAGE("Testing exact frozen CSV headers with no data records...");
+    const std::array<std::pair<VarianceClockCsvSchema, std::string_view>, 5> headers{{
+        {VarianceClockCsvSchema::Profiles,
+         "profile_id,minute_of_day,variance_per_5m,weight\n"},
+        {VarianceClockCsvSchema::MarketDays,
+         "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n"},
+        {VarianceClockCsvSchema::SessionSegments,
+         "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+         "claimed_local_offset_seconds,source_evidence_id\n"},
+        {VarianceClockCsvSchema::TimezoneMapping,
+         "start_utc,end_utc,offset_seconds,fold\n"},
+        {VarianceClockCsvSchema::SlotEvidence,
+         "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
+         "source_return_count,target_distinct_local_date_count,"
+         "source_distinct_local_date_count,estimation_method,grouping_label,"
+         "gap_pool_return_count,fallback_id,warning_codes,evidence_ids_json\n"}
+    }};
+    for (const auto& entry : headers) {
+        const auto table = parseVarianceClockCsv(entry.second, entry.first);
+        BOOST_CHECK(table.records.empty());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOverLimitRowCount) {
+    BOOST_TEST_MESSAGE("Testing rejection of more than 400,000 CSV data rows...");
+    std::string input = "start_utc,end_utc,offset_seconds,fold\n";
+    input.reserve(input.size() + 400001U * 8U);
+    for (std::size_t i = 0; i < 400001; ++i)
+        input += "a,b,0,0\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOverLimitField) {
+    BOOST_TEST_MESSAGE("Testing rejection of a CSV field larger than one MiB...");
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\n" +
+        std::string(1024U * 1024U + 1U, 'x') + ",b,0,0\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsOverLimitRecord) {
+    BOOST_TEST_MESSAGE("Testing rejection of a CSV record larger than four MiB...");
+    std::string input =
+        "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
+        "source_return_count,target_distinct_local_date_count,"
+        "source_distinct_local_date_count,estimation_method,grouping_label,"
+        "gap_pool_return_count,fallback_id,warning_codes,evidence_ids_json\n";
+    const std::string field(900U * 1024U, 'x');
+    for (std::size_t i = 0; i < 14; ++i) {
+        if (i != 0)
+            input += ',';
+        if (i < 5)
+            input += field;
+    }
+    input += '\n';
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::SlotEvidence),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsUnexpectedBom) {
+    BOOST_TEST_MESSAGE("Testing rejection of a UTF-8 BOM before the CSV header...");
+    const std::string input =
+        std::string("\xEF\xBB\xBF", 3) + "start_utc,end_utc,offset_seconds,fold\n";
+    BOOST_CHECK_THROW(parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping),
+                      Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsWrongHeaderOrFieldCount) {
+    BOOST_TEST_MESSAGE("Testing rejection of a wrong CSV header or field count...");
+    const std::string wrongHeader = "start_utc,end_utc,offset_seconds,other\n";
+    BOOST_CHECK_THROW(
+        parseVarianceClockCsv(wrongHeader, VarianceClockCsvSchema::TimezoneMapping), Error);
+    const std::string wrongWidth =
+        "start_utc,end_utc,offset_seconds,fold\na,b,0\n";
+    BOOST_CHECK_THROW(
+        parseVarianceClockCsv(wrongWidth, VarianceClockCsvSchema::TimezoneMapping), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testCsvScanningIgnoresGlobalNumpunct) {
+    BOOST_TEST_MESSAGE("Testing CSV scanning under a comma-decimal global locale...");
+    GlobalLocaleGuard localeGuard;
+    const std::string input =
+        "start_utc,end_utc,offset_seconds,fold\na,b,123,0\n";
+    const auto table =
+        parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping);
+    BOOST_REQUIRE_EQUAL(table.records.size(), 1U);
+    BOOST_CHECK_EQUAL(table.records[0].fields[2], "123");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
