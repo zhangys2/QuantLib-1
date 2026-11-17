@@ -42,6 +42,10 @@
 #include <system_error>
 #include <utility>
 #include <vector>
+#include <random>
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
 
 using namespace QuantLib;
 
@@ -1328,15 +1332,17 @@ namespace {
         std::filesystem::path path;
 
         TemporaryDirectory() {
-            const char* home = std::getenv("HOME");
-            BOOST_REQUIRE(home);
-            path = std::filesystem::path(home) / "tmp" /
-                   ("variance-clock-b3b-" + std::to_string(
-                       std::filesystem::path(home).string().size()) +
-                    "-" + std::to_string(reinterpret_cast<std::uintptr_t>(this)));
-            std::filesystem::create_directories(path.parent_path());
-            std::filesystem::remove_all(path);
-            std::filesystem::create_directory(path);
+            // The system temporary directory (TMPDIR on POSIX, TMP/TEMP on Windows).
+            std::random_device device;
+            for (int attempt = 0; attempt < 100; ++attempt) {
+                path = std::filesystem::temp_directory_path() /
+                       ("quantlib-variance-clock-" + std::to_string(device()) + "-" +
+                        std::to_string(device()));
+                std::error_code error;
+                if (std::filesystem::create_directory(path, error) && !error)
+                    return;
+            }
+            BOOST_FAIL("cannot create a temporary test directory");
         }
 
         ~TemporaryDirectory() {
@@ -1535,6 +1541,326 @@ BOOST_AUTO_TEST_CASE(testRejectsSymlinkedInputs) {
     VarianceClockDirectorySource source(temporary.path.string());
     BOOST_CHECK_THROW(source.read("profiles.csv", 32), Error);
     std::filesystem::remove(target);
+}
+
+namespace {
+
+    // Records the budget level at each read so the test can see what was reserved
+    // before the source was asked for bytes.
+    struct ObservingBundleSource : FakeBundleSource {
+        const VarianceClockLoadBudget* budget = nullptr;
+        mutable std::vector<std::size_t> usedAtRead;
+        std::size_t extraCapacity = 0;
+
+        std::vector<unsigned char> read(const std::string& flatName,
+                                        std::size_t maxBytes) const override {
+            usedAtRead.push_back(budget->used());
+            auto bytes = FakeBundleSource::read(flatName, maxBytes);
+            if (extraCapacity != 0)
+                bytes.reserve(bytes.size() + extraCapacity);
+            return bytes;
+        }
+    };
+
+    void checkCaptureRejectedWith(const VarianceClockBundleSource& source,
+                                  const char* expected,
+                                  std::size_t budgetLimit = VarianceClockLoadBudget::defaultLimit) {
+        VarianceClockLoadBudget budget(budgetLimit);
+        try {
+            captureVarianceClockBundle(source, budget);
+            BOOST_ERROR("captured bundle; expected a rejection mentioning: " << expected);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find(expected) != std::string::npos,
+                                "expected \"" << expected << "\" but got: " << e.what());
+        }
+        BOOST_CHECK_EQUAL(budget.used(), 0U);
+    }
+
+    // Writes the six files of a valid fake bundle into a directory.
+    void writeBundleFiles(const std::filesystem::path& directory,
+                          const FakeBundleSource& source) {
+        for (const auto& file : source.files) {
+            std::ofstream out(directory / file.first, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(file.second.data()),
+                      static_cast<std::streamsize>(file.second.size()));
+        }
+    }
+
+}
+
+BOOST_AUTO_TEST_CASE(testCaptureReservesTheCeilingBeforeEachRead) {
+    BOOST_TEST_MESSAGE("Testing that capture reserves each read ceiling before reading...");
+    ObservingBundleSource source;
+    source.files = validFakeBundle().files;
+    VarianceClockLoadBudget budget;
+    source.budget = &budget;
+    const auto captured = captureVarianceClockBundle(source, budget);
+    BOOST_REQUIRE_EQUAL(source.usedAtRead.size(), 6U);
+    // The manifest ceiling is reserved first and released after parsing; each CSV ceiling is
+    // reserved on top of the capacity retained for the CSVs before it.
+    std::size_t retained = 0;
+    BOOST_CHECK_EQUAL(source.usedAtRead[0], 4U * 1024U * 1024U);
+    for (std::size_t i = 0; i < bundleCsvNames.size(); ++i) {
+        BOOST_CHECK_EQUAL(source.usedAtRead[i + 1],
+                          retained + source.requestedLimits.at(bundleCsvNames[i]));
+        BOOST_CHECK_EQUAL(source.requestedLimits.at(bundleCsvNames[i]), 32U * 1024U * 1024U);
+        retained += source.files.at(bundleCsvNames[i]).size();
+    }
+    BOOST_CHECK_EQUAL(budget.used(), retained);
+}
+
+BOOST_AUTO_TEST_CASE(testCaptureMapsEveryFileToItsTable) {
+    BOOST_TEST_MESSAGE("Testing that each captured CSV lands in its own table...");
+    auto source = validFakeBundle();
+    VarianceClockLoadBudget budget;
+    const auto captured = captureVarianceClockBundle(source, budget);
+    const auto csv = captured.csvBytes();
+    BOOST_CHECK_EQUAL(csv.profiles, "profiles bytes\n");
+    BOOST_CHECK_EQUAL(csv.marketDays, "market days bytes\n");
+    BOOST_CHECK_EQUAL(csv.sessionSegments, "session bytes\n");
+    BOOST_CHECK_EQUAL(csv.timezoneMapping, "timezone bytes\n");
+    BOOST_CHECK_EQUAL(csv.slotEvidence, "slot evidence bytes\n");
+    BOOST_CHECK_EQUAL(captured.manifest().snapshotId, "snapshot");
+    // Each file is read exactly once.
+    BOOST_CHECK_EQUAL(source.readOrder.size(), 6U);
+    BOOST_CHECK(source.requestedLimits.at("manifest.json") == 4U * 1024U * 1024U);
+}
+
+BOOST_AUTO_TEST_CASE(testCaptureChargesReturnedCapacity) {
+    BOOST_TEST_MESSAGE("Testing that capture charges the capacity a source returns...");
+    ObservingBundleSource source;
+    source.files = validFakeBundle().files;
+    source.extraCapacity = 4096;
+    VarianceClockLoadBudget budget;
+    source.budget = &budget;
+    {
+        const auto captured = captureVarianceClockBundle(source, budget);
+        // Five retained buffers, each with at least the extra capacity it was returned with.
+        BOOST_CHECK_GE(budget.used(), 5U * 4096U);
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+
+    // A source whose capacity alone exceeds the budget is refused even though its size fits.
+    ObservingBundleSource fat;
+    fat.files = validFakeBundle().files;
+    fat.extraCapacity = 64U * 1024U;
+    VarianceClockLoadBudget small(32U * 1024U);
+    fat.budget = &small;
+    BOOST_CHECK_THROW(captureVarianceClockBundle(fat, small), Error);
+    BOOST_CHECK_EQUAL(small.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testCaptureCeilingsFollowTheRemainingBudget) {
+    BOOST_TEST_MESSAGE("Testing that read ceilings shrink with the remaining load budget...");
+    auto source = validFakeBundle();
+    const std::size_t limit = 10000;
+    VarianceClockLoadBudget budget(limit);
+    const auto captured = captureVarianceClockBundle(source, budget);
+    BOOST_CHECK_EQUAL(source.requestedLimits.at("manifest.json"), limit);
+    std::size_t retained = 0;
+    for (const auto& name : bundleCsvNames) {
+        BOOST_CHECK_EQUAL(source.requestedLimits.at(name), limit - retained);
+        retained += source.files.at(name).size();
+    }
+
+    // An exhausted budget is refused before the source is touched; a ceiling smaller than the
+    // manifest is refused by the over-return check.
+    auto untouched = validFakeBundle();
+    checkCaptureRejectedWith(untouched, "exhausted", 0);
+    BOOST_CHECK(untouched.readOrder.empty());
+    auto tooSmall = validFakeBundle();
+    checkCaptureRejectedWith(tooSmall, "more bytes than requested", 100);
+}
+
+BOOST_AUTO_TEST_CASE(testCaptureShrinksTheCeilingToTheAggregateLimit) {
+    BOOST_TEST_MESSAGE("Testing the 128 MiB aggregate input limit across captured files...");
+    constexpr std::size_t file = 32U * 1024U * 1024U;
+    struct BigSource : FakeBundleSource {
+        std::size_t size = 0;
+        mutable std::vector<std::size_t> limits;
+        std::vector<unsigned char> read(const std::string& name,
+                                        std::size_t maxBytes) const override {
+            limits.push_back(maxBytes);
+            if (name == "manifest.json")
+                return files.at(name);
+            // Three files of exactly 32 MiB, then one byte more than the ceiling allows.
+            return std::vector<unsigned char>(
+                limits.size() <= 4 ? size : maxBytes + 1, static_cast<unsigned char>('x'));
+        }
+    };
+    BigSource source;
+    source.size = file;
+    // The manifest needs the digest of 32 MiB of 'x' for the first three files.
+    std::string manifest = minimalManifest();
+    const std::string digest = bundleDigest(std::string(file, 'x'));
+    for (std::size_t i = 0; i < 3; ++i)
+        replaceOnce(manifest, "\"" + bundleCsvNames[i] + "\": \"" + std::string(64, '0') + "\"",
+                    "\"" + bundleCsvNames[i] + "\": \"" + digest + "\"");
+    source.files.emplace("manifest.json", byteVector(manifest));
+    VarianceClockLoadBudget budget;
+    try {
+        captureVarianceClockBundle(source, budget);
+        BOOST_ERROR("captured a bundle larger than the aggregate limit");
+    } catch (const Error& e) {
+        BOOST_CHECK(std::string(e.what()).find("more bytes than requested") !=
+                    std::string::npos);
+    }
+    BOOST_REQUIRE_EQUAL(source.limits.size(), 5U);
+    BOOST_CHECK_EQUAL(source.limits[0], 4U * 1024U * 1024U);
+    for (std::size_t i = 1; i <= 3; ++i)
+        BOOST_CHECK_EQUAL(source.limits[i], file);
+    // The fourth CSV may use what is left of 128 MiB after the manifest and three files.
+    BOOST_CHECK_EQUAL(source.limits[4], 128U * 1024U * 1024U - 3U * file - manifest.size());
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsDigestMismatchByFileName) {
+    BOOST_TEST_MESSAGE("Testing that a digest mismatch names the offending CSV...");
+    for (const auto& name : bundleCsvNames) {
+        auto source = validFakeBundle();
+        source.files.at(name).front() ^= 1U;
+        checkCaptureRejectedWith(source, ("digest mismatch for " + name).c_str());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testBundleFileNamesAreExact) {
+    BOOST_TEST_MESSAGE("Testing that only the six exact bundle file names are accepted...");
+    for (const auto& name : allBundleNames)
+        BOOST_CHECK(isVarianceClockBundleFileName(name));
+    std::vector<std::string> invalid = {
+        "manifest.jsonx", "xmanifest.json", "manifest.json.bak", "Manifest.json",
+        "profiles.csvx", "xprofiles.csv", "profile.csv", "slot_evidence.csv.tmp",
+        "profiles.csv::$DATA", "profiles.csv:stream", "PROFILES~1.CSV", "CON", "NUL",
+        "profiles.csv\\..\\manifest.json", ".", "..", " ", "\n"};
+    invalid.emplace_back(std::string("profiles.csv\0x", 14));
+    invalid.emplace_back(std::string("manifest.json\0", 14));
+    for (const auto& name : invalid)
+        BOOST_CHECK_MESSAGE(!isVarianceClockBundleFileName(name), "accepted: " << name);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectorySourceRejectsNonBundleNamesBeforeOpening) {
+    BOOST_TEST_MESSAGE("Testing that the directory source validates names before any open...");
+    TemporaryDirectory temporary;
+    VarianceClockDirectorySource source(temporary.path.string());
+    std::vector<std::string> names = {"../manifest.json", "/etc/passwd", "C:x", R"(C:\x)",
+                                      R"(\\server\share)", "profiles.csv::$DATA", "PROFILES.CSV",
+                                      "manifest.json/..", ""};
+    names.emplace_back(std::string("profiles.csv\0x", 14));
+    for (const auto& name : names) {
+        try {
+            source.read(name, 100);
+            BOOST_ERROR("read accepted the name: " << name);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(
+                std::string(e.what()).find("invalid variance-clock bundle input name") !=
+                    std::string::npos,
+                "wrong rejection for \"" << name << "\": " << e.what());
+        }
+    }
+    // A valid name that is simply absent is rejected by the open, not by the name check.
+    BOOST_CHECK_THROW(source.read("profiles.csv", 100), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectorySourceCapturesAValidBundle) {
+    BOOST_TEST_MESSAGE("Testing end-to-end capture from a real directory...");
+    TemporaryDirectory temporary;
+    const auto fake = validFakeBundle();
+    writeBundleFiles(temporary.path, fake);
+    VarianceClockDirectorySource source(temporary.path.string());
+    VarianceClockLoadBudget budget;
+    {
+        const auto captured = captureVarianceClockBundle(source, budget);
+        BOOST_CHECK_EQUAL(captured.csvBytes().marketDays, "market days bytes\n");
+        BOOST_CHECK_EQUAL(captured.manifest().snapshotId, "snapshot");
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+
+    // A trailing separator on the root is accepted for a real directory.
+    VarianceClockDirectorySource slash(temporary.path.string() + "/");
+    BOOST_CHECK_NO_THROW(captureVarianceClockBundle(slash, budget));
+
+    // One changed byte on disk is a digest mismatch.
+    {
+        std::fstream file(temporary.path / "timezone_mapping.csv",
+                          std::ios::binary | std::ios::in | std::ios::out);
+        file.put('X');
+    }
+    VarianceClockDirectorySource changed(temporary.path.string());
+    BOOST_CHECK_THROW(captureVarianceClockBundle(changed, budget), Error);
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryRejectsEveryUnrecognizedRootEntry) {
+    BOOST_TEST_MESSAGE("Testing rejection of extra entries of every kind in the bundle root...");
+    for (const char* extra :
+         {"README", "profiles.csv.bak", "manifest.json.bak", ".hidden", "sub"}) {
+        TemporaryDirectory temporary;
+        writeBundleFiles(temporary.path, validFakeBundle());
+        if (std::string(extra) == "sub")
+            std::filesystem::create_directory(temporary.path / extra);
+        else
+            std::ofstream(temporary.path / extra) << "x";
+        const auto rejectedAsUnrecognized = [&temporary]() -> bool {
+            try {
+                VarianceClockDirectorySource source(temporary.path.string());
+                return false;
+            } catch (const Error& e) {
+                return std::string(e.what()).find("unrecognized") != std::string::npos;
+            }
+        };
+        BOOST_CHECK_MESSAGE(rejectedAsUnrecognized(), "extra entry not rejected: " << extra);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryRejectsUnusableRoots) {
+    BOOST_TEST_MESSAGE("Testing rejection of roots that are not real directories...");
+    TemporaryDirectory temporary;
+    BOOST_CHECK_THROW(VarianceClockDirectorySource(""), Error);
+    BOOST_CHECK_THROW(VarianceClockDirectorySource((temporary.path / "missing").string()),
+                      Error);
+    // An embedded NUL would silently truncate the path handed to the operating system.
+    BOOST_CHECK_THROW(VarianceClockDirectorySource(temporary.path.string() + std::string("\0x", 2)),
+                      Error);
+    const auto regular = temporary.path / "regular-file";
+    std::ofstream(regular) << "x";
+    BOOST_CHECK_THROW(VarianceClockDirectorySource(regular.string()), Error);
+
+    // A symlink to a directory is rejected, also when written with a trailing separator.
+    const auto target = temporary.path / "target";
+    std::filesystem::create_directory(target);
+    const auto link = temporary.path / "root-link";
+    std::error_code error;
+    std::filesystem::create_directory_symlink(target, link, error);
+    if (error) {
+        BOOST_TEST_MESSAGE("Skipping symlink-root variants: " << error.message());
+        return;
+    }
+    BOOST_CHECK_THROW(VarianceClockDirectorySource(link.string()), Error);
+    BOOST_CHECK_THROW(VarianceClockDirectorySource(link.string() + "/"), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testDirectoryRejectsNonRegularAndOversizedInputs) {
+    BOOST_TEST_MESSAGE("Testing rejection of directories and FIFOs named like inputs...");
+    TemporaryDirectory temporary;
+    std::filesystem::create_directory(temporary.path / "profiles.csv");
+#ifndef _WIN32
+    BOOST_REQUIRE_EQUAL(::mkfifo((temporary.path / "market_days.csv").c_str(), 0600), 0);
+#endif
+    {
+        std::ofstream exact(temporary.path / "slot_evidence.csv", std::ios::binary);
+        exact << "0123456789";
+    }
+    VarianceClockDirectorySource source(temporary.path.string());
+    BOOST_CHECK_THROW(source.read("profiles.csv", 100), Error);
+#ifndef _WIN32
+    // Must be refused without blocking on the FIFO.
+    BOOST_CHECK_THROW(source.read("market_days.csv", 100), Error);
+#endif
+    // The size ceiling is inclusive.
+    BOOST_CHECK_EQUAL(source.read("slot_evidence.csv", 10).size(), 10U);
+    BOOST_CHECK_THROW(source.read("slot_evidence.csv", 9), Error);
+    std::ofstream(temporary.path / "session_segments.csv", std::ios::binary);
+    BOOST_CHECK(source.read("session_segments.csv", 0).empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
