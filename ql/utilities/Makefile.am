@@ -16,9 +16,11 @@ this_include_HEADERS = \
     vectors.hpp
 
 noinst_HEADERS = \
-    detail/thirdparty/nlohmann/json.hpp
+    detail/thirdparty/nlohmann/json.hpp \
+    detail/variancesha256.hpp
 
 cpp_files = \
+    detail/variancesha256.cpp \
     dataformatters.cpp \
     dataparsers.cpp \
     tracing.cpp

@@ -989,6 +989,7 @@ set(QL_SOURCES
     time/timeunit.cpp
     time/weekday.cpp
     timegrid.cpp
+    utilities/detail/variancesha256.cpp
     utilities/dataformatters.cpp
     utilities/dataparsers.cpp
     utilities/tracing.cpp
@@ -2353,6 +2354,7 @@ set(QL_PRIVATE_HEADERS
     time/varianceclockmanifest.hpp
     time/varianceclockcsv.hpp
     utilities/detail/thirdparty/nlohmann/json.hpp
+    utilities/detail/variancesha256.hpp
 )
 
 set(QL_CONFIGURED_HEADERS

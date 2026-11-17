@@ -22,6 +22,7 @@
 #include <ql/errors.hpp>
 #include <ql/time/varianceclockcsv.hpp>
 #include <ql/time/varianceclockmanifest.hpp>
+#include <ql/utilities/detail/variancesha256.hpp>
 #include <boost/test/unit_test.hpp>
 #include <array>
 #include <cstddef>
@@ -799,6 +800,105 @@ BOOST_AUTO_TEST_CASE(testCsvScanningIgnoresGlobalNumpunct) {
         parseVarianceClockCsv(input, VarianceClockCsvSchema::TimezoneMapping);
     BOOST_REQUIRE_EQUAL(table.records.size(), 1U);
     BOOST_CHECK_EQUAL(table.records[0].fields[2], "123");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(VarianceClockHashTests)
+
+namespace {
+
+    std::string byteRange(std::size_t size) {
+        std::string result;
+        result.reserve(size);
+        for (std::size_t i = 0; i < size; ++i)
+            result.push_back(static_cast<char>(i));
+        return result;
+    }
+
+    std::string sha256Hex(std::string_view bytes) {
+        QuantLib::detail::VarianceSha256 digest;
+        digest.update(bytes);
+        return digest.finishHex();
+    }
+
+}
+
+BOOST_AUTO_TEST_CASE(testSha256EmptyVector) {
+    BOOST_TEST_MESSAGE("Testing the SHA-256 empty-input NIST vector...");
+    BOOST_CHECK_EQUAL(
+        sha256Hex(""),
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+}
+
+BOOST_AUTO_TEST_CASE(testSha256NistAbcVector) {
+    BOOST_TEST_MESSAGE("Testing the SHA-256 abc NIST vector...");
+    BOOST_CHECK_EQUAL(
+        sha256Hex("abc"),
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+}
+
+BOOST_AUTO_TEST_CASE(testSha256NistLongMessageVector) {
+    BOOST_TEST_MESSAGE("Testing the SHA-256 long-message NIST vector...");
+    BOOST_CHECK_EQUAL(
+        sha256Hex("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
+        "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1");
+}
+
+BOOST_AUTO_TEST_CASE(testSha256BlockAndPaddingBoundaries) {
+    BOOST_TEST_MESSAGE("Testing SHA-256 block and first padding boundaries...");
+    const std::array<std::pair<std::size_t, std::string_view>, 5> vectors{{
+        {55, "463eb28e72f82e0a96c0a4cc53690c571281131f672aa229e0d45ae59b598b59"},
+        {56, "da2ae4d6b36748f2a318f23e7ab1dfdf45acdc9d049bd80e59de82a60895f562"},
+        {63, "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"},
+        {64, "fdeab9acf3710362bd2658cdc9a29e8f9c757fcf9811603a8c447cd1d9151108"},
+        {65, "4bfd2c8b6f1eec7a2afeb48b934ee4b2694182027e6d0fc075074f2fabb31781"}
+    }};
+    for (const auto& vector : vectors)
+        BOOST_CHECK_EQUAL(sha256Hex(byteRange(vector.first)), vector.second);
+}
+
+BOOST_AUTO_TEST_CASE(testSha256SecondBlockPaddingBoundaries) {
+    BOOST_TEST_MESSAGE("Testing SHA-256 second-block padding boundaries...");
+    const std::array<std::pair<std::size_t, std::string_view>, 4> vectors{{
+        {119, "da18797ed7c3a777f0847f429724a2d8cd5138e6ed2895c3fa1a6d39d18f7ec6"},
+        {120, "f52b23db1fbb6ded89ef42a23ce0c8922c45f25c50b568a93bf1c075420bbb7c"},
+        {127, "92ca0fa6651ee2f97b884b7246a562fa71250fedefe5ebf270d31c546bfea976"},
+        {128, "471fb943aa23c511f6f72f8d1652d9c880cfa392ad80503120547703e56a2be5"}
+    }};
+    for (const auto& vector : vectors)
+        BOOST_CHECK_EQUAL(sha256Hex(byteRange(vector.first)), vector.second);
+}
+
+BOOST_AUTO_TEST_CASE(testSha256IncrementalUpdates) {
+    BOOST_TEST_MESSAGE("Testing incremental SHA-256 updates across block boundaries...");
+    const std::string input = byteRange(130);
+    QuantLib::detail::VarianceSha256 digest;
+    digest.update(std::string_view(input).substr(0, 1));
+    digest.update(std::string_view(input).substr(1, 63));
+    digest.update(std::string_view(input).substr(64, 2));
+    digest.update(std::string_view(input).substr(66));
+    BOOST_CHECK_EQUAL(
+        digest.finishHex(),
+        "8d39b60b9c767c58975b270c1d6b13c9b4507e5aee7ad496a3528e4c7f880721");
+}
+
+BOOST_AUTO_TEST_CASE(testSha256MatchesPrecomputedOracle) {
+    BOOST_TEST_MESSAGE("Testing SHA-256 against precomputed byte-range oracle values...");
+    const std::array<std::pair<std::size_t, std::string_view>, 10> vectors{{
+        {55, "463eb28e72f82e0a96c0a4cc53690c571281131f672aa229e0d45ae59b598b59"},
+        {56, "da2ae4d6b36748f2a318f23e7ab1dfdf45acdc9d049bd80e59de82a60895f562"},
+        {63, "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"},
+        {64, "fdeab9acf3710362bd2658cdc9a29e8f9c757fcf9811603a8c447cd1d9151108"},
+        {65, "4bfd2c8b6f1eec7a2afeb48b934ee4b2694182027e6d0fc075074f2fabb31781"},
+        {119, "da18797ed7c3a777f0847f429724a2d8cd5138e6ed2895c3fa1a6d39d18f7ec6"},
+        {120, "f52b23db1fbb6ded89ef42a23ce0c8922c45f25c50b568a93bf1c075420bbb7c"},
+        {127, "92ca0fa6651ee2f97b884b7246a562fa71250fedefe5ebf270d31c546bfea976"},
+        {128, "471fb943aa23c511f6f72f8d1652d9c880cfa392ad80503120547703e56a2be5"},
+        {130, "8d39b60b9c767c58975b270c1d6b13c9b4507e5aee7ad496a3528e4c7f880721"}
+    }};
+    for (const auto& vector : vectors)
+        BOOST_CHECK_EQUAL(sha256Hex(byteRange(vector.first)), vector.second);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

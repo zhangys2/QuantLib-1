@@ -2364,6 +2364,9 @@
     <ClInclude Include="ql\utilities\detail\thirdparty\nlohmann\json.hpp">
       <Filter>utilities</Filter>
     </ClInclude>
+    <ClInclude Include="ql\utilities\detail\variancesha256.hpp">
+      <Filter>utilities</Filter>
+    </ClInclude>
     <ClInclude Include="ql\utilities\null.hpp">
       <Filter>utilities</Filter>
     </ClInclude>
@@ -5917,6 +5920,9 @@
     </ClCompile>
     <ClCompile Include="ql\termstructures\credit\survivalprobabilitystructure.cpp">
       <Filter>termstructures\credit</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\utilities\detail\variancesha256.cpp">
+      <Filter>utilities</Filter>
     </ClCompile>
     <ClCompile Include="ql\utilities\dataformatters.cpp">
       <Filter>utilities</Filter>

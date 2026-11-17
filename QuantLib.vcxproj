@@ -1927,6 +1927,7 @@
     <ClInclude Include="ql\utilities\dataformatters.hpp" />
     <ClInclude Include="ql\utilities\dataparsers.hpp" />
     <ClInclude Include="ql\utilities\detail\thirdparty\nlohmann\json.hpp" />
+    <ClInclude Include="ql\utilities\detail\variancesha256.hpp" />
     <ClInclude Include="ql\utilities\null.hpp" />
     <ClInclude Include="ql\utilities\null_deleter.hpp" />
     <ClInclude Include="ql\utilities\observablevalue.hpp" />
@@ -2950,6 +2951,7 @@
     <ClCompile Include="ql\time\schedule.cpp" />
     <ClCompile Include="ql\time\timeunit.cpp" />
     <ClCompile Include="ql\time\weekday.cpp" />
+    <ClCompile Include="ql\utilities\detail\variancesha256.cpp" />
     <ClCompile Include="ql\utilities\dataformatters.cpp" />
     <ClCompile Include="ql\utilities\dataparsers.cpp" />
     <ClCompile Include="ql\utilities\tracing.cpp" />
