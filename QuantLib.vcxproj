@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug (static runtime)|Win32">
@@ -1838,10 +1838,10 @@
     <ClInclude Include="ql\time\calendar.hpp" />
     <ClInclude Include="ql\time\variancecalendar.hpp" />
     <ClInclude Include="ql\time\varianceclock.hpp" />
-    <ClInclude Include="ql\time\varianceclockmanifest.hpp" />
     <ClInclude Include="ql\time\varianceclockcsv.hpp" />
     <ClInclude Include="ql\time\varianceclockdetail.hpp" />
     <ClInclude Include="ql\time\varianceclockinstant.hpp" />
+    <ClInclude Include="ql\time\varianceclockmanifest.hpp" />
     <ClInclude Include="ql\time\varianceclocktables.hpp" />
     <ClInclude Include="ql\time\calendars\all.hpp" />
     <ClInclude Include="ql\time\calendars\argentina.hpp" />

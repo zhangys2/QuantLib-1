@@ -24,6 +24,7 @@
 #include <ql/time/varianceclockmanifest.hpp>
 #include <boost/test/unit_test.hpp>
 #include <array>
+#include <cstddef>
 #include <locale>
 #include <optional>
 #include <string>
@@ -129,10 +130,44 @@ namespace {
         input.replace(position, before.size(), after);
     }
 
+    // A rejection raised by the JSON stage (SAX handler or lexer) rather than by a
+    // later schema check; the message comes from parseJson().
+    bool isJsonStageError(const Error& e) {
+        return std::string(e.what()).find("invalid or unsupported JSON input") !=
+               std::string::npos;
+    }
+
+    bool isSizeLimitError(const Error& e) {
+        return std::string(e.what()).find("exceeds size limit") != std::string::npos;
+    }
+
+    void checkJsonStageRejected(std::string_view input) {
+        BOOST_CHECK_EXCEPTION(parseVarianceClockManifest(input), Error, isJsonStageError);
+    }
+
+    // Nested arrays under one root object, so the document has 1 + arrays levels.
+    std::string nestedArraysDocument(std::size_t arrays) {
+        std::string input = "{\"nested\":";
+        input.append(arrays, '[');
+        input += '0';
+        input.append(arrays, ']');
+        input += '}';
+        return input;
+    }
+
     std::string withUnknownRootKey() {
         std::string input = minimalManifest();
         input.insert(input.find('{') + 1, "\"unexpected\":true,");
         return input;
+    }
+
+    bool isAccepted(std::string_view input) {
+        try {
+            parseVarianceClockManifest(input);
+            return true;
+        } catch (const Error&) {
+            return false;
+        }
     }
 
     void checkManifestRejected(std::string_view input) {
@@ -169,9 +204,13 @@ BOOST_AUTO_TEST_SUITE(VarianceBundleManifestTests)
 
 BOOST_AUTO_TEST_CASE(testRejectsDuplicateNestedObjectKeys) {
     BOOST_TEST_MESSAGE("Testing rejection of duplicate nested JSON object keys...");
+    // Otherwise valid manifest: only the repeated nested key can cause the rejection.
+    std::string input = minimalManifest();
+    const std::string method = "\"method\": \"historical_variance_over_common_reference\",";
+    replaceOnce(input, method, method + "\n    " + method);
     std::optional<VarianceClockManifest> parsed;
-    BOOST_CHECK_THROW(
-        parsed.emplace(parseVarianceClockManifest(R"({"outer":{"key":1,"key":2}})")), Error);
+    BOOST_CHECK_EXCEPTION(parsed.emplace(parseVarianceClockManifest(input)), Error,
+                          isJsonStageError);
     BOOST_CHECK(!parsed);
 }
 
@@ -212,16 +251,23 @@ BOOST_AUTO_TEST_CASE(testRejectsNullRequiredValue) {
 
 BOOST_AUTO_TEST_CASE(testRejectsOverLimitManifest) {
     BOOST_TEST_MESSAGE("Testing rejection of a manifest larger than four MiB...");
-    const std::string input(4U * 1024U * 1024U + 1U, ' ');
-    checkManifestRejected(input);
+    const std::size_t limit = 4U * 1024U * 1024U;
+    std::string input = minimalManifest();
+    input.append(limit - input.size(), ' ');
+    BOOST_REQUIRE_EQUAL(input.size(), limit);
+    BOOST_CHECK_NO_THROW(parseVarianceClockManifest(input));
+    input += ' ';
+    BOOST_CHECK_EXCEPTION(parseVarianceClockManifest(input), Error, isSizeLimitError);
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsDuplicateRootKeys) {
     BOOST_TEST_MESSAGE("Testing rejection of duplicate root object keys...");
+    std::string input = minimalManifest();
+    const std::string key = "\"snapshot_id\": \"snapshot\",";
+    replaceOnce(input, key, key + "\n  " + key);
     std::optional<VarianceClockManifest> parsed;
-    BOOST_CHECK_THROW(
-        parsed.emplace(parseVarianceClockManifest(
-            R"({"format_version":1,"format_version":1})")), Error);
+    BOOST_CHECK_EXCEPTION(parsed.emplace(parseVarianceClockManifest(input)), Error,
+                          isJsonStageError);
     BOOST_CHECK(!parsed);
 }
 
@@ -236,22 +282,45 @@ BOOST_AUTO_TEST_CASE(testRejectsDuplicateArrayEntries) {
 
 BOOST_AUTO_TEST_CASE(testRejectsEscapedDuplicateKeys) {
     BOOST_TEST_MESSAGE("Testing rejection of duplicate keys after JSON escape decoding...");
-    checkManifestRejected(R"({"outer":{"a":1,"\u0061":2}})");
+    // Control: an escaped spelling of a key decodes to the schema key and is accepted.
+    std::string control = minimalManifest();
+    replaceOnce(control, "\"snapshot_id\"", "\"snapshot\\u005fid\"");
+    BOOST_CHECK_EQUAL(parseVarianceClockManifest(control).snapshotId, "snapshot");
+
+    std::string root = minimalManifest();
+    const std::string key = "\"snapshot_id\": \"snapshot\",";
+    replaceOnce(root, key, key + "\n  \"snapshot\\u005fid\": \"snapshot\",");
+    checkJsonStageRejected(root);
+
+    std::string nested = minimalManifest();
+    const std::string method = "\"method\": \"historical_variance_over_common_reference\",";
+    replaceOnce(nested, method,
+                method + "\n    \"\\u006dethod\": \"historical_variance_over_common_reference\",");
+    checkJsonStageRejected(nested);
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsLoneSurrogate) {
     BOOST_TEST_MESSAGE("Testing rejection of an unpaired UTF-16 surrogate escape...");
-    checkManifestRejected(R"({"snapshot_id":"\uD800"})");
+    // Control: a valid surrogate pair decodes to one UTF-8 code point.
+    std::string pair = minimalManifest();
+    replaceOnce(pair, "\"snapshot_id\": \"snapshot\"", "\"snapshot_id\": \"\\uD83D\\uDE00\"");
+    BOOST_CHECK_EQUAL(parseVarianceClockManifest(pair).snapshotId, "\xF0\x9F\x98\x80");
+
+    for (const char* lone : {"\\uD800", "\\uDC00", "\\uD800x", "\\uD800\\u0041"}) {
+        std::string input = minimalManifest();
+        replaceOnce(input, "\"snapshot_id\": \"snapshot\"",
+                    std::string("\"snapshot_id\": \"") + lone + "\"");
+        checkJsonStageRejected(input);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsExcessiveNesting) {
     BOOST_TEST_MESSAGE("Testing rejection of JSON nesting deeper than 32 levels...");
-    std::string input = "{\"nested\":";
-    input.append(32, '[');
-    input += '0';
-    input.append(32, ']');
-    input += '}';
-    checkManifestRejected(input);
+    // 32 levels (root object plus 31 arrays) pass the JSON stage and fail the schema
+    // check instead; 33 levels are rejected by the JSON stage.
+    BOOST_CHECK_EXCEPTION(parseVarianceClockManifest(nestedArraysDocument(31)), Error,
+                          [](const Error& e) { return !isJsonStageError(e); });
+    checkJsonStageRejected(nestedArraysDocument(32));
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsUnsupportedFormatVersion) {
@@ -278,17 +347,20 @@ BOOST_AUTO_TEST_CASE(testRejectsUnknownManifestKey) {
 
 BOOST_AUTO_TEST_CASE(testRejectsTrailingJson) {
     BOOST_TEST_MESSAGE("Testing rejection of trailing JSON after the manifest...");
-    checkManifestRejected(minimalManifest() + " null");
+    checkJsonStageRejected(minimalManifest() + " null");
+    checkJsonStageRejected(minimalManifest() + minimalManifest());
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsInvalidUtf8) {
     BOOST_TEST_MESSAGE("Testing rejection of invalid UTF-8 in a manifest string...");
-    std::string input = minimalManifest();
-    const std::string invalidUtf8("\xC0\x80", 2);
-    replaceOnce(input,
-                "\"snapshot_id\": \"snapshot\"",
-                "\"snapshot_id\": \"" + invalidUtf8 + "\"");
-    checkManifestRejected(input);
+    for (const std::string& invalid : {std::string("\xC0\x80", 2), std::string("\xFF", 1),
+                                       std::string("\xED\xA0\x80", 3),
+                                       std::string("\xE2\x82", 2)}) {
+        std::string input = minimalManifest();
+        replaceOnce(input, "\"snapshot_id\": \"snapshot\"",
+                    "\"snapshot_id\": \"" + invalid + "\"");
+        checkJsonStageRejected(input);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testAcceptsMinimalVersionOneManifest) {
@@ -327,20 +399,95 @@ BOOST_AUTO_TEST_CASE(testEvidenceIdsJsonRejectsNestedValues) {
 
 BOOST_AUTO_TEST_CASE(testEvidenceIdsJsonRejectsOverLimitCell) {
     BOOST_TEST_MESSAGE("Testing rejection of an evidence-ID cell larger than 64 KiB...");
-    const std::string input(64U * 1024U + 1U, ' ');
-    BOOST_CHECK_THROW(parseEvidenceIdsJson(input), Error);
+    const std::size_t limit = 64U * 1024U;
+    std::string input = "[\"a\"]";
+    input.append(limit - input.size(), ' ');
+    BOOST_REQUIRE_EQUAL(input.size(), limit);
+    BOOST_CHECK_EQUAL(parseEvidenceIdsJson(input).size(), 1U);
+    input += ' ';
+    BOOST_CHECK_EXCEPTION(parseEvidenceIdsJson(input), Error, isSizeLimitError);
 }
 
 BOOST_AUTO_TEST_CASE(testEvidenceIdsJsonRejectsTooManyIds) {
     BOOST_TEST_MESSAGE("Testing rejection of more than 256 evidence identifiers...");
-    std::string input = "[";
-    for (std::size_t i = 0; i < 257; ++i) {
-        if (i != 0)
-            input += ',';
-        input += "\"id-" + std::to_string(i) + "\"";
+    auto array = [](std::size_t count) {
+        std::string input = "[";
+        for (std::size_t i = 0; i < count; ++i) {
+            if (i != 0)
+                input += ',';
+            input += "\"id-" + std::to_string(i) + "\"";
+        }
+        return input + ']';
+    };
+    BOOST_CHECK_EQUAL(parseEvidenceIdsJson(array(256)).size(), 256U);
+    BOOST_CHECK_THROW(parseEvidenceIdsJson(array(257)), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testRejectsInvalidScalarValues) {
+    BOOST_TEST_MESSAGE("Testing rejection of out-of-schema scalar manifest values...");
+    const std::vector<std::pair<std::string, std::string>> edits = {
+        {"\"role\": \"calendar_source\"", "\"role\": \"bogus\""},
+        {"\"content_sha256\": \"0", "\"content_sha256\": \"A"},
+        {"\"minimum_direct_returns\": 1", "\"minimum_direct_returns\": 0"},
+        {"\"minimum_direct_returns\": 1", "\"minimum_direct_returns\": -1"},
+        {"\"reference_unit\": \"variance_per_5m\"", "\"reference_unit\": \"other\""},
+        {"\"profile_id\": 1,", "\"profile_id\": 4294967296,"},
+        {"\"profile_id\": 1,", "\"profile_id\": \"1\","},
+        {"\"profile_id\": 1,", "\"profile_id\": 1.0,"},
+        {"\"profile_id\": 1,", "\"profile_id\": -0,"},
+        {"\"timezone_mapping.csv\"", "\"timezone.csv\""},
+        {"\"timezone_rules_sha256\": \"0", "\"timezone_rules_sha256\": \"F"},
+        {"null,\n    \"price_cutoff_utc\": \"2024-01-01T00:00:00Z\"",
+         "null,\n    \"price_cutoff_utc\": \"2024-01-01T00:00:01Z\""},
+        {"\"fallback_approvals\": []", "\"fallback_approvals\": {}"},
+        {"\"profile_calibrations\": [{", "\"profile_calibrations\": [{\"profile_id\": 1}, {"},
+    };
+    for (const auto& edit : edits) {
+        std::string input = minimalManifest();
+        replaceOnce(input, edit.first, edit.second);
+        BOOST_CHECK_MESSAGE(!isAccepted(input), "accepted invalid edit: " << edit.second);
     }
-    input += ']';
-    BOOST_CHECK_THROW(parseEvidenceIdsJson(input), Error);
+}
+
+BOOST_AUTO_TEST_CASE(testAcceptsOptionalVersionOneSections) {
+    BOOST_TEST_MESSAGE("Testing acceptance of populated optional manifest sections...");
+    std::string input = minimalManifest();
+    replaceOnce(input, "\"gap_pool_return_threshold\": null",
+                "\"gap_pool_return_threshold\": 3");
+    replaceOnce(input, "\"fallback_approvals\": []",
+                "\"fallback_approvals\": [{\"fallback_id\": \"fb\", \"approved\": true, "
+                "\"approval_evidence_ids\": [\"approval\"], "
+                "\"source_evidence_ids\": [\"price\"]}]");
+    replaceOnce(input, "\"warnings\": []",
+                "\"warnings\": [{\"code\": \"ZERO_RATE_SLOT\", \"severity\": \"warning\", "
+                "\"profile_id\": 1, \"target_group_id\": \"group\", \"minute_of_day\": 5, "
+                "\"evidence_ids\": [\"price\"]}]");
+    replaceOnce(input, "\"continuous_futures_lineage\": null",
+                "\"continuous_futures_lineage\": {\"construction_method\": \"roll\", "
+                "\"source_instrument\": \"ES\", \"continuous_symbol\": \"ES1\", "
+                "\"roll_rule\": \"volume\", \"roll_schedule_evidence_ids\": [\"roll\"], "
+                "\"contract_mapping_evidence_ids\": [\"map\"]}");
+    const auto manifest = parseVarianceClockManifest(input);
+    BOOST_REQUIRE(manifest.calibrationSettings.gapPoolReturnThreshold);
+    BOOST_CHECK_EQUAL(*manifest.calibrationSettings.gapPoolReturnThreshold, 3U);
+    BOOST_REQUIRE_EQUAL(manifest.fallbackApprovals.size(), 1U);
+    BOOST_CHECK_EQUAL(manifest.fallbackApprovals[0].fallbackId, "fb");
+    BOOST_CHECK(manifest.fallbackApprovals[0].approved);
+    BOOST_CHECK_EQUAL(manifest.fallbackApprovals[0].approvalEvidenceIds[0], "approval");
+    BOOST_CHECK_EQUAL(manifest.fallbackApprovals[0].sourceEvidenceIds[0], "price");
+    BOOST_REQUIRE_EQUAL(manifest.warnings.size(), 1U);
+    BOOST_CHECK_EQUAL(manifest.warnings[0].code, "ZERO_RATE_SLOT");
+    BOOST_CHECK_EQUAL(manifest.warnings[0].profileId, 1U);
+    BOOST_CHECK_EQUAL(manifest.warnings[0].targetGroupId, "group");
+    BOOST_CHECK_EQUAL(manifest.warnings[0].minuteOfDay, 5U);
+    BOOST_REQUIRE(manifest.continuousFuturesLineage);
+    BOOST_CHECK_EQUAL(manifest.continuousFuturesLineage->continuousSymbol, "ES1");
+    BOOST_CHECK_EQUAL(manifest.continuousFuturesLineage->rollScheduleEvidenceIds[0], "roll");
+    BOOST_CHECK_EQUAL(manifest.continuousFuturesLineage->contractMappingEvidenceIds[0], "map");
+    BOOST_REQUIRE_EQUAL(manifest.evidence.size(), 3U);
+    BOOST_CHECK(!manifest.evidence[0].revisionId);
+    BOOST_CHECK(!manifest.evidence[0].contentSha256);
+    BOOST_CHECK(manifest.evidence[2].contentSha256);
 }
 
 BOOST_AUTO_TEST_CASE(testJsonParsingIgnoresGlobalNumpunct) {
