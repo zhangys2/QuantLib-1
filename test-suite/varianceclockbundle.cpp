@@ -1889,6 +1889,51 @@ BOOST_AUTO_TEST_CASE(testDirectoryRejectsDotComponentsInRootPath) {
         checkRejected(path);
 }
 
+BOOST_AUTO_TEST_CASE(testDotComponentsAreRejectedBeforeTouchingTheFilesystem) {
+    BOOST_TEST_MESSAGE("Testing that dot components are rejected without any filesystem access...");
+    // None of these paths exists; the rejection must come from the path check alone.
+    std::vector<std::string> rejected = {
+        ".", "..", "./", "../", "./bundle", "../bundle", "a/./b", "a/../b", "/a/b/.",
+        "/a/b/..", "/a/b/./", "/./a", "/../a", "//.", "///..///", "a//./b"};
+#if defined(_WIN32)
+    for (const char* path : {R"(.\bundle)", R"(..\bundle)", R"(C:.)", R"(C:..\x)",
+                             R"(C:\x\.)", R"(C:\x\..\y)", R"(\\.\C:\x)", R"(a\.\b)",
+                             R"(a/.\b)"})
+        rejected.emplace_back(path);
+#endif
+    for (const std::string& path : rejected) {
+        try {
+            VarianceClockDirectorySource source(path);
+            BOOST_ERROR("accepted root path with a dot component: " << path);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find("dot component") != std::string::npos,
+                                "wrong rejection for \"" << path << "\": " << e.what());
+        }
+    }
+    // A missing dot-free root is a different failure: the path check is not what fires.
+    TemporaryDirectory temporary;
+    try {
+        VarianceClockDirectorySource source((temporary.path / "missing").string());
+        BOOST_ERROR("accepted a missing root");
+    } catch (const Error& e) {
+        BOOST_CHECK(std::string(e.what()).find("dot component") == std::string::npos);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testDotComponentRuleDoesNotRejectDottedNames) {
+    BOOST_TEST_MESSAGE("Testing that directory names merely containing dots are accepted...");
+    TemporaryDirectory temporary;
+    for (const char* name : {".hidden", "..v2", "a..b", "x.y", ".a.", "v1.2.3"}) {
+        const auto directory = temporary.path / name;
+        std::filesystem::create_directory(directory);
+        BOOST_CHECK_NO_THROW(VarianceClockDirectorySource(directory.string()));
+        // Repeated and trailing separators are still fine.
+        BOOST_CHECK_NO_THROW(
+            VarianceClockDirectorySource(temporary.path.string() + "//" + name));
+        BOOST_CHECK_NO_THROW(VarianceClockDirectorySource(directory.string() + "/"));
+    }
+}
+
 BOOST_AUTO_TEST_CASE(testDirectoryRejectsNonRegularAndOversizedInputs) {
     BOOST_TEST_MESSAGE("Testing rejection of directories and FIFOs named like inputs...");
     TemporaryDirectory temporary;

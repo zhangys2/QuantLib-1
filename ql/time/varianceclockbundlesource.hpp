@@ -39,6 +39,21 @@ namespace QuantLib {
                                                     std::size_t maxBytes) const = 0;
         };
 
+        // Reads the six bundle files from a native directory path.
+        //
+        // Contract for callers (the loader in B5):
+        //  - Construct a new source inside every load. The root's entries are checked once,
+        //    in the constructor, so a source kept across loads does not notice entries that
+        //    are added or replaced afterwards.
+        //  - Do not modify the root while a capture runs. POSIX reads are relative to the
+        //    directory handle opened in the constructor; Windows reads still open by full
+        //    path, so a rename of the root or of a parent during capture is not detected.
+        //  - The path must not contain "." or ".." components, including relative forms such
+        //    as "./bundle". They are rejected without touching the filesystem, because they
+        //    can route around the symlink-root check. Pass an absolute or otherwise dot-free
+        //    path; a symlink as the final component is rejected, symlinks in parent
+        //    components are followed.
+        //  - manifest.json has no digest of its own; the CSV files are verified against it.
         class VarianceClockDirectorySource final : public VarianceClockBundleSource {
           public:
             explicit VarianceClockDirectorySource(std::string nativeDirectory);
