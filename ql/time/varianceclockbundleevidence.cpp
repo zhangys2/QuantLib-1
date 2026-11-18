@@ -189,6 +189,12 @@ namespace QuantLib {
                 QL_REQUIRE(warningCode == expectedCode,
                            "slot warning codes differ from derived set");
                 if (!expectedCode.empty()) {
+                    // A valid bundle's manifest lists exactly the derived warnings, so more
+                    // derived warnings than manifest entries can never validate. Rejecting
+                    // here bounds the vector by the (4 MiB capped) manifest rather than by the
+                    // CSV row count.
+                    QL_REQUIRE(context.warnings.size() < context.manifest.warnings.size(),
+                               "manifest warnings differ from derived warnings");
                     auto ids = evidenceIds;
                     std::sort(ids.begin(), ids.end());
                     ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
@@ -221,7 +227,14 @@ namespace QuantLib {
                             oldCapacity * sizeof(VarianceClockBundleWarning);
                         QL_REQUIRE(previousCharge >= oldBufferBytes,
                                    "variance-clock warning budget mismatch");
-                        const auto requestedCapacity = context.warnings.size() + 1;
+                        // Grow geometrically, never past the manifest count. Growing by one
+                        // element per warning reallocates and moves the whole vector every
+                        // time, which is quadratic in the number of warnings.
+                        const auto manifestCount = context.manifest.warnings.size();
+                        const auto requestedCapacity =
+                            oldCapacity >= manifestCount / 2
+                                ? manifestCount
+                                : std::max<std::size_t>(2 * oldCapacity, 1);
                         QL_REQUIRE(requestedCapacity <=
                                        std::numeric_limits<std::size_t>::max() /
                                            sizeof(VarianceClockBundleWarning),

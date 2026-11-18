@@ -4018,6 +4018,7 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
     // A long evidence ID does not fit the string's inline (small-string) buffer, so its
     // characters are a separate heap allocation that the charge must cover.
     const std::string longId(40, 'p');
+    const std::string longTargetGroup(40, 'g');
     auto plain = validBundleTableFixture();
     auto warned = validBundleTableFixture();
     useZeroWeightProfile(warned);
@@ -4027,10 +4028,12 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
                     ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
                     "ZERO_RATE_SLOT," +
                         csvEvidenceIds("[\"" + longId + "\"]"));
+    replaceAll(warned.marketDays, ",group,", "," + longTargetGroup + ",");
+    replaceAll(warned.slotEvidence, ",group,", "," + longTargetGroup + ",");
     for (unsigned int minute = 0; minute < 1440; minute += 5)
         warned.manifest.warnings.push_back(
-            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
-             {longId}});
+            {"ZERO_RATE_SLOT", "warning", 1, longTargetGroup,
+             static_cast<std::uint16_t>(minute), {longId}});
     QuantLib::detail::VarianceClockLoadBudget plainBudget;
     const auto plainResult = validateBundleEvidence(plain, plainBudget);
     QuantLib::detail::VarianceClockLoadBudget warnedBudget;
@@ -4052,8 +4055,12 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
     };
     std::size_t stored = warnedResult.warnings.capacity() * sizeof(VarianceClockBundleWarning);
     std::size_t heapIds = 0;
+    std::size_t heapTargetGroups = 0;
     for (const auto& warning : warnedResult.warnings) {
         stored += warning.evidenceIds.capacity() * sizeof(std::string);
+        stored += warning.targetGroupId.capacity();
+        if (onHeap(warning.targetGroupId))
+            ++heapTargetGroups;
         for (const auto& id : warning.evidenceIds)
             if (onHeap(id)) {
                 stored += id.capacity();
@@ -4061,6 +4068,7 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
             }
     }
     BOOST_REQUIRE_EQUAL(heapIds, 288U);
+    BOOST_REQUIRE_EQUAL(heapTargetGroups, 288U);
     BOOST_CHECK_GE(warningCharge, stored);
 }
 
@@ -4135,6 +4143,191 @@ BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
     BOOST_CHECK_EQUAL(peakBudget.used(), heldBudget.bytes());
     heldBudget.release();
     BOOST_CHECK_EQUAL(peakBudget.used(), 0U);
+}
+
+namespace {
+
+    // 288 identical ZERO_RATE_SLOT warnings, all listed by the manifest.
+    BundleTableFixture manyWarningsFixture() {
+        const std::string longId(40, 'p');
+        auto fixture = validBundleTableFixture();
+        useZeroWeightProfile(fixture);
+        fixture.manifest.evidence[2].evidenceId = longId;
+        fixture.manifest.profileCalibrations[0].evidenceIds = {longId};
+        rewriteSlotRows(fixture,
+                        ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
+                        "ZERO_RATE_SLOT," +
+                            csvEvidenceIds("[\"" + longId + "\"]"));
+        for (unsigned int minute = 0; minute < 1440; minute += 5)
+            fixture.manifest.warnings.push_back(
+                {"ZERO_RATE_SLOT", "warning", 1, "group",
+                 static_cast<std::uint16_t>(minute), {longId}});
+        return fixture;
+    }
+
+    // True unless the evidence stage runs out of budget when only `headroom` bytes are left to
+    // it after the tables are parsed. Any other rejection means the budget sufficed.
+    bool validatesWithHeadroom(const BundleTableFixture& fixture, std::size_t headroom) {
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+            fixture.manifest, fixture.csv(), budget);
+        const auto before = budget.used();
+        BOOST_REQUIRE_LE(before + headroom, budget.limit());
+        auto held = budget.reserve(budget.limit() - before - headroom);
+        try {
+            (void)QuantLib::detail::validateVarianceClockBundleEvidence(
+                fixture.manifest, fixture.csv(), std::move(parsed),
+                QuantLib::VarianceClockLoadMode::Strict, budget);
+        } catch (const Error& e) {
+            return std::string(e.what()).find("exceeds size limit") == std::string::npos;
+        }
+        return true;
+    }
+
+    // The least headroom the evidence stage needs, found by bisection. It includes the
+    // per-row scratch envelope, which is the same for every fixture built from the same rows.
+    std::size_t evidenceHeadroom(const BundleTableFixture& fixture) {
+        std::size_t rejected = 0;
+        std::size_t accepted = 8U * 1024U * 1024U;
+        BOOST_REQUIRE(validatesWithHeadroom(fixture, accepted));
+        while (accepted - rejected > 1) {
+            const auto middle = rejected + (accepted - rejected) / 2;
+            (validatesWithHeadroom(fixture, middle) ? accepted : rejected) = middle;
+        }
+        return accepted;
+    }
+
+}
+
+BOOST_AUTO_TEST_CASE(testWarningGrowthPrechargeCoversOldAndTwiceTheNewBuffer) {
+    BOOST_TEST_MESSAGE("Testing the warning-growth pre-charge against the least evidence "
+                       "headroom...");
+    const auto full = manyWarningsFixture();
+    auto one = full;
+    one.manifest.warnings.resize(1);
+    // One manifest warning stops the stream at the second derived warning, so its headroom is
+    // the scratch, the stream charges and a one-element vector. The difference to the full
+    // fixture is therefore the extra the warnings need: their payload, plus at the last growth
+    // step the old buffer and the pre-charge for the new one. The new buffer is requested at
+    // the manifest count (288 warnings) and the old one cannot be smaller than 256. A pre-charge
+    // of less than twice the new buffer, or one that leaves out the old buffer, falls short of
+    // three requested buffers.
+    const std::size_t requested = 288U * sizeof(VarianceClockBundleWarning);
+    const auto fullHeadroom = evidenceHeadroom(full);
+    const auto oneHeadroom = evidenceHeadroom(one);
+    BOOST_CHECK_GE(fullHeadroom, oneHeadroom + 3 * requested);
+}
+
+BOOST_AUTO_TEST_CASE(testWarningChargeEqualsTheStoredCapacities) {
+    BOOST_TEST_MESSAGE("Testing the retained warning charge is reconciled to the stored "
+                       "capacities...");
+    auto plain = validBundleTableFixture();
+    auto warned = manyWarningsFixture();
+    QuantLib::detail::VarianceClockLoadBudget plainBudget;
+    const auto plainResult = validateBundleEvidence(plain, plainBudget);
+    QuantLib::detail::VarianceClockLoadBudget warnedBudget;
+    const auto warnedResult = validateBundleEvidence(warned, warnedBudget);
+    BOOST_REQUIRE_EQUAL(warnedResult.warnings.size(), 288U);
+    const std::size_t csvDifference = warned.slotEvidence.size() - plain.slotEvidence.size();
+    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used() - csvDifference;
+    std::size_t stored = warnedResult.warnings.capacity() * sizeof(VarianceClockBundleWarning);
+    for (const auto& warning : warnedResult.warnings) {
+        stored += warning.evidenceIds.capacity() * sizeof(std::string) +
+                  warning.targetGroupId.capacity();
+        for (const auto& id : warning.evidenceIds)
+            stored += id.capacity();
+    }
+    // The pre-growth charge (twice the requested buffer) must be trued up to what the vector
+    // really holds, and the manifest-warning pointer buffer must be released again.
+    BOOST_CHECK_EQUAL(warningCharge, stored);
+}
+
+BOOST_AUTO_TEST_CASE(testSurplusDerivedWarningsAreRejectedBeforeGrowingTheVector) {
+    BOOST_TEST_MESSAGE("Testing derived warnings beyond the manifest count are rejected "
+                       "early...");
+    auto fixture = manyWarningsFixture();
+    const auto fullHeadroom = evidenceHeadroom(fixture);
+    fixture.manifest.warnings.resize(10);
+    // Too little for 288 warnings, plenty for 10: the surplus must be reported as a manifest
+    // mismatch, not as a budget failure from growing a vector that cannot validate anyway.
+    BOOST_REQUIRE_GT(fullHeadroom, 288U * sizeof(VarianceClockBundleWarning));
+    const auto headroom = fullHeadroom - 288U * sizeof(VarianceClockBundleWarning) / 2;
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+        fixture.manifest, fixture.csv(), budget);
+    const auto before = budget.used();
+    auto held = budget.reserve(budget.limit() - before - headroom);
+    try {
+        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
+            fixture.manifest, fixture.csv(), std::move(parsed),
+            QuantLib::VarianceClockLoadMode::Strict, budget);
+        BOOST_ERROR("accepted a bundle whose manifest lists too few warnings");
+    } catch (const Error& e) {
+        BOOST_CHECK_MESSAGE(std::string(e.what()).find(
+                                "manifest warnings differ from derived warnings") !=
+                                std::string::npos,
+                            "unexpected rejection: " << e.what());
+    }
+    // The parsed tables keep the charge, validation's included, until they are destroyed.
+    held.release();
+    parsed = QuantLib::detail::ParsedVarianceClockTables();
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedBeforeDecoding) {
+    BOOST_TEST_MESSAGE("Testing evidence-stage parser scratch is charged before decoding...");
+    auto fixture = manyWarningsFixture();
+    const std::string longId(40, 'p');
+    const std::string idsJson =
+        "[" + std::string(20000, ' ') + "\"" + longId + "\"]";
+    rewriteSlotRows(fixture,
+                    ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
+                    "ZERO_RATE_SLOT," +
+                        csvEvidenceIds(idsJson));
+    const auto csv = fixture.csv();
+
+    struct ScratchSize {
+        std::size_t bytes = 0;
+    } scratch;
+    const auto measureFirstRow = [](void* opaque,
+                                    const std::string_view* fields,
+                                    std::size_t) {
+        auto& result = *static_cast<ScratchSize*>(opaque);
+        std::size_t recordBytes = 0;
+        for (std::size_t i = 0; i < 14; ++i)
+            recordBytes += fields[i].size();
+        constexpr std::size_t fixedScratch =
+            128U * 1024U + 14U * (sizeof(std::string) + 32U);
+        result.bytes = fixedScratch + 2U * recordBytes + 128U * fields[13].size();
+        return false;
+    };
+    (void)visitVarianceClockCsvRows(csv.slotEvidence, VarianceClockCsvSchema::SlotEvidence,
+                                    &scratch, measureFirstRow);
+    BOOST_REQUIRE_GT(scratch.bytes, 128U * 1024U);
+
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+        fixture.manifest, csv, budget);
+    const auto beforeEvidence = budget.used();
+    const auto validationBytes = csv.sessionSegments.size() + csv.slotEvidence.size() +
+                                 fixture.manifest.evidence.size() * 512U;
+    const auto headroom = validationBytes + scratch.bytes - 1U;
+    BOOST_REQUIRE_LE(beforeEvidence + headroom, budget.limit());
+    auto held = budget.reserve(budget.limit() - beforeEvidence - headroom);
+
+    bool rejectedForScratch = false;
+    try {
+        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
+            fixture.manifest, csv, std::move(parsed), VarianceClockLoadMode::Strict, budget);
+    } catch (const Error& error) {
+        BOOST_CHECK(std::string(error.what()).find("variance-clock load exceeds size limit") !=
+                    std::string::npos);
+        rejectedForScratch = true;
+    }
+    BOOST_CHECK(rejectedForScratch);
+    held.release();
+    parsed = QuantLib::detail::ParsedVarianceClockTables();
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
