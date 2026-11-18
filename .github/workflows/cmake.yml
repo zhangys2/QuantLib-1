@@ -47,6 +47,9 @@ jobs:
     - name: Run variance-clock probe
       run: |
         ctest --test-dir build -R variance_clock_probe --output-on-failure
+    - name: Check generated header visibility
+      run: |
+        ctest --test-dir build -R '^quantlib_generated_header_visibility$' --output-on-failure --no-tests=error
     - name: Run benchmark
       run: |
         quantlib-benchmark --size=1
