@@ -4188,7 +4188,7 @@ namespace {
     // per-row scratch envelope, which is the same for every fixture built from the same rows.
     std::size_t evidenceHeadroom(const BundleTableFixture& fixture) {
         std::size_t rejected = 0;
-        std::size_t accepted = 8U * 1024U * 1024U;
+        std::size_t accepted = 64U * 1024U * 1024U;
         BOOST_REQUIRE(validatesWithHeadroom(fixture, accepted));
         while (accepted - rejected > 1) {
             const auto middle = rejected + (accepted - rejected) / 2;
@@ -4328,6 +4328,42 @@ BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedBeforeDecoding) {
     held.release();
     parsed = QuantLib::detail::ParsedVarianceClockTables();
     BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
+    BOOST_TEST_MESSAGE("Testing the evidence-stage parser scratch charge from both sides...");
+    // No derived warnings, so nothing but the stream charge and the first row's scratch
+    // envelope contributes to the evidence stage's peak and the bisection isolates the envelope.
+    auto fixture = validBundleTableFixture();
+    const std::string idsJson = "[" + std::string(20000, ' ') + "\"price\"]";
+    rewriteSlotRows(fixture,
+                    ",5,not_applicable,1,not_applicable,direct,,not_applicable,,," +
+                        csvEvidenceIds(idsJson));
+    const auto csv = fixture.csv();
+
+    std::size_t scratch = 0;
+    const auto measureFirstRow = [](void* opaque, const std::string_view* fields, std::size_t) {
+        std::size_t recordBytes = 0;
+        for (std::size_t i = 0; i < 14; ++i)
+            recordBytes += fields[i].size();
+        constexpr std::size_t fixedScratch =
+            128U * 1024U + 14U * (sizeof(std::string) + 32U);
+        *static_cast<std::size_t*>(opaque) =
+            fixedScratch + 2U * recordBytes + 128U * fields[13].size();
+        return false;
+    };
+    (void)visitVarianceClockCsvRows(csv.slotEvidence, VarianceClockCsvSchema::SlotEvidence,
+                                    &scratch, measureFirstRow);
+    BOOST_REQUIRE_GT(scratch, 2U * 1024U * 1024U);
+
+    const auto headroom = evidenceHeadroom(fixture);
+    const std::size_t validationBytes = csv.sessionSegments.size() + csv.slotEvidence.size() +
+                                        fixture.manifest.evidence.size() * 512U;
+    // The stage needs at least the stream charge plus the whole envelope: an envelope with a
+    // smaller per-byte or per-record term is rejected here. Everything else it holds is small,
+    // so an envelope that is much larger than documented is rejected as well.
+    BOOST_CHECK_GE(headroom, validationBytes + scratch);
+    BOOST_CHECK_LE(headroom, validationBytes + scratch + 64U * 1024U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
