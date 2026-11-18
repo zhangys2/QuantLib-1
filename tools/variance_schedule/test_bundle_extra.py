@@ -18,7 +18,7 @@ GENERATOR = HERE / "generate_intraday.py"
 UTC = timezone.utc
 sys.path.insert(0, str(HERE))
 import generate_intraday  # noqa: E402
-from test_bundle import configured_cpp_test_executable  # noqa: E402
+from test_bundle import GENERATED_BUNDLE_MESSAGE, configured_cpp_test_executable  # noqa: E402
 
 
 def run_generator(prices, *arguments):
@@ -67,6 +67,8 @@ def cpp_loads_in_configured_build(bundle, mode=None):
             capture_output=True, text=True,
         )
         assert result.returncode == 0, result.stdout + result.stderr
+        assert GENERATED_BUNDLE_MESSAGE in result.stdout + result.stderr, \
+            "the C++ generated-bundle hook did not run"
     return manifest
 
 

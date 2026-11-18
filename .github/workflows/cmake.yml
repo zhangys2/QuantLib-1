@@ -49,6 +49,7 @@ jobs:
         quantlib-test-suite --log_level=message
     - name: Run variance schedule C++ round trips
       env:
+        QL_VARIANCE_CLOCK_BUNDLE_REQUIRE_CPP: "1"
         QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE: ${{ github.workspace }}/build/test-suite/quantlib-test-suite
       run: |
         python -m pip install pytest -r tools/variance_schedule/intraday-requirements.txt
@@ -94,6 +95,7 @@ jobs:
         quantlib-test-suite --log_level=message
     - name: Run variance schedule C++ round trips
       env:
+        QL_VARIANCE_CLOCK_BUNDLE_REQUIRE_CPP: "1"
         QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE: ${{ github.workspace }}/build/linux-ci-build-with-nonstandard-options/test-suite/quantlib-test-suite
       run: |
         python -m pip install pytest -r tools/variance_schedule/intraday-requirements.txt

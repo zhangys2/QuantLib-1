@@ -14,11 +14,17 @@ import pytest
 GENERATOR = Path(__file__).with_name("generate_intraday.py")
 UTC = timezone.utc
 CPP_TEST_EXECUTABLE = "QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE"
+REQUIRE_CPP = "QL_VARIANCE_CLOCK_BUNDLE_REQUIRE_CPP"
+GENERATED_BUNDLE_MESSAGE = "Testing a Python-generated bundle"
 
 
 def configured_cpp_test_executable():
     configured = os.environ.get(CPP_TEST_EXECUTABLE)
     if configured is None:
+        if os.environ.get(REQUIRE_CPP):
+            raise RuntimeError(
+                f"{REQUIRE_CPP} is set, so {CPP_TEST_EXECUTABLE} must name a built C++ "
+                "test executable")
         return None
     executable = Path(configured)
     if not executable.is_file():
@@ -142,3 +148,5 @@ def test_bundle_is_deterministic_and_loads_in_configured_cpp_build(tmp_path):
             env=environment, capture_output=True, text=True,
         )
         assert result.returncode == 0, result.stdout + result.stderr
+        assert GENERATED_BUNDLE_MESSAGE in result.stdout + result.stderr, \
+            "the C++ generated-bundle hook did not run"
