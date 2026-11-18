@@ -4274,8 +4274,9 @@ BOOST_AUTO_TEST_CASE(testSurplusDerivedWarningsAreRejectedBeforeGrowingTheVector
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 
-BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedBeforeDecoding) {
-    BOOST_TEST_MESSAGE("Testing evidence-stage parser scratch is charged before decoding...");
+BOOST_AUTO_TEST_CASE(testEvidenceParserScratchRejectsAnOversizedIdsCell) {
+    BOOST_TEST_MESSAGE("Testing an oversized evidence-IDs cell is rejected by the scratch "
+                       "charge...");
     auto fixture = manyWarningsFixture();
     const std::string longId(40, 'p');
     const std::string idsJson =
