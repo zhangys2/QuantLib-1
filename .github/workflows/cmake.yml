@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
     - name: Setup
       run: |
         sudo rm /etc/apt/sources.list.d/microsoft-prod.list
@@ -44,6 +47,12 @@ jobs:
     - name: Test
       run: |
         quantlib-test-suite --log_level=message
+    - name: Run variance schedule C++ round trips
+      env:
+        QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE: ${{ github.workspace }}/build/test-suite/quantlib-test-suite
+      run: |
+        python -m pip install pytest -r tools/variance_schedule/intraday-requirements.txt
+        python -m pytest -q tools/variance_schedule/test_bundle.py tools/variance_schedule/test_bundle_extra.py
     - name: Run variance-clock probe
       run: |
         ctest --test-dir build -R variance_clock_probe --output-on-failure
@@ -57,6 +66,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
     - name: Setup
       run: |
         sudo rm /etc/apt/sources.list.d/microsoft-prod.list
@@ -80,6 +92,12 @@ jobs:
     - name: Test
       run: |
         quantlib-test-suite --log_level=message
+    - name: Run variance schedule C++ round trips
+      env:
+        QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE: ${{ github.workspace }}/build/linux-ci-build-with-nonstandard-options/test-suite/quantlib-test-suite
+      run: |
+        python -m pip install pytest -r tools/variance_schedule/intraday-requirements.txt
+        python -m pytest -q tools/variance_schedule/test_bundle.py tools/variance_schedule/test_bundle_extra.py
   cmake-win:
     runs-on: windows-2022
     steps:

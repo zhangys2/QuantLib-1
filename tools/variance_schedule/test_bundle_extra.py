@@ -14,12 +14,11 @@ import pytest
 
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
 GENERATOR = HERE / "generate_intraday.py"
 UTC = timezone.utc
-BUILDS = ("phaseB-default", "phaseB-stdptr")
 sys.path.insert(0, str(HERE))
 import generate_intraday  # noqa: E402
+from test_bundle import configured_cpp_test_executable  # noqa: E402
 
 
 def run_generator(prices, *arguments):
@@ -50,11 +49,10 @@ def read_csv(path):
         return list(csv.DictReader(stream))
 
 
-def cpp_loads_in_both_modes(bundle, mode=None):
+def cpp_loads_in_configured_build(bundle, mode=None):
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
-    for build in BUILDS:
-        loader = ROOT / "build" / build / "test-suite" / "quantlib-test-suite"
-        assert loader.is_file(), f"missing built C++ test executable: {loader}"
+    loader = configured_cpp_test_executable()
+    if loader is not None:
         environment = {
             **os.environ,
             "QL_VARIANCE_CLOCK_BUNDLE_DIR": str(bundle),
@@ -73,24 +71,36 @@ def cpp_loads_in_both_modes(bundle, mode=None):
 
 
 def cpp_results(bundle, mode=None, snapshot=None):
-    """Run the generated-bundle hook in each pointer build; return the process results."""
+    """Run the generated-bundle hook in the configured C++ build."""
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
-    results = []
-    for build in BUILDS:
-        loader = ROOT / "build" / build / "test-suite" / "quantlib-test-suite"
-        assert loader.is_file(), f"missing built C++ test executable: {loader}"
-        environment = {
-            **os.environ,
-            "QL_VARIANCE_CLOCK_BUNDLE_DIR": str(bundle),
-            "QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT": snapshot or manifest["snapshot_id"],
-        }
-        if mode is not None:
-            environment["QL_VARIANCE_CLOCK_BUNDLE_MODE"] = mode
-        results.append(subprocess.run(
-            [str(loader), "--run_test=QuantLibTests/VarianceBundleLoaderTests/"
-                          "testDirectoryWrapperLoadsACompleteBundle", "--log_level=message"],
-            env=environment, capture_output=True, text=True))
-    return results
+    loader = configured_cpp_test_executable()
+    if loader is None:
+        return []
+    environment = {
+        **os.environ,
+        "QL_VARIANCE_CLOCK_BUNDLE_DIR": str(bundle),
+        "QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT": snapshot or manifest["snapshot_id"],
+    }
+    if mode is not None:
+        environment["QL_VARIANCE_CLOCK_BUNDLE_MODE"] = mode
+    return [subprocess.run(
+        [str(loader), "--run_test=QuantLibTests/VarianceBundleLoaderTests/"
+                      "testDirectoryWrapperLoadsACompleteBundle", "--log_level=message"],
+        env=environment, capture_output=True, text=True)]
+
+
+def test_explicit_cpp_loader_binary_must_exist(tmp_path, monkeypatch):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "manifest.json").write_text(
+        json.dumps({"snapshot_id": "test-snapshot"}), encoding="utf-8")
+    monkeypatch.setenv(
+        "QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE",
+        str(tmp_path / "missing-quantlib-test-suite"),
+    )
+
+    with pytest.raises(FileNotFoundError, match="QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE"):
+        cpp_results(bundle)
 
 
 def utc_generator_arguments(bundle, **overrides):
@@ -128,7 +138,7 @@ def test_exactly_zero_slots_become_zero_rows_with_warnings(tmp_path):
     weights = {int(row["minute_of_day"]): float(row["weight"])
                for row in read_csv(bundle / "profiles.csv")}
     assert weights[500] == weights[1000] == 0.0 and weights[0] > 0.0
-    manifest = cpp_loads_in_both_modes(bundle)
+    manifest = cpp_loads_in_configured_build(bundle)
     assert [(w["code"], w["minute_of_day"]) for w in manifest["warnings"]] == [
         ("ZERO_RATE_SLOT", 500), ("ZERO_RATE_SLOT", 1000)]
 
@@ -163,7 +173,7 @@ def test_gap_pool_threshold_is_required_and_checked_at_its_boundary(tmp_path):
     assert first["source_group_id"] and first["grouping_label"] and first["fallback_id"] == ""
     assert first["source_return_count"] == "34"
     assert first["source_distinct_local_date_count"] == "34"
-    cpp_loads_in_both_modes(bundle)
+    cpp_loads_in_configured_build(bundle)
 
     count = int(first["gap_pool_return_count"])
     assert count > 1
@@ -190,7 +200,7 @@ def test_dst_transitions_map_fold_runs_and_count_repeated_local_slots(
         bundle, **{"--timezone": "America/New_York", "--cutoff": cutoff, "--start": start,
                    "--end": end, "--generated-at": cutoff, "--min-samples": "2"}))
     assert result.returncode == 0, result.stderr
-    cpp_loads_in_both_modes(bundle)
+    cpp_loads_in_configured_build(bundle)
 
     runs = read_csv(bundle / "timezone_mapping.csv")
     for previous, current in zip(runs, runs[1:]):
@@ -246,7 +256,7 @@ def test_calendar_categories_map_to_profiles_and_date_types(tmp_path):
     assert {k: (v["date_type"], v["profile_id"]) for k, v in days.items()} == expected
     assert all(v["is_open"] == "true" and v["selection_reason"] == "date_type_session_pattern"
                for v in days.values())
-    manifest = cpp_loads_in_both_modes(bundle)
+    manifest = cpp_loads_in_configured_build(bundle)
     assert [c["profile_id"] for c in manifest["profile_calibrations"]] == [1, 2, 3]
     assert len(read_csv(bundle / "profiles.csv")) == 3 * 288
 
@@ -271,7 +281,7 @@ def test_bundle_provenance_cutoff_reporting_and_identity(tmp_path):
         prices.read_bytes()).hexdigest()
     assert str(tmp_path) not in json.dumps(manifest), "local paths must not leak into bundles"
     assert manifest["timezone_rules_sha256"] == manifest["files"]["timezone_mapping.csv"]
-    cpp_loads_in_both_modes(first)
+    cpp_loads_in_configured_build(first)
 
     # An earlier cutoff excludes the last day of observations; the count is reported.
     earlier = tmp_path / "earlier"
@@ -325,7 +335,7 @@ def test_historical_bundle_is_reconstruction_only(tmp_path):
 
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["generated_at_utc"] == manifest["coverage_end_utc"]
-    cpp_loads_in_both_modes(bundle, mode="reconstruction_only")
+    cpp_loads_in_configured_build(bundle, mode="reconstruction_only")
 
 
 RECONSTRUCTION_WARNING = ("generated_at_utc is at or after coverage_end_utc; "
@@ -341,7 +351,7 @@ def test_generation_time_boundary_around_the_coverage_end(tmp_path):
         just_before, **{"--generated-at": "2024-02-05T23:59:59Z"}))
     assert result.returncode == 0, result.stderr
     assert "Reconstruction" not in result.stderr
-    cpp_loads_in_both_modes(just_before)
+    cpp_loads_in_configured_build(just_before)
 
     for name, generated_at in (("equal", "2024-02-06T00:00:00Z"),
                                ("after", "2024-02-07T00:00:00Z"),
@@ -353,7 +363,7 @@ def test_generation_time_boundary_around_the_coverage_end(tmp_path):
         assert RECONSTRUCTION_WARNING in result.stderr
         assert json.loads((bundle / "manifest.json").read_text(
             encoding="utf-8"))["generated_at_utc"] == generated_at
-        cpp_loads_in_both_modes(bundle, mode="reconstruction_only")
+        cpp_loads_in_configured_build(bundle, mode="reconstruction_only")
 
     # Without --generated-at the current time is used, which is after a historical window.
     default = tmp_path / "default"
@@ -361,7 +371,7 @@ def test_generation_time_boundary_around_the_coverage_end(tmp_path):
         default, **{"--generated-at": None}))
     assert result.returncode == 0, result.stderr
     assert RECONSTRUCTION_WARNING in result.stderr
-    cpp_loads_in_both_modes(default, mode="reconstruction_only")
+    cpp_loads_in_configured_build(default, mode="reconstruction_only")
 
 
 def test_generated_bundle_hook_rejects_mismatched_modes(tmp_path):
