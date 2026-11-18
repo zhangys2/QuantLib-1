@@ -110,7 +110,12 @@ def fit_profile(bars, local_timezone, day_category, required_slots, min_samples)
         returns.append((squared, counts, units))
         if units == 1:
             key, = counts
-            direct_rows.append({"category": key[0], "minute": key[1], "residual_sq": squared})
+            direct_rows.append({
+                "category": key[0],
+                "minute": key[1],
+                "local_date": start.astimezone(local_timezone).date(),
+                "residual_sq": squared,
+            })
 
     # Polars performs the observed-rate estimation and sample-count aggregation.
     if direct_rows:
@@ -118,17 +123,23 @@ def fit_profile(bars, local_timezone, day_category, required_slots, min_samples)
             pl.DataFrame(direct_rows)
             .group_by(["category", "minute"])
             .agg(pl.col("residual_sq").mean().alias("mean_sq"),
-                 pl.len().alias("sample_count"))
+                 pl.len().alias("sample_count"),
+                 pl.col("local_date").n_unique().alias("distinct_dates"))
         )
         direct = {
-            (row["category"], row["minute"]): (float(row["mean_sq"]), int(row["sample_count"]))
+            (row["category"], row["minute"]): (
+                float(row["mean_sq"]), int(row["sample_count"]), int(row["distinct_dates"])
+            )
             for row in direct_groups.iter_rows(named=True)
         }
     else:
         direct = {}
-    known = {key: value for key, (value, count) in direct.items() if count >= min_samples}
+    known = {
+        key: value for key, (value, count, _) in direct.items() if count >= min_samples
+    }
     required_categories = {key[0] for key in required if key not in known}
     pooled = {}
+    gap_pool_return_counts = {}
     if required_categories:
         # Keep only equations connected to a required pooled category.  Expand
         # the retained category set transitively so no unknown term is dropped.
@@ -188,6 +199,11 @@ def fit_profile(bars, local_timezone, day_category, required_slots, min_samples)
         if not np.all(np.isfinite(estimates)):
             raise ValueError("non-finite pooled variance estimate")
         pooled = {category: float(estimates[index]) for category, index in category_index.items()}
+        gap_pool_return_counts = {
+            category: sum(category in {key[0] for key in counts}
+                          for _, counts in retained_equations)
+            for category in categories
+        }
 
     reference = math.fsum(residual_squares) / total_units
     if not math.isfinite(reference) or reference <= 0:
@@ -197,11 +213,12 @@ def fit_profile(bars, local_timezone, day_category, required_slots, min_samples)
     for key in required:
         direct_estimate = known.get(key)
         if direct_estimate is not None:
-            variance, sample_count = direct_estimate, direct[key][1]
+            variance, sample_count, distinct_dates = direct_estimate, direct[key][1], direct[key][2]
             method = "observed"
         else:
             variance = pooled[key[0]]
-            sample_count = direct.get(key, (0.0, 0))[1]
+            sample_count = direct.get(key, (0.0, 0, 0))[1]
+            distinct_dates = direct.get(key, (0.0, 0, 0))[2]
             method = "gap_pool"
         weight = variance / reference
         if not math.isfinite(variance) or variance < 0 or not math.isfinite(weight) or weight < 0:
@@ -209,6 +226,8 @@ def fit_profile(bars, local_timezone, day_category, required_slots, min_samples)
         profile[key] = {
             "variance_per_5m": float(variance),
             "sample_count": int(sample_count),
+            "distinct_local_date_count": int(distinct_dates),
+            "gap_pool_return_count": int(gap_pool_return_counts.get(key[0], 0)),
             "calibration_method": method,
             "weight": float(weight),
         }

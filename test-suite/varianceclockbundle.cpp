@@ -5253,6 +5253,23 @@ BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
     }
     auto loaded = loadVarianceClockBundleFromDirectory(directory.path.string());
     BOOST_CHECK(loaded.snapshot);
+
+    const char* generatedDirectory = std::getenv("QL_VARIANCE_CLOCK_BUNDLE_DIR");
+    if (generatedDirectory != nullptr) {
+        BOOST_TEST_MESSAGE("Testing a Python-generated bundle in both loading modes...");
+        const char* expectedSnapshot = std::getenv("QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT");
+        BOOST_REQUIRE(expectedSnapshot != nullptr);
+        for (VarianceClockLoadMode mode : {VarianceClockLoadMode::Strict,
+                                           VarianceClockLoadMode::Reconstruction}) {
+            auto generated =
+                loadVarianceClockBundleFromDirectory(generatedDirectory, mode);
+            BOOST_REQUIRE(generated.snapshot);
+            BOOST_CHECK_EQUAL(generated.provenance.snapshotId, expectedSnapshot);
+            BOOST_CHECK(generated.provenance.mode == mode);
+            BOOST_CHECK_EQUAL(generated.provenance.reconstructed,
+                              mode == VarianceClockLoadMode::Reconstruction);
+        }
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsSourceResultLargerThanMaxBytes) {

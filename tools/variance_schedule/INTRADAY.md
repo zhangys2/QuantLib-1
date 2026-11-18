@@ -105,6 +105,31 @@ price or custom-holiday inputs. It warns if price history extends past the
 schedule start; for backtests, supply only data known at that start. A schedule
 with zero total weighted time is rejected.
 
+## Emit a Phase B bundle
+
+`--cutoff` excludes observations later than its UTC instant before the drift,
+reference variance, and slot rates are fitted. Excluded observation count and
+cutoff are recorded in Parquet calibration metadata. When omitted for bundle
+output, cutoff defaults to `--start`; for Parquet-only output it is optional and
+the existing behavior is unchanged.
+
+Add `--bundle-dir path` to emit the frozen Phase B six-file directory alongside
+or instead of Parquet. `--generated-at` sets the manifest generation instant
+for reproducible builds; otherwise the current UTC instant is used. Bundle mode
+uses `--min-samples` as `minimum_direct_returns`. If any slot requires the
+existing NNLS gap-pool estimator, set `--gap-pool-threshold`; the bundle
+generator refuses pooled rows without an explicit positive threshold. Bundle
+files are staged beside the destination and swapped as a unit. The destination
+root must not be a symlink.
+
+The input contains prices and a date-classification calendar, but no exchange
+session schedule or independently retained publication receipts. This minimal
+adapter therefore emits one full-local-day session for each covered date and
+records batch-level price, built-in calendar, and timezone evidence. It is a
+generic all-day price-series representation, not an exchange-hours calendar or
+an audited source-publication pipeline. Do not use it to claim exchange
+sessions or source availability facts that are absent from the inputs.
+
 ## Calibration and missing hours
 
 Each return is the log price change between consecutive observations. A return
