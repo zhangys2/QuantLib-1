@@ -630,16 +630,16 @@ namespace QuantLib {
                     QL_REQUIRE(!slots[minute / 5], "duplicate slot-evidence key");
                     slots[minute / 5] = true;
 
-                    const auto targetCount =
-                        row[4] == "unknown"
-                            ? std::optional<std::uint32_t>()
-                            : std::optional<std::uint32_t>(
-                                  unsignedInteger<std::uint32_t>(row[4], "target count"));
-                    const auto targetDates =
-                        row[6] == "unknown"
-                            ? std::optional<std::uint32_t>()
-                            : std::optional<std::uint32_t>(
-                                  unsignedInteger<std::uint32_t>(row[6], "target dates"));
+                    const bool hasTargetCount = row[4] != "unknown";
+                    const std::uint32_t targetCount = hasTargetCount
+                                                          ? unsignedInteger<std::uint32_t>(
+                                                                row[4], "target count")
+                                                          : 0U;
+                    const bool hasTargetDates = row[6] != "unknown";
+                    const std::uint32_t targetDates = hasTargetDates
+                                                          ? unsignedInteger<std::uint32_t>(
+                                                                row[6], "target dates")
+                                                          : 0U;
                     const auto evidenceIds = parseEvidenceIdsJson(row[13]);
                     for (const auto& evidenceId : evidenceIds)
                         validateIdentifier(evidenceId, "slot evidence ID");
@@ -660,20 +660,20 @@ namespace QuantLib {
                                "zero method and profile weight disagree");
 
                     if (method == "direct") {
-                        QL_REQUIRE(targetCount && *targetCount >=
+                        QL_REQUIRE(hasTargetCount && targetCount >=
                                                        context.manifest->calibrationSettings
                                                            .minimumDirectReturns &&
-                                       targetDates && *targetDates >= 1 &&
+                                       hasTargetDates && targetDates >= 1 &&
                                        row[5] == "not_applicable" &&
                                        row[7] == "not_applicable" && row[3].empty() &&
                                        row[9].empty() && row[10] == "not_applicable" &&
                                        row[11].empty() && !evidenceIds.empty(),
                                    "invalid direct slot evidence");
                     } else if (method == "pooled") {
-                        QL_REQUIRE(targetCount && *targetCount <
+                        QL_REQUIRE(hasTargetCount && targetCount <
                                                        context.manifest->calibrationSettings
                                                            .minimumDirectReturns &&
-                                       targetDates && *targetDates >= 1 &&
+                                       hasTargetDates && targetDates >= 1 &&
                                        context.manifest->calibrationSettings
                                            .gapPoolReturnThreshold &&
                                        !row[3].empty() && row[5] != "not_applicable" &&
@@ -688,7 +688,7 @@ namespace QuantLib {
                         unsignedInteger<std::uint32_t>(row[5], "source count");
                         unsignedInteger<std::uint32_t>(row[7], "source dates");
                     } else if (method == "zero") {
-                        QL_REQUIRE(targetCount && targetDates &&
+                        QL_REQUIRE(hasTargetCount && hasTargetDates &&
                                        row[5] == "not_applicable" &&
                                        row[7] == "not_applicable" && row[3].empty() &&
                                        row[9].empty() && row[10] == "not_applicable" &&
