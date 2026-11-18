@@ -43,8 +43,8 @@ namespace QuantLib {
     namespace detail {
         namespace {
 
-            constexpr std::size_t maxManifestBytes = 4U * 1024U * 1024U;
-            constexpr std::size_t maxCsvBytes = 32U * 1024U * 1024U;
+            constexpr std::size_t maxBundleSourceManifestBytes = 4U * 1024U * 1024U;
+            constexpr std::size_t maxBundleSourceCsvBytes = 32U * 1024U * 1024U;
             constexpr std::size_t maxBundleBytes = 128U * 1024U * 1024U;
 
             const std::array<const char*, 5> csvNames{{
@@ -388,7 +388,8 @@ namespace QuantLib {
             std::size_t totalBytes = 0;
             VarianceClockManifest manifest;
             {
-                const std::size_t maxBytes = boundedReadSize(maxManifestBytes, totalBytes, budget);
+                const std::size_t maxBytes =
+                    boundedReadSize(maxBundleSourceManifestBytes, totalBytes, budget);
                 auto rawManifest = readCharged(source, "manifest.json", maxBytes, budget);
                 totalBytes += rawManifest.bytes.size();
                 manifest = parseVarianceClockManifest(charView(rawManifest.bytes));
@@ -401,7 +402,8 @@ namespace QuantLib {
                 &result.timezoneMapping_, &result.slotEvidence_}};
             for (std::size_t i = 0; i < csvNames.size(); ++i) {
                 const std::string name = csvNames[i];
-                const std::size_t maxBytes = boundedReadSize(maxCsvBytes, totalBytes, budget);
+                const std::size_t maxBytes =
+                    boundedReadSize(maxBundleSourceCsvBytes, totalBytes, budget);
                 auto captured = readCharged(source, name, maxBytes, budget);
                 totalBytes += captured.bytes.size();
                 const auto expected = result.manifest_.files.find(name);
