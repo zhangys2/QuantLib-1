@@ -72,6 +72,27 @@ def cpp_loads_in_both_modes(bundle, mode=None):
     return manifest
 
 
+def cpp_results(bundle, mode=None, snapshot=None):
+    """Run the generated-bundle hook in each pointer build; return the process results."""
+    manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+    results = []
+    for build in BUILDS:
+        loader = ROOT / "build" / build / "test-suite" / "quantlib-test-suite"
+        assert loader.is_file(), f"missing built C++ test executable: {loader}"
+        environment = {
+            **os.environ,
+            "QL_VARIANCE_CLOCK_BUNDLE_DIR": str(bundle),
+            "QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT": snapshot or manifest["snapshot_id"],
+        }
+        if mode is not None:
+            environment["QL_VARIANCE_CLOCK_BUNDLE_MODE"] = mode
+        results.append(subprocess.run(
+            [str(loader), "--run_test=QuantLibTests/VarianceBundleLoaderTests/"
+                          "testDirectoryWrapperLoadsACompleteBundle", "--log_level=message"],
+            env=environment, capture_output=True, text=True))
+    return results
+
+
 def utc_generator_arguments(bundle, **overrides):
     values = {"--timezone": "UTC", "--calendar": "always",
               "--start": "2024-02-05T00:00:00Z", "--end": "2024-02-06T00:00:00Z",
@@ -79,7 +100,8 @@ def utc_generator_arguments(bundle, **overrides):
     values.update(overrides)
     arguments = ["--bundle-dir", bundle]
     for key, value in values.items():
-        arguments += [key, value]
+        if value is not None:
+            arguments += [key, value]
     return arguments
 
 
@@ -304,6 +326,73 @@ def test_historical_bundle_is_reconstruction_only(tmp_path):
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["generated_at_utc"] == manifest["coverage_end_utc"]
     cpp_loads_in_both_modes(bundle, mode="reconstruction_only")
+
+
+RECONSTRUCTION_WARNING = ("generated_at_utc is at or after coverage_end_utc; "
+                          "bundle loads only in Reconstruction mode")
+
+
+def test_generation_time_boundary_around_the_coverage_end(tmp_path):
+    prices = tmp_path / "prices.parquet"
+    write_prices(prices, datetime(2024, 1, 1, tzinfo=UTC), 35)
+    # coverage_end_utc is 2024-02-06T00:00:00Z and exclusive.
+    just_before = tmp_path / "before"
+    result = run_generator(prices, *utc_generator_arguments(
+        just_before, **{"--generated-at": "2024-02-05T23:59:59Z"}))
+    assert result.returncode == 0, result.stderr
+    assert "Reconstruction" not in result.stderr
+    cpp_loads_in_both_modes(just_before)
+
+    for name, generated_at in (("equal", "2024-02-06T00:00:00Z"),
+                               ("after", "2024-02-07T00:00:00Z"),
+                               ("later", "2024-02-06T00:00:01Z")):
+        bundle = tmp_path / name
+        result = run_generator(prices, *utc_generator_arguments(
+            bundle, **{"--generated-at": generated_at}))
+        assert result.returncode == 0, result.stderr
+        assert RECONSTRUCTION_WARNING in result.stderr
+        assert json.loads((bundle / "manifest.json").read_text(
+            encoding="utf-8"))["generated_at_utc"] == generated_at
+        cpp_loads_in_both_modes(bundle, mode="reconstruction_only")
+
+    # Without --generated-at the current time is used, which is after a historical window.
+    default = tmp_path / "default"
+    result = run_generator(prices, *utc_generator_arguments(
+        default, **{"--generated-at": None}))
+    assert result.returncode == 0, result.stderr
+    assert RECONSTRUCTION_WARNING in result.stderr
+    cpp_loads_in_both_modes(default, mode="reconstruction_only")
+
+
+def test_generated_bundle_hook_rejects_mismatched_modes(tmp_path):
+    prices = tmp_path / "prices.parquet"
+    write_prices(prices, datetime(2024, 1, 1, tzinfo=UTC), 35)
+    normal, historical = tmp_path / "normal", tmp_path / "historical"
+    for bundle, generated_at in ((normal, "2024-02-05T00:00:00Z"),
+                                 (historical, "2024-02-06T00:00:00Z")):
+        result = run_generator(prices, *utc_generator_arguments(
+            bundle, **{"--generated-at": generated_at}))
+        assert result.returncode == 0, result.stderr
+
+    # A bundle that Strict mode accepts is not a Reconstruction-only bundle.
+    for result in cpp_results(normal, mode="reconstruction_only"):
+        assert result.returncode != 0
+        assert "Strict mode accepted a Reconstruction-only bundle" in result.stdout + result.stderr
+    # The default hook loads in Strict mode first, which a historical bundle fails.
+    for result in cpp_results(historical):
+        assert result.returncode != 0
+        assert "Strict generated_at_utc must be before coverage_end_utc" in (
+            result.stdout + result.stderr)
+    for result in cpp_results(normal, mode="bogus"):
+        assert result.returncode != 0
+        assert "unknown QL_VARIANCE_CLOCK_BUNDLE_MODE value: bogus" in (
+            result.stdout + result.stderr)
+    # The expected snapshot identity is checked in the Reconstruction-only path as well.
+    for result in cpp_results(historical, mode="reconstruction_only", snapshot="wrong-id"):
+        assert result.returncode != 0
+        output = result.stdout + result.stderr
+        assert "provenance.snapshotId == expectedSnapshot has failed" in output
+        assert "!= wrong-id]" in output
 
 
 def bundle_files(tag):
