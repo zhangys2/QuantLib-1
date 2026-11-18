@@ -52,8 +52,11 @@ function(generate_dir_headers source_dir binary_dir)
     list(FILTER children_hpp EXCLUDE REGEX "pdebsm.hpp")
     list(FILTER children_hpp EXCLUDE REGEX "bsmoperator.hpp")
     list(FILTER children_hpp EXCLUDE REGEX "bootstraperror.hpp")
-    # Keep the private variance-clock implementation header out of aggregate headers.
-    list(FILTER children_hpp EXCLUDE REGEX "^varianceclockdetail\\.hpp$")
+    # Keep the private variance-clock implementation headers out of aggregate headers; they
+    # are not installed (see QL_PRIVATE_HEADERS and noinst_HEADERS), so an installed
+    # all.hpp that included them would not compile.
+    list(FILTER children_hpp EXCLUDE REGEX
+         "^varianceclock(detail|bundlecapture|bundledata|bundleevidence|csv|manifest)\\.hpp$")
 
     if (${source_dir} MATCHES "experimental" AND ${source_dir} MATCHES "exoticoptions")
         list(FILTER children_hpp EXCLUDE REGEX "kirkspreadoptionengine.hpp")
@@ -70,6 +73,8 @@ function(generate_dir_headers source_dir binary_dir)
     file(GLOB children_dir RELATIVE ${source_dir} "${source_dir}/*")
     list(FILTER children_dir EXCLUDE REGEX "CMakeFiles")
     list(FILTER children_dir EXCLUDE REGEX "^\\..*")
+    # ql/utilities/detail holds private, non-installed implementation headers.
+    list(FILTER children_dir EXCLUDE REGEX "^detail$")
     foreach(child ${children_hpp})
         list(APPEND children_all "${source_dir}/${child}")
     endforeach()

@@ -53,6 +53,7 @@ docs:
 dist-hook:
 	mkdir -p $(distdir)/build
 	mkdir -p $(distdir)/cmake
+	cp -p $(srcdir)/cmake/CheckGeneratedHeaders.cmake $(distdir)/cmake
 	cp -p $(srcdir)/cmake/GenerateHeaders.cmake $(distdir)/cmake
 	cp -p $(srcdir)/cmake/Platform.cmake $(distdir)/cmake
 	cp -p $(srcdir)/cmake/QuantLibConfig.cmake.in $(distdir)/cmake

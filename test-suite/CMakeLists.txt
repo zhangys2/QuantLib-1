@@ -224,6 +224,11 @@ if (QL_BUILD_TEST_SUITE)
         install(TARGETS ql_test_suite RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
     endif()
     add_test(NAME quantlib_test_suite COMMAND ql_test_suite --log_level=message)
+    add_test(NAME quantlib_generated_header_visibility
+        COMMAND ${CMAKE_COMMAND}
+            "-DQL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+            "-DQL_BINARY_DIR=${PROJECT_BINARY_DIR}"
+            -P ${PROJECT_SOURCE_DIR}/cmake/CheckGeneratedHeaders.cmake)
 
 
     add_executable(ql_benchmark quantlibbenchmark.cpp)
