@@ -510,7 +510,7 @@ def write_bundle(bundle_path, prices_path, start, end, cutoff, generated_at,
         {
             "evidence_id": "price", "role": "price_input", "source_id": "price-parquet",
             "revision_id": price_digest, "published_at_utc": None,
-            "available_at_utc": as_of, "uri": prices_path.as_uri(),
+            "available_at_utc": as_of, "uri": f"file:{prices_path.name}",
             "content_sha256": price_digest, "attestation_ref": "input-file-sha256",
         },
         {
@@ -528,9 +528,12 @@ def write_bundle(bundle_path, prices_path, start, end, cutoff, generated_at,
     )
     manifest = {
         "format_version": 1,
-        "snapshot_id": "variance-schedule-" + hashlib.sha256(
-            (price_digest + cutoff_text + format_utc(start) + format_utc(end)).encode()
-        ).hexdigest()[:24],
+        "snapshot_id": "variance-schedule-" + hashlib.sha256(json.dumps({
+            "files": digests, "price": price_digest, "calendar": calendar_digest,
+            "cutoff": cutoff_text, "start": format_utc(start), "end": format_utc(end),
+            "minimum_direct_returns": args.min_samples,
+            "gap_pool_return_threshold": args.gap_pool_threshold,
+        }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:24],
         "generated_at_utc": format_utc(generated_at),
         "coverage_start_utc": format_utc(start),
         "coverage_end_utc": format_utc(end),
@@ -665,6 +668,9 @@ def generate(args):
     if cutoff is not None:
         eligible_bars = bars.filter(pl.col("timestamp") <= cutoff)
         excluded = bars.height - eligible_bars.height
+        if excluded:
+            print(f"note: excluded {excluded} price observations after --cutoff "
+                  f"{format_utc(cutoff)} before fitting", file=sys.stderr)
         bars = eligible_bars
         if bars.height < 2:
             raise ValueError("at least two price observations must be at or before --cutoff")
