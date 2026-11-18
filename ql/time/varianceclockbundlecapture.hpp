@@ -33,7 +33,7 @@
 namespace QuantLib {
     namespace detail {
 
-        struct VarianceClockCapturedBundle;
+        class VarianceClockCapturedBundle;
 
         class VarianceClockVerifiedBytes {
           public:
