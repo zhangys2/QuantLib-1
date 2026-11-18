@@ -2646,6 +2646,29 @@ BOOST_AUTO_TEST_CASE(testDecimalParsingIgnoresGlobalNumpunct) {
     BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
 }
 
+BOOST_AUTO_TEST_CASE(testDecimalConversionBoundariesAndRange) {
+    BOOST_TEST_MESSAGE("Testing classic-locale decimal conversion at double boundaries...");
+    GlobalLocaleGuard localeGuard;
+    for (const char* value : {"1.7976931348623157e308", "2.2250738585072014e-308",
+                              "3e-324", "4.9406564584124654e-324"}) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.referenceVariancePer5m = value;
+        replaceAll(fixture.profiles, "0.01,1", std::string(value) + ",1");
+        BOOST_CHECK_NO_THROW(parseBundleTables(fixture));
+    }
+
+    auto exactZero = validBundleTableFixture();
+    replaceAll(exactZero.profiles, "0.01,1", "0e-999,0");
+    replaceAll(exactZero.slotEvidence, "direct", "zero");
+    BOOST_CHECK_NO_THROW(parseBundleTables(exactZero));
+
+    for (const char* value : {"1e309", "1e-324", "2e-324", "1e-999"}) {
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.referenceVariancePer5m = value;
+        checkBundleTablesRejectedWith(fixture, "invalid nonnegative decimal");
+    }
+}
+
 BOOST_AUTO_TEST_CASE(testLoadBudgetReservesReleasesAndReconciles) {
     BOOST_TEST_MESSAGE("Testing load-budget reservation, release, resize and moves...");
     using QuantLib::detail::VarianceClockLoadBudget;

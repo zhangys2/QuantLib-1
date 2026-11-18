@@ -27,11 +27,14 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <locale>
 #include <map>
 #include <set>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -189,13 +192,42 @@ namespace QuantLib {
                 return position == value.size();
             }
 
+            template <class T, class = void>
+            struct DecimalConverter {
+                static bool parse(std::string_view value, T& result) {
+                    std::istringstream input{std::string(value)};
+                    input.imbue(std::locale::classic());
+                    input >> std::noskipws >> result;
+                    if (input.fail() || !input.eof())
+                        return false;
+
+                    for (char c : value) {
+                        if (c == 'e' || c == 'E')
+                            break;
+                        if (c >= '1' && c <= '9')
+                            return result != 0.0;
+                    }
+                    return true;
+                }
+            };
+
+            template <class T>
+            struct DecimalConverter<
+                T, std::void_t<decltype(std::from_chars(std::declval<const char*>(),
+                                                        std::declval<const char*>(),
+                                                        std::declval<T&>()))>> {
+                static bool parse(std::string_view value, T& result) {
+                    const auto parsed =
+                        std::from_chars(value.data(), value.data() + value.size(), result);
+                    return parsed.ec == std::errc() && parsed.ptr == value.data() + value.size();
+                }
+            };
+
             double decimal(std::string_view value, const char* name) {
                 QL_REQUIRE(!value.empty(), "empty decimal in " << name);
                 QL_REQUIRE(isDecimalGrammar(value), "invalid decimal grammar in " << name);
                 double result = 0.0;
-                const auto parsed = std::from_chars(value.data(), value.data() + value.size(),
-                                                    result, std::chars_format::general);
-                QL_REQUIRE(parsed.ec == std::errc() && parsed.ptr == value.data() + value.size() &&
+                QL_REQUIRE(DecimalConverter<double>::parse(value, result) &&
                                std::isfinite(result) && result >= 0.0,
                            "invalid nonnegative decimal in " << name);
                 return result;
