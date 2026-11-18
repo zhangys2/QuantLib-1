@@ -732,7 +732,11 @@ def generate(args):
         if cutoff > generated_at:
             raise ValueError("--cutoff must not be later than --generated-at")
         if generated_at >= end:
-            raise ValueError("--generated-at must be earlier than --end in Strict mode")
+            print(
+                "warning: generated_at_utc is at or after coverage_end_utc; "
+                "bundle loads only in Reconstruction mode",
+                file=sys.stderr,
+            )
     if output_path is not None:
         write_schedule(output_path, frame, metadata)
     if bundle_path is not None:

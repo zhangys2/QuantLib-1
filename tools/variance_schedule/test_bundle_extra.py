@@ -50,16 +50,22 @@ def read_csv(path):
         return list(csv.DictReader(stream))
 
 
-def cpp_loads_in_both_modes(bundle):
+def cpp_loads_in_both_modes(bundle, mode=None):
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     for build in BUILDS:
         loader = ROOT / "build" / build / "test-suite" / "quantlib-test-suite"
         assert loader.is_file(), f"missing built C++ test executable: {loader}"
+        environment = {
+            **os.environ,
+            "QL_VARIANCE_CLOCK_BUNDLE_DIR": str(bundle),
+            "QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT": manifest["snapshot_id"],
+        }
+        if mode is not None:
+            environment["QL_VARIANCE_CLOCK_BUNDLE_MODE"] = mode
         result = subprocess.run(
             [str(loader), "--run_test=QuantLibTests/VarianceBundleLoaderTests/"
                           "testDirectoryWrapperLoadsACompleteBundle", "--log_level=message"],
-            env={**os.environ, "QL_VARIANCE_CLOCK_BUNDLE_DIR": str(bundle),
-                 "QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT": manifest["snapshot_id"]},
+            env=environment,
             capture_output=True, text=True,
         )
         assert result.returncode == 0, result.stdout + result.stderr
@@ -284,6 +290,20 @@ def test_bundle_provenance_cutoff_reporting_and_identity(tmp_path):
         rejected, **{"--cutoff": "2024-02-05T00:00:01Z"}))
     assert result.returncode != 0 and "must not be later than --generated-at" in result.stderr
     assert not rejected.exists()
+
+
+def test_historical_bundle_is_reconstruction_only(tmp_path):
+    prices, bundle = tmp_path / "prices.parquet", tmp_path / "bundle"
+    write_prices(prices, datetime(2024, 1, 1, tzinfo=UTC), 35)
+    result = run_generator(prices, *utc_generator_arguments(
+        bundle, **{"--generated-at": "2024-02-06T00:00:00Z"}))
+    assert result.returncode == 0, result.stderr
+    assert ("generated_at_utc is at or after coverage_end_utc; "
+            "bundle loads only in Reconstruction mode") in result.stderr
+
+    manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["generated_at_utc"] == manifest["coverage_end_utc"]
+    cpp_loads_in_both_modes(bundle, mode="reconstruction_only")
 
 
 def bundle_files(tag):

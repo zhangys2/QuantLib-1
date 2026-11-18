@@ -120,7 +120,11 @@ uses `--min-samples` as `minimum_direct_returns`. If any slot requires the
 existing NNLS gap-pool estimator, set `--gap-pool-threshold`; the bundle
 generator refuses pooled rows without an explicit positive threshold. Bundle
 files are staged beside the destination and swapped as a unit. The destination
-root must not be a symlink.
+root must not be a symlink. If `--generated-at` is at or after the exclusive
+coverage end, the bundle is still emitted with a warning but is loadable only
+in Reconstruction mode; Strict mode rejects that availability time. The
+default generation time therefore makes bundles for historical windows
+Reconstruction-only.
 
 The input contains prices and a date-classification calendar, but no exchange
 session schedule or independently retained publication receipts. This minimal
