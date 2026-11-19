@@ -1025,7 +1025,8 @@ BOOST_AUTO_TEST_CASE(testViewStatusPrecedenceAndTokenSafety) {
     VarianceClockExpiryToken coverageEnd;
     BOOST_REQUIRE(view.prepareExpiry(instant(86400), coverageEnd) == VarianceClockStatus::Ok);
     checkError(view.remaining(instant(86400), coverageEnd), VarianceClockStatus::Expired);
-    BOOST_CHECK_THROW(VarianceClock(std::unique_ptr<VarianceClockSnapshot>()), Error);
+    BOOST_CHECK_THROW(static_cast<void>(VarianceClock(std::unique_ptr<VarianceClockSnapshot>())),
+                      Error);
 }
 
 BOOST_AUTO_TEST_CASE(testAsOfAcrossMiddleRuns) {
