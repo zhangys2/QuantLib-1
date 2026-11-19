@@ -247,10 +247,10 @@ EXTRA_DIST =
 endif 
 
 quantlib_test_suite_LDADD = ${top_builddir}/ql/libQuantLib.la \
-                            ${PTHREAD_LIB} ${BOOST_INTERPROCESS_LIB}
+                            -pthread ${PTHREAD_LIB} ${BOOST_INTERPROCESS_LIB}
 
 quantlib_benchmark_LDADD = ${top_builddir}/ql/libQuantLib.la \
-                           ${PTHREAD_LIB} ${BOOST_INTERPROCESS_LIB}
+                           -pthread ${PTHREAD_LIB} ${BOOST_INTERPROCESS_LIB}
 
 TESTS = quantlib-test-suite$(EXEEXT)
 TESTS_ENVIRONMENT = BOOST_TEST_LOG_LEVEL=message BOOST_TEST_COLOR_OUTPUT=false
