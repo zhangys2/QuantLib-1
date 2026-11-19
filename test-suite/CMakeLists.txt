@@ -214,7 +214,7 @@ if (QL_BUILD_TEST_SUITE)
         # for Unity builds, we need to add /bigobj
         target_compile_options(ql_test PUBLIC "/bigobj")
     endif()
-    target_link_libraries(ql_test PUBLIC ql_library ${QL_THREAD_LIBRARIES})
+    target_link_libraries(ql_test PUBLIC ql_library ${QL_THREAD_LIBRARIES} Threads::Threads)
 
 
     add_executable(ql_test_suite quantlibtestsuite.cpp)
