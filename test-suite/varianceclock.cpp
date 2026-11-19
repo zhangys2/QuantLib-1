@@ -840,7 +840,7 @@ BOOST_AUTO_TEST_CASE(testMixedRateDecimalOracle) {
                 std::stod(rates[(slot * 7 + day) % rates.size()]);
     const detail::VarianceClockNumericEngine engine(std::move(tables));
 
-    const auto oracle = [&rates](std::int64_t start, std::int64_t end) -> HighPrecision {
+    const auto oracle = [&](std::int64_t start, std::int64_t end) -> HighPrecision {
         HighPrecision total("0");
         for (Size slot = 0; slot < 2 * 288; ++slot) {
             const auto left = std::max(start, static_cast<std::int64_t>(slot) * slotNanos);
@@ -855,7 +855,7 @@ BOOST_AUTO_TEST_CASE(testMixedRateDecimalOracle) {
         }
         return total;
     };
-    const auto asInstant = [](std::int64_t nanos) {
+    const auto asInstant = [&](std::int64_t nanos) {
         return instant(nanos / nanosPerSecond, static_cast<std::uint32_t>(nanos % nanosPerSecond));
     };
 
