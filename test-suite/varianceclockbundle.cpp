@@ -64,6 +64,23 @@ namespace {
     using QuantLib::detail::parseVarianceClockManifest;
     using QuantLib::detail::visitVarianceClockCsvRows;
 
+    std::optional<std::string> readEnvironmentVariable(const char* name) {
+#ifdef _MSC_VER
+        char* value = nullptr;
+        std::size_t size = 0;
+        const auto result = ::_dupenv_s(&value, &size, name);
+        std::unique_ptr<char, decltype(&std::free)> ownedValue(value, &std::free);
+        if (result != 0 || value == nullptr)
+            return std::nullopt;
+        return std::string(value);
+#else
+        const char* value = std::getenv(name);
+        if (value == nullptr)
+            return std::nullopt;
+        return std::string(value);
+#endif
+    }
+
     std::string minimalManifest() {
         return R"json({
   "format_version": 1,
@@ -5277,24 +5294,24 @@ BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
     auto loaded = loadVarianceClockBundleFromDirectory(directory.path.string());
     BOOST_CHECK(loaded.snapshot);
 
-    const char* generatedDirectory = std::getenv("QL_VARIANCE_CLOCK_BUNDLE_DIR");
-    if (generatedDirectory != nullptr) {
+    const auto generatedDirectory = readEnvironmentVariable("QL_VARIANCE_CLOCK_BUNDLE_DIR");
+    if (generatedDirectory) {
         BOOST_TEST_MESSAGE("Testing a Python-generated bundle in the requested loading mode...");
-        const char* expectedSnapshot = std::getenv("QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT");
-        BOOST_REQUIRE(expectedSnapshot != nullptr);
-        const char* requestedMode = std::getenv("QL_VARIANCE_CLOCK_BUNDLE_MODE");
-        if (requestedMode != nullptr &&
-            std::string(requestedMode) == "reconstruction_only") {
+        const auto expectedSnapshot =
+            readEnvironmentVariable("QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT");
+        BOOST_REQUIRE(expectedSnapshot.has_value());
+        const auto requestedMode = readEnvironmentVariable("QL_VARIANCE_CLOCK_BUNDLE_MODE");
+        if (requestedMode && *requestedMode == "reconstruction_only") {
             auto generated =
                 loadVarianceClockBundleFromDirectory(
-                    generatedDirectory, VarianceClockLoadMode::Reconstruction);
+                    *generatedDirectory, VarianceClockLoadMode::Reconstruction);
             BOOST_REQUIRE(generated.snapshot);
-            BOOST_CHECK_EQUAL(generated.provenance.snapshotId, expectedSnapshot);
+            BOOST_CHECK_EQUAL(generated.provenance.snapshotId, *expectedSnapshot);
             BOOST_CHECK(generated.provenance.mode == VarianceClockLoadMode::Reconstruction);
             BOOST_CHECK(generated.provenance.reconstructed);
             try {
                 (void)loadVarianceClockBundleFromDirectory(
-                    generatedDirectory, VarianceClockLoadMode::Strict);
+                    *generatedDirectory, VarianceClockLoadMode::Strict);
                 BOOST_ERROR("Strict mode accepted a Reconstruction-only bundle");
             } catch (const Error& error) {
                 const std::string message = error.what();
@@ -5303,19 +5320,19 @@ BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
                         message.find("coverage_end_utc") != std::string::npos,
                     "unexpected Strict-mode error: " << message);
             }
-        } else if (requestedMode == nullptr) {
+        } else if (!requestedMode) {
             for (VarianceClockLoadMode mode : {VarianceClockLoadMode::Strict,
                                                VarianceClockLoadMode::Reconstruction}) {
                 auto generated =
-                    loadVarianceClockBundleFromDirectory(generatedDirectory, mode);
+                    loadVarianceClockBundleFromDirectory(*generatedDirectory, mode);
                 BOOST_REQUIRE(generated.snapshot);
-                BOOST_CHECK_EQUAL(generated.provenance.snapshotId, expectedSnapshot);
+                BOOST_CHECK_EQUAL(generated.provenance.snapshotId, *expectedSnapshot);
                 BOOST_CHECK(generated.provenance.mode == mode);
                 BOOST_CHECK_EQUAL(generated.provenance.reconstructed,
                                   mode == VarianceClockLoadMode::Reconstruction);
             }
         } else {
-            BOOST_FAIL("unknown QL_VARIANCE_CLOCK_BUNDLE_MODE value: " << requestedMode);
+            BOOST_FAIL("unknown QL_VARIANCE_CLOCK_BUNDLE_MODE value: " << *requestedMode);
         }
     }
 }
