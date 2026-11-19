@@ -3167,7 +3167,7 @@ BOOST_AUTO_TEST_CASE(testSlotEvidenceMethodRules) {
     checkBundleTablesRejectedWith(noThreshold, "invalid pooled slot evidence");
 
     // A zero slot needs a zero rate, exact counts, no pooling data and cited evidence.
-    auto zero = [&ids](const std::string& tail, const std::string& evidence) {
+    auto zero = [](const std::string& tail, const std::string& evidence) {
         auto fixture = validBundleTableFixture();
         useZeroWeightProfile(fixture);
         rewriteSlotRows(fixture, tail + "," + evidence);
