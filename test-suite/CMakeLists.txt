@@ -204,6 +204,8 @@ set(QL_TEST_HEADERS
 
 
 if (QL_BUILD_TEST_SUITE)
+    find_package(Threads REQUIRED)
+
     add_library(ql_test OBJECT ${QL_TEST_SOURCES} ${QL_TEST_HEADERS})
     if (NOT Boost_USE_STATIC_LIBS)
         target_compile_definitions(ql_test PUBLIC BOOST_ALL_DYN_LINK)
@@ -218,7 +220,7 @@ if (QL_BUILD_TEST_SUITE)
     add_executable(ql_test_suite quantlibtestsuite.cpp)
     set_source_files_properties(quantlibtestsuite.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION true)
     set_target_properties(ql_test_suite PROPERTIES OUTPUT_NAME "quantlib-test-suite")
-    target_link_libraries(ql_test_suite PRIVATE ql_test) 
+    target_link_libraries(ql_test_suite PRIVATE ql_test Threads::Threads)
 
     if (QL_INSTALL_TEST_SUITE)
         install(TARGETS ql_test_suite RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
