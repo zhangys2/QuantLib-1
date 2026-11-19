@@ -5297,16 +5297,18 @@ BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
     const auto generatedDirectory = readEnvironmentVariable("QL_VARIANCE_CLOCK_BUNDLE_DIR");
     if (generatedDirectory) {
         BOOST_TEST_MESSAGE("Testing a Python-generated bundle in the requested loading mode...");
-        const auto expectedSnapshot =
+        const auto expectedSnapshotVariable =
             readEnvironmentVariable("QL_VARIANCE_CLOCK_BUNDLE_SNAPSHOT");
-        BOOST_REQUIRE(expectedSnapshot.has_value());
+        BOOST_REQUIRE(expectedSnapshotVariable.has_value());
+        // keep the name: the Python round-trip tests match Boost's printed check expression
+        const std::string& expectedSnapshot = *expectedSnapshotVariable;
         const auto requestedMode = readEnvironmentVariable("QL_VARIANCE_CLOCK_BUNDLE_MODE");
         if (requestedMode && *requestedMode == "reconstruction_only") {
             auto generated =
                 loadVarianceClockBundleFromDirectory(
                     *generatedDirectory, VarianceClockLoadMode::Reconstruction);
             BOOST_REQUIRE(generated.snapshot);
-            BOOST_CHECK_EQUAL(generated.provenance.snapshotId, *expectedSnapshot);
+            BOOST_CHECK_EQUAL(generated.provenance.snapshotId, expectedSnapshot);
             BOOST_CHECK(generated.provenance.mode == VarianceClockLoadMode::Reconstruction);
             BOOST_CHECK(generated.provenance.reconstructed);
             try {
@@ -5326,7 +5328,7 @@ BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
                 auto generated =
                     loadVarianceClockBundleFromDirectory(*generatedDirectory, mode);
                 BOOST_REQUIRE(generated.snapshot);
-                BOOST_CHECK_EQUAL(generated.provenance.snapshotId, *expectedSnapshot);
+                BOOST_CHECK_EQUAL(generated.provenance.snapshotId, expectedSnapshot);
                 BOOST_CHECK(generated.provenance.mode == mode);
                 BOOST_CHECK_EQUAL(generated.provenance.reconstructed,
                                   mode == VarianceClockLoadMode::Reconstruction);
