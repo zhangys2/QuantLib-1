@@ -42,7 +42,8 @@ namespace QuantLib {
     namespace detail {
         namespace {
 
-            using Fields = std::vector<std::array<std::string, 14>>;
+            using Fields =
+                std::vector<std::array<std::string, VarianceClockSlotEvidenceCsv::columnCount>>;
 
             void addCharge(VarianceClockLoadBudget::Reservation& charge, std::size_t bytes) {
                 QL_REQUIRE(bytes <= std::numeric_limits<std::size_t>::max() - charge.bytes(),
@@ -72,26 +73,11 @@ namespace QuantLib {
 
             bool saveRow(void* opaque, const std::string_view* fields, std::size_t count) {
                 auto& context = *static_cast<RowContext*>(opaque);
-                std::array<std::string, 14> row;
+                std::array<std::string, VarianceClockSlotEvidenceCsv::columnCount> row;
                 for (std::size_t i = 0; i < count; ++i)
                     row[i] = decodeVarianceClockCsvField(fields[i]);
                 context.rows->push_back(std::move(row));
                 return true;
-            }
-
-            std::size_t schemaFieldCount(VarianceClockCsvSchema schema) {
-                switch (schema) {
-                  case VarianceClockCsvSchema::Profiles:
-                  case VarianceClockCsvSchema::TimezoneMapping:
-                    return 4;
-                  case VarianceClockCsvSchema::MarketDays:
-                    return 6;
-                  case VarianceClockCsvSchema::SessionSegments:
-                    return 8;
-                  case VarianceClockCsvSchema::SlotEvidence:
-                    return 14;
-                }
-                QL_FAIL("unknown variance-clock CSV schema");
             }
 
             Fields readRows(std::string_view bytes,
@@ -100,9 +86,11 @@ namespace QuantLib {
                             VarianceClockLoadBudget::Reservation& rowCharge) {
                 const std::size_t count = countRows(bytes, schema);
                 constexpr std::size_t rowOverheadPerField = 8;
+                const auto format = varianceClockCsvFormat(schema);
+                QL_REQUIRE(format.columnCount != 0, "unknown variance-clock CSV schema");
                 const std::size_t perRow =
-                    sizeof(std::array<std::string, 14>) +
-                    schemaFieldCount(schema) * rowOverheadPerField;
+                    sizeof(std::array<std::string, VarianceClockSlotEvidenceCsv::columnCount>) +
+                    format.columnCount * rowOverheadPerField;
                 QL_REQUIRE(count <= (std::numeric_limits<std::size_t>::max() - bytes.size()) /
                                         perRow,
                            "variance-clock CSV accounting overflow");
@@ -458,8 +446,10 @@ namespace QuantLib {
             auto profileCharge = budget.reserve(0);
             std::map<std::uint32_t, ProfileRows> profiles;
             for (const auto& row : profileRows) {
-                const auto id = unsignedInteger<std::uint32_t>(row[0], "profile_id");
-                const auto minute = unsignedInteger<std::uint16_t>(row[1], "minute_of_day");
+                const auto id = unsignedInteger<std::uint32_t>(
+                    row[VarianceClockProfilesCsv::profileId], "profile_id");
+                const auto minute = unsignedInteger<std::uint16_t>(
+                    row[VarianceClockProfilesCsv::minuteOfDay], "minute_of_day");
                 QL_REQUIRE(minute < 1440 && minute % 5 == 0,
                            "profile minute is outside five-minute grid");
                 auto entry = profiles.find(id);
@@ -471,8 +461,10 @@ namespace QuantLib {
                 profile.profile.id = id;
                 const std::size_t slot = minute / 5;
                 QL_REQUIRE(!profile.filled[slot], "duplicate profile slot");
-                const double variance = decimal(row[2], "variance_per_5m");
-                const double weight = decimal(row[3], "weight");
+                const double variance = decimal(row[VarianceClockProfilesCsv::variancePer5m],
+                                                "variance_per_5m");
+                const double weight =
+                    decimal(row[VarianceClockProfilesCsv::weight], "weight");
                 const double reference = decimal(manifest.referenceVariancePer5m,
                                                  "reference_variance_per_5m");
                 QL_REQUIRE(reference > 0.0, "reference variance must be positive");
@@ -525,13 +517,18 @@ namespace QuantLib {
             std::set<std::uint32_t> selectedProfiles;
             auto tableIndexCharge = budget.reserve(0);
             for (const auto& row : dateRows) {
-                const Date date = parseDate(row[0]);
-                QL_REQUIRE(row[2] == "true" || row[2] == "false", "invalid is_open value");
-                QL_REQUIRE(row[1] == "full_day" || row[1] == "early_close" ||
-                               row[1] == "holiday" || row[1] == "weekend" ||
-                               row[1] == "special",
+                const Date date = parseDate(row[VarianceClockMarketDaysCsv::localDate]);
+                QL_REQUIRE(row[VarianceClockMarketDaysCsv::isOpen] == "true" ||
+                               row[VarianceClockMarketDaysCsv::isOpen] == "false",
+                           "invalid is_open value");
+                QL_REQUIRE(row[VarianceClockMarketDaysCsv::dateType] == "full_day" ||
+                               row[VarianceClockMarketDaysCsv::dateType] == "early_close" ||
+                               row[VarianceClockMarketDaysCsv::dateType] == "holiday" ||
+                               row[VarianceClockMarketDaysCsv::dateType] == "weekend" ||
+                               row[VarianceClockMarketDaysCsv::dateType] == "special",
                            "invalid market date type");
-                const auto id = unsignedInteger<std::uint32_t>(row[3], "profile_id");
+                const auto id = unsignedInteger<std::uint32_t>(
+                    row[VarianceClockMarketDaysCsv::profileId], "profile_id");
                 const auto profile =
                     std::lower_bound(result.profiles.begin(), result.profiles.end(), id,
                                      [](const auto& item, std::uint32_t profileId) {
@@ -539,13 +536,17 @@ namespace QuantLib {
                                      });
                 QL_REQUIRE(profile != result.profiles.end() && profile->id == id,
                            "market day references unknown profile");
-                validateIdentifier(row[4], "target group ID");
-                QL_REQUIRE(row[5] == "date_override" ||
-                               row[5] == "date_type_session_pattern" ||
-                               row[5] == "date_type_session_pattern_weekday" ||
-                               row[5] == "base_profile_fallback",
+                validateIdentifier(row[VarianceClockMarketDaysCsv::targetGroupId],
+                                   "target group ID");
+                QL_REQUIRE(row[VarianceClockMarketDaysCsv::selectionReason] == "date_override" ||
+                               row[VarianceClockMarketDaysCsv::selectionReason] ==
+                                   "date_type_session_pattern" ||
+                               row[VarianceClockMarketDaysCsv::selectionReason] ==
+                                   "date_type_session_pattern_weekday" ||
+                               row[VarianceClockMarketDaysCsv::selectionReason] ==
+                                   "base_profile_fallback",
                            "invalid selection reason");
-                const std::string dateKey = row[0];
+                const std::string dateKey = row[VarianceClockMarketDaysCsv::localDate];
                 QL_REQUIRE(marketDates.find(dateKey) == marketDates.end(),
                            "duplicate market date");
                 addCharge(tableIndexCharge,
@@ -553,7 +554,7 @@ namespace QuantLib {
                               4U * sizeof(void*));
                 marketDates.insert(dateKey);
                 result.dates.push_back({date, id});
-                const PairKey pair(id, row[4]);
+                const PairKey pair(id, row[VarianceClockMarketDaysCsv::targetGroupId]);
                 if (selectedPairs.find(pair) == selectedPairs.end()) {
                     addCharge(tableIndexCharge,
                               sizeof(PairKey) + 2U * pair.second.size() +
@@ -584,7 +585,8 @@ namespace QuantLib {
             const auto consumeEvidenceRow =
                 [](void* opaque, const std::string_view* fields, std::size_t count) {
                     auto& context = *static_cast<SlotEvidenceContext*>(opaque);
-                    QL_REQUIRE(count == 14, "wrong slot-evidence field count");
+                    QL_REQUIRE(count == VarianceClockSlotEvidenceCsv::columnCount,
+                               "wrong slot-evidence field count");
                     std::size_t recordBytes = 0;
                     for (std::size_t i = 0; i < count; ++i)
                         recordBytes += fields[i].size();
@@ -598,23 +600,28 @@ namespace QuantLib {
                                        2U,
                                "variance-clock CSV accounting overflow");
                     const auto rowAndDecodedScratch = rowFixedScratch + 2U * recordBytes;
-                    QL_REQUIRE(fields[13].size() <=
+                    QL_REQUIRE(fields[VarianceClockSlotEvidenceCsv::evidenceIdsJson].size() <=
                                    (std::numeric_limits<std::size_t>::max() -
                                     rowAndDecodedScratch) /
                                        parserScratchPerByte,
                                "variance-clock CSV accounting overflow");
                     auto rowScratch = context.budget->reserve(
-                        rowAndDecodedScratch + parserScratchPerByte * fields[13].size());
-                    std::array<std::string, 14> row;
+                        rowAndDecodedScratch +
+                        parserScratchPerByte *
+                            fields[VarianceClockSlotEvidenceCsv::evidenceIdsJson].size());
+                    std::array<std::string, VarianceClockSlotEvidenceCsv::columnCount> row;
                     for (std::size_t i = 0; i < count; ++i)
                         row[i] = decodeVarianceClockCsvField(fields[i]);
 
-                    const auto id = unsignedInteger<std::uint32_t>(row[0], "profile_id");
-                    const auto minute = unsignedInteger<std::uint16_t>(row[2], "minute_of_day");
+                    const auto id = unsignedInteger<std::uint32_t>(
+                        row[VarianceClockSlotEvidenceCsv::profileId], "profile_id");
+                    const auto minute = unsignedInteger<std::uint16_t>(
+                        row[VarianceClockSlotEvidenceCsv::minuteOfDay], "minute_of_day");
                     QL_REQUIRE(minute < 1440 && minute % 5 == 0,
                                "slot-evidence minute is outside five-minute grid");
-                    validateIdentifier(row[1], "target group ID");
-                    const PairKey key(id, row[1]);
+                    validateIdentifier(row[VarianceClockSlotEvidenceCsv::targetGroupId],
+                                       "target group ID");
+                    const PairKey key(id, row[VarianceClockSlotEvidenceCsv::targetGroupId]);
                     QL_REQUIRE(context.selectedPairs->count(key),
                                "slot evidence for unselected pair");
                     auto slotEntry = context.evidenceSlots->find(key);
@@ -630,17 +637,25 @@ namespace QuantLib {
                     QL_REQUIRE(!slots[minute / 5], "duplicate slot-evidence key");
                     slots[minute / 5] = true;
 
-                    const bool hasTargetCount = row[4] != "unknown";
+                    const bool hasTargetCount =
+                        row[VarianceClockSlotEvidenceCsv::targetReturnCount] != "unknown";
                     const std::uint32_t targetCount = hasTargetCount
                                                           ? unsignedInteger<std::uint32_t>(
-                                                                row[4], "target count")
+                                                                row[VarianceClockSlotEvidenceCsv::
+                                                                        targetReturnCount],
+                                                                "target count")
                                                           : 0U;
-                    const bool hasTargetDates = row[6] != "unknown";
+                    const bool hasTargetDates =
+                        row[VarianceClockSlotEvidenceCsv::targetDistinctLocalDateCount] !=
+                        "unknown";
                     const std::uint32_t targetDates = hasTargetDates
                                                           ? unsignedInteger<std::uint32_t>(
-                                                                row[6], "target dates")
+                                                                row[VarianceClockSlotEvidenceCsv::
+                                                                        targetDistinctLocalDateCount],
+                                                                "target dates")
                                                           : 0U;
-                    const auto evidenceIds = parseEvidenceIdsJson(row[13]);
+                    const auto evidenceIds = parseEvidenceIdsJson(
+                        row[VarianceClockSlotEvidenceCsv::evidenceIdsJson]);
                     for (const auto& evidenceId : evidenceIds)
                         validateIdentifier(evidenceId, "slot evidence ID");
 
@@ -652,7 +667,8 @@ namespace QuantLib {
                     QL_REQUIRE(profile != context.profiles->end() && profile->id == id,
                                "slot evidence references unknown profile");
                     const double weight = profile->slots[minute / 5].weight;
-                    const std::string& method = row[8];
+                    const std::string& method =
+                        row[VarianceClockSlotEvidenceCsv::estimationMethod];
                     QL_REQUIRE(method == "direct" || method == "pooled" ||
                                    method == "fallback" || method == "zero",
                                "invalid estimation method");
@@ -664,10 +680,17 @@ namespace QuantLib {
                                                        context.manifest->calibrationSettings
                                                            .minimumDirectReturns &&
                                        hasTargetDates && targetDates >= 1 &&
-                                       row[5] == "not_applicable" &&
-                                       row[7] == "not_applicable" && row[3].empty() &&
-                                       row[9].empty() && row[10] == "not_applicable" &&
-                                       row[11].empty() && !evidenceIds.empty(),
+                                       row[VarianceClockSlotEvidenceCsv::sourceReturnCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::
+                                               sourceDistinctLocalDateCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::sourceGroupId].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::groupingLabel].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::gapPoolReturnCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::fallbackId].empty() &&
+                                       !evidenceIds.empty(),
                                    "invalid direct slot evidence");
                     } else if (method == "pooled") {
                         QL_REQUIRE(hasTargetCount && targetCount <
@@ -676,35 +699,65 @@ namespace QuantLib {
                                        hasTargetDates && targetDates >= 1 &&
                                        context.manifest->calibrationSettings
                                            .gapPoolReturnThreshold &&
-                                       !row[3].empty() && row[5] != "not_applicable" &&
-                                       !row[5].empty() &&
-                                       row[7] != "not_applicable" && !row[7].empty() &&
-                                       !row[9].empty() && row[10] != "not_applicable" &&
-                                       unsignedInteger<std::uint32_t>(row[10], "gap-pool count") >=
+                                       !row[VarianceClockSlotEvidenceCsv::sourceGroupId].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::sourceReturnCount] !=
+                                           "not_applicable" &&
+                                       !row[VarianceClockSlotEvidenceCsv::sourceReturnCount].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::
+                                               sourceDistinctLocalDateCount] !=
+                                           "not_applicable" &&
+                                       !row[VarianceClockSlotEvidenceCsv::
+                                                sourceDistinctLocalDateCount].empty() &&
+                                       !row[VarianceClockSlotEvidenceCsv::groupingLabel].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::gapPoolReturnCount] !=
+                                           "not_applicable" &&
+                                       unsignedInteger<std::uint32_t>(
+                                           row[VarianceClockSlotEvidenceCsv::gapPoolReturnCount],
+                                           "gap-pool count") >=
                                            *context.manifest->calibrationSettings
                                                 .gapPoolReturnThreshold &&
-                                       row[11].empty() && !evidenceIds.empty(),
+                                       row[VarianceClockSlotEvidenceCsv::fallbackId].empty() &&
+                                       !evidenceIds.empty(),
                                    "invalid pooled slot evidence");
-                        unsignedInteger<std::uint32_t>(row[5], "source count");
-                        unsignedInteger<std::uint32_t>(row[7], "source dates");
+                        unsignedInteger<std::uint32_t>(
+                            row[VarianceClockSlotEvidenceCsv::sourceReturnCount], "source count");
+                        unsignedInteger<std::uint32_t>(
+                            row[VarianceClockSlotEvidenceCsv::sourceDistinctLocalDateCount],
+                            "source dates");
                     } else if (method == "zero") {
                         QL_REQUIRE(hasTargetCount && hasTargetDates &&
-                                       row[5] == "not_applicable" &&
-                                       row[7] == "not_applicable" && row[3].empty() &&
-                                       row[9].empty() && row[10] == "not_applicable" &&
-                                       row[11].empty() && !evidenceIds.empty(),
+                                       row[VarianceClockSlotEvidenceCsv::sourceReturnCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::
+                                               sourceDistinctLocalDateCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::sourceGroupId].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::groupingLabel].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::gapPoolReturnCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::fallbackId].empty() &&
+                                       !evidenceIds.empty(),
                                    "invalid zero slot evidence");
                     } else {
-                        QL_REQUIRE(!row[11].empty() && row[5] == "not_applicable" &&
-                                       row[7] == "not_applicable" && row[3].empty() &&
-                                       row[9].empty() && row[10] == "not_applicable" &&
+                        QL_REQUIRE(!row[VarianceClockSlotEvidenceCsv::fallbackId].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::sourceReturnCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::
+                                               sourceDistinctLocalDateCount] ==
+                                           "not_applicable" &&
+                                       row[VarianceClockSlotEvidenceCsv::sourceGroupId].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::groupingLabel].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::gapPoolReturnCount] ==
+                                           "not_applicable" &&
                                        !evidenceIds.empty(),
                                    "invalid fallback slot evidence");
                     }
                     if (method != "fallback")
-                        QL_REQUIRE(row[11].empty(), "fallback ID on non-fallback row");
+                        QL_REQUIRE(row[VarianceClockSlotEvidenceCsv::fallbackId].empty(),
+                                   "fallback ID on non-fallback row");
                     if (method != "pooled")
-                        QL_REQUIRE(row[3].empty() && row[9].empty(),
+                        QL_REQUIRE(row[VarianceClockSlotEvidenceCsv::sourceGroupId].empty() &&
+                                       row[VarianceClockSlotEvidenceCsv::groupingLabel].empty(),
                                    "pooling metadata on non-pooled row");
                     return true;
                 };
@@ -725,11 +778,14 @@ namespace QuantLib {
 
             for (const auto& row : timezoneRows) {
                 VarianceClockOffsetInput offset;
-                offset.start = parseInstant(row[0]);
-                offset.end = parseInstant(row[1]);
-                offset.offsetSeconds = signedInt32(row[2]);
-                QL_REQUIRE(row[3] == "0" || row[3] == "1", "invalid timezone fold");
-                offset.fold = row[3] == "1";
+                offset.start = parseInstant(row[VarianceClockTimezoneMappingCsv::startUtc]);
+                offset.end = parseInstant(row[VarianceClockTimezoneMappingCsv::endUtc]);
+                offset.offsetSeconds =
+                    signedInt32(row[VarianceClockTimezoneMappingCsv::offsetSeconds]);
+                QL_REQUIRE(row[VarianceClockTimezoneMappingCsv::fold] == "0" ||
+                               row[VarianceClockTimezoneMappingCsv::fold] == "1",
+                           "invalid timezone fold");
+                offset.fold = row[VarianceClockTimezoneMappingCsv::fold] == "1";
                 QL_REQUIRE(offset.start < offset.end, "empty timezone mapping range");
                 if (!result.offsets.empty())
                     QL_REQUIRE(result.offsets.back().end == offset.start,
@@ -744,16 +800,21 @@ namespace QuantLib {
                                                        VarianceClockInstant>>> sessions;
             auto sessionsCharge = budget.reserve(0);
             for (const auto& row : sessionRows) {
-                const Date localDate = parseDate(row[0]);
-                QL_REQUIRE(marketDates.count(row[0]), "session date is absent from market days");
-                validateIdentifier(row[3], "session ID");
-                validateIdentifier(row[7], "session evidence ID");
-                if (!row[4].empty())
-                    parseDate(row[4]);
-                if (!row[5].empty())
-                    validateIdentifier(row[5], "source session ID");
-                const auto start = parseInstant(row[1]);
-                const auto end = parseInstant(row[2]);
+                const Date localDate =
+                    parseDate(row[VarianceClockSessionSegmentsCsv::localDate]);
+                QL_REQUIRE(marketDates.count(row[VarianceClockSessionSegmentsCsv::localDate]),
+                           "session date is absent from market days");
+                validateIdentifier(row[VarianceClockSessionSegmentsCsv::sessionId], "session ID");
+                validateIdentifier(row[VarianceClockSessionSegmentsCsv::sourceEvidenceId],
+                                   "session evidence ID");
+                if (!row[VarianceClockSessionSegmentsCsv::tradingDate].empty())
+                    parseDate(row[VarianceClockSessionSegmentsCsv::tradingDate]);
+                if (!row[VarianceClockSessionSegmentsCsv::sourceSessionId].empty())
+                    validateIdentifier(row[VarianceClockSessionSegmentsCsv::sourceSessionId],
+                                       "source session ID");
+                const auto start =
+                    parseInstant(row[VarianceClockSessionSegmentsCsv::startUtc]);
+                const auto end = parseInstant(row[VarianceClockSessionSegmentsCsv::endUtc]);
                 QL_REQUIRE(start < end, "empty session segment");
                 const auto firstRun = std::find_if(
                     result.offsets.begin(), result.offsets.end(),
@@ -762,8 +823,11 @@ namespace QuantLib {
                     });
                 QL_REQUIRE(firstRun != result.offsets.end(),
                            "session start lacks timezone mapping");
-                if (!row[6].empty())
-                    QL_REQUIRE(signedInt32(row[6]) == firstRun->offsetSeconds,
+                if (!row[VarianceClockSessionSegmentsCsv::claimedLocalOffsetSeconds].empty())
+                    QL_REQUIRE(signedInt32(
+                                   row[VarianceClockSessionSegmentsCsv::
+                                           claimedLocalOffsetSeconds]) ==
+                                   firstRun->offsetSeconds,
                                "session local offset claim disagrees with timezone mapping");
                 const std::int64_t localStart = start.unixSeconds() + firstRun->offsetSeconds;
                 const auto endRun = std::find_if(
@@ -785,12 +849,14 @@ namespace QuantLib {
                 QL_REQUIRE(civilDay(localStart) == expectedDay &&
                                civilDay(lastLocalSecond) == expectedDay,
                            "session segment crosses its declared local date");
-                auto sessionEntry = sessions.find(row[0]);
+                const auto& localDateText = row[VarianceClockSessionSegmentsCsv::localDate];
+                auto sessionEntry = sessions.find(localDateText);
                 if (sessionEntry == sessions.end()) {
                     addCharge(sessionsCharge,
-                              sizeof(decltype(sessions)::value_type) + 2U * row[0].size() +
+                              sizeof(decltype(sessions)::value_type) +
+                                  2U * localDateText.size() +
                                   4U * sizeof(void*));
-                    sessionEntry = sessions.try_emplace(row[0]).first;
+                    sessionEntry = sessions.try_emplace(localDateText).first;
                 }
                 addCharge(sessionsCharge, 2U * sizeof(std::pair<VarianceClockInstant,
                                                                VarianceClockInstant>));
@@ -805,8 +871,9 @@ namespace QuantLib {
                                "overlapping session segments");
             }
             for (const auto& row : dateRows) {
-                const bool isOpen = row[2] == "true";
-                const bool hasSessions = sessions.count(row[0]) != 0;
+                const bool isOpen = row[VarianceClockMarketDaysCsv::isOpen] == "true";
+                const bool hasSessions =
+                    sessions.count(row[VarianceClockMarketDaysCsv::localDate]) != 0;
                 QL_REQUIRE(isOpen == hasSessions, "market open status disagrees with sessions");
             }
 

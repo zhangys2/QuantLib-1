@@ -69,7 +69,7 @@ namespace QuantLib {
 
             bool checkSession(void* opaque, const std::string_view* fields, std::size_t) {
                 auto& context = *static_cast<StreamContext*>(opaque);
-                const auto id = decode(fields, 7);
+                const auto id = decode(fields, VarianceClockSessionSegmentsCsv::sourceEvidenceId);
                 const auto& item = requireEvidence(context.evidence, id,
                                                    "dangling session evidence ID");
                 requireRole(item, "calendar_source", "session segment");
@@ -80,31 +80,35 @@ namespace QuantLib {
             bool checkSlots(void* opaque, const std::string_view* fields, std::size_t) {
                 auto& context = *static_cast<StreamContext*>(opaque);
                 std::size_t recordBytes = 0;
-                for (std::size_t i = 0; i < 14; ++i) {
+                for (std::size_t i = 0; i < VarianceClockSlotEvidenceCsv::columnCount; ++i) {
                     QL_REQUIRE(fields[i].size() <=
                                    std::numeric_limits<std::size_t>::max() - recordBytes,
                                "variance-clock evidence accounting overflow");
                     recordBytes += fields[i].size();
                 }
                 constexpr std::size_t fixedScratch =
-                    128U * 1024U + 14U * (sizeof(std::string) + 32U);
+                    128U * 1024U + VarianceClockSlotEvidenceCsv::columnCount *
+                                        (sizeof(std::string) + 32U);
                 // Reserve before decoding/parsing so invalid large JSON cannot allocate first.
                 constexpr std::size_t parserScratchPerByte = 128U;
                 QL_REQUIRE(recordBytes <=
                                (std::numeric_limits<std::size_t>::max() - fixedScratch) / 2U,
                            "variance-clock evidence accounting overflow");
                 const auto rowScratchBase = fixedScratch + 2U * recordBytes;
-                QL_REQUIRE(fields[13].size() <=
+                QL_REQUIRE(fields[VarianceClockSlotEvidenceCsv::evidenceIdsJson].size() <=
                                (std::numeric_limits<std::size_t>::max() - rowScratchBase) /
                                    parserScratchPerByte,
                            "variance-clock evidence accounting overflow");
                 auto rowScratch = context.budget.reserve(
-                    rowScratchBase + parserScratchPerByte * fields[13].size());
-                const auto idsJson = decode(fields, 13);
+                    rowScratchBase + parserScratchPerByte *
+                                         fields[VarianceClockSlotEvidenceCsv::evidenceIdsJson]
+                                             .size());
+                const auto idsJson =
+                    decode(fields, VarianceClockSlotEvidenceCsv::evidenceIdsJson);
                 const auto evidenceIds = parseEvidenceIdsJson(idsJson);
-                const auto method = decode(fields, 8);
-                const auto fallbackId = decode(fields, 11);
-                const auto warningCode = decode(fields, 12);
+                const auto method = decode(fields, VarianceClockSlotEvidenceCsv::estimationMethod);
+                const auto fallbackId = decode(fields, VarianceClockSlotEvidenceCsv::fallbackId);
+                const auto warningCode = decode(fields, VarianceClockSlotEvidenceCsv::warningCodes);
                 QL_REQUIRE(!evidenceIds.empty(), "missing slot evidence");
                 bool hasPriceInput = false;
                 for (const auto& id : evidenceIds) {
@@ -147,7 +151,7 @@ namespace QuantLib {
                 }
                 const std::uint32_t profile = [&]() {
                     std::uint32_t result = 0;
-                    const auto text = decode(fields, 0);
+                    const auto text = decode(fields, VarianceClockSlotEvidenceCsv::profileId);
                     const auto parsed = std::from_chars(text.data(), text.data() + text.size(),
                                                         result);
                     QL_REQUIRE(parsed.ec == std::errc() &&
@@ -155,10 +159,10 @@ namespace QuantLib {
                                "invalid slot profile ID");
                     return result;
                 }();
-                auto target = decode(fields, 1);
+                auto target = decode(fields, VarianceClockSlotEvidenceCsv::targetGroupId);
                 const auto minute = [&]() {
                     unsigned int result = 0;
-                    const auto text = decode(fields, 2);
+                    const auto text = decode(fields, VarianceClockSlotEvidenceCsv::minuteOfDay);
                     const auto parsed = std::from_chars(text.data(), text.data() + text.size(),
                                                         result);
                     QL_REQUIRE(parsed.ec == std::errc() &&
@@ -179,7 +183,10 @@ namespace QuantLib {
                     expectedWarnings.emplace_back("ZERO_RATE_SLOT");
                 }
                 if (method == "fallback" &&
-                    (decode(fields, 4) == "unknown" || decode(fields, 6) == "unknown"))
+                    (decode(fields, VarianceClockSlotEvidenceCsv::targetReturnCount) == "unknown" ||
+                     decode(fields,
+                            VarianceClockSlotEvidenceCsv::targetDistinctLocalDateCount) ==
+                         "unknown"))
                     expectedWarnings.emplace_back("UNKNOWN_COUNT_FALLBACK");
                 QL_REQUIRE(warningCode.empty() || warningCode == "ZERO_RATE_SLOT" ||
                                warningCode == "UNKNOWN_COUNT_FALLBACK",

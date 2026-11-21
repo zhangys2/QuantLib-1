@@ -34,45 +34,6 @@ namespace QuantLib {
             constexpr std::size_t maxCsvRecordBytes = 4U * 1024U * 1024U;
             constexpr std::size_t maxCsvFieldBytes = 1024U * 1024U;
 
-            const std::string_view* expectedHeader(VarianceClockCsvSchema schema,
-                                                   std::size_t& size) {
-                static constexpr std::array<std::string_view, 4> profiles{{
-                    "profile_id", "minute_of_day", "variance_per_5m", "weight"}};
-                static constexpr std::array<std::string_view, 6> marketDays{{
-                    "local_date", "date_type", "is_open", "profile_id", "target_group_id",
-                    "selection_reason"}};
-                static constexpr std::array<std::string_view, 8> sessionSegments{{
-                    "local_date", "start_utc", "end_utc", "session_id", "trading_date",
-                    "source_session_id", "claimed_local_offset_seconds", "source_evidence_id"}};
-                static constexpr std::array<std::string_view, 4> timezoneMapping{{
-                    "start_utc", "end_utc", "offset_seconds", "fold"}};
-                static constexpr std::array<std::string_view, 14> slotEvidence{{
-                    "profile_id", "target_group_id", "minute_of_day", "source_group_id",
-                    "target_return_count", "source_return_count",
-                    "target_distinct_local_date_count", "source_distinct_local_date_count",
-                    "estimation_method", "grouping_label", "gap_pool_return_count",
-                    "fallback_id", "warning_codes", "evidence_ids_json"}};
-
-                switch (schema) {
-                  case VarianceClockCsvSchema::Profiles:
-                    size = profiles.size();
-                    return profiles.data();
-                  case VarianceClockCsvSchema::MarketDays:
-                    size = marketDays.size();
-                    return marketDays.data();
-                  case VarianceClockCsvSchema::SessionSegments:
-                    size = sessionSegments.size();
-                    return sessionSegments.data();
-                  case VarianceClockCsvSchema::TimezoneMapping:
-                    size = timezoneMapping.size();
-                    return timezoneMapping.data();
-                  case VarianceClockCsvSchema::SlotEvidence:
-                    size = slotEvidence.size();
-                    return slotEvidence.data();
-                }
-                QL_FAIL("invalid variance-clock CSV schema");
-            }
-
             void validateUtf8(std::string_view bytes) {
                 for (std::size_t i = 0; i < bytes.size();) {
                     const auto first = static_cast<unsigned char>(bytes[i]);
@@ -222,9 +183,11 @@ namespace QuantLib {
             validateUtf8(bytes);
             QL_REQUIRE(!bytes.empty(), "empty variance-clock CSV");
 
-            std::size_t expectedCount = 0;
-            const auto* header = expectedHeader(schema, expectedCount);
-            std::array<std::string_view, 14> fields{};
+            const auto format = varianceClockCsvFormat(schema);
+            QL_REQUIRE(format.columnCount != 0, "invalid variance-clock CSV schema");
+            const auto expectedCount = format.columnCount;
+            const auto* header = format.header;
+            std::array<std::string_view, VarianceClockSlotEvidenceCsv::columnCount> fields{};
             bool isHeader = true;
             std::size_t position = 0;
             std::size_t dataRows = 0;
