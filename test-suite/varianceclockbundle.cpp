@@ -62,7 +62,12 @@ namespace {
     using QuantLib::detail::decodeVarianceClockCsvField;
     using QuantLib::detail::parseEvidenceIdsJson;
     using QuantLib::detail::parseVarianceClockManifest;
+    using QuantLib::detail::parseVarianceClockInstant;
     using QuantLib::detail::visitVarianceClockCsvRows;
+
+    VarianceClockInstant testInstant(std::string_view text) {
+        return parseVarianceClockInstant(text);
+    }
 
     std::optional<std::string> readEnvironmentVariable(const char* name) {
 #ifdef _MSC_VER
@@ -248,6 +253,16 @@ namespace {
 
     void checkManifestRejected(std::string_view input) {
         BOOST_CHECK_THROW(parseVarianceClockManifest(input), Error);
+    }
+
+    void checkManifestRejectedWith(std::string_view input, const char* expected) {
+        try {
+            parseVarianceClockManifest(input);
+            BOOST_ERROR("accepted manifest; expected a rejection mentioning: " << expected);
+        } catch (const Error& e) {
+            BOOST_CHECK_MESSAGE(std::string(e.what()).find(expected) != std::string::npos,
+                                "expected \"" << expected << "\" but got: " << e.what());
+        }
     }
 
     class CommaDecimalPoint : public std::numpunct<char> {
@@ -448,6 +463,14 @@ BOOST_AUTO_TEST_CASE(testAcceptsMinimalVersionOneManifest) {
     BOOST_CHECK_EQUAL(manifest.timezoneEvidenceIds.size(), 1U);
     BOOST_CHECK_EQUAL(manifest.evidence.size(), 3U);
     BOOST_CHECK_EQUAL(manifest.files.size(), 5U);
+}
+
+BOOST_AUTO_TEST_CASE(testManifestParserRejectsNoncanonicalTimestamp) {
+    BOOST_TEST_MESSAGE("Testing rejection of a noncanonical manifest timestamp...");
+    std::string input = minimalManifest();
+    replaceOnce(input, "\"generated_at_utc\": \"2024-01-01T00:00:00Z\"",
+                "\"generated_at_utc\": \"2024-01-01T00:00:00+00:00\"");
+    checkManifestRejectedWith(input, "must end with Z");
 }
 
 BOOST_AUTO_TEST_CASE(testEvidenceIdsJsonAcceptsFlatStringArray) {
@@ -2062,8 +2085,8 @@ namespace {
 
     BundleTableFixture shortCoverageBundleFixture() {
         auto result = validBundleTableFixture();
-        result.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
-        result.manifest.coverageEndUtc = "2024-01-02T00:00:00Z";
+        result.manifest.generatedAtUtc = testInstant("2024-01-01T12:00:00Z");
+        result.manifest.coverageEndUtc = testInstant("2024-01-02T00:00:00Z");
         replaceOnce(result.timezoneMapping, "2025-01-01T00:00:00Z",
                     "2024-01-02T00:00:00Z");
         return result;
@@ -2214,7 +2237,7 @@ BOOST_AUTO_TEST_CASE(testRejectsProfileSlotOutsideDay) {
 BOOST_AUTO_TEST_CASE(testParsesStrictUtcNanosecondTimestamp) {
     BOOST_TEST_MESSAGE("Testing strict UTC timestamp parsing with nanoseconds...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.coverageStartUtc = "2024-01-01T00:00:00.000000001Z";
+    fixture.manifest.coverageStartUtc = testInstant("2024-01-01T00:00:00.000000001Z");
     fixture.manifest.clockOriginUtc = fixture.manifest.coverageStartUtc;
     fixture.timezoneMapping =
         "start_utc,end_utc,offset_seconds,fold\n"
@@ -2226,8 +2249,8 @@ BOOST_AUTO_TEST_CASE(testParsesStrictUtcNanosecondTimestamp) {
 BOOST_AUTO_TEST_CASE(testRejectsInvalidTimestampGrammar) {
     BOOST_TEST_MESSAGE("Testing rejection of noncanonical UTC timestamp grammar...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.coverageStartUtc = "2024-01-01T00:00:00+00:00";
-    fixture.manifest.clockOriginUtc = fixture.manifest.coverageStartUtc;
+    replaceOnce(fixture.timezoneMapping, "2024-01-01T00:00:00Z",
+                "2024-01-01T00:00:00+00:00");
     checkBundleTablesRejected(fixture);
 }
 
@@ -2269,7 +2292,7 @@ BOOST_AUTO_TEST_CASE(testRejectsUnreferencedProfile) {
     for (unsigned int minute = 0; minute < 1440; minute += 5)
         fixture.profiles += "2," + std::to_string(minute) + ",0.01,1\n";
     fixture.manifest.profileCalibrations.push_back(
-        {2, "2024-01-01T00:00:00Z", {"price"}});
+        {2, testInstant("2024-01-01T00:00:00Z"), {"price"}});
     checkBundleTablesRejected(fixture);
 }
 
@@ -2608,7 +2631,7 @@ BOOST_AUTO_TEST_CASE(testProfileOutputReservationUsesProfileCount) {
         fixture.marketDays += isoDate(day) + ",holiday,false," + profileId +
                               ",group,date_override\n";
         fixture.manifest.profileCalibrations.push_back(
-            {profile, "2024-01-01T00:00:00Z", {"price"}});
+            {profile, testInstant("2024-01-01T00:00:00Z"), {"price"}});
         for (unsigned int minute = 0; minute < 1440; minute += 5) {
             fixture.profiles += profileId + "," + std::to_string(minute) + ",0.01,1\n";
             fixture.slotEvidence +=
@@ -3027,7 +3050,7 @@ BOOST_AUTO_TEST_CASE(testSessionSegmentsStayInsideTheirLocalDate) {
     BOOST_TEST_MESSAGE("Testing half-open session intervals against the local date...");
     auto session = [](const std::string& start, const std::string& end, int offset) {
         auto fixture = validBundleTableFixture();
-        fixture.manifest.coverageStartUtc = "2023-12-30T00:00:00Z";
+        fixture.manifest.coverageStartUtc = testInstant("2023-12-30T00:00:00Z");
         fixture.manifest.clockOriginUtc = fixture.manifest.coverageStartUtc;
         useOffsetRuns(fixture, "2023-12-30T00:00:00Z,2025-01-01T00:00:00Z," +
                                    std::to_string(offset) + ",0\n");
@@ -3116,14 +3139,15 @@ BOOST_AUTO_TEST_CASE(testRejectsInvalidTimezoneMappingRuns) {
     empty.manifest.coverageEndUtc = empty.manifest.coverageStartUtc;
     checkBundleTablesRejectedWith(empty, "coverage is empty");
     auto reversed = validBundleTableFixture();
-    reversed.manifest.coverageEndUtc = "2023-01-01T00:00:00Z";
+    reversed.manifest.coverageEndUtc = testInstant("2023-01-01T00:00:00Z");
     checkBundleTablesRejectedWith(reversed, "coverage is empty");
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsProfileCalibrationMismatch) {
     BOOST_TEST_MESSAGE("Testing manifest profile calibrations against the profile table...");
     auto unreferenced = validBundleTableFixture();
-    unreferenced.manifest.profileCalibrations.push_back({2, "2024-01-01T00:00:00Z", {"price"}});
+    unreferenced.manifest.profileCalibrations.push_back(
+        {2, testInstant("2024-01-01T00:00:00Z"), {"price"}});
     checkBundleTablesRejectedWith(unreferenced, "unreferenced profile calibration");
     auto missing = validBundleTableFixture();
     missing.manifest.profileCalibrations.clear();
@@ -3132,9 +3156,10 @@ BOOST_AUTO_TEST_CASE(testRejectsProfileCalibrationMismatch) {
     duplicate.manifest.profileCalibrations.push_back(
         duplicate.manifest.profileCalibrations.front());
     checkBundleTablesRejectedWith(duplicate, "duplicate profile calibration");
-    auto grammar = validBundleTableFixture();
-    grammar.manifest.profileCalibrations.front().calibrationAsOfUtc = "2024-01-01 00:00:00";
-    checkBundleTablesRejectedWith(grammar, "UTC");
+    std::string grammar = minimalManifest();
+    replaceOnce(grammar, "\"calibration_as_of_utc\": \"2024-01-01T00:00:00Z\"",
+                "\"calibration_as_of_utc\": \"2024-01-01 00:00:00\"");
+    checkManifestRejectedWith(grammar, "invalid strict UTC timestamp");
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsInvalidProfileRates) {
@@ -3271,15 +3296,16 @@ BOOST_AUTO_TEST_CASE(testSlotEvidenceNeedsAtLeastOnePriceInput) {
 BOOST_AUTO_TEST_CASE(testRejectsClockOriginDifferentFromCoverageStart) {
     BOOST_TEST_MESSAGE("Testing clock_origin_utc equals coverage_start_utc...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.clockOriginUtc = "2024-01-01T00:00:01Z";
+    fixture.manifest.clockOriginUtc = testInstant("2024-01-01T00:00:01Z");
     checkBundleEvidenceRejectedWith(fixture, "clock_origin_utc must equal coverage_start_utc");
 }
 
 BOOST_AUTO_TEST_CASE(testPublishedEvidenceTimestampIsParsed) {
     BOOST_TEST_MESSAGE("Testing a present published_at_utc uses strict instant grammar...");
-    auto fixture = validBundleTableFixture();
-    fixture.manifest.evidence[2].publishedAtUtc = "2024-01-01 00:00:00Z";
-    checkBundleEvidenceRejectedWith(fixture, "invalid strict UTC timestamp");
+    std::string manifest = minimalManifest();
+    replaceOnce(manifest, "\"published_at_utc\": null",
+                "\"published_at_utc\": \"2024-01-01 00:00:00Z\"");
+    checkManifestRejectedWith(manifest, "invalid strict UTC timestamp");
 }
 
 BOOST_AUTO_TEST_CASE(testEvidenceNullabilityRequiresVerifiableProvenance) {
@@ -3299,7 +3325,8 @@ BOOST_AUTO_TEST_CASE(testEvidenceRecordLimitAndBudgetedWarnings) {
         const std::string id = "extra-" + std::to_string(i);
         exactLimit.manifest.evidence.push_back(
             {id, "price_input", "feed", std::string("r1"), std::nullopt,
-             "2024-01-01T00:00:00Z", "memory:" + id, std::nullopt, "receipt:" + id});
+             testInstant("2024-01-01T00:00:00Z"), "memory:" + id, std::nullopt,
+             "receipt:" + id});
         calibration.evidenceIds.push_back(id);
     }
     BOOST_REQUIRE_EQUAL(exactLimit.manifest.evidence.size(), 4000U);
@@ -3309,7 +3336,7 @@ BOOST_AUTO_TEST_CASE(testEvidenceRecordLimitAndBudgetedWarnings) {
     }
     exactLimit.manifest.evidence.push_back(
         {"extra-over-limit", "price_input", "feed", std::string("r1"), std::nullopt,
-         "2024-01-01T00:00:00Z", "memory:extra-over-limit", std::nullopt,
+         testInstant("2024-01-01T00:00:00Z"), "memory:extra-over-limit", std::nullopt,
          "receipt:extra-over-limit"});
     checkBundleEvidenceRejectedWith(exactLimit, "evidence record limit (4,000)");
 
@@ -3354,7 +3381,7 @@ BOOST_AUTO_TEST_CASE(testEvidenceRecordLimitAndBudgetedWarnings) {
 BOOST_AUTO_TEST_CASE(testStrictAvailabilityEqualsGeneratedAt) {
     BOOST_TEST_MESSAGE("Testing strict bundle availability equals generated_at_utc...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-02T00:00:00Z");
     auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
     auto loaded = validateBundleEvidence(fixture, *budget);
     VarianceClockInstant expected;
@@ -3439,7 +3466,7 @@ BOOST_AUTO_TEST_CASE(testRejectsOrphanEvidence) {
     auto fixture = validBundleTableFixture();
     fixture.manifest.evidence.push_back(
         {"orphan", "other_required_source", "feed", std::string("r1"), std::nullopt,
-         "2024-01-01T00:00:00Z", std::string("memory:orphan"), std::nullopt,
+         testInstant("2024-01-01T00:00:00Z"), std::string("memory:orphan"), std::nullopt,
          std::string("receipt:orphan")});
     checkBundleEvidenceRejectedWith(fixture, "orphan evidence");
 }
@@ -3452,11 +3479,11 @@ BOOST_AUTO_TEST_CASE(testContinuousFuturesEvidenceRequiresLineageRole) {
             "roll", "ES", "ES1", "volume", {"roll"}, {"mapping"}};
     fixture.manifest.evidence.push_back(
         {"roll", "continuous_roll_mapping", "roll-feed", std::string("r1"), std::nullopt,
-         "2024-01-01T00:00:00Z", std::string("memory:roll"), std::nullopt,
+         testInstant("2024-01-01T00:00:00Z"), std::string("memory:roll"), std::nullopt,
          std::string("receipt:roll")});
     fixture.manifest.evidence.push_back(
         {"mapping", "continuous_roll_mapping", "mapping-feed", std::string("r1"), std::nullopt,
-         "2024-01-01T00:00:00Z", std::string("memory:mapping"), std::nullopt,
+         testInstant("2024-01-01T00:00:00Z"), std::string("memory:mapping"), std::nullopt,
          std::string("receipt:mapping")});
     {
         QuantLib::detail::VarianceClockLoadBudget budget;
@@ -3470,7 +3497,7 @@ BOOST_AUTO_TEST_CASE(testContinuousFuturesEvidenceRequiresLineageRole) {
 BOOST_AUTO_TEST_CASE(testRejectsEvidenceAvailableAfterGeneratedAt) {
     BOOST_TEST_MESSAGE("Testing evidence availability cannot follow generated_at_utc...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.evidence[2].availableAtUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.evidence[2].availableAtUtc = testInstant("2024-01-02T00:00:00Z");
     checkBundleEvidenceRejectedWith(fixture, "evidence is available after generated_at_utc");
 }
 
@@ -3524,60 +3551,63 @@ BOOST_AUTO_TEST_CASE(testEvidenceValidationBudgetBoundary) {
 BOOST_AUTO_TEST_CASE(testRejectsCalendarAsOfAfterGeneratedAt) {
     BOOST_TEST_MESSAGE("Testing calendar as-of cannot follow generated_at_utc...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-01T00:00:00Z";
-    fixture.manifest.calendarAsOfUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-01T00:00:00Z");
+    fixture.manifest.calendarAsOfUtc = testInstant("2024-01-02T00:00:00Z");
     checkBundleEvidenceRejectedWith(fixture, "calendar as-of is after generated_at_utc");
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsTimezoneAsOfAfterGeneratedAt) {
     BOOST_TEST_MESSAGE("Testing timezone as-of cannot follow generated_at_utc...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-01T00:00:00Z";
-    fixture.manifest.timezoneAsOfUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-01T00:00:00Z");
+    fixture.manifest.timezoneAsOfUtc = testInstant("2024-01-02T00:00:00Z");
     checkBundleEvidenceRejectedWith(fixture, "timezone as-of is after generated_at_utc");
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsCalendarAsOfBeforeCitedEvidence) {
     BOOST_TEST_MESSAGE("Testing calendar as-of cannot precede cited evidence...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
-    fixture.manifest.evidence[0].availableAtUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-03T00:00:00Z");
+    fixture.manifest.evidence[0].availableAtUtc = testInstant("2024-01-02T00:00:00Z");
     checkBundleEvidenceRejectedWith(fixture, "calendar as-of precedes cited evidence");
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsTimezoneAsOfBeforeCitedEvidence) {
     BOOST_TEST_MESSAGE("Testing timezone as-of cannot precede cited evidence...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
-    fixture.manifest.evidence[1].availableAtUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-03T00:00:00Z");
+    fixture.manifest.evidence[1].availableAtUtc = testInstant("2024-01-02T00:00:00Z");
     checkBundleEvidenceRejectedWith(fixture, "timezone as-of precedes cited evidence");
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsCalibrationBeforeCitedEvidence) {
     BOOST_TEST_MESSAGE("Testing calibration as-of cannot precede cited price evidence...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc = "2023-12-31T00:00:00Z";
+    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc =
+        testInstant("2023-12-31T00:00:00Z");
     checkBundleEvidenceRejectedWith(fixture, "calibration precedes cited evidence");
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsCalibrationAfterPriceCutoff) {
     BOOST_TEST_MESSAGE("Testing calibration as-of cannot follow price cutoff...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
-    fixture.manifest.priceCutoffUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-03T00:00:00Z");
+    fixture.manifest.priceCutoffUtc = testInstant("2024-01-02T00:00:00Z");
     fixture.manifest.calibrationSettings.priceCutoffUtc = fixture.manifest.priceCutoffUtc;
-    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc = "2024-01-03T00:00:00Z";
+    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc =
+        testInstant("2024-01-03T00:00:00Z");
     checkBundleEvidenceRejectedWith(fixture, "calibration is after price cutoff");
 }
 
 BOOST_AUTO_TEST_CASE(testUsesLatestInputAvailabilityForCalibration) {
     BOOST_TEST_MESSAGE("Testing calibration follows the latest cited input availability...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-03T00:00:00Z";
-    fixture.manifest.priceCutoffUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-03T00:00:00Z");
+    fixture.manifest.priceCutoffUtc = testInstant("2024-01-02T00:00:00Z");
     fixture.manifest.calibrationSettings.priceCutoffUtc = fixture.manifest.priceCutoffUtc;
-    fixture.manifest.evidence[2].availableAtUtc = "2024-01-02T00:00:00Z";
-    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.evidence[2].availableAtUtc = testInstant("2024-01-02T00:00:00Z");
+    fixture.manifest.profileCalibrations[0].calibrationAsOfUtc =
+        testInstant("2024-01-02T00:00:00Z");
     auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
     auto loaded = validateBundleEvidence(fixture, *budget);
     VarianceClockInstant expected;
@@ -3588,8 +3618,8 @@ BOOST_AUTO_TEST_CASE(testUsesLatestInputAvailabilityForCalibration) {
 BOOST_AUTO_TEST_CASE(testRejectsPriceCutoffAfterGeneratedAt) {
     BOOST_TEST_MESSAGE("Testing price cutoff cannot follow generated_at_utc...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-01T00:00:00Z";
-    fixture.manifest.priceCutoffUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-01T00:00:00Z");
+    fixture.manifest.priceCutoffUtc = testInstant("2024-01-02T00:00:00Z");
     fixture.manifest.calibrationSettings.priceCutoffUtc = fixture.manifest.priceCutoffUtc;
     checkBundleEvidenceRejectedWith(fixture, "price cutoff is after generated_at_utc");
 }
@@ -3597,7 +3627,7 @@ BOOST_AUTO_TEST_CASE(testRejectsPriceCutoffAfterGeneratedAt) {
 BOOST_AUTO_TEST_CASE(testReconstructionUsesMaximumEvidenceAvailabilityForSnapshot) {
     BOOST_TEST_MESSAGE("Testing reconstruction availability uses evidence availability...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-02T00:00:00Z");
     QuantLib::detail::VarianceClockLoadBudget budget;
     auto loaded = validateBundleEvidence(
         fixture, budget, VarianceClockLoadMode::Reconstruction);
@@ -3654,7 +3684,7 @@ BOOST_AUTO_TEST_CASE(testReconstructionAvailabilityAcceptsEarlierValuation) {
 BOOST_AUTO_TEST_CASE(testGeneratedAtRaisesSnapshotAvailability) {
     BOOST_TEST_MESSAGE("Testing generated_at_utc sets later strict availability...");
     auto fixture = validBundleTableFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-02T00:00:00Z";
+    fixture.manifest.generatedAtUtc = testInstant("2024-01-02T00:00:00Z");
     auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
     auto loaded = validateBundleEvidence(fixture, *budget);
     BOOST_CHECK_EQUAL(loaded.tables.availableFrom.unixSeconds(), 1704153600);
@@ -3715,7 +3745,7 @@ BOOST_AUTO_TEST_CASE(testWarnsForApprovedUnknownCountFallback) {
     fixture.manifest.fallbackApprovals.push_back({"fb", true, {"approval"}, {"price"}});
     fixture.manifest.evidence.push_back(
         {"approval", "fallback_approval", "approval-feed", std::string("r1"), std::nullopt,
-         "2024-01-01T00:00:00Z", std::string("memory:approval"), std::nullopt,
+         testInstant("2024-01-01T00:00:00Z"), std::string("memory:approval"), std::nullopt,
          std::string("receipt:approval")});
     rewriteSlotRows(fixture,
                     ",unknown,not_applicable,1,not_applicable,fallback,,not_applicable,fb,"
@@ -3737,11 +3767,11 @@ BOOST_AUTO_TEST_CASE(testFallbackEvidenceMatchesApprovalUnionAsSet) {
     fixture.manifest.fallbackApprovals.push_back({"fb", true, {"approval"}, {"other"}});
     fixture.manifest.evidence.push_back(
         {"approval", "fallback_approval", "approval-feed", std::string("r1"), std::nullopt,
-         "2024-01-01T00:00:00Z", std::string("memory:approval"), std::nullopt,
+         testInstant("2024-01-01T00:00:00Z"), std::string("memory:approval"), std::nullopt,
          std::string("receipt:approval")});
     fixture.manifest.evidence.push_back(
         {"other", "other_required_source", "other-feed", std::string("r1"), std::nullopt,
-         "2024-01-01T00:00:00Z", std::string("memory:other"), std::nullopt,
+         testInstant("2024-01-01T00:00:00Z"), std::string("memory:other"), std::nullopt,
          std::string("receipt:other")});
     rewriteSlotRows(fixture,
                     ",1,not_applicable,1,not_applicable,fallback,,not_applicable,fb,,"
@@ -3763,7 +3793,8 @@ namespace {
 
     void addEvidence(BundleTableFixture& fixture, const std::string& id, const std::string& role) {
         fixture.manifest.evidence.push_back(
-            {id, role, id + "-feed", std::string("r1"), std::nullopt, "2024-01-01T00:00:00Z",
+            {id, role, id + "-feed", std::string("r1"), std::nullopt,
+             testInstant("2024-01-01T00:00:00Z"),
              "memory:" + id, std::nullopt, "receipt:" + id});
     }
 
@@ -3792,10 +3823,11 @@ namespace {
 
 BOOST_AUTO_TEST_CASE(testManifestInstantGrammarIsStrict) {
     BOOST_TEST_MESSAGE("Testing the strict UTC instant grammar for generated_at_utc...");
-    const auto withGenerated = [](const std::string& text) {
-        auto fixture = validBundleTableFixture();
-        fixture.manifest.generatedAtUtc = text;
-        return fixture;
+    const auto withGenerated = [](const char* text) {
+        std::string manifest = minimalManifest();
+        replaceOnce(manifest, "\"generated_at_utc\": \"2024-01-01T00:00:00Z\"",
+                    "\"generated_at_utc\": \"" + std::string(text) + "\"");
+        return manifest;
     };
     struct Good {
         const char* text;
@@ -3807,10 +3839,8 @@ BOOST_AUTO_TEST_CASE(testManifestInstantGrammarIsStrict) {
                              Good{"2024-01-02T00:00:00.01Z", 10000000},
                              Good{"2024-01-02T00:00:00.000000001Z", 1},
                              Good{"2024-01-02T00:00:00.123456789Z", 123456789}}) {
-        QuantLib::detail::VarianceClockLoadBudget budget;
-        const auto loaded = validateBundleEvidence(withGenerated(good.text), budget);
-        BOOST_CHECK_EQUAL(loaded.tables.availableFrom.unixSeconds(), 1704153600);
-        BOOST_CHECK_EQUAL(loaded.tables.availableFrom.nanosecond(), good.nanoseconds);
+        const auto parsed = parseVarianceClockManifest(withGenerated(good.text));
+        BOOST_CHECK_EQUAL(parsed.generatedAtUtc.nanosecond(), good.nanoseconds);
     }
     struct Bad {
         const char* text;
@@ -3829,7 +3859,7 @@ BOOST_AUTO_TEST_CASE(testManifestInstantGrammarIsStrict) {
                            Bad{"2024-01-02T00:60:00Z", "invalid UTC time"},
                            Bad{"2024-01-02T00:00:60Z", "invalid UTC time"},
                            Bad{"2024-13-02T00:00:00Z", "invalid UTC date"}})
-        checkBundleEvidenceRejectedWith(withGenerated(bad.text), bad.message);
+        checkManifestRejectedWith(withGenerated(bad.text), bad.message);
 }
 
 BOOST_AUTO_TEST_CASE(testSessionSourceEvidenceNeedsCalendarRole) {
@@ -3999,7 +4029,7 @@ BOOST_AUTO_TEST_CASE(testCalibrationAndCalendarEvidenceRoles) {
 BOOST_AUTO_TEST_CASE(testReconstructionIgnoresCoverageEndStrictDoesNot) {
     BOOST_TEST_MESSAGE("Testing generated_at_utc against coverage end in both modes...");
     auto history = validBundleTableFixture();
-    history.manifest.generatedAtUtc = "2025-01-02T00:00:00Z";
+    history.manifest.generatedAtUtc = testInstant("2025-01-02T00:00:00Z");
     QuantLib::detail::VarianceClockLoadBudget budget;
     const auto loaded = validateBundleEvidence(history, budget,
                                                VarianceClockLoadMode::Reconstruction);
@@ -4008,7 +4038,7 @@ BOOST_AUTO_TEST_CASE(testReconstructionIgnoresCoverageEndStrictDoesNot) {
     checkBundleEvidenceRejectedWith(history, "before coverage_end_utc");
 
     auto justBefore = validBundleTableFixture();
-    justBefore.manifest.generatedAtUtc = "2024-12-31T23:59:59Z";
+    justBefore.manifest.generatedAtUtc = testInstant("2024-12-31T23:59:59Z");
     QuantLib::detail::VarianceClockLoadBudget other;
     const auto strict = validateBundleEvidence(justBefore, other);
     BOOST_CHECK(!strict.provenance.reconstructed);
@@ -4624,8 +4654,8 @@ BOOST_AUTO_TEST_CASE(testUtcInstantGrammarAndNanosecondScaling) {
     BOOST_TEST_MESSAGE("Testing the strict UTC instant grammar and fractional scaling...");
     const auto withStart = [](const std::string& start) {
         auto fixture = validBundleTableFixture();
-        fixture.manifest.coverageStartUtc = start;
-        fixture.manifest.clockOriginUtc = start;
+        fixture.manifest.coverageStartUtc = testInstant(start);
+        fixture.manifest.clockOriginUtc = fixture.manifest.coverageStartUtc;
         useOffsetRuns(fixture, start + ",2025-01-01T00:00:00Z,0,0\n");
         return fixture;
     };
@@ -5117,6 +5147,8 @@ namespace {
     struct LoaderTableFixture {
         detail::VarianceClockManifest manifest;
         std::string profiles, marketDays, sessionSegments, timezoneMapping, slotEvidence;
+        std::string generatedAtText = "2024-01-01T00:00:00Z";
+        std::string coverageEndText = "2024-01-02T00:00:00Z";
     };
 
     LoaderTableFixture loaderFixture() {
@@ -5136,13 +5168,18 @@ namespace {
         fixture.marketDays += "2024-01-01,full_day,true,1,group,date_override\n";
         fixture.sessionSegments +=
             "2024-01-01,2024-01-01T09:30:00Z,2024-01-01T16:00:00Z,session,,source,0,calendar\n";
-        fixture.manifest.coverageEndUtc = "2024-01-02T00:00:00Z";
+        fixture.manifest.coverageEndUtc = testInstant(fixture.coverageEndText);
         fixture.timezoneMapping += "2024-01-01T00:00:00Z,2024-01-02T00:00:00Z,0,0\n";
         for (unsigned int minute = 0; minute < 1440; minute += 5)
             fixture.slotEvidence +=
                 "1,group," + std::to_string(minute) +
                 ",,1,not_applicable,1,not_applicable,direct,,not_applicable,,,\"[\"\"price\"\"]\"\n";
         return fixture;
+    }
+
+    void setLoaderGeneratedAt(LoaderTableFixture& fixture, const char* text) {
+        fixture.generatedAtText = text;
+        fixture.manifest.generatedAtUtc = testInstant(text);
     }
 
     void rewriteLoaderSlotRows(LoaderTableFixture& fixture, const std::string& tail) {
@@ -5172,9 +5209,9 @@ namespace {
             {"slot_evidence.csv", &fixture.slotEvidence}}};
         std::string manifest = minimalManifest();
         replaceOnce(manifest, "\"generated_at_utc\": \"2024-01-01T00:00:00Z\"",
-                    "\"generated_at_utc\": \"" + fixture.manifest.generatedAtUtc + "\"");
+                    "\"generated_at_utc\": \"" + fixture.generatedAtText + "\"");
         replaceOnce(manifest, "\"coverage_end_utc\": \"2025-01-01T00:00:00Z\"",
-                    "\"coverage_end_utc\": \"" + fixture.manifest.coverageEndUtc + "\"");
+                    "\"coverage_end_utc\": \"" + fixture.coverageEndText + "\"");
         if (!fixture.manifest.warnings.empty()) {
             std::string warnings = "\"warnings\": [";
             for (std::size_t i = 0; i < fixture.manifest.warnings.size(); ++i) {
@@ -5438,7 +5475,7 @@ BOOST_AUTO_TEST_CASE(testLoadsFallbackApprovalsAndUnknownCountWarnings) {
 BOOST_AUTO_TEST_CASE(testStrictModeReportsBeforeCalibrationForEarlierValuation) {
     BOOST_TEST_MESSAGE("Testing Strict snapshots retain generated-time availability...");
     auto fixture = loaderFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    setLoaderGeneratedAt(fixture, "2024-01-01T12:00:00Z");
     auto source = validCompleteBundleSource(fixture);
     auto loaded = loadVarianceClockBundle(source);
     VarianceClock clock(std::move(loaded.snapshot));
@@ -5454,7 +5491,7 @@ BOOST_AUTO_TEST_CASE(testStrictModeReportsBeforeCalibrationForEarlierValuation) 
 BOOST_AUTO_TEST_CASE(testReconstructionModeAcceptsEarlierValuationAndLabelsProvenance) {
     BOOST_TEST_MESSAGE("Testing explicit Reconstruction omits generated time from availability...");
     auto fixture = loaderFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    setLoaderGeneratedAt(fixture, "2024-01-01T12:00:00Z");
     auto loaded = loadVarianceClockBundle(validCompleteBundleSource(fixture),
                                           VarianceClockLoadMode::Reconstruction);
     BOOST_CHECK(loaded.provenance.reconstructed);
@@ -5473,6 +5510,7 @@ BOOST_AUTO_TEST_CASE(testReconstructionModeAcceptsEarlierValuationAndLabelsProve
 BOOST_AUTO_TEST_CASE(testStrictRejectsGeneratedAtAtOrAfterCoverageEnd) {
     BOOST_TEST_MESSAGE("Testing Strict mode rejects generation at the coverage end...");
     auto fixture = loaderFixture();
+    fixture.generatedAtText = fixture.coverageEndText;
     fixture.manifest.generatedAtUtc = fixture.manifest.coverageEndUtc;
     checkLoaderRejected(validCompleteBundleSource(fixture),
                         "Strict generated_at_utc must be before coverage_end_utc");
@@ -5493,7 +5531,7 @@ BOOST_AUTO_TEST_CASE(testProvenanceListsEverySortedEvidenceId) {
 BOOST_AUTO_TEST_CASE(testProvenanceAvailabilityAndModeInBothModes) {
     BOOST_TEST_MESSAGE("Testing provenance availability and mode for Strict and Reconstruction...");
     auto fixture = loaderFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    setLoaderGeneratedAt(fixture, "2024-01-01T12:00:00Z");
     const auto strict = loadVarianceClockBundle(validCompleteBundleSource(fixture));
     BOOST_CHECK(strict.provenance.mode == VarianceClockLoadMode::Strict);
     BOOST_CHECK(!strict.provenance.reconstructed);
@@ -5540,7 +5578,7 @@ BOOST_AUTO_TEST_CASE(testLoadedSnapshotOutlivesTheSourceAndBuffers) {
 BOOST_AUTO_TEST_CASE(testDirectoryWrapperHonoursTheLoadMode) {
     BOOST_TEST_MESSAGE("Testing the directory wrapper forwards the requested load mode...");
     auto fixture = loaderFixture();
-    fixture.manifest.generatedAtUtc = "2024-01-01T12:00:00Z";
+    setLoaderGeneratedAt(fixture, "2024-01-01T12:00:00Z");
     LoaderTemporaryDirectory directory;
     writeLoaderFiles(directory.path, validCompleteBundleSource(fixture));
     const auto strict = loadVarianceClockBundleFromDirectory(directory.path.string());

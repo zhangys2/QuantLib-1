@@ -18,6 +18,7 @@
 */
 
 #include <ql/time/varianceclockmanifest.hpp>
+#include <ql/time/varianceclockbundledata.hpp>
 #include <ql/errors.hpp>
 
 #if defined(__GNUC__)
@@ -344,25 +345,32 @@ namespace QuantLib {
                                                    "format_version");
                 QL_REQUIRE(result.formatVersion == 1, "unsupported manifest format_version");
                 result.snapshotId = requiredIdentifier(root, "snapshot_id");
-                result.generatedAtUtc = requiredString(root, "generated_at_utc");
-                result.coverageStartUtc = requiredString(root, "coverage_start_utc");
-                result.coverageEndUtc = requiredString(root, "coverage_end_utc");
-                result.clockOriginUtc = requiredString(root, "clock_origin_utc");
+                result.generatedAtUtc =
+                    parseVarianceClockInstant(requiredString(root, "generated_at_utc"));
+                result.coverageStartUtc =
+                    parseVarianceClockInstant(requiredString(root, "coverage_start_utc"));
+                result.coverageEndUtc =
+                    parseVarianceClockInstant(requiredString(root, "coverage_end_utc"));
+                result.clockOriginUtc =
+                    parseVarianceClockInstant(requiredString(root, "clock_origin_utc"));
                 result.marketId = requiredIdentifier(root, "market_id");
                 result.ianaZone = requiredIdentifier(root, "iana_zone");
                 result.referenceVariancePer5m = requiredString(root, "reference_variance_per_5m");
                 result.referenceUnit = requiredString(root, "reference_unit");
                 QL_REQUIRE(result.referenceUnit == "variance_per_5m",
                            "unsupported reference_unit");
-                result.priceCutoffUtc = requiredString(root, "price_cutoff_utc");
+                result.priceCutoffUtc =
+                    parseVarianceClockInstant(requiredString(root, "price_cutoff_utc"));
                 result.calendarVersion = requiredIdentifier(root, "calendar_version");
-                result.calendarAsOfUtc = requiredString(root, "calendar_as_of_utc");
+                result.calendarAsOfUtc =
+                    parseVarianceClockInstant(requiredString(root, "calendar_as_of_utc"));
                 result.calendarEvidenceIds =
                     stringArray(field(root, "calendar_evidence_ids"),
                                 "calendar_evidence_ids", true);
                 result.timezoneDatabase = requiredIdentifier(root, "timezone_database");
                 result.timezoneVersion = requiredIdentifier(root, "timezone_version");
-                result.timezoneAsOfUtc = requiredString(root, "timezone_as_of_utc");
+                result.timezoneAsOfUtc =
+                    parseVarianceClockInstant(requiredString(root, "timezone_as_of_utc"));
                 result.timezoneEvidenceIds =
                     stringArray(field(root, "timezone_evidence_ids"),
                                 "timezone_evidence_ids", true);
@@ -393,7 +401,7 @@ namespace QuantLib {
                     result.calibrationSettings.gapPoolReturnThreshold = parsed;
                 }
                 result.calibrationSettings.priceCutoffUtc =
-                    requiredString(calibration, "price_cutoff_utc");
+                    parseVarianceClockInstant(requiredString(calibration, "price_cutoff_utc"));
                 QL_REQUIRE(result.calibrationSettings.priceCutoffUtc == result.priceCutoffUtc,
                            "nested and top-level price cutoffs differ");
 
@@ -408,7 +416,8 @@ namespace QuantLib {
                     entry.profileId = uint32Value(field(item, "profile_id"), "profile_id");
                     QL_REQUIRE(profileIds.insert(entry.profileId).second,
                                "duplicate profile calibration");
-                    entry.calibrationAsOfUtc = requiredString(item, "calibration_as_of_utc");
+                    entry.calibrationAsOfUtc =
+                        parseVarianceClockInstant(requiredString(item, "calibration_as_of_utc"));
                     entry.evidenceIds =
                         stringArray(field(item, "evidence_ids"), "profile evidence_ids", true);
                     result.profileCalibrations.push_back(std::move(entry));
@@ -433,8 +442,11 @@ namespace QuantLib {
                         "evidence role");
                     entry.sourceId = requiredIdentifier(item, "source_id");
                     entry.revisionId = optionalIdentifier(item, "revision_id");
-                    entry.publishedAtUtc = optionalString(item, "published_at_utc");
-                    entry.availableAtUtc = requiredString(item, "available_at_utc");
+                    const auto publishedAtUtc = optionalString(item, "published_at_utc");
+                    if (publishedAtUtc)
+                        entry.publishedAtUtc = parseVarianceClockInstant(*publishedAtUtc);
+                    entry.availableAtUtc =
+                        parseVarianceClockInstant(requiredString(item, "available_at_utc"));
                     entry.uri = optionalString(item, "uri");
                     entry.contentSha256 = optionalString(item, "content_sha256");
                     if (entry.contentSha256)

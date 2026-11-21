@@ -24,6 +24,7 @@
 #ifndef quantlib_variance_clock_manifest_hpp
 #define quantlib_variance_clock_manifest_hpp
 
+#include <ql/time/varianceclockinstant.hpp>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -38,12 +39,12 @@ namespace QuantLib {
             std::string method;
             std::uint32_t minimumDirectReturns;
             std::optional<std::uint32_t> gapPoolReturnThreshold;
-            std::string priceCutoffUtc;
+            VarianceClockInstant priceCutoffUtc;
         };
 
         struct VarianceClockManifestProfileCalibration {
             std::uint32_t profileId;
-            std::string calibrationAsOfUtc;
+            VarianceClockInstant calibrationAsOfUtc;
             std::vector<std::string> evidenceIds;
         };
 
@@ -52,8 +53,8 @@ namespace QuantLib {
             std::string role;
             std::string sourceId;
             std::optional<std::string> revisionId;
-            std::optional<std::string> publishedAtUtc;
-            std::string availableAtUtc;
+            std::optional<VarianceClockInstant> publishedAtUtc;
+            VarianceClockInstant availableAtUtc;
             std::optional<std::string> uri;
             std::optional<std::string> contentSha256;
             std::optional<std::string> attestationRef;
@@ -87,21 +88,21 @@ namespace QuantLib {
         struct VarianceClockManifest {
             std::uint32_t formatVersion;
             std::string snapshotId;
-            std::string generatedAtUtc;
-            std::string coverageStartUtc;
-            std::string coverageEndUtc;
-            std::string clockOriginUtc;
+            VarianceClockInstant generatedAtUtc;
+            VarianceClockInstant coverageStartUtc;
+            VarianceClockInstant coverageEndUtc;
+            VarianceClockInstant clockOriginUtc;
             std::string marketId;
             std::string ianaZone;
             std::string referenceVariancePer5m;
             std::string referenceUnit;
-            std::string priceCutoffUtc;
+            VarianceClockInstant priceCutoffUtc;
             std::string calendarVersion;
-            std::string calendarAsOfUtc;
+            VarianceClockInstant calendarAsOfUtc;
             std::vector<std::string> calendarEvidenceIds;
             std::string timezoneDatabase;
             std::string timezoneVersion;
-            std::string timezoneAsOfUtc;
+            VarianceClockInstant timezoneAsOfUtc;
             std::vector<std::string> timezoneEvidenceIds;
             std::string timezoneRulesSha256;
             VarianceClockManifestCalibrationSettings calibrationSettings;

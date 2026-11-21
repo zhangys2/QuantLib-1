@@ -327,12 +327,12 @@ namespace QuantLib {
             parsed.storageCharge.resize(parsed.storageCharge.bytes() + validationBytes);
             QL_ENSURE(budget.used() >= parsed.storageCharge.bytes(),
                      "variance-clock evidence load budget mismatch");
-            const auto generatedAt = parseVarianceClockInstant(manifest.generatedAtUtc);
-            const auto coverageEnd = parseVarianceClockInstant(manifest.coverageEndUtc);
-            const auto priceCutoff = parseVarianceClockInstant(manifest.priceCutoffUtc);
-            const auto calendarAsOf = parseVarianceClockInstant(manifest.calendarAsOfUtc);
-            const auto timezoneAsOf = parseVarianceClockInstant(manifest.timezoneAsOfUtc);
-            QL_REQUIRE(parsed.start == parseVarianceClockInstant(manifest.clockOriginUtc),
+            const auto& generatedAt = manifest.generatedAtUtc;
+            const auto& coverageEnd = manifest.coverageEndUtc;
+            const auto& priceCutoff = manifest.priceCutoffUtc;
+            const auto& calendarAsOf = manifest.calendarAsOfUtc;
+            const auto& timezoneAsOf = manifest.timezoneAsOfUtc;
+            QL_REQUIRE(parsed.start == manifest.clockOriginUtc,
                        "clock_origin_utc must equal coverage_start_utc");
             QL_REQUIRE(mode != VarianceClockLoadMode::Strict || generatedAt < coverageEnd,
                        "Strict generated_at_utc must be before coverage_end_utc");
@@ -345,9 +345,7 @@ namespace QuantLib {
             for (const auto& item : manifest.evidence) {
                 QL_REQUIRE(evidence.emplace(item.evidenceId, &item).second,
                            "duplicate evidence ID");
-                const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
-                if (item.publishedAtUtc)
-                    (void)parseVarianceClockInstant(*item.publishedAtUtc);
+                const auto& availableAt = item.availableAtUtc;
                 QL_REQUIRE(item.contentSha256 || item.attestationRef,
                            "evidence without content_sha256 requires attestation_ref");
                 QL_REQUIRE(availableAt <= generatedAt,
@@ -362,7 +360,7 @@ namespace QuantLib {
                 const auto& item = requireEvidence(evidence, id, "dangling calendar evidence ID");
                 requireRole(item, "calendar_source", "calendar evidence");
                 used.insert(id);
-                const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
+                const auto& availableAt = item.availableAtUtc;
                 if (latestCalendar < availableAt)
                     latestCalendar = availableAt;
             }
@@ -375,7 +373,7 @@ namespace QuantLib {
                 const auto& item = requireEvidence(evidence, id, "dangling timezone evidence ID");
                 requireRole(item, "timezone_rules", "timezone evidence");
                 used.insert(id);
-                const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
+                const auto& availableAt = item.availableAtUtc;
                 if (latestTimezone < availableAt)
                     latestTimezone = availableAt;
             }
@@ -427,12 +425,11 @@ namespace QuantLib {
                                                        "dangling profile calibration evidence ID");
                     requireRole(item, "price_input", "profile calibration");
                     used.insert(id);
-                    const auto availableAt = parseVarianceClockInstant(item.availableAtUtc);
+                    const auto& availableAt = item.availableAtUtc;
                     if (calibrationEvidence < availableAt)
                         calibrationEvidence = availableAt;
                 }
-                const auto calibrationAsOf =
-                    parseVarianceClockInstant(calibration.calibrationAsOfUtc);
+                const auto& calibrationAsOf = calibration.calibrationAsOfUtc;
                 QL_REQUIRE(calibrationEvidence <= calibrationAsOf,
                            "calibration precedes cited evidence");
                 QL_REQUIRE(calibrationAsOf <= priceCutoff,

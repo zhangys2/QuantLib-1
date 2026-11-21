@@ -424,8 +424,8 @@ namespace QuantLib {
                            csv.slotEvidence.size() <= maxCsvBytes,
                        "variance-clock CSV exceeds size limit");
             ParsedVarianceClockTables result;
-            result.start = parseInstant(manifest.coverageStartUtc);
-            result.end = parseInstant(manifest.coverageEndUtc);
+            result.start = manifest.coverageStartUtc;
+            result.end = manifest.coverageEndUtc;
             QL_REQUIRE(result.start < result.end, "variance-clock coverage is empty");
 
             auto profileRowsCharge = budget.reserve(0);
@@ -482,9 +482,8 @@ namespace QuantLib {
             for (const auto& calibration : manifest.profileCalibrations) {
                 addCharge(calibrationCharge, sizeof(decltype(calibrations)::value_type) +
                                                  4U * sizeof(void*));
-                QL_REQUIRE(calibrations.emplace(
-                               calibration.profileId,
-                               parseInstant(calibration.calibrationAsOfUtc)).second,
+                QL_REQUIRE(calibrations.emplace(calibration.profileId,
+                                                calibration.calibrationAsOfUtc).second,
                            "duplicate profile calibration");
             }
             const std::size_t maxRetained =
