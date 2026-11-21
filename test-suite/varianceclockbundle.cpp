@@ -41,6 +41,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -805,11 +806,14 @@ BOOST_AUTO_TEST_CASE(testWarningEnumsMatchFrozenManifestValues) {
     BOOST_CHECK(fallback.warnings[0].code ==
                 VarianceClockBundleWarningCode::UnknownCountFallback);
     BOOST_CHECK(toString(fallback.warnings[0].code) == "UNKNOWN_COUNT_FALLBACK");
+    std::ostringstream streamed;
+    streamed << fallback.warnings[0].code << ' ' << fallback.warnings[0].severity;
+    BOOST_CHECK_EQUAL(streamed.str(), "UNKNOWN_COUNT_FALLBACK warning");
 
     std::string unknownCode = manifestWithOptionalSections();
     replaceOnce(unknownCode, "\"code\": \"ZERO_RATE_SLOT\"",
                 "\"code\": \"zero_rate_slot\"");
-    checkManifestRejectedWith(unknownCode, "unsupported warning code");
+    checkManifestRejectedWith(unknownCode, "unsupported warning code: zero_rate_slot");
 
     std::string unknownSeverity = manifestWithOptionalSections();
     replaceOnce(unknownSeverity, "\"severity\": \"warning\"",

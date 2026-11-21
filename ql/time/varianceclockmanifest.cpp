@@ -493,7 +493,7 @@ namespace QuantLib {
                              toString(VarianceClockBundleWarningCode::UnknownCountFallback))
                         entry.code = VarianceClockBundleWarningCode::UnknownCountFallback;
                     else
-                        QL_FAIL("unsupported warning code");
+                        QL_FAIL("unsupported warning code: " << code);
                     const std::string severity = requiredString(item, "severity");
                     QL_REQUIRE(severity == toString(VarianceClockBundleWarningSeverity::Warning),
                                "unsupported warning severity");
