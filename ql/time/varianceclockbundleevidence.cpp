@@ -176,23 +176,27 @@ namespace QuantLib {
                     context.profiles.begin(), context.profiles.end(),
                     [profile](const auto& value) { return value.id == profile; });
                 QL_REQUIRE(profileInput != context.profiles.end(), "orphan profile slot evidence");
-                std::vector<std::string> expectedWarnings;
+                std::vector<VarianceClockBundleWarningCode> expectedWarnings;
                 if (method == "zero") {
                     QL_REQUIRE(profileInput->slots[minute / 5].weight == 0.0,
                                "zero slot does not have zero rate");
-                    expectedWarnings.emplace_back("ZERO_RATE_SLOT");
+                    expectedWarnings.emplace_back(VarianceClockBundleWarningCode::ZeroRateSlot);
                 }
                 if (method == "fallback" &&
                     (decode(fields, VarianceClockSlotEvidenceCsv::targetReturnCount) == "unknown" ||
                      decode(fields,
                             VarianceClockSlotEvidenceCsv::targetDistinctLocalDateCount) ==
                          "unknown"))
-                    expectedWarnings.emplace_back("UNKNOWN_COUNT_FALLBACK");
-                QL_REQUIRE(warningCode.empty() || warningCode == "ZERO_RATE_SLOT" ||
-                               warningCode == "UNKNOWN_COUNT_FALLBACK",
+                    expectedWarnings.emplace_back(
+                        VarianceClockBundleWarningCode::UnknownCountFallback);
+                QL_REQUIRE(warningCode.empty() ||
+                               warningCode == toString(VarianceClockBundleWarningCode::ZeroRateSlot) ||
+                               warningCode ==
+                                   toString(VarianceClockBundleWarningCode::UnknownCountFallback),
                            "unknown slot warning code");
-                const std::string expectedCode =
-                    expectedWarnings.empty() ? std::string() : expectedWarnings.front();
+                const std::string_view expectedCode = expectedWarnings.empty()
+                                                          ? std::string_view()
+                                                          : toString(expectedWarnings.front());
                 QL_REQUIRE(warningCode == expectedCode,
                            "slot warning codes differ from derived set");
                 if (!expectedCode.empty()) {
@@ -291,7 +295,8 @@ namespace QuantLib {
                         context.storageCharge.resize(previousCharge + bytes);
                     }
                     context.warnings.push_back(
-                        {expectedCode, "warning", profile, std::move(target),
+                        {expectedWarnings.front(), VarianceClockBundleWarningSeverity::Warning,
+                         profile, std::move(target),
                          static_cast<std::uint16_t>(minute), std::move(ids)});
                 }
                 return true;
@@ -499,7 +504,8 @@ namespace QuantLib {
             for (std::size_t i = 0; i < warnings.size(); ++i) {
                 const auto& derived = warnings[i];
                 const auto& supplied = *manifestWarnings[i];
-                QL_REQUIRE(supplied.severity == "warning" && supplied.code == derived.code &&
+                QL_REQUIRE(supplied.severity == VarianceClockBundleWarningSeverity::Warning &&
+                               supplied.code == derived.code &&
                                supplied.profileId == derived.profileId &&
                                supplied.targetGroupId == derived.targetGroupId &&
                                supplied.minuteOfDay == derived.minuteOfDay &&

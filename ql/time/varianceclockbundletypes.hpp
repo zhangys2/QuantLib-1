@@ -29,15 +29,37 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace QuantLib {
 
     enum class VarianceClockLoadMode { Strict, Reconstruction };
 
+    enum class VarianceClockBundleWarningCode { ZeroRateSlot, UnknownCountFallback };
+    enum class VarianceClockBundleWarningSeverity { Warning };
+
+    constexpr std::string_view toString(VarianceClockBundleWarningCode value) noexcept {
+        switch (value) {
+          case VarianceClockBundleWarningCode::ZeroRateSlot:
+            return "ZERO_RATE_SLOT";
+          case VarianceClockBundleWarningCode::UnknownCountFallback:
+            return "UNKNOWN_COUNT_FALLBACK";
+        }
+        return {};
+    }
+
+    constexpr std::string_view toString(VarianceClockBundleWarningSeverity value) noexcept {
+        switch (value) {
+          case VarianceClockBundleWarningSeverity::Warning:
+            return "warning";
+        }
+        return {};
+    }
+
     struct VarianceClockBundleWarning {
-        std::string code;
-        std::string severity;
+        VarianceClockBundleWarningCode code;
+        VarianceClockBundleWarningSeverity severity;
         VarianceClockProfileId profileId;
         std::string targetGroupId;
         std::uint16_t minuteOfDay;

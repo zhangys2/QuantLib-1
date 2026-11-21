@@ -486,11 +486,18 @@ namespace QuantLib {
                         {"code", "severity", "profile_id", "target_group_id",
                          "minute_of_day", "evidence_ids"}, "warning");
                     VarianceClockManifestWarning entry{};
-                    entry.code = requiredString(item, "code");
-                    requireEnum(entry.code, {"ZERO_RATE_SLOT", "UNKNOWN_COUNT_FALLBACK"},
-                                "warning code");
-                    entry.severity = requiredString(item, "severity");
-                    QL_REQUIRE(entry.severity == "warning", "unsupported warning severity");
+                    const std::string code = requiredString(item, "code");
+                    if (code == toString(VarianceClockBundleWarningCode::ZeroRateSlot))
+                        entry.code = VarianceClockBundleWarningCode::ZeroRateSlot;
+                    else if (code ==
+                             toString(VarianceClockBundleWarningCode::UnknownCountFallback))
+                        entry.code = VarianceClockBundleWarningCode::UnknownCountFallback;
+                    else
+                        QL_FAIL("unsupported warning code");
+                    const std::string severity = requiredString(item, "severity");
+                    QL_REQUIRE(severity == toString(VarianceClockBundleWarningSeverity::Warning),
+                               "unsupported warning severity");
+                    entry.severity = VarianceClockBundleWarningSeverity::Warning;
                     entry.profileId = uint32Value(field(item, "profile_id"), "profile_id");
                     entry.targetGroupId = requiredIdentifier(item, "target_group_id");
                     const std::uint32_t minute =
