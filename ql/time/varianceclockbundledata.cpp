@@ -591,7 +591,8 @@ namespace QuantLib {
                     for (std::size_t i = 0; i < count; ++i)
                         recordBytes += fields[i].size();
                     constexpr std::size_t rowFixedScratch =
-                        128U * 1024U + 14U * (sizeof(std::string) + 32U);
+                        128U * 1024U +
+                        VarianceClockSlotEvidenceCsv::columnCount * (sizeof(std::string) + 32U);
                     // Bound the JSON DOM, strings, per-array storage and allocator overhead
                     // before decoding. Valid evidence_ids_json is at most 64 KiB.
                     constexpr std::size_t parserScratchPerByte = 128U;
