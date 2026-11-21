@@ -107,6 +107,12 @@ def evaluationDate() -> Any:  # noqa: N802
 # CamelCase method aliases on concrete classes
 # ---------------------------------------------------------------------------
 def _install_aliases() -> None:
+    # One row per camelCase alias: (class, alias, target). The alias is installed on the class
+    # as the raw descriptor of ``target``, looked up along the MRO, and a row is skipped when
+    # the class or the target is absent from the native build. Keep the rows sorted.
+    # Adding or removing a row also changes tests/compat_aliases_manifest.csv, which
+    # tests/test_compat_alias_contract.py compares with the installed runtime. Wrappers and
+    # proxies are not table rows; they stay hand-written below.
     aliases = (
         ('AbcdCalibration', 'endCriteria', 'end_criteria'),
         ('AbcdFunction', 'instantaneousCovariance', 'instantaneous_covariance'),
@@ -1028,6 +1034,7 @@ def _install_aliases() -> None:
         ('ZeroInflationTermStructureHandle', 'setSeasonality', 'set_seasonality'),
         ('ZeroInflationTermStructureHandle', 'zeroRate', 'zero_rate'),
     )
+    # Rows whose alias must be a staticmethod, as the hand-written aliases were.
     static_methods = {
         ('Date', 'maxDate'),
         ('Date', 'minDate'),

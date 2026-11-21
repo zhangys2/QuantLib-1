@@ -19,8 +19,13 @@ print(json.dumps(out))
 '''
 
 def snap(mode):
-    return json.loads(subprocess.run([sys.executable, "-c", SNAP, mode], capture_output=True,
-                                     text=True, check=True).stdout)
+    # The child must import the same qlnb as this process, also when it was put on sys.path
+    # by a conftest or by pytest's pythonpath setting rather than by PYTHONPATH.
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(p for p in sys.path if p))
+    result = subprocess.run([sys.executable, "-c", SNAP, mode], capture_output=True, text=True,
+                            env=env)
+    assert result.returncode == 0, f"snapshot subprocess failed (mode {mode}):\n{result.stderr}"
+    return json.loads(result.stdout)
 
 def camel(s):
     p = s.split("_")
@@ -65,4 +70,7 @@ def test_compat_alias_contract():
         expected = list(csv.reader(f))[1:]
     actual = inventory()
     added, missing = sorted(set(map(tuple, actual)) - set(map(tuple, expected))), sorted(set(map(tuple, expected)) - set(map(tuple, actual)))
-    assert not added and not missing, f"Added rows: {added}\nMissing rows: {missing}"
+    assert not added and not missing, (
+        f"Added rows: {added}\nMissing rows: {missing}\n"
+        "If the alias table in qlnb/compat.py changed on purpose, update "
+        "tests/compat_aliases_manifest.csv to match.")
