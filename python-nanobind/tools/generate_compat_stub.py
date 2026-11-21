@@ -4,6 +4,7 @@
 import argparse
 import ast
 import keyword
+import re
 import sys
 import textwrap
 from pathlib import Path
@@ -107,12 +108,17 @@ def generated_aliases():
     shadows = module_class_shadows({row[0] for row in aliases})
     native_lines = NATIVE_STUB.read_text().splitlines()
     grouped = {}
+    skipped = {}
     for class_name, alias, target in aliases:
         if class_name in shadows:
             # The compatibility module exports a different object under this class name.
+            skipped.setdefault("compat exports a different object under this class name",
+                               []).append(f"{class_name}.{alias}")
             continue
         if keyword.iskeyword(alias):
             # Python syntax cannot spell an attribute whose name is a keyword.
+            skipped.setdefault("the alias is a Python keyword", []).append(
+                f"{class_name}.{alias}")
             continue
         if class_name not in classes:
             raise ValueError(f"native stub has no class {class_name}")
@@ -133,6 +139,9 @@ def generated_aliases():
             declaration = "\n".join(native_lines[start - 1 : method.end_lineno])
             declaration = textwrap.dedent(declaration)
             declaration = declaration.replace(f"def {target}(", f"def {alias}(", 1)
+            # Property accessors are decorated with `@<name>.setter` and similar.
+            declaration = re.sub(rf"^@{re.escape(target)}\.", f"@{alias}.", declaration,
+                                 flags=re.MULTILINE)
             declarations.append(textwrap.indent(declaration, "    "))
         grouped.setdefault(class_name, []).extend(declarations)
 
@@ -140,7 +149,11 @@ def generated_aliases():
     for class_name in sorted(grouped):
         methods = "\n\n".join(grouped[class_name])
         blocks.append(f"class {class_name}(_native.{class_name}):\n{methods}")
-    return "\n\n".join(blocks)
+    notes = ["# Not generated (runtime aliases only):"]
+    for reason, rows in sorted(skipped.items()):
+        notes.append(f"#   {reason}:")
+        notes.extend(f"#     {row}" for row in rows)
+    return "\n".join(notes) + "\n\n" + "\n\n".join(blocks)
 
 
 def render_stub():

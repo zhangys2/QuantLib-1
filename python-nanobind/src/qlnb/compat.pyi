@@ -13,6 +13,15 @@ from qlnb._qlnb import *  # noqa: F403
 
 # BEGIN GENERATED COMPAT ALIASES
 
+# Not generated (runtime aliases only):
+#   compat exports a different object under this class name:
+#     YoYInflationIndex.addFixing
+#     YoYInflationIndex.availabilityLag
+#     YoYInflationIndex.clearFixings
+#     YoYInflationIndex.lastFixingDate
+#   the alias is a Python keyword:
+#     EverestOption.yield
+
 class AbcdCalibration(_native.AbcdCalibration):
     def endCriteria(self) -> EndCriteriaType: ...
 
