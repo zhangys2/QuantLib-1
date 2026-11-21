@@ -175,8 +175,10 @@ class Settlement:
 
 
 # Attach Payer/Receiver on VanillaSwap class for SWIG-like access.
-_ql.VanillaSwap.Payer = _ql.SwapType.Payer  # type: ignore[attr-defined]
-_ql.VanillaSwap.Receiver = _ql.SwapType.Receiver  # type: ignore[attr-defined]
+_vanilla_swap = getattr(_ql, "VanillaSwap", None)
+if _vanilla_swap is not None:
+    _vanilla_swap.Payer = _ql.SwapType.Payer  # type: ignore[attr-defined]
+    _vanilla_swap.Receiver = _ql.SwapType.Receiver  # type: ignore[attr-defined]
 
 # Phase-6 MakeOIS-style alias.
 makeOIS = getattr(_ql, "make_ois", None)

@@ -74,3 +74,25 @@ def test_compat_alias_contract():
         f"Added rows: {added}\nMissing rows: {missing}\n"
         "If the alias table in qlnb/compat.py changed on purpose, update "
         "tests/compat_aliases_manifest.csv to match.")
+
+
+def test_compat_import_skips_vanilla_swap_aliases_when_native_class_is_missing():
+    script = r'''
+import qlnb
+
+vanilla_swap = qlnb.VanillaSwap
+qlnb.__all__.remove("VanillaSwap")
+del qlnb.VanillaSwap
+
+import qlnb.compat
+
+assert not hasattr(vanilla_swap, "Payer")
+assert not hasattr(vanilla_swap, "Receiver")
+'''
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(p for p in sys.path if p))
+    result = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, env=env
+    )
+    assert result.returncode == 0, (
+        f"missing-VanillaSwap import subprocess failed:\n{result.stderr}"
+    )
