@@ -28,16 +28,51 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <ostream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace QuantLib {
 
     enum class VarianceClockLoadMode { Strict, Reconstruction };
 
+    //! Warning codes of the frozen Phase B manifest; no other code is accepted.
+    enum class VarianceClockBundleWarningCode { ZeroRateSlot, UnknownCountFallback };
+    //! The only severity of the frozen Phase B manifest.
+    enum class VarianceClockBundleWarningSeverity { Warning };
+
+    //! Manifest spelling of a warning code or severity (empty for an invalid value).
+    constexpr std::string_view toString(VarianceClockBundleWarningCode value) noexcept {
+        switch (value) {
+          case VarianceClockBundleWarningCode::ZeroRateSlot:
+            return "ZERO_RATE_SLOT";
+          case VarianceClockBundleWarningCode::UnknownCountFallback:
+            return "UNKNOWN_COUNT_FALLBACK";
+        }
+        return {};
+    }
+
+    constexpr std::string_view toString(VarianceClockBundleWarningSeverity value) noexcept {
+        switch (value) {
+          case VarianceClockBundleWarningSeverity::Warning:
+            return "warning";
+        }
+        return {};
+    }
+
+    inline std::ostream& operator<<(std::ostream& out, VarianceClockBundleWarningCode value) {
+        return out << toString(value);
+    }
+
+    inline std::ostream& operator<<(std::ostream& out,
+                                    VarianceClockBundleWarningSeverity value) {
+        return out << toString(value);
+    }
+
     struct VarianceClockBundleWarning {
-        std::string code;
-        std::string severity;
+        VarianceClockBundleWarningCode code;
+        VarianceClockBundleWarningSeverity severity;
         VarianceClockProfileId profileId;
         std::string targetGroupId;
         std::uint16_t minuteOfDay;

@@ -41,6 +41,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -771,7 +772,8 @@ BOOST_AUTO_TEST_CASE(testAcceptsOptionalVersionOneSections) {
     BOOST_CHECK_EQUAL(manifest.fallbackApprovals[0].approvalEvidenceIds[0], "approval");
     BOOST_CHECK_EQUAL(manifest.fallbackApprovals[0].sourceEvidenceIds[0], "price");
     BOOST_REQUIRE_EQUAL(manifest.warnings.size(), 1U);
-    BOOST_CHECK_EQUAL(manifest.warnings[0].code, "ZERO_RATE_SLOT");
+    BOOST_CHECK(manifest.warnings[0].code ==
+                VarianceClockBundleWarningCode::ZeroRateSlot);
     BOOST_CHECK_EQUAL(manifest.warnings[0].profileId, 1U);
     BOOST_CHECK_EQUAL(manifest.warnings[0].targetGroupId, "group");
     BOOST_CHECK_EQUAL(manifest.warnings[0].minuteOfDay, 5U);
@@ -783,6 +785,40 @@ BOOST_AUTO_TEST_CASE(testAcceptsOptionalVersionOneSections) {
     BOOST_CHECK(!manifest.evidence[0].revisionId);
     BOOST_CHECK(!manifest.evidence[0].contentSha256);
     BOOST_CHECK(manifest.evidence[2].contentSha256);
+}
+
+BOOST_AUTO_TEST_CASE(testWarningEnumsMatchFrozenManifestValues) {
+    BOOST_TEST_MESSAGE("Testing warning enums match the frozen manifest values...");
+    const auto zero = parseVarianceClockManifest(manifestWithOptionalSections());
+    BOOST_REQUIRE_EQUAL(zero.warnings.size(), 1U);
+    BOOST_CHECK(zero.warnings[0].code ==
+                VarianceClockBundleWarningCode::ZeroRateSlot);
+    BOOST_CHECK(zero.warnings[0].severity ==
+                VarianceClockBundleWarningSeverity::Warning);
+    BOOST_CHECK(toString(zero.warnings[0].code) == "ZERO_RATE_SLOT");
+    BOOST_CHECK(toString(zero.warnings[0].severity) == "warning");
+
+    std::string fallbackJson = manifestWithOptionalSections();
+    replaceOnce(fallbackJson, "\"code\": \"ZERO_RATE_SLOT\"",
+                "\"code\": \"UNKNOWN_COUNT_FALLBACK\"");
+    const auto fallback = parseVarianceClockManifest(fallbackJson);
+    BOOST_REQUIRE_EQUAL(fallback.warnings.size(), 1U);
+    BOOST_CHECK(fallback.warnings[0].code ==
+                VarianceClockBundleWarningCode::UnknownCountFallback);
+    BOOST_CHECK(toString(fallback.warnings[0].code) == "UNKNOWN_COUNT_FALLBACK");
+    std::ostringstream streamed;
+    streamed << fallback.warnings[0].code << ' ' << fallback.warnings[0].severity;
+    BOOST_CHECK_EQUAL(streamed.str(), "UNKNOWN_COUNT_FALLBACK warning");
+
+    std::string unknownCode = manifestWithOptionalSections();
+    replaceOnce(unknownCode, "\"code\": \"ZERO_RATE_SLOT\"",
+                "\"code\": \"zero_rate_slot\"");
+    checkManifestRejectedWith(unknownCode, "unsupported warning code: zero_rate_slot");
+
+    std::string unknownSeverity = manifestWithOptionalSections();
+    replaceOnce(unknownSeverity, "\"severity\": \"warning\"",
+                "\"severity\": \"informational\"");
+    checkManifestRejectedWith(unknownSeverity, "unsupported warning severity");
 }
 
 BOOST_AUTO_TEST_CASE(testJsonParsingIgnoresGlobalNumpunct) {
@@ -3440,8 +3476,9 @@ BOOST_AUTO_TEST_CASE(testEvidenceRecordLimitAndBudgetedWarnings) {
                         csvEvidenceIds());
     for (unsigned int minute = 0; minute < 1440; minute += 5)
         withWarnings.manifest.warnings.push_back(
-            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
-             {"price"}});
+            {VarianceClockBundleWarningCode::ZeroRateSlot,
+             VarianceClockBundleWarningSeverity::Warning, 1, "group",
+             static_cast<std::uint16_t>(minute), {"price"}});
     std::size_t warningCharge = 0;
     {
         QuantLib::detail::VarianceClockLoadBudget budget;
@@ -3784,12 +3821,17 @@ BOOST_AUTO_TEST_CASE(testWarnsForZeroRateSlot) {
                         csvEvidenceIds());
     for (unsigned int minute = 0; minute < 1440; minute += 5)
         fixture.manifest.warnings.push_back(
-            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
-             {"price"}});
+            {VarianceClockBundleWarningCode::ZeroRateSlot,
+             VarianceClockBundleWarningSeverity::Warning, 1, "group",
+             static_cast<std::uint16_t>(minute), {"price"}});
     auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
     auto loaded = validateBundleEvidence(fixture, *budget);
     BOOST_CHECK_EQUAL(loaded.warnings.size(), 288U);
-    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "ZERO_RATE_SLOT");
+    BOOST_CHECK(loaded.warnings.front().code ==
+                VarianceClockBundleWarningCode::ZeroRateSlot);
+    BOOST_CHECK(loaded.warnings.front().severity ==
+                VarianceClockBundleWarningSeverity::Warning);
+    BOOST_CHECK(toString(loaded.warnings.front().code) == "ZERO_RATE_SLOT");
 }
 
 BOOST_AUTO_TEST_CASE(testManifestWarningsMustEqualDerivedWarnings) {
@@ -3837,12 +3879,15 @@ BOOST_AUTO_TEST_CASE(testWarnsForApprovedUnknownCountFallback) {
                         csvEvidenceIds(R"(["price","approval"])"));
     for (unsigned int minute = 0; minute < 1440; minute += 5)
         fixture.manifest.warnings.push_back(
-            {"UNKNOWN_COUNT_FALLBACK", "warning", 1, "group",
+            {VarianceClockBundleWarningCode::UnknownCountFallback,
+             VarianceClockBundleWarningSeverity::Warning, 1, "group",
              static_cast<std::uint16_t>(minute), {"approval", "price"}});
     auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
     auto loaded = validateBundleEvidence(fixture, *budget);
     BOOST_CHECK_EQUAL(loaded.warnings.size(), 288U);
-    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "UNKNOWN_COUNT_FALLBACK");
+    BOOST_CHECK(loaded.warnings.front().code ==
+                VarianceClockBundleWarningCode::UnknownCountFallback);
+    BOOST_CHECK(toString(loaded.warnings.front().code) == "UNKNOWN_COUNT_FALLBACK");
 }
 
 BOOST_AUTO_TEST_CASE(testFallbackEvidenceMatchesApprovalUnionAsSet) {
@@ -3895,7 +3940,8 @@ namespace {
     void addFallbackWarnings(BundleTableFixture& fixture) {
         for (unsigned int minute = 0; minute < 1440; minute += 5)
             fixture.manifest.warnings.push_back(
-                {"UNKNOWN_COUNT_FALLBACK", "warning", 1, "group",
+                {VarianceClockBundleWarningCode::UnknownCountFallback,
+                 VarianceClockBundleWarningSeverity::Warning, 1, "group",
                  static_cast<std::uint16_t>(minute), {"approval", "price"}});
     }
 
@@ -4061,7 +4107,7 @@ BOOST_AUTO_TEST_CASE(testManifestWarningsMustMatchEveryField) {
     minute.manifest.warnings[0].minuteOfDay = 1;
     checkBundleEvidenceRejectedWith(minute, message.c_str());
     auto code = base();
-    code.manifest.warnings[0].code = "ZERO_RATE_SLOT";
+    code.manifest.warnings[0].code = VarianceClockBundleWarningCode::ZeroRateSlot;
     checkBundleEvidenceRejectedWith(code, message.c_str());
     auto ids = base();
     ids.manifest.warnings[0].evidenceIds = {"price"};
@@ -4092,7 +4138,8 @@ BOOST_AUTO_TEST_CASE(testManifestWarningsMustMatchEveryField) {
     BOOST_REQUIRE_EQUAL(loaded.warnings.size(), 288U);
     for (std::size_t i = 0; i < loaded.warnings.size(); ++i) {
         BOOST_CHECK_EQUAL(loaded.warnings[i].minuteOfDay, 5U * i);
-        BOOST_CHECK_EQUAL(loaded.warnings[i].severity, "warning");
+        BOOST_CHECK(loaded.warnings[i].severity ==
+                    VarianceClockBundleWarningSeverity::Warning);
         BOOST_CHECK_EQUAL(loaded.warnings[i].profileId, 1U);
         BOOST_CHECK_EQUAL(loaded.warnings[i].targetGroupId, "group");
     }
@@ -4157,8 +4204,9 @@ BOOST_AUTO_TEST_CASE(testPriceInputRuleCoversPooledAndZeroSlots) {
                             evidence);
         for (unsigned int minute = 0; minute < 1440; minute += 5)
             fixture.manifest.warnings.push_back(
-                {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
-                 {"calendar", "price"}});
+                {VarianceClockBundleWarningCode::ZeroRateSlot,
+                 VarianceClockBundleWarningSeverity::Warning, 1, "group",
+                 static_cast<std::uint16_t>(minute), {"calendar", "price"}});
         return fixture;
     };
     const char* message = "at least one price_input";
@@ -4194,7 +4242,8 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
     replaceAll(warned.slotEvidence, ",group,", "," + longTargetGroup + ",");
     for (unsigned int minute = 0; minute < 1440; minute += 5)
         warned.manifest.warnings.push_back(
-            {"ZERO_RATE_SLOT", "warning", 1, longTargetGroup,
+            {VarianceClockBundleWarningCode::ZeroRateSlot,
+             VarianceClockBundleWarningSeverity::Warning, 1, longTargetGroup,
              static_cast<std::uint16_t>(minute), {longId}});
     QuantLib::detail::VarianceClockLoadBudget plainBudget;
     const auto plainResult = validateBundleEvidence(plain, plainBudget);
@@ -4242,11 +4291,15 @@ BOOST_AUTO_TEST_CASE(testLoadedWarningVectorUsesThePublicStandardVectorType) {
                   "loaded warnings must use the frozen std::vector API");
 
     VarianceClockLoadedBundle loaded;
-    loaded.warnings.push_back({"code", "warning", 1, "group", 5, {"evidence"}});
+    loaded.warnings.push_back({VarianceClockBundleWarningCode::ZeroRateSlot,
+                               VarianceClockBundleWarningSeverity::Warning, 1, "group", 5,
+                               {"evidence"}});
     PublicWarnings copy = loaded.warnings;
-    copy.front().code = "changed";
-    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "code");
-    BOOST_CHECK_EQUAL(copy.front().code, "changed");
+    copy.front().code = VarianceClockBundleWarningCode::UnknownCountFallback;
+    BOOST_CHECK(loaded.warnings.front().code ==
+                VarianceClockBundleWarningCode::ZeroRateSlot);
+    BOOST_CHECK(copy.front().code ==
+                VarianceClockBundleWarningCode::UnknownCountFallback);
 }
 
 BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
@@ -4263,7 +4316,8 @@ BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
                             csvEvidenceIds("[\"" + longId + "\"]"));
         for (unsigned int minute = 0; minute < 1440; minute += 5)
             fixture.manifest.warnings.push_back(
-                {"ZERO_RATE_SLOT", "warning", 1, "group",
+                {VarianceClockBundleWarningCode::ZeroRateSlot,
+                 VarianceClockBundleWarningSeverity::Warning, 1, "group",
                  static_cast<std::uint16_t>(minute), {longId}});
         return fixture;
     };
@@ -4322,7 +4376,8 @@ namespace {
                             csvEvidenceIds("[\"" + longId + "\"]"));
         for (unsigned int minute = 0; minute < 1440; minute += 5)
             fixture.manifest.warnings.push_back(
-                {"ZERO_RATE_SLOT", "warning", 1, "group",
+                {VarianceClockBundleWarningCode::ZeroRateSlot,
+                 VarianceClockBundleWarningSeverity::Warning, 1, "group",
                  static_cast<std::uint16_t>(minute), {longId}});
         return fixture;
     }
@@ -5312,8 +5367,9 @@ namespace {
                 const auto& warning = fixture.manifest.warnings[i];
                 if (i != 0)
                     warnings += ",";
-                warnings += "{\"code\":\"" + warning.code + "\",\"severity\":\"" +
-                            warning.severity + "\",\"profile_id\":" +
+                warnings += "{\"code\":\"" + std::string(toString(warning.code)) +
+                            "\",\"severity\":\"" +
+                            std::string(toString(warning.severity)) + "\",\"profile_id\":" +
                             std::to_string(warning.profileId) + ",\"target_group_id\":\"" +
                             warning.targetGroupId + "\",\"minute_of_day\":" +
                             std::to_string(warning.minuteOfDay) + ",\"evidence_ids\":[\"price\"]}";
@@ -5504,11 +5560,13 @@ BOOST_AUTO_TEST_CASE(testReturnsStructuredWarningsWithEvidenceIds) {
                     "ZERO_RATE_SLOT,\"[\"\"price\"\"]\"");
     for (unsigned int minute = 0; minute < 1440; minute += 5)
         fixture.manifest.warnings.push_back(
-            {"ZERO_RATE_SLOT", "warning", 1, "group", static_cast<std::uint16_t>(minute),
-             {"price"}});
+            {VarianceClockBundleWarningCode::ZeroRateSlot,
+             VarianceClockBundleWarningSeverity::Warning, 1, "group",
+             static_cast<std::uint16_t>(minute), {"price"}});
     const auto loaded = loadVarianceClockBundle(validCompleteBundleSource(fixture));
     BOOST_REQUIRE_EQUAL(loaded.warnings.size(), 288U);
-    BOOST_CHECK_EQUAL(loaded.warnings.front().code, "ZERO_RATE_SLOT");
+    BOOST_CHECK(loaded.warnings.front().code ==
+                VarianceClockBundleWarningCode::ZeroRateSlot);
     BOOST_CHECK_EQUAL(loaded.warnings.front().evidenceIds.front(), "price");
 }
 
@@ -5561,7 +5619,8 @@ BOOST_AUTO_TEST_CASE(testLoadsFallbackApprovalsAndUnknownCountWarnings) {
         std::vector<unsigned char>(manifest.begin(), manifest.end());
     const auto loaded = loadVarianceClockBundle(source);
     BOOST_REQUIRE_EQUAL(loaded.warnings.size(), 288U);
-    BOOST_CHECK(loaded.warnings.front().code == "UNKNOWN_COUNT_FALLBACK");
+    BOOST_CHECK(loaded.warnings.front().code ==
+                VarianceClockBundleWarningCode::UnknownCountFallback);
     BOOST_CHECK(loaded.warnings.front().evidenceIds ==
                 std::vector<std::string>({"approval", "price"}));
 }

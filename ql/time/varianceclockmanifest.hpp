@@ -24,6 +24,7 @@
 #ifndef quantlib_variance_clock_manifest_hpp
 #define quantlib_variance_clock_manifest_hpp
 
+#include <ql/time/varianceclockbundletypes.hpp>
 #include <ql/time/varianceclockinstant.hpp>
 #include <cstdint>
 #include <map>
@@ -67,14 +68,7 @@ namespace QuantLib {
             std::vector<std::string> sourceEvidenceIds;
         };
 
-        struct VarianceClockManifestWarning {
-            std::string code;
-            std::string severity;
-            std::uint32_t profileId;
-            std::string targetGroupId;
-            std::uint16_t minuteOfDay;
-            std::vector<std::string> evidenceIds;
-        };
+        using VarianceClockManifestWarning = VarianceClockBundleWarning;
 
         struct VarianceClockManifestContinuousFuturesLineage {
             std::string constructionMethod;
