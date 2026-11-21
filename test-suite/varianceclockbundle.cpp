@@ -265,6 +265,22 @@ namespace {
         }
     }
 
+    // The minimal manifest with the value of the occurrence-th `"key": "..."` member replaced.
+    std::string withManifestTimestamp(const std::string& key,
+                                      std::size_t occurrence,
+                                      const std::string& value) {
+        std::string input = minimalManifest();
+        const std::string needle = "\"" + key + "\": \"";
+        std::size_t position = 0;
+        for (std::size_t i = 0; i <= occurrence; ++i) {
+            position = input.find(needle, i == 0 ? 0 : position + needle.size());
+            BOOST_REQUIRE(position != std::string::npos);
+        }
+        const std::size_t begin = position + needle.size();
+        input.replace(begin, input.find('"', begin) - begin, value);
+        return input;
+    }
+
     class CommaDecimalPoint : public std::numpunct<char> {
       protected:
         char do_decimal_point() const override {
@@ -471,6 +487,74 @@ BOOST_AUTO_TEST_CASE(testManifestParserRejectsNoncanonicalTimestamp) {
     replaceOnce(input, "\"generated_at_utc\": \"2024-01-01T00:00:00Z\"",
                 "\"generated_at_utc\": \"2024-01-01T00:00:00+00:00\"");
     checkManifestRejectedWith(input, "must end with Z");
+}
+
+BOOST_AUTO_TEST_CASE(testManifestPriceCutoffsCompareInstants) {
+    BOOST_TEST_MESSAGE("Testing top-level and nested price cutoffs compare instants...");
+    const auto withCutoffs = [](const std::string& topLevel, const std::string& nested) {
+        std::string input = minimalManifest();
+        const std::string key = "\"price_cutoff_utc\": \"";
+        const auto setOccurrence = [&input, &key](std::size_t occurrence,
+                                                  const std::string& value) {
+            std::size_t position = 0;
+            for (std::size_t i = 0; i <= occurrence; ++i) {
+                position = input.find(key, position);
+                if (position == std::string::npos)
+                    return false;
+                position += key.size();
+            }
+            const std::size_t end = input.find('"', position);
+            if (end == std::string::npos)
+                return false;
+            input.replace(position, end - position, value);
+            return true;
+        };
+        if (!setOccurrence(0, topLevel) || !setOccurrence(1, nested))
+            return std::string();
+        return input;
+    };
+
+    for (const auto& cutoffs : {
+             std::pair<const char*, const char*>{"2024-01-01T00:00:00Z",
+                                                  "2024-01-01T00:00:00.0Z"},
+             std::pair<const char*, const char*>{"2024-01-01T00:00:00.0Z",
+                                                  "2024-01-01T00:00:00Z"}}) {
+        const std::string input = withCutoffs(cutoffs.first, cutoffs.second);
+        BOOST_REQUIRE(!input.empty());
+        BOOST_CHECK_NO_THROW(parseVarianceClockManifest(input));
+    }
+
+    const std::string differentInstant =
+        withCutoffs("2024-01-01T00:00:00Z", "2024-01-01T00:00:01Z");
+    BOOST_REQUIRE(!differentInstant.empty());
+    checkManifestRejectedWith(differentInstant, "nested and top-level price cutoffs differ");
+}
+
+BOOST_AUTO_TEST_CASE(testManifestParserRejectsMalformedTimestampInEveryField) {
+    BOOST_TEST_MESSAGE("Testing rejection of a malformed timestamp in every manifest field...");
+    struct Member {
+        const char* key;
+        std::size_t occurrence;
+    };
+    for (const Member& member : {Member{"generated_at_utc", 0},
+                                 Member{"coverage_start_utc", 0},
+                                 Member{"coverage_end_utc", 0},
+                                 Member{"clock_origin_utc", 0},
+                                 Member{"price_cutoff_utc", 0},
+                                 Member{"price_cutoff_utc", 1},
+                                 Member{"calendar_as_of_utc", 0},
+                                 Member{"timezone_as_of_utc", 0},
+                                 Member{"calibration_as_of_utc", 0},
+                                 Member{"available_at_utc", 0},
+                                 Member{"available_at_utc", 1},
+                                 Member{"available_at_utc", 2},
+                                 Member{"published_at_utc", 0}}) {
+        BOOST_TEST_CONTEXT(member.key << " #" << member.occurrence) {
+            checkManifestRejectedWith(
+                withManifestTimestamp(member.key, member.occurrence, "2024-01-01T00:00:00+00:00"),
+                "must end with Z");
+        }
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testEvidenceIdsJsonAcceptsFlatStringArray) {
@@ -3840,7 +3924,15 @@ BOOST_AUTO_TEST_CASE(testManifestInstantGrammarIsStrict) {
                              Good{"2024-01-02T00:00:00.000000001Z", 1},
                              Good{"2024-01-02T00:00:00.123456789Z", 123456789}}) {
         const auto parsed = parseVarianceClockManifest(withGenerated(good.text));
+        BOOST_CHECK_EQUAL(parsed.generatedAtUtc.unixSeconds(), 1704153600);
         BOOST_CHECK_EQUAL(parsed.generatedAtUtc.nanosecond(), good.nanoseconds);
+        // The parsed instant still reaches the snapshot availability unchanged.
+        auto fixture = validBundleTableFixture();
+        fixture.manifest.generatedAtUtc = parsed.generatedAtUtc;
+        QuantLib::detail::VarianceClockLoadBudget budget;
+        const auto loaded = validateBundleEvidence(fixture, budget);
+        BOOST_CHECK_EQUAL(loaded.tables.availableFrom.unixSeconds(), 1704153600);
+        BOOST_CHECK_EQUAL(loaded.tables.availableFrom.nanosecond(), good.nanoseconds);
     }
     struct Bad {
         const char* text;
@@ -4652,9 +4744,11 @@ BOOST_AUTO_TEST_CASE(testIntegerGrammarsInEveryColumn) {
 
 BOOST_AUTO_TEST_CASE(testUtcInstantGrammarAndNanosecondScaling) {
     BOOST_TEST_MESSAGE("Testing the strict UTC instant grammar and fractional scaling...");
-    const auto withStart = [](const std::string& start) {
+    // The manifest holds a typed instant, so the text under test goes into the CSV run start;
+    // `manifestStart` must be a valid instant.
+    const auto withStart = [](const std::string& start, const std::string& manifestStart) {
         auto fixture = validBundleTableFixture();
-        fixture.manifest.coverageStartUtc = testInstant(start);
+        fixture.manifest.coverageStartUtc = testInstant(manifestStart);
         fixture.manifest.clockOriginUtc = fixture.manifest.coverageStartUtc;
         useOffsetRuns(fixture, start + ",2025-01-01T00:00:00Z,0,0\n");
         return fixture;
@@ -4671,7 +4765,7 @@ BOOST_AUTO_TEST_CASE(testUtcInstantGrammarAndNanosecondScaling) {
                              Good{"2024-01-01T00:00:00.123456789Z", 123456789},
                              Good{"2024-01-01T00:00:00.999999999Z", 999999999},
                              Good{"2024-01-01T00:00:59Z", 0}}) {
-        const auto parsed = parseBundleTables(withStart(good.text));
+        const auto parsed = parseBundleTables(withStart(good.text, good.text));
         BOOST_CHECK_EQUAL(parsed.tables.start.nanosecond(), good.nanoseconds);
     }
     struct Bad {
@@ -4700,7 +4794,7 @@ BOOST_AUTO_TEST_CASE(testUtcInstantGrammarAndNanosecondScaling) {
                            Bad{"2024-13-01T00:00:00Z", "invalid Gregorian date"},
                            Bad{"2024-00-01T00:00:00Z", "invalid Gregorian date"},
                            Bad{"2024-01-00T00:00:00Z", "invalid Gregorian date"}})
-        checkBundleTablesRejectedWith(withStart(bad.text), bad.message);
+        checkBundleTablesRejectedWith(withStart(bad.text, "2024-01-01T00:00:00Z"), bad.message);
 }
 
 BOOST_AUTO_TEST_CASE(testMarketDayDatesStayInsideTheQuantLibRange) {
