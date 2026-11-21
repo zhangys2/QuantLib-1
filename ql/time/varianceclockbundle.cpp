@@ -75,7 +75,7 @@ namespace QuantLib {
     }
 
     VarianceClockLoadedBundle loadVarianceClockBundle(
-        const detail::VarianceClockBundleSource& source,
+        const VarianceClockBundleSource& source,
         VarianceClockLoadMode mode) {
         detail::VarianceClockLoadBudget budget;
         auto captured = detail::captureVarianceClockBundle(source, budget);

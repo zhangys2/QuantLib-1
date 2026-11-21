@@ -30,14 +30,27 @@
 #include <vector>
 
 namespace QuantLib {
-    namespace detail {
 
-        class VarianceClockBundleSource {
-          public:
-            virtual ~VarianceClockBundleSource() = default;
-            virtual std::vector<unsigned char> read(const std::string& flatName,
-                                                    std::size_t maxBytes) const = 0;
-        };
+    //! Interface for reading the raw files of a variance-clock bundle.
+    class VarianceClockBundleSource {
+      public:
+        virtual ~VarianceClockBundleSource() = default;
+
+        /*! \brief Read the complete raw bytes for a flat bundle filename.
+            \param flatName One of `manifest.json`, `profiles.csv`, `market_days.csv`,
+                   `session_segments.csv`, `timezone_mapping.csv`, or `slot_evidence.csv`.
+            \param maxBytes Maximum permitted byte count for the returned file.
+            \return The file's unmodified bytes. Implementations must reject files larger than
+                    `maxBytes` before allocating or reading beyond that limit. The loader
+                    independently checks the returned vector's size.
+            \throws Error for source failures such as a missing, unreadable, or oversized file.
+                    Other implementation exceptions can also propagate through the loader.
+        */
+        virtual std::vector<unsigned char> read(const std::string& flatName,
+                                                std::size_t maxBytes) const = 0;
+    };
+
+    namespace detail {
 
         // Reads the six bundle files from a native directory path.
         //

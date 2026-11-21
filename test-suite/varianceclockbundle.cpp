@@ -1293,7 +1293,7 @@ BOOST_AUTO_TEST_SUITE(VarianceClockBundleSourceTests)
 
 namespace {
 
-    using QuantLib::detail::VarianceClockBundleSource;
+    using QuantLib::VarianceClockBundleSource;
     using QuantLib::detail::VarianceClockCapturedBundle;
     using QuantLib::detail::VarianceClockDirectorySource;
     using QuantLib::detail::VarianceClockLoadBudget;
@@ -5057,7 +5057,7 @@ BOOST_AUTO_TEST_SUITE(VarianceBundleLoaderTests)
 
 namespace {
 
-    struct CompleteBundleSource final : detail::VarianceClockBundleSource {
+    struct CompleteBundleSource final : QuantLib::VarianceClockBundleSource {
         std::map<std::string, std::vector<unsigned char>> files;
         mutable std::vector<std::string> readOrder;
         mutable std::vector<std::size_t> readLimits;

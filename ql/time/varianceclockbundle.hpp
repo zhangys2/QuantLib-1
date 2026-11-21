@@ -31,7 +31,7 @@
 namespace QuantLib {
 
     VarianceClockLoadedBundle loadVarianceClockBundle(
-        const detail::VarianceClockBundleSource& source,
+        const VarianceClockBundleSource& source,
         VarianceClockLoadMode mode = VarianceClockLoadMode::Strict);
 
     VarianceClockLoadedBundle loadVarianceClockBundleFromDirectory(
