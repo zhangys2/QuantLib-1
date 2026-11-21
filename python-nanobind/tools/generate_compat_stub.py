@@ -40,6 +40,20 @@ def native_classes():
     }
 
 
+def native_exports():
+    tree = ast.parse(NATIVE_STUB.read_text(), filename=str(NATIVE_STUB))
+    names = set()
+    for node in tree.body:
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            names.add(node.name)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    names.add(target.id)
+    return names
+
+
 def find_methods(classes, class_name, target, seen=()):
     if class_name in seen or class_name not in classes:
         return []
@@ -58,6 +72,31 @@ def find_methods(classes, class_name, target, seen=()):
             if methods:
                 return methods
     return []
+
+
+def qualify_compat_parameter_types(
+    declaration, method, start_line, line_offsets, class_names
+):
+    declaration_start = line_offsets[start_line - 1]
+    replacements = []
+    parameters = (
+        list(method.args.posonlyargs)
+        + list(method.args.args)
+        + list(method.args.kwonlyargs)
+        + ([method.args.vararg] if method.args.vararg else [])
+        + ([method.args.kwarg] if method.args.kwarg else [])
+    )
+    for parameter in parameters:
+        if parameter.annotation is None:
+            continue
+        for node in ast.walk(parameter.annotation):
+            if isinstance(node, ast.Name) and node.id in class_names:
+                begin = line_offsets[node.lineno - 1] + node.col_offset - declaration_start
+                end = line_offsets[node.end_lineno - 1] + node.end_col_offset - declaration_start
+                replacements.append((begin, end, f"_native.{node.id}"))
+    for begin, end, replacement in sorted(replacements, reverse=True):
+        declaration = declaration[:begin] + replacement + declaration[end:]
+    return declaration
 
 
 def module_class_shadows(class_names):
@@ -106,7 +145,18 @@ def generated_aliases():
     static_methods = set(assignments["_STATIC_METHODS"])
     classes = native_classes()
     shadows = module_class_shadows({row[0] for row in aliases})
+    compat_class_names = {
+        class_name
+        for class_name, alias, _ in aliases
+        if class_name not in shadows and not keyword.iskeyword(alias)
+    }
     native_lines = NATIVE_STUB.read_text().splitlines()
+    native_source = NATIVE_STUB.read_text()
+    line_offsets = []
+    offset = 0
+    for line in native_source.splitlines(keepends=True):
+        line_offsets.append(offset)
+        offset += len(line)
     grouped = {}
     skipped = {}
     for class_name, alias, target in aliases:
@@ -137,6 +187,9 @@ def generated_aliases():
                 [method.lineno] + [decorator.lineno for decorator in method.decorator_list]
             )
             declaration = "\n".join(native_lines[start - 1 : method.end_lineno])
+            declaration = qualify_compat_parameter_types(
+                declaration, method, start, line_offsets, compat_class_names
+            )
             declaration = textwrap.dedent(declaration)
             declaration = declaration.replace(f"def {target}(", f"def {alias}(", 1)
             # Property accessors are decorated with `@<name>.setter` and similar.
@@ -156,9 +209,27 @@ def generated_aliases():
     return "\n".join(notes) + "\n\n" + "\n\n".join(blocks)
 
 
+def native_imports():
+    assignments = module_assignments(ALIASES_PATH)
+    aliases = assignments["_ALIASES"]
+    shadows = module_class_shadows({row[0] for row in aliases})
+    compat_classes = {
+        class_name
+        for class_name, alias, _ in aliases
+        if class_name not in shadows and not keyword.iskeyword(alias)
+    }
+    names = sorted(native_exports() - compat_classes - {"Any", "Iterable", "Sequence", "overload"})
+    return "from qlnb._qlnb import (\n" + "".join(
+        f"    {name},\n" for name in names
+    ) + ")"
+
+
 def render_stub():
     current = COMPAT_STUB.read_text()
     generated = generated_aliases()
+    current = current.replace(
+        "from qlnb._qlnb import *  # noqa: F403", native_imports()
+    )
     if BEGIN_MARKER in current or END_MARKER in current:
         if current.count(BEGIN_MARKER) != 1 or current.count(END_MARKER) != 1:
             raise ValueError("compat.pyi must contain one generated-section marker pair")

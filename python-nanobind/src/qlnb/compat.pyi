@@ -9,7 +9,400 @@ qlnb.compat.  Names compat defines that are not declared here are typed Any.
 from typing import Any, Iterable, Sequence, overload
 
 import qlnb._qlnb as _native
-from qlnb._qlnb import *  # noqa: F403
+from qlnb._qlnb import (
+    Actual360,
+    Actual365Fixed,
+    ActualActual,
+    ActualActualConvention,
+    AnalyticAmericanMargrabeEngine,
+    AnalyticBSMHullWhiteEngine,
+    AnalyticBarrierEngine,
+    AnalyticBinaryBarrierEngine,
+    AnalyticCapFloorEngine,
+    AnalyticCliquetEngine,
+    AnalyticComplexChooserEngine,
+    AnalyticCompoundOptionEngine,
+    AnalyticContinuousFixedLookbackEngine,
+    AnalyticContinuousFloatingLookbackEngine,
+    AnalyticContinuousGeometricAveragePriceAsianEngine,
+    AnalyticContinuousPartialFixedLookbackEngine,
+    AnalyticContinuousPartialFloatingLookbackEngine,
+    AnalyticDigitalAmericanEngine,
+    AnalyticDigitalAmericanKOEngine,
+    AnalyticDiscreteGeometricAveragePriceAsianEngine,
+    AnalyticDividendEuropeanEngine,
+    AnalyticDoubleBarrierBinaryEngine,
+    AnalyticDoubleBarrierEngine,
+    AnalyticEuropeanEngine,
+    AnalyticEuropeanMargrabeEngine,
+    AnalyticGJRGARCHEngine,
+    AnalyticH1HWEngine,
+    AnalyticHaganPricer,
+    AnalyticHestonEngine,
+    AnalyticHestonHullWhiteEngine,
+    AnalyticHolderExtensibleOptionEngine,
+    AnalyticPDFHestonEngine,
+    AnalyticPTDHestonEngine,
+    AnalyticPartialTimeBarrierOptionEngine,
+    AnalyticPerformanceEngine,
+    AnalyticRoughHestonEngine,
+    AnalyticSimpleChooserEngine,
+    AnalyticSoftBarrierEngine,
+    AnalyticWriterExtensibleOptionEngine,
+    AverageBasketPayoff,
+    AverageType,
+    BMASwapRateHelper,
+    BachelierCPICouponPricer,
+    BachelierCapFloorEngine,
+    BachelierSwaptionEngine,
+    BachelierYoYInflationCouponPricer,
+    BaroneAdesiWhaleyEngine,
+    BarrierType,
+    BatesDetJumpEngine,
+    BatesDoubleExpDetJumpEngine,
+    BatesDoubleExpEngine,
+    BatesEngine,
+    BinomialBarrierEngine,
+    BinomialConvertibleEngine,
+    BinomialDoubleBarrierEngine,
+    BjerksundStenslandEngine,
+    BjerksundStenslandSpreadEngine,
+    BlackCPICouponPricer,
+    BlackCallableFixedRateBondEngine,
+    BlackCallableZeroCouponBondEngine,
+    BlackCapFloorEngine,
+    BlackCdsOptionEngine,
+    BlackConstantVol,
+    BlackScholesMertonProcess,
+    BlackSwaptionEngine,
+    BlackVarianceCurve,
+    BlackVarianceSurface,
+    BlackVolTermStructureHandle,
+    BlackYoYInflationCouponPricer,
+    BondPrice,
+    BondPriceType,
+    BusinessDayConvention,
+    CHFCurrency,
+    COSHestonEngine,
+    CPIInterpolationType,
+    CalibrationErrorType,
+    Callability,
+    CallabilityType,
+    CapFloorType,
+    CapletVarianceCurve,
+    CashDividendEuropeanEngine,
+    CashDividendModel,
+    CashFlow,
+    CdsPricingModel,
+    ChoiAsianEngine,
+    ChoiBasketEngine,
+    CmsCouponPricer,
+    CmsSpreadCouponPricer,
+    Compounding,
+    ConstantCPIVolatility,
+    ConstantOptionletVolatility,
+    ConstantSwaptionVolatility,
+    ConstantYoYOptionletVolatility,
+    CoxIngersollRossProcess,
+    DateGeneration,
+    DatedOISRateHelper,
+    DefaultProbabilityHelper,
+    DeltaVolAtmType,
+    DeltaVolDeltaType,
+    DeltaVolQuote,
+    DengLiZhouBasketEngine,
+    DepositRateHelper,
+    DiscountCurve,
+    DividendVector,
+    DoubleBarrierType,
+    DurationType,
+    EUHICP,
+    EURCurrency,
+    EndCriteria,
+    EndCriteriaType,
+    Eonia,
+    Estr,
+    Euribor1Y,
+    Euribor3M,
+    Euribor6M,
+    EuriborSwapIsdaFixA,
+    ExchangeRate,
+    ExchangeRateType,
+    ExponentialFittingHestonEngine,
+    ExtendedOrnsteinUhlenbeckDiscretization,
+    ExtendedOrnsteinUhlenbeckProcess,
+    FFTVanillaEngine,
+    FFTVarianceGammaEngine,
+    Fd2dBlackScholesVanillaEngine,
+    FdBatesVanillaEngine,
+    FdBlackScholesAsianEngine,
+    FdBlackScholesBarrierEngine,
+    FdBlackScholesShoutEngine,
+    FdBlackScholesVanillaEngine,
+    FdCIRVanillaEngine,
+    FdG2SwaptionEngine,
+    FdHestonBarrierEngine,
+    FdHestonDoubleBarrierEngine,
+    FdHestonHullWhiteVanillaEngine,
+    FdHestonVanillaEngine,
+    FdHullWhiteSwaptionEngine,
+    FdSimpleBSSwingEngine,
+    FdSimpleExtOUStorageEngine,
+    FdmQuantoHelper,
+    FdmSchemeDesc,
+    FdmSchemeType,
+    FdndimBlackScholesVanillaEngine,
+    FixedDividend,
+    FlatForward,
+    FlatHazardRate,
+    FlatYoYInflationCurve,
+    FlatZeroInflationCurve,
+    ForwardPerformanceVanillaEngine,
+    ForwardVanillaEngine,
+    FraRateHelper,
+    Frequency,
+    FuturesRateHelper,
+    FuturesType,
+    G2,
+    G2SwaptionEngine,
+    G2TreeSwaptionEngine,
+    GBPCurrency,
+    GBPLibor,
+    GJRGARCHDiscretization,
+    GJRGARCHModel,
+    GJRGARCHProcess,
+    Gaussian1dCapFloorEngine,
+    Gaussian1dJamshidianSwaptionEngine,
+    Gaussian1dSwaptionEngine,
+    GaussianCopulaSpreadEngine,
+    Germany,
+    GermanyMarket,
+    HaltonSequence,
+    HestonComplexLogFormula,
+    HestonDiscretization,
+    HestonProcess,
+    HullWhite,
+    HullWhiteForwardProcess,
+    HullWhiteProcess,
+    HybridHestonHullWhiteDiscretization,
+    HybridHestonHullWhiteProcess,
+    InflationCouponPricer,
+    IntegralHestonVarianceOptionEngine,
+    InterestRate,
+    InterpolatedCPICapFloorTermPriceSurface,
+    InterpolatedHazardRateCurve,
+    InterpolatedYoYCapFloorTermPriceSurface,
+    InterpolatedYoYInflationCurve,
+    InterpolatedZeroCurve,
+    InterpolatedZeroInflationCurve,
+    IsdaCdsAccrualBias,
+    IsdaCdsEngine,
+    IsdaCdsForwardsInCouponPeriod,
+    IsdaCdsNumericalFix,
+    Japan,
+    JointCalendar,
+    JointCalendarRule,
+    JumpDiffusionEngine,
+    KerkhofSeasonality,
+    KirkEngine,
+    LevenbergMarquardt,
+    LfmCovarianceProxy,
+    LfmHullWhiteParameterization,
+    LfmSwaptionEngine,
+    LinearSmileSection,
+    LinearTsrPricer,
+    LmFixedVolatilityModel,
+    LmLinearExponentialVolatilityModel,
+    LognormalCmsSpreadPricer,
+    LowDiscrepancyMultiPathGenerator,
+    MCAmericanBasketEngine,
+    MCBarrierEngine,
+    MCDoubleBarrierEngine,
+    MCEuropeanBasketEngine,
+    MCEuropeanHestonEngine,
+    MCEverestEngine,
+    MCHestonHullWhiteEngine,
+    MCHimalayaEngine,
+    MCHullWhiteCapFloorEngine,
+    MCLookbackEngine,
+    MCPagodaEngine,
+    MCVarianceSwapEngine,
+    MarkovFunctionalModelOutputs,
+    Matrix,
+    MaxBasketPayoff,
+    MergeTimesResult,
+    MersenneTwisterRng,
+    Merton76Process,
+    MidPointCdsEngine,
+    MinBasketPayoff,
+    Money,
+    MoneyConversionType,
+    Month,
+    MultiPathGenerator,
+    NullCalendar,
+    NumericHaganPricer,
+    OISRateHelper,
+    OperatorSplittingOrder,
+    OperatorSplittingSpreadEngine,
+    OptionType,
+    OptionletVolatilityStructureHandle,
+    PartialBarrierRange,
+    PearsonSpreadEngine,
+    Period,
+    PerpetualFuturesFundingType,
+    PerpetualFuturesInterpType,
+    PerpetualFuturesPayoffType,
+    PerturbativeBarrierOptionEngine,
+    PiecewiseConstantCorrelationHandle,
+    PiecewiseHazardRateCurve,
+    PiecewiseLinearDiscountCurve,
+    PiecewiseLogLinearDiscountCurve,
+    PiecewiseTimeDependentHestonModel,
+    PiecewiseYoYInflationCurve,
+    PiecewiseZeroInflationCurve,
+    Position,
+    ProtectionSide,
+    QuantoBarrierEngine,
+    QuantoDoubleBarrierEngine,
+    QuantoEuropeanEngine,
+    QuantoForwardEuropeanEngine,
+    QuantoForwardPerformanceEuropeanEngine,
+    RateAveraging,
+    RateHelper,
+    ReplicatingVarianceSwapEngine,
+    RiskStatistics,
+    RoughHestonApproximation,
+    RoughHestonModel,
+    SGDCurrency,
+    Seasonality,
+    Settings,
+    SettlementMethod,
+    SettlementType,
+    SingleFactorBsmBasketEngine,
+    SobolSequence,
+    Sofr,
+    SofrFutureRateHelper,
+    Sonia,
+    SpreadBasketPayoff,
+    SpreadCdsHelper,
+    StulzEngine,
+    SuoWangDoubleBarrierEngine,
+    SwapRateHelper,
+    SwapSpreadIndex,
+    SwapType,
+    SwaptionPriceType,
+    SwaptionVolatilityStructureHandle,
+    Switzerland,
+    TARGET,
+    THREAD_SAFE_OBSERVER,
+    TRYCurrency,
+    Thirty360,
+    Thirty360Convention,
+    TimeGrid,
+    TimeUnit,
+    TreeCapFloorEngine,
+    TreeSwaptionEngine,
+    Turkey,
+    TurnbullWakemanAsianEngine,
+    UKRPI,
+    USDCurrency,
+    USDLibor,
+    UnitDisplacedBlackYoYInflationCouponPricer,
+    UnitedKingdom,
+    UnitedStates,
+    UnitedStatesMarket,
+    VarianceGammaProcess,
+    VolatilityType,
+    WeekendsOnly,
+    YYEUHICP,
+    YYUKRPI,
+    YearOnYearInflationSwapHelper,
+    YieldCurveModel,
+    YoYInflationCapFloorType,
+    YoYInflationCouponPricer,
+    YoYInflationHelper,
+    YoYInflationIndex,
+    YoYOptionletVolatilitySurfaceHandle,
+    ZeroCouponInflationSwapHelper,
+    ZeroCurve,
+    ZeroInflationHelper,
+    __version__,
+    adjust_serials,
+    black_formula,
+    black_formula_array,
+    black_formula_implied_std_dev,
+    black_formula_implied_std_dev_array,
+    cashflows_accrued_amount,
+    cashflows_npv,
+    check_increasing_times_and_calculate_taus,
+    cpi_lagged_fixing,
+    cumulative_normal_array,
+    date_serials,
+    dates_from_serials,
+    discount_dates,
+    discount_serials,
+    discount_times,
+    exchange_rate_manager_add,
+    exchange_rate_manager_clear,
+    exchange_rate_manager_lookup,
+    exponential_correlations,
+    fdm_black_scholes_mesher_locations,
+    fdm_black_scholes_values,
+    forward_rates_serials,
+    get_evaluation_date,
+    get_money_conversion,
+    inflation_period,
+    inverse_cumulative_normal_array,
+    is_business_day_serials,
+    is_in_money_market_measure,
+    is_in_money_market_plus_measure,
+    is_in_subset,
+    is_in_terminal_measure,
+    lfm_base_integrated_covariance,
+    linear_regression_with_basis,
+    lm_fixed_volatilities_from_caplet_curve,
+    make_bma_swap,
+    make_callability,
+    make_cap,
+    make_cms,
+    make_cpi_leg,
+    make_fix_fix_xccy_swap,
+    make_fix_float_xccy_swap,
+    make_float_float_swap,
+    make_float_float_xccy_swap,
+    make_floor,
+    make_lfm_cap,
+    make_multiple_resets_swap,
+    make_ois,
+    make_quote_handle,
+    make_soft_callability,
+    make_swap_spread_index,
+    make_swaption,
+    make_vanilla_swap,
+    make_yoy_inflation_capfloor,
+    make_yoy_inflation_index,
+    make_yoy_inflation_leg,
+    markov_functional_test_md0_coterminal_helper_vols,
+    markov_functional_test_md0_optionlet_vts,
+    markov_functional_test_md0_swaption_vts,
+    markov_functional_test_md0_yts,
+    merge_times,
+    money_market_measure,
+    money_market_plus_measure,
+    npv_many,
+    set_cpi_coupon_pricer,
+    set_evaluation_date,
+    set_money_conversion,
+    set_yoy_coupon_pricer,
+    simulate_gbm_paths,
+    sinking_notionals,
+    sinking_schedule,
+    terminal_measure,
+    time_homogeneous_forward_correlation,
+    uniform_1d_mesher_locations,
+    year_fractions_serials,
+    zero_rates_serials,
+)
 
 # BEGIN GENERATED COMPAT ALIASES
 
@@ -51,15 +444,15 @@ class AmericanExercise(_native.AmericanExercise):
     def lastDate(self) -> Date: ...
 
 class AmortizingFixedRateBond(_native.AmortizingFixedRateBond):
-    def accruedAmount(self, date: Date = ...) -> float: ...
+    def accruedAmount(self, date: _native.Date = ...) -> float: ...
 
     def bondYield(
         self,
         price: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -75,10 +468,10 @@ class AmortizingFixedRateBond(_native.AmortizingFixedRateBond):
     def cleanPrice(
         self,
         yield_rate: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dayCounter(self) -> DayCounter: ...
@@ -87,22 +480,22 @@ class AmortizingFixedRateBond(_native.AmortizingFixedRateBond):
 
     def maturityDate(self) -> Date: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
     def settlementDate(self) -> Date: ...
 
     def settlementValue(self) -> float: ...
 
 class AmortizingFloatingRateBond(_native.AmortizingFloatingRateBond):
-    def accruedAmount(self, date: Date = ...) -> float: ...
+    def accruedAmount(self, date: _native.Date = ...) -> float: ...
 
     def bondYield(
         self,
         price: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -118,17 +511,17 @@ class AmortizingFloatingRateBond(_native.AmortizingFloatingRateBond):
     def cleanPrice(
         self,
         yield_rate: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dirtyPrice(self) -> float: ...
 
     def maturityDate(self) -> Date: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
     def settlementDate(self) -> Date: ...
 
@@ -160,15 +553,15 @@ class AssetSwap(_native.AssetSwap):
 
     def setPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         include_settlement_date_flows: bool | None = ...,
-        settlement_date: Date = ...,
-        npv_date: Date = ...,
+        settlement_date: _native.Date = ...,
+        npv_date: _native.Date = ...,
     ) -> None: ...
 
 class BMAIndex(_native.BMAIndex):
     def addFixing(
-        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+        self, fixing_date: _native.Date, fixing: float, force_overwrite: bool = ...
     ) -> None: ...
 
     def dayCounter(self) -> DayCounter: ...
@@ -177,7 +570,7 @@ class BMAIndex(_native.BMAIndex):
 
     def fixingDays(self) -> int: ...
 
-    def isValidFixingDate(self, fixing_date: Date) -> bool: ...
+    def isValidFixingDate(self, fixing_date: _native.Date) -> bool: ...
 
 class BMASwap(_native.BMASwap):
     def bmaLegBPS(self) -> float: ...
@@ -198,7 +591,7 @@ class BMASwap(_native.BMASwap):
 
     def liborSpread(self) -> float: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
 class BarrierOption(_native.BarrierOption):
     def errorEstimate(self) -> float: ...
@@ -207,7 +600,7 @@ class BarrierOption(_native.BarrierOption):
         self,
         target_price: float,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date] = ...,
+        dividend_dates: Sequence[_native.Date] = ...,
         dividend_amounts: Sequence[float] = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
@@ -229,7 +622,7 @@ class BarrierOption(_native.BarrierOption):
     def setFdDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -239,8 +632,8 @@ class BarrierOption(_native.BarrierOption):
 
     def setFdHestonDividendPricingEngine(
         self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
+        model: _native.HestonModel,
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -251,7 +644,7 @@ class BarrierOption(_native.BarrierOption):
 
     def setFdHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -295,9 +688,9 @@ class BarrierOption(_native.BarrierOption):
         atm_vol: DeltaVolQuote,
         vol25_put: DeltaVolQuote,
         vol25_call: DeltaVolQuote,
-        spot_fx: QuoteHandle,
-        domestic_ts: YieldTermStructureHandle,
-        foreign_ts: YieldTermStructureHandle,
+        spot_fx: _native.QuoteHandle,
+        domestic_ts: _native.YieldTermStructureHandle,
+        foreign_ts: _native.YieldTermStructureHandle,
         adapt_van_delta: bool = ...,
         bs_price_with_smile: float = ...,
     ) -> None: ...
@@ -466,7 +859,7 @@ class BondForward(_native.BondForward):
 
     def settlementDate(self) -> Date: ...
 
-    def spotIncome(self, income_discount_curve: YieldTermStructureHandle) -> float: ...
+    def spotIncome(self, income_discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def spotValue(self) -> float: ...
 
@@ -482,7 +875,7 @@ class CPIBond(_native.CPIBond):
     def maturityDate(self) -> Date: ...
 
     def setPricingEngine(
-        self, discount_curve: YieldTermStructureHandle
+        self, discount_curve: _native.YieldTermStructureHandle
     ) -> None: ...
 
     def settlementDate(self) -> Date: ...
@@ -495,11 +888,11 @@ class CPICapFloor(_native.CPICapFloor):
     def payDate(self) -> Date: ...
 
     def setPricingEngine(
-        self, price_surface: CPICapFloorTermPriceSurfaceHandle
+        self, price_surface: _native.CPICapFloorTermPriceSurfaceHandle
     ) -> None: ...
 
 class CPICapFloorTermPriceSurfaceHandle(_native.CPICapFloorTermPriceSurfaceHandle):
-    def atmRate(self, maturity: Date) -> float: ...
+    def atmRate(self, maturity: _native.Date) -> float: ...
 
     def capPrice(self, tenor: Period, strike: float) -> float: ...
 
@@ -531,7 +924,7 @@ class CPICoupon(_native.CPICoupon):
 
     def indexFixing(self) -> float: ...
 
-    def indexRatio(self, date: Date) -> float: ...
+    def indexRatio(self, date: _native.Date) -> float: ...
 
     def setPricer(self, pricer: InflationCouponPricer) -> None: ...
 
@@ -547,7 +940,7 @@ class CPICouponPricer(_native.CPICouponPricer):
     def floorletRate(self, effective_floor: float) -> float: ...
 
     def setCapletVolatility(
-        self, caplet_vol: CPIVolatilitySurfaceHandle
+        self, caplet_vol: _native.CPIVolatilitySurfaceHandle
     ) -> None: ...
 
 class CPISwap(_native.CPISwap):
@@ -568,7 +961,7 @@ class CPISwap(_native.CPISwap):
     def isExpired(self) -> bool: ...
 
     def setPricingEngine(
-        self, discount_curve: YieldTermStructureHandle
+        self, discount_curve: _native.YieldTermStructureHandle
     ) -> None: ...
 
 class CPIVolatilitySurfaceHandle(_native.CPIVolatilitySurfaceHandle):
@@ -578,26 +971,26 @@ class CPIVolatilitySurfaceHandle(_native.CPIVolatilitySurfaceHandle):
 
     def totalVariance(
         self,
-        date: Date,
+        date: _native.Date,
         strike: float,
         observation_lag: Period = ...,
         extrapolate: bool = ...,
     ) -> float: ...
 
 class Calendar(_native.Calendar):
-    def isBusinessDay(self, date: Date) -> bool: ...
+    def isBusinessDay(self, date: _native.Date) -> bool: ...
 
-    def isHoliday(self, date: Date) -> bool: ...
+    def isHoliday(self, date: _native.Date) -> bool: ...
 
 class CallableFixedRateBond(_native.CallableFixedRateBond):
     def OAS(
         self,
         clean_price: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_iterations: int = ...,
         guess: float = ...,
@@ -608,11 +1001,11 @@ class CallableFixedRateBond(_native.CallableFixedRateBond):
     def cleanPriceOAS(
         self,
         oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dirtyPrice(self) -> float: ...
@@ -620,8 +1013,8 @@ class CallableFixedRateBond(_native.CallableFixedRateBond):
     def effectiveConvexity(
         self,
         oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
         bump: float = ...,
@@ -630,8 +1023,8 @@ class CallableFixedRateBond(_native.CallableFixedRateBond):
     def effectiveDuration(
         self,
         oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
         bump: float = ...,
@@ -640,7 +1033,7 @@ class CallableFixedRateBond(_native.CallableFixedRateBond):
     def impliedVolatility(
         self,
         target_price: BondPrice,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         accuracy: float = ...,
         max_evaluations: int = ...,
         min_vol: float = ...,
@@ -651,15 +1044,15 @@ class CallableFixedRateBond(_native.CallableFixedRateBond):
 
     def setBlackPricingEngine(
         self,
-        fwd_yield_vol: QuoteHandle | float,
-        discount_curve: YieldTermStructureHandle,
+        fwd_yield_vol: _native.QuoteHandle | float,
+        discount_curve: _native.YieldTermStructureHandle,
     ) -> None: ...
 
     def setTreePricingEngine(
         self,
         model: HullWhite,
         time_steps: int = ...,
-        discount_curve: YieldTermStructureHandle = ...,
+        discount_curve: _native.YieldTermStructureHandle = ...,
     ) -> None: ...
 
     def settlementDate(self) -> Date: ...
@@ -668,11 +1061,11 @@ class CallableZeroCouponBond(_native.CallableZeroCouponBond):
     def OAS(
         self,
         clean_price: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_iterations: int = ...,
         guess: float = ...,
@@ -683,11 +1076,11 @@ class CallableZeroCouponBond(_native.CallableZeroCouponBond):
     def cleanPriceOAS(
         self,
         oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dirtyPrice(self) -> float: ...
@@ -695,8 +1088,8 @@ class CallableZeroCouponBond(_native.CallableZeroCouponBond):
     def effectiveConvexity(
         self,
         oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
         bump: float = ...,
@@ -705,8 +1098,8 @@ class CallableZeroCouponBond(_native.CallableZeroCouponBond):
     def effectiveDuration(
         self,
         oas: float,
-        engine_ts: YieldTermStructureHandle,
-        day_counter: DayCounter,
+        engine_ts: _native.YieldTermStructureHandle,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
         bump: float = ...,
@@ -715,7 +1108,7 @@ class CallableZeroCouponBond(_native.CallableZeroCouponBond):
     def impliedVolatility(
         self,
         target_price: BondPrice,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         accuracy: float = ...,
         max_evaluations: int = ...,
         min_vol: float = ...,
@@ -726,28 +1119,28 @@ class CallableZeroCouponBond(_native.CallableZeroCouponBond):
 
     def setBlackPricingEngine(
         self,
-        fwd_yield_vol: QuoteHandle | float,
-        discount_curve: YieldTermStructureHandle,
+        fwd_yield_vol: _native.QuoteHandle | float,
+        discount_curve: _native.YieldTermStructureHandle,
     ) -> None: ...
 
     def setTreePricingEngine(
         self,
         model: HullWhite,
         time_steps: int = ...,
-        discount_curve: YieldTermStructureHandle = ...,
+        discount_curve: _native.YieldTermStructureHandle = ...,
     ) -> None: ...
 
     def settlementDate(self) -> Date: ...
 
 class Cap(_native.Cap):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def errorEstimate(self) -> float: ...
 
     def impliedVolatility(
         self,
         target_price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         guess: float = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
@@ -762,30 +1155,30 @@ class Cap(_native.Cap):
     def setAnalyticCapFloorPricingEngine(
         self,
         model: HullWhite,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setBachelierPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
     ) -> None: ...
 
     def setGaussian1dPricingEngine(
         self,
-        model: Gsr,
+        model: _native.Gsr,
         integration_points: int = ...,
         stddevs: float = ...,
         extrapolate_payoff: bool = ...,
         flat_payoff_extrapolation: bool = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setLiborForwardPricingEngine(
         self,
-        model: LiborForwardModel,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        model: _native.LiborForwardModel,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setMcHullWhitePricingEngine(
@@ -800,9 +1193,9 @@ class Cap(_native.Cap):
 
     def setPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
 
@@ -810,20 +1203,20 @@ class Cap(_native.Cap):
         self,
         model: HullWhite,
         time_steps: int = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def startDate(self) -> Date: ...
 
 class CapFloor(_native.CapFloor):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def errorEstimate(self) -> float: ...
 
     def impliedVolatility(
         self,
         target_price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         guess: float = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
@@ -838,30 +1231,30 @@ class CapFloor(_native.CapFloor):
     def setAnalyticCapFloorPricingEngine(
         self,
         model: HullWhite,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setBachelierPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
     ) -> None: ...
 
     def setGaussian1dPricingEngine(
         self,
-        model: Gsr,
+        model: _native.Gsr,
         integration_points: int = ...,
         stddevs: float = ...,
         extrapolate_payoff: bool = ...,
         flat_payoff_extrapolation: bool = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setLiborForwardPricingEngine(
         self,
-        model: LiborForwardModel,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        model: _native.LiborForwardModel,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setMcHullWhitePricingEngine(
@@ -876,9 +1269,9 @@ class CapFloor(_native.CapFloor):
 
     def setPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
 
@@ -886,7 +1279,7 @@ class CapFloor(_native.CapFloor):
         self,
         model: HullWhite,
         time_steps: int = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def startDate(self) -> Date: ...
@@ -900,8 +1293,8 @@ class CapHelper(_native.CapHelper):
 
     def setLfmPricingEngine(
         self,
-        model: LiborForwardModel,
-        discount_curve: YieldTermStructureHandle = ...,
+        model: _native.LiborForwardModel,
+        discount_curve: _native.YieldTermStructureHandle = ...,
     ) -> None: ...
 
 class CappedFlooredCmsSpreadCoupon(_native.CappedFlooredCmsSpreadCoupon):
@@ -931,8 +1324,8 @@ class CdsOption(_native.CdsOption):
     def impliedVolatility(
         self,
         target_price: float,
-        discount_curve: YieldTermStructureHandle,
-        probability: DefaultProbabilityTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
+        probability: _native.DefaultProbabilityTermStructureHandle,
         recovery_rate: float,
         accuracy: float = ...,
         max_evaluations: int = ...,
@@ -946,9 +1339,9 @@ class CdsOption(_native.CdsOption):
 
     def setPricingEngine(
         self,
-        probability: DefaultProbabilityTermStructureHandle,
+        probability: _native.DefaultProbabilityTermStructureHandle,
         recovery_rate: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
     ) -> None: ...
 
@@ -969,15 +1362,15 @@ class CmsCoupon(_native.CmsCoupon):
     def setPricer(self, pricer: CmsCouponPricer) -> None: ...
 
 class CmsRateBond(_native.CmsRateBond):
-    def accruedAmount(self, date: Date = ...) -> float: ...
+    def accruedAmount(self, date: _native.Date = ...) -> float: ...
 
     def bondYield(
         self,
         price: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -991,19 +1384,19 @@ class CmsRateBond(_native.CmsRateBond):
     def cleanPrice(
         self,
         yield_rate: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def cleanPriceFromZSpread(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         z_spread: float,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dirtyPrice(self) -> float: ...
@@ -1012,7 +1405,7 @@ class CmsRateBond(_native.CmsRateBond):
 
     def setCmsCouponPricer(self, pricer: CmsCouponPricer) -> None: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
     def settlementDate(self) -> Date: ...
 
@@ -1021,10 +1414,10 @@ class CmsRateBond(_native.CmsRateBond):
     def zSpread(
         self,
         price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -1037,14 +1430,14 @@ class CmsSpreadCoupon(_native.CmsSpreadCoupon):
     def setPricer(self, pricer: CmsSpreadCouponPricer) -> None: ...
 
 class Collar(_native.Collar):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def errorEstimate(self) -> float: ...
 
     def impliedVolatility(
         self,
         target_price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         guess: float = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
@@ -1059,30 +1452,30 @@ class Collar(_native.Collar):
     def setAnalyticCapFloorPricingEngine(
         self,
         model: HullWhite,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setBachelierPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
     ) -> None: ...
 
     def setGaussian1dPricingEngine(
         self,
-        model: Gsr,
+        model: _native.Gsr,
         integration_points: int = ...,
         stddevs: float = ...,
         extrapolate_payoff: bool = ...,
         flat_payoff_extrapolation: bool = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setLiborForwardPricingEngine(
         self,
-        model: LiborForwardModel,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        model: _native.LiborForwardModel,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setMcHullWhitePricingEngine(
@@ -1097,9 +1490,9 @@ class Collar(_native.Collar):
 
     def setPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
 
@@ -1107,7 +1500,7 @@ class Collar(_native.Collar):
         self,
         model: HullWhite,
         time_steps: int = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def startDate(self) -> Date: ...
@@ -1140,11 +1533,11 @@ class ConstNotionalCrossCurrencyBasisSwap(_native.ConstNotionalCrossCurrencyBasi
 
     def setPricingEngine(
         self,
-        domestic_currency: Currency,
-        domestic_discount: YieldTermStructureHandle,
-        foreign_currency: Currency,
-        foreign_discount: YieldTermStructureHandle,
-        spot_fx: QuoteHandle,
+        domestic_currency: _native.Currency,
+        domestic_discount: _native.YieldTermStructureHandle,
+        foreign_currency: _native.Currency,
+        foreign_discount: _native.YieldTermStructureHandle,
+        spot_fx: _native.QuoteHandle,
     ) -> None: ...
 
 class ConstNotionalCrossCurrencyFixedVsFloatingSwap(_native.ConstNotionalCrossCurrencyFixedVsFloatingSwap):
@@ -1162,11 +1555,11 @@ class ConstNotionalCrossCurrencyFixedVsFloatingSwap(_native.ConstNotionalCrossCu
 
     def setPricingEngine(
         self,
-        domestic_currency: Currency,
-        domestic_discount: YieldTermStructureHandle,
-        foreign_currency: Currency,
-        foreign_discount: YieldTermStructureHandle,
-        spot_fx: QuoteHandle,
+        domestic_currency: _native.Currency,
+        domestic_discount: _native.YieldTermStructureHandle,
+        foreign_currency: _native.Currency,
+        foreign_discount: _native.YieldTermStructureHandle,
+        spot_fx: _native.QuoteHandle,
     ) -> None: ...
 
 class ConstNotionalCrossCurrencySwap(_native.ConstNotionalCrossCurrencySwap):
@@ -1182,11 +1575,11 @@ class ConstNotionalCrossCurrencySwap(_native.ConstNotionalCrossCurrencySwap):
 
     def setPricingEngine(
         self,
-        domestic_currency: Currency,
-        domestic_discount: YieldTermStructureHandle,
-        foreign_currency: Currency,
-        foreign_discount: YieldTermStructureHandle,
-        spot_fx: QuoteHandle,
+        domestic_currency: _native.Currency,
+        domestic_discount: _native.YieldTermStructureHandle,
+        foreign_currency: _native.Currency,
+        foreign_discount: _native.YieldTermStructureHandle,
+        spot_fx: _native.QuoteHandle,
     ) -> None: ...
 
 class ContinuousAveragingAsianOption(_native.ContinuousAveragingAsianOption):
@@ -1200,7 +1593,7 @@ class ContinuousAveragingAsianOption(_native.ContinuousAveragingAsianOption):
     def setLevyPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        current_average: QuoteHandle,
+        current_average: _native.QuoteHandle,
     ) -> None: ...
 
     def setPricingEngine(self, process: BlackScholesMertonProcess) -> None: ...
@@ -1208,8 +1601,8 @@ class ContinuousAveragingAsianOption(_native.ContinuousAveragingAsianOption):
     def setVecerPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        current_average: QuoteHandle,
-        start_date: Date,
+        current_average: _native.QuoteHandle,
+        start_date: _native.Date,
         time_steps: int = ...,
         asset_steps: int = ...,
         z_min: float = ...,
@@ -1297,7 +1690,7 @@ class ConvertibleFixedCouponBond(_native.ConvertibleFixedCouponBond):
         self,
         process: BlackScholesMertonProcess,
         time_steps: int,
-        credit_spread: QuoteHandle | float,
+        credit_spread: _native.QuoteHandle | float,
     ) -> None: ...
 
     def settlementDate(self) -> Date: ...
@@ -1315,7 +1708,7 @@ class ConvertibleFloatingRateBond(_native.ConvertibleFloatingRateBond):
         self,
         process: BlackScholesMertonProcess,
         time_steps: int,
-        credit_spread: QuoteHandle | float,
+        credit_spread: _native.QuoteHandle | float,
     ) -> None: ...
 
     def settlementDate(self) -> Date: ...
@@ -1333,7 +1726,7 @@ class ConvertibleZeroCouponBond(_native.ConvertibleZeroCouponBond):
         self,
         process: BlackScholesMertonProcess,
         time_steps: int,
-        credit_spread: QuoteHandle | float,
+        credit_spread: _native.QuoteHandle | float,
     ) -> None: ...
 
     def settlementDate(self) -> Date: ...
@@ -1353,9 +1746,9 @@ class CreditDefaultSwap(_native.CreditDefaultSwap):
 
     def setIsdaPricingEngine(
         self,
-        probability: DefaultProbabilityTermStructureHandle,
+        probability: _native.DefaultProbabilityTermStructureHandle,
         recovery_rate: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         numerical_fix: IsdaCdsNumericalFix = ...,
         accrual_bias: IsdaCdsAccrualBias = ...,
         forwards_in_coupon_period: IsdaCdsForwardsInCouponPeriod = ...,
@@ -1363,9 +1756,9 @@ class CreditDefaultSwap(_native.CreditDefaultSwap):
 
     def setPricingEngine(
         self,
-        probability: DefaultProbabilityTermStructureHandle,
+        probability: _native.DefaultProbabilityTermStructureHandle,
         recovery_rate: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
     ) -> None: ...
 
 class Currency(_native.Currency):
@@ -1390,23 +1783,23 @@ class Date(_native.Date):
     def todaysDate() -> Date: ...
 
 class DayCounter(_native.DayCounter):
-    def dayCount(self, d1: Date, d2: Date) -> int: ...
+    def dayCount(self, d1: _native.Date, d2: _native.Date) -> int: ...
 
-    def yearFraction(self, d1: Date, d2: Date) -> float: ...
+    def yearFraction(self, d1: _native.Date, d2: _native.Date) -> float: ...
 
 class DefaultProbabilityTermStructureHandle(_native.DefaultProbabilityTermStructureHandle):
     def defaultProbability(
-        self, date: Date, extrapolate: bool = ...
+        self, date: _native.Date, extrapolate: bool = ...
     ) -> float: ...
 
-    def hazardRate(self, date: Date, extrapolate: bool = ...) -> float: ...
+    def hazardRate(self, date: _native.Date, extrapolate: bool = ...) -> float: ...
 
     def maxDate(self) -> Date: ...
 
     def referenceDate(self) -> Date: ...
 
     def survivalProbability(
-        self, date: Date | float, extrapolate: bool = ...
+        self, date: _native.Date | float, extrapolate: bool = ...
     ) -> float: ...
 
 class DiscreteAveragingAsianOption(_native.DiscreteAveragingAsianOption):
@@ -1461,7 +1854,7 @@ class DoubleBarrierOption(_native.DoubleBarrierOption):
 
     def setFdHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -1492,9 +1885,9 @@ class DoubleBarrierOption(_native.DoubleBarrierOption):
         atm_vol: DeltaVolQuote,
         vol25_put: DeltaVolQuote,
         vol25_call: DeltaVolQuote,
-        spot_fx: QuoteHandle,
-        domestic_ts: YieldTermStructureHandle,
-        foreign_ts: YieldTermStructureHandle,
+        spot_fx: _native.QuoteHandle,
+        domestic_ts: _native.YieldTermStructureHandle,
+        foreign_ts: _native.YieldTermStructureHandle,
         adapt_van_delta: bool = ...,
         bs_price_with_smile: float = ...,
         series: int = ...,
@@ -1502,7 +1895,7 @@ class DoubleBarrierOption(_native.DoubleBarrierOption):
 
 class EquityIndex(_native.EquityIndex):
     def addFixing(
-        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+        self, fixing_date: _native.Date, fixing: float, force_overwrite: bool = ...
     ) -> None: ...
 
     def fixingCalendar(self) -> Calendar: ...
@@ -1518,7 +1911,7 @@ class EquityTotalReturnSwap(_native.EquityTotalReturnSwap):
 
     def paymentDelay(self) -> int: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
 class EuropeanExercise(_native.EuropeanExercise):
     def lastDate(self) -> Date: ...
@@ -1537,19 +1930,19 @@ class EuropeanOption(_native.EuropeanOption):
     ) -> float: ...
 
     def setBatesDetJumpPricingEngine(
-        self, model: BatesDetJumpModel, integration_order: int = ...
+        self, model: _native.BatesDetJumpModel, integration_order: int = ...
     ) -> None: ...
 
     def setBatesDoubleExpDetJumpPricingEngine(
-        self, model: BatesDoubleExpDetJumpModel, integration_order: int = ...
+        self, model: _native.BatesDoubleExpDetJumpModel, integration_order: int = ...
     ) -> None: ...
 
     def setBatesDoubleExpPricingEngine(
-        self, model: BatesDoubleExpModel, integration_order: int = ...
+        self, model: _native.BatesDoubleExpModel, integration_order: int = ...
     ) -> None: ...
 
     def setBatesPricingEngine(
-        self, model: BatesModel, integration_order: int = ...
+        self, model: _native.BatesModel, integration_order: int = ...
     ) -> None: ...
 
     def setBsmHullWhitePricingEngine(
@@ -1562,25 +1955,25 @@ class EuropeanOption(_native.EuropeanOption):
     def setCashDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         cash_dividend_model: CashDividendModel = ...,
     ) -> None: ...
 
     def setCosHestonPricingEngine(
-        self, model: HestonModel, L: float = ..., N: int = ...
+        self, model: _native.HestonModel, L: float = ..., N: int = ...
     ) -> None: ...
 
     def setDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
     ) -> None: ...
 
     def setExponentialFittingHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         control_variate: HestonComplexLogFormula = ...,
         scaling: float | None = ...,
         alpha: float = ...,
@@ -1588,8 +1981,8 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setFdBatesDividendPricingEngine(
         self,
-        model: BatesModel,
-        dividend_dates: Sequence[Date],
+        model: _native.BatesModel,
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -1600,7 +1993,7 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setFdBatesPricingEngine(
         self,
-        model: BatesModel,
+        model: _native.BatesModel,
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -1611,7 +2004,7 @@ class EuropeanOption(_native.EuropeanOption):
     def setFdDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -1622,8 +2015,8 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setFdHestonDividendPricingEngine(
         self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
+        model: _native.HestonModel,
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -1634,7 +2027,7 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setFdHestonHullWhitePricingEngine(
         self,
-        heston_model: HestonModel,
+        heston_model: _native.HestonModel,
         hw_process: HullWhiteProcess,
         equity_short_rate_correlation: float,
         t_grid: int = ...,
@@ -1648,7 +2041,7 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setFdHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -1658,8 +2051,8 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setFdHestonQuantoDividendPricingEngine(
         self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
+        model: _native.HestonModel,
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         quanto_helper: FdmQuantoHelper,
         t_grid: int = ...,
@@ -1671,7 +2064,7 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setFdHestonQuantoPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         quanto_helper: FdmQuantoHelper,
         t_grid: int = ...,
         x_grid: int = ...,
@@ -1683,7 +2076,7 @@ class EuropeanOption(_native.EuropeanOption):
     def setFdQuantoDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         quanto_helper: FdmQuantoHelper,
         t_grid: int = ...,
@@ -1726,7 +2119,7 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setH1HWPricingEngine(
         self,
-        heston_model: HestonModel,
+        heston_model: _native.HestonModel,
         hull_white_model: "HullWhite",
         equity_short_rate_correlation: float,
         integration_order: int = ...,
@@ -1734,13 +2127,13 @@ class EuropeanOption(_native.EuropeanOption):
 
     def setHestonHullWhitePricingEngine(
         self,
-        heston_model: HestonModel,
+        heston_model: _native.HestonModel,
         hull_white_model: "HullWhite",
         integration_order: int = ...,
     ) -> None: ...
 
     def setHestonPricingEngine(
-        self, model: HestonModel, integration_order: int = ...
+        self, model: _native.HestonModel, integration_order: int = ...
     ) -> None: ...
 
     def setMcHestonHullWhitePricingEngine(
@@ -1818,15 +2211,15 @@ class EvolutionDescription(_native.EvolutionDescription):
     def rateTimes(self) -> list[float]: ...
 
 class FixedRateBond(_native.FixedRateBond):
-    def accruedAmount(self, date: Date = ...) -> float: ...
+    def accruedAmount(self, date: _native.Date = ...) -> float: ...
 
     def bondYield(
         self,
         price: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -1840,26 +2233,26 @@ class FixedRateBond(_native.FixedRateBond):
     def cleanPrice(
         self,
         yield_rate: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def cleanPriceFromZSpread(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         z_spread: float,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dirtyPrice(self) -> float: ...
 
     def maturityDate(self) -> Date: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
     def settlementDate(self) -> Date: ...
 
@@ -1868,10 +2261,10 @@ class FixedRateBond(_native.FixedRateBond):
     def zSpread(
         self,
         price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -1898,18 +2291,18 @@ class FloatFloatSwap(_native.FloatFloatSwap):
 
     def legNPV(self, i: int) -> float: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
 class FloatingRateBond(_native.FloatingRateBond):
-    def accruedAmount(self, date: Date = ...) -> float: ...
+    def accruedAmount(self, date: _native.Date = ...) -> float: ...
 
     def bondYield(
         self,
         price: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -1923,26 +2316,26 @@ class FloatingRateBond(_native.FloatingRateBond):
     def cleanPrice(
         self,
         yield_rate: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def cleanPriceFromZSpread(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         z_spread: float,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dirtyPrice(self) -> float: ...
 
     def maturityDate(self) -> Date: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
     def settlementDate(self) -> Date: ...
 
@@ -1951,10 +2344,10 @@ class FloatingRateBond(_native.FloatingRateBond):
     def zSpread(
         self,
         price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -1965,14 +2358,14 @@ class FloatingTypePayoff(_native.FloatingTypePayoff):
     def optionType(self) -> OptionType: ...
 
 class Floor(_native.Floor):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def errorEstimate(self) -> float: ...
 
     def impliedVolatility(
         self,
         target_price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         guess: float = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
@@ -1987,30 +2380,30 @@ class Floor(_native.Floor):
     def setAnalyticCapFloorPricingEngine(
         self,
         model: HullWhite,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setBachelierPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
     ) -> None: ...
 
     def setGaussian1dPricingEngine(
         self,
-        model: Gsr,
+        model: _native.Gsr,
         integration_points: int = ...,
         stddevs: float = ...,
         extrapolate_payoff: bool = ...,
         flat_payoff_extrapolation: bool = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setLiborForwardPricingEngine(
         self,
-        model: LiborForwardModel,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        model: _native.LiborForwardModel,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def setMcHullWhitePricingEngine(
@@ -2025,9 +2418,9 @@ class Floor(_native.Floor):
 
     def setPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
 
@@ -2035,7 +2428,7 @@ class Floor(_native.Floor):
         self,
         model: HullWhite,
         time_steps: int = ...,
-        discount_curve: YieldTermStructureHandle | None = ...,
+        discount_curve: _native.YieldTermStructureHandle | None = ...,
     ) -> None: ...
 
     def startDate(self) -> Date: ...
@@ -2076,16 +2469,16 @@ class FxForward(_native.FxForward):
     @overload
     def setPricingEngine(
         self,
-        source_curve: YieldTermStructureHandle,
-        target_curve: YieldTermStructureHandle,
-        spot_fx: QuoteHandle,
+        source_curve: _native.YieldTermStructureHandle,
+        target_curve: _native.YieldTermStructureHandle,
+        spot_fx: _native.QuoteHandle,
     ) -> None: ...
 
     @overload
     def setPricingEngine(
         self,
-        source_curve: YieldTermStructureHandle,
-        target_curve: YieldTermStructureHandle,
+        source_curve: _native.YieldTermStructureHandle,
+        target_curve: _native.YieldTermStructureHandle,
         spot_fx: float,
     ) -> None: ...
 
@@ -2127,19 +2520,19 @@ class HestonModelHelper(_native.HestonModelHelper):
     def modelValue(self) -> float: ...
 
     def setCosHestonPricingEngine(
-        self, model: HestonModel, L: float = ..., N: int = ...
+        self, model: _native.HestonModel, L: float = ..., N: int = ...
     ) -> None: ...
 
     def setExponentialFittingHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         control_variate: HestonComplexLogFormula = ...,
         scaling: float | None = ...,
         alpha: float = ...,
     ) -> None: ...
 
     def setPricingEngine(
-        self, model: HestonModel, integration_order: int = ...
+        self, model: _native.HestonModel, integration_order: int = ...
     ) -> None: ...
 
 class HimalayaOption(_native.HimalayaOption):
@@ -2166,7 +2559,7 @@ class HolderExtensibleOption(_native.HolderExtensibleOption):
 
 class IborIndex(_native.IborIndex):
     def addFixing(
-        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+        self, fixing_date: _native.Date, fixing: float, force_overwrite: bool = ...
     ) -> None: ...
 
     def businessDayConvention(self) -> BusinessDayConvention: ...
@@ -2225,7 +2618,7 @@ class LiborForwardModelProcess(_native.LiborForwardModelProcess):
 
     def nextIndexReset(self, t: float) -> int: ...
 
-    def setCovarParam(self, covar_param: LfmCovarianceParameterization) -> None: ...
+    def setCovarParam(self, covar_param: _native.LfmCovarianceParameterization) -> None: ...
 
 class LinearRegression(_native.LinearRegression):
     def standardErrors(self) -> list[float]: ...
@@ -2310,12 +2703,12 @@ class MultipleResetsSwap(_native.MultipleResetsSwap):
 
     def resetsPerCoupon(self) -> int: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
 class MultiplicativePriceSeasonality(_native.MultiplicativePriceSeasonality):
     def seasonalityBaseDate(self) -> Date: ...
 
-    def seasonalityFactor(self, date: Date) -> float: ...
+    def seasonalityFactor(self, date: _native.Date) -> float: ...
 
     def seasonalityFactors(self) -> list[float]: ...
 
@@ -2338,14 +2731,14 @@ class NonstandardSwap(_native.NonstandardSwap):
 
     def paymentConvention(self) -> BusinessDayConvention: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
 class NonstandardSwaption(_native.NonstandardSwaption):
     def isExpired(self) -> bool: ...
 
     def setGaussian1dPricingEngine(
         self,
-        model: Gsr,
+        model: _native.Gsr,
         integration_points: int = ...,
         stddevs: float = ...,
         extrapolate_payoff: bool = ...,
@@ -2360,7 +2753,7 @@ class NonstandardSwaption(_native.NonstandardSwaption):
 
 class OvernightIndex(_native.OvernightIndex):
     def addFixing(
-        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+        self, fixing_date: _native.Date, fixing: float, force_overwrite: bool = ...
     ) -> None: ...
 
     def dayCounter(self) -> DayCounter: ...
@@ -2383,7 +2776,7 @@ class OvernightIndexedSwap(_native.OvernightIndexedSwap):
 
     def fairSpread(self) -> float: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
 class PagodaOption(_native.PagodaOption):
     def errorEstimate(self) -> float: ...
@@ -2413,9 +2806,9 @@ class PerpetualFutures(_native.PerpetualFutures):
 
     def setPricingEngine(
         self,
-        domestic_curve: YieldTermStructureHandle,
-        foreign_curve: YieldTermStructureHandle,
-        asset_spot: QuoteHandle,
+        domestic_curve: _native.YieldTermStructureHandle,
+        foreign_curve: _native.YieldTermStructureHandle,
+        asset_spot: _native.QuoteHandle,
         funding_times: Sequence[float],
         funding_rates: Sequence[float],
         interest_rate_diffs: Sequence[float],
@@ -2432,9 +2825,9 @@ class QuantoBarrierOption(_native.QuantoBarrierOption):
     def setPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
+        foreign_risk_free_rate: _native.YieldTermStructureHandle,
         exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
+        correlation: _native.QuoteHandle | float,
     ) -> None: ...
 
 class QuantoDoubleBarrierOption(_native.QuantoDoubleBarrierOption):
@@ -2443,9 +2836,9 @@ class QuantoDoubleBarrierOption(_native.QuantoDoubleBarrierOption):
     def setPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
+        foreign_risk_free_rate: _native.YieldTermStructureHandle,
         exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
+        correlation: _native.QuoteHandle | float,
     ) -> None: ...
 
 class QuantoForwardVanillaOption(_native.QuantoForwardVanillaOption):
@@ -2454,17 +2847,17 @@ class QuantoForwardVanillaOption(_native.QuantoForwardVanillaOption):
     def setPerformancePricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
+        foreign_risk_free_rate: _native.YieldTermStructureHandle,
         exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
+        correlation: _native.QuoteHandle | float,
     ) -> None: ...
 
     def setPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
+        foreign_risk_free_rate: _native.YieldTermStructureHandle,
         exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
+        correlation: _native.QuoteHandle | float,
     ) -> None: ...
 
 class QuantoVanillaOption(_native.QuantoVanillaOption):
@@ -2473,9 +2866,9 @@ class QuantoVanillaOption(_native.QuantoVanillaOption):
     def setPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        foreign_risk_free_rate: YieldTermStructureHandle,
+        foreign_risk_free_rate: _native.YieldTermStructureHandle,
         exchange_rate_volatility: object,
-        correlation: QuoteHandle | float,
+        correlation: _native.QuoteHandle | float,
     ) -> None: ...
 
 class Quote(_native.Quote):
@@ -2487,14 +2880,14 @@ class QuoteHandle(_native.QuoteHandle):
 class RelinkableQuoteHandle(_native.RelinkableQuoteHandle):
     def currentLink(self) -> Quote: ...
 
-    def linkTo(self, value: Quote) -> None: ...
+    def linkTo(self, value: _native.Quote) -> None: ...
 
 class RelinkableYoYInflationTermStructureHandle(_native.RelinkableYoYInflationTermStructureHandle):
     def asHandle(self) -> YoYInflationTermStructureHandle: ...
 
     def hasSeasonality(self) -> bool: ...
 
-    def linkTo(self, handle: YoYInflationTermStructureHandle) -> None: ...
+    def linkTo(self, handle: _native.YoYInflationTermStructureHandle) -> None: ...
 
     def setSeasonality(self, seasonality: object | None = ...) -> None: ...
 
@@ -2503,7 +2896,7 @@ class RelinkableZeroInflationTermStructureHandle(_native.RelinkableZeroInflation
 
     def hasSeasonality(self) -> bool: ...
 
-    def linkTo(self, handle: ZeroInflationTermStructureHandle) -> None: ...
+    def linkTo(self, handle: _native.ZeroInflationTermStructureHandle) -> None: ...
 
     def setSeasonality(self, seasonality: object | None = ...) -> None: ...
 
@@ -2565,12 +2958,12 @@ class Swap(_native.Swap):
     def setCmsCouponPricer(self, pricer: CmsCouponPricer) -> None: ...
 
     def setPricingEngine(
-        self, discount_curve: YieldTermStructureHandle
+        self, discount_curve: _native.YieldTermStructureHandle
     ) -> None: ...
 
 class SwapIndex(_native.SwapIndex):
     def addFixing(
-        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+        self, fixing_date: _native.Date, fixing: float, force_overwrite: bool = ...
     ) -> None: ...
 
     def dayCounter(self) -> DayCounter: ...
@@ -2579,13 +2972,13 @@ class SwapIndex(_native.SwapIndex):
 
     def fixingDays(self) -> int: ...
 
-    def valueDate(self, fixing_date: Date) -> Date: ...
+    def valueDate(self, fixing_date: _native.Date) -> Date: ...
 
 class Swaption(_native.Swaption):
     def impliedVolatility(
         self,
         target_price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         guess: float = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
@@ -2600,9 +2993,9 @@ class Swaption(_native.Swaption):
 
     def setBachelierPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
     ) -> None: ...
 
     def setFdG2PricingEngine(
@@ -2634,11 +3027,11 @@ class Swaption(_native.Swaption):
         self, model: G2, time_steps: int = ...
     ) -> None: ...
 
-    def setGaussian1dJamshidianPricingEngine(self, model: Gsr) -> None: ...
+    def setGaussian1dJamshidianPricingEngine(self, model: _native.Gsr) -> None: ...
 
     def setGaussian1dPricingEngine(
         self,
-        model: Gsr,
+        model: _native.Gsr,
         integration_points: int = ...,
         stddevs: float = ...,
         extrapolate_payoff: bool = ...,
@@ -2649,15 +3042,15 @@ class Swaption(_native.Swaption):
 
     def setLfmPricingEngine(
         self,
-        model: LiborForwardModel,
-        discount_curve: YieldTermStructureHandle,
+        model: _native.LiborForwardModel,
+        discount_curve: _native.YieldTermStructureHandle,
     ) -> None: ...
 
     def setPricingEngine(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         volatility: float,
-        day_counter: DayCounter = ...,
+        day_counter: _native.DayCounter = ...,
         displacement: float = ...,
     ) -> None: ...
 
@@ -2678,7 +3071,7 @@ class SwaptionHelper(_native.SwaptionHelper):
 
     def setGaussian1dPricingEngine(
         self,
-        model: MarkovFunctional,
+        model: _native.MarkovFunctional,
         integration_points: int = ...,
         stddevs: float = ...,
         extrapolate_payoff: bool = ...,
@@ -2687,8 +3080,8 @@ class SwaptionHelper(_native.SwaptionHelper):
 
     def setLfmPricingEngine(
         self,
-        model: LiborForwardModel,
-        discount_curve: YieldTermStructureHandle = ...,
+        model: _native.LiborForwardModel,
+        discount_curve: _native.YieldTermStructureHandle = ...,
     ) -> None: ...
 
 class SwingExercise(_native.SwingExercise):
@@ -2701,7 +3094,7 @@ class TwoAssetBarrierOption(_native.TwoAssetBarrierOption):
         self,
         process1: BlackScholesMertonProcess,
         process2: BlackScholesMertonProcess,
-        rho: QuoteHandle | float,
+        rho: _native.QuoteHandle | float,
     ) -> None: ...
 
 class TwoAssetCorrelationOption(_native.TwoAssetCorrelationOption):
@@ -2711,7 +3104,7 @@ class TwoAssetCorrelationOption(_native.TwoAssetCorrelationOption):
         self,
         process1: BlackScholesMertonProcess,
         process2: BlackScholesMertonProcess,
-        correlation: QuoteHandle | float,
+        correlation: _native.QuoteHandle | float,
     ) -> None: ...
 
 class VanillaForwardPayoff(_native.VanillaForwardPayoff):
@@ -2721,19 +3114,19 @@ class VanillaOption(_native.VanillaOption):
     def errorEstimate(self) -> float: ...
 
     def setBatesDetJumpPricingEngine(
-        self, model: BatesDetJumpModel, integration_order: int = ...
+        self, model: _native.BatesDetJumpModel, integration_order: int = ...
     ) -> None: ...
 
     def setBatesDoubleExpDetJumpPricingEngine(
-        self, model: BatesDoubleExpDetJumpModel, integration_order: int = ...
+        self, model: _native.BatesDoubleExpDetJumpModel, integration_order: int = ...
     ) -> None: ...
 
     def setBatesDoubleExpPricingEngine(
-        self, model: BatesDoubleExpModel, integration_order: int = ...
+        self, model: _native.BatesDoubleExpModel, integration_order: int = ...
     ) -> None: ...
 
     def setBatesPricingEngine(
-        self, model: BatesModel, integration_order: int = ...
+        self, model: _native.BatesModel, integration_order: int = ...
     ) -> None: ...
 
     def setBinomialPricingEngine(
@@ -2747,7 +3140,7 @@ class VanillaOption(_native.VanillaOption):
     def setCashDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         cash_dividend_model: CashDividendModel = ...,
     ) -> None: ...
@@ -2757,11 +3150,11 @@ class VanillaOption(_native.VanillaOption):
         f0: float,
         alpha: float,
         beta: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
     ) -> None: ...
 
     def setCosHestonPricingEngine(
-        self, model: HestonModel, L: float = ..., N: int = ...
+        self, model: _native.HestonModel, L: float = ..., N: int = ...
     ) -> None: ...
 
     def setDigitalAmericanKoPricingEngine(
@@ -2775,13 +3168,13 @@ class VanillaOption(_native.VanillaOption):
     def setDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
     ) -> None: ...
 
     def setExponentialFittingHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         control_variate: HestonComplexLogFormula = ...,
         scaling: float | None = ...,
         alpha: float = ...,
@@ -2789,8 +3182,8 @@ class VanillaOption(_native.VanillaOption):
 
     def setFdBatesDividendPricingEngine(
         self,
-        model: BatesModel,
-        dividend_dates: Sequence[Date],
+        model: _native.BatesModel,
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -2801,7 +3194,7 @@ class VanillaOption(_native.VanillaOption):
 
     def setFdBatesPricingEngine(
         self,
-        model: BatesModel,
+        model: _native.BatesModel,
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -2814,7 +3207,7 @@ class VanillaOption(_native.VanillaOption):
         f0: float,
         alpha: float,
         beta: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         t_grid: int = ...,
         x_grid: int = ...,
         damping_steps: int = ...,
@@ -2838,7 +3231,7 @@ class VanillaOption(_native.VanillaOption):
     def setFdDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -2849,8 +3242,8 @@ class VanillaOption(_native.VanillaOption):
 
     def setFdHestonDividendPricingEngine(
         self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
+        model: _native.HestonModel,
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         t_grid: int = ...,
         x_grid: int = ...,
@@ -2861,7 +3254,7 @@ class VanillaOption(_native.VanillaOption):
 
     def setFdHestonHullWhitePricingEngine(
         self,
-        heston_model: HestonModel,
+        heston_model: _native.HestonModel,
         hw_process: HullWhiteProcess,
         equity_short_rate_correlation: float,
         t_grid: int = ...,
@@ -2875,7 +3268,7 @@ class VanillaOption(_native.VanillaOption):
 
     def setFdHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         t_grid: int = ...,
         x_grid: int = ...,
         v_grid: int = ...,
@@ -2885,8 +3278,8 @@ class VanillaOption(_native.VanillaOption):
 
     def setFdHestonQuantoDividendPricingEngine(
         self,
-        model: HestonModel,
-        dividend_dates: Sequence[Date],
+        model: _native.HestonModel,
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         quanto_helper: FdmQuantoHelper,
         t_grid: int = ...,
@@ -2898,7 +3291,7 @@ class VanillaOption(_native.VanillaOption):
 
     def setFdHestonQuantoPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         quanto_helper: FdmQuantoHelper,
         t_grid: int = ...,
         x_grid: int = ...,
@@ -2919,7 +3312,7 @@ class VanillaOption(_native.VanillaOption):
     def setFdQuantoDividendPricingEngine(
         self,
         process: BlackScholesMertonProcess,
-        dividend_dates: Sequence[Date],
+        dividend_dates: Sequence[_native.Date],
         dividend_amounts: Sequence[float],
         quanto_helper: FdmQuantoHelper,
         t_grid: int = ...,
@@ -2950,7 +3343,7 @@ class VanillaOption(_native.VanillaOption):
     def setGjrGarchPricingEngine(self, model: GJRGARCHModel) -> None: ...
 
     def setHestonPricingEngine(
-        self, model: HestonModel, integration_order: int = ...
+        self, model: _native.HestonModel, integration_order: int = ...
     ) -> None: ...
 
     def setJumpDiffusionPricingEngine(
@@ -2984,7 +3377,7 @@ class VanillaOption(_native.VanillaOption):
 
     def setPdfHestonPricingEngine(
         self,
-        model: HestonModel,
+        model: _native.HestonModel,
         gauss_lobatto_eps: float = ...,
         gauss_lobatto_integration_order: int = ...,
     ) -> None: ...
@@ -3011,7 +3404,7 @@ class VanillaStorageOption(_native.VanillaStorageOption):
     def setFdPricingEngine(
         self,
         process: ExtendedOrnsteinUhlenbeckProcess,
-        risk_free_ts: YieldTermStructureHandle,
+        risk_free_ts: _native.YieldTermStructureHandle,
         t_grid: int = ...,
         x_grid: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
@@ -3020,7 +3413,7 @@ class VanillaStorageOption(_native.VanillaStorageOption):
     def setPricingEngine(
         self,
         process: ExtendedOrnsteinUhlenbeckProcess,
-        risk_free_ts: YieldTermStructureHandle,
+        risk_free_ts: _native.YieldTermStructureHandle,
         t_grid: int = ...,
         x_grid: int = ...,
         scheme_desc: FdmSchemeDesc = ...,
@@ -3031,7 +3424,7 @@ class VanillaSwap(_native.VanillaSwap):
 
     def fairSpread(self) -> float: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
 class VanillaSwingOption(_native.VanillaSwingOption):
     def isExpired(self) -> bool: ...
@@ -3107,7 +3500,7 @@ class YearOnYearInflationSwap(_native.YearOnYearInflationSwap):
     def maturityDate(self) -> Date: ...
 
     def setPricingEngine(
-        self, discount_curve: YieldTermStructureHandle
+        self, discount_curve: _native.YieldTermStructureHandle
     ) -> None: ...
 
     def startDate(self) -> Date: ...
@@ -3119,8 +3512,8 @@ class YieldTermStructureHandle(_native.YieldTermStructureHandle):
 
     def zeroRate(
         self,
-        date: Date,
-        day_counter: DayCounter,
+        date: _native.Date,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency = ...,
         extrapolate: bool = ...,
@@ -3129,12 +3522,12 @@ class YieldTermStructureHandle(_native.YieldTermStructureHandle):
 class YoYCapFloorTermPriceSurfaceHandle(_native.YoYCapFloorTermPriceSurfaceHandle):
     def YoYTS(self) -> YoYInflationTermStructureHandle: ...
 
-    def atmYoYRate(self, date: Date, extrapolate: bool = ...) -> float: ...
+    def atmYoYRate(self, date: _native.Date, extrapolate: bool = ...) -> float: ...
 
     def atmYoYSwapDateRates(self) -> tuple[list[Date], list[float]]: ...
 
     def atmYoYSwapRate(
-        self, date: Date, extrapolate: bool = ...
+        self, date: _native.Date, extrapolate: bool = ...
     ) -> float: ...
 
     def atmYoYSwapTimeRates(self) -> tuple[list[float], list[float]]: ...
@@ -3150,7 +3543,7 @@ class YoYCapFloorTermPriceSurfaceHandle(_native.YoYCapFloorTermPriceSurfaceHandl
     def observationLag(self) -> Period: ...
 
 class YoYInflationCap(_native.YoYInflationCap):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def isExpired(self) -> bool: ...
 
@@ -3160,14 +3553,14 @@ class YoYInflationCap(_native.YoYInflationCap):
         self,
         index: YoYInflationIndex,
         volatility: YoYOptionletVolatilitySurfaceHandle,
-        nominal: YieldTermStructureHandle,
+        nominal: _native.YieldTermStructureHandle,
         model: str = ...,
     ) -> None: ...
 
     def startDate(self) -> Date: ...
 
 class YoYInflationCapFloor(_native.YoYInflationCapFloor):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def isExpired(self) -> bool: ...
 
@@ -3177,14 +3570,14 @@ class YoYInflationCapFloor(_native.YoYInflationCapFloor):
         self,
         index: YoYInflationIndex,
         volatility: YoYOptionletVolatilitySurfaceHandle,
-        nominal: YieldTermStructureHandle,
+        nominal: _native.YieldTermStructureHandle,
         model: str = ...,
     ) -> None: ...
 
     def startDate(self) -> Date: ...
 
 class YoYInflationCollar(_native.YoYInflationCollar):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def isExpired(self) -> bool: ...
 
@@ -3194,7 +3587,7 @@ class YoYInflationCollar(_native.YoYInflationCollar):
         self,
         index: YoYInflationIndex,
         volatility: YoYOptionletVolatilitySurfaceHandle,
-        nominal: YieldTermStructureHandle,
+        nominal: _native.YieldTermStructureHandle,
         model: str = ...,
     ) -> None: ...
 
@@ -3212,7 +3605,7 @@ class YoYInflationCoupon(_native.YoYInflationCoupon):
     def yoyIndex(self) -> YoYInflationIndex: ...
 
 class YoYInflationFloor(_native.YoYInflationFloor):
-    def atmRate(self, discount_curve: YieldTermStructureHandle) -> float: ...
+    def atmRate(self, discount_curve: _native.YieldTermStructureHandle) -> float: ...
 
     def isExpired(self) -> bool: ...
 
@@ -3222,7 +3615,7 @@ class YoYInflationFloor(_native.YoYInflationFloor):
         self,
         index: YoYInflationIndex,
         volatility: YoYOptionletVolatilitySurfaceHandle,
-        nominal: YieldTermStructureHandle,
+        nominal: _native.YieldTermStructureHandle,
         model: str = ...,
     ) -> None: ...
 
@@ -3241,18 +3634,18 @@ class YoYInflationTermStructureHandle(_native.YoYInflationTermStructureHandle):
 
     def setSeasonality(self, seasonality: object | None = ...) -> None: ...
 
-    def yoyRate(self, date: Date, extrapolate: bool = ...) -> float: ...
+    def yoyRate(self, date: _native.Date, extrapolate: bool = ...) -> float: ...
 
 class ZeroCouponBond(_native.ZeroCouponBond):
-    def accruedAmount(self, date: Date = ...) -> float: ...
+    def accruedAmount(self, date: _native.Date = ...) -> float: ...
 
     def bondYield(
         self,
         price: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -3266,26 +3659,26 @@ class ZeroCouponBond(_native.ZeroCouponBond):
     def cleanPrice(
         self,
         yield_rate: float,
-        day_counter: DayCounter,
+        day_counter: _native.DayCounter,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def cleanPriceFromZSpread(
         self,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         z_spread: float,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
     ) -> float: ...
 
     def dirtyPrice(self) -> float: ...
 
     def maturityDate(self) -> Date: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
     def settlementDate(self) -> Date: ...
 
@@ -3294,10 +3687,10 @@ class ZeroCouponBond(_native.ZeroCouponBond):
     def zSpread(
         self,
         price: float,
-        discount_curve: YieldTermStructureHandle,
+        discount_curve: _native.YieldTermStructureHandle,
         compounding: Compounding,
         frequency: Frequency,
-        settlement_date: Date = ...,
+        settlement_date: _native.Date = ...,
         accuracy: float = ...,
         max_evaluations: int = ...,
         guess: float = ...,
@@ -3322,7 +3715,7 @@ class ZeroCouponInflationSwap(_native.ZeroCouponInflationSwap):
     def maturityDate(self) -> Date: ...
 
     def setPricingEngine(
-        self, discount_curve: YieldTermStructureHandle
+        self, discount_curve: _native.YieldTermStructureHandle
     ) -> None: ...
 
     def startDate(self) -> Date: ...
@@ -3332,7 +3725,7 @@ class ZeroCouponSwap(_native.ZeroCouponSwap):
 
     def fairFixedPayment(self) -> float: ...
 
-    def fairFixedRate(self, day_counter: DayCounter) -> float: ...
+    def fairFixedRate(self, day_counter: _native.DayCounter) -> float: ...
 
     def fixedLegNPV(self) -> float: ...
 
@@ -3344,7 +3737,7 @@ class ZeroCouponSwap(_native.ZeroCouponSwap):
 
     def maturityDate(self) -> Date: ...
 
-    def setPricingEngine(self, discount_curve: YieldTermStructureHandle) -> None: ...
+    def setPricingEngine(self, discount_curve: _native.YieldTermStructureHandle) -> None: ...
 
     def startDate(self) -> Date: ...
 
@@ -3355,7 +3748,7 @@ class ZeroInflationCashFlow(_native.ZeroInflationCashFlow):
 
 class ZeroInflationIndex(_native.ZeroInflationIndex):
     def addFixing(
-        self, fixing_date: Date, fixing: float, force_overwrite: bool = ...
+        self, fixing_date: _native.Date, fixing: float, force_overwrite: bool = ...
     ) -> None: ...
 
     def availabilityLag(self) -> Period: ...
@@ -3375,7 +3768,7 @@ class ZeroInflationTermStructureHandle(_native.ZeroInflationTermStructureHandle)
 
     def setSeasonality(self, seasonality: object | None = ...) -> None: ...
 
-    def zeroRate(self, date: Date, extrapolate: bool = ...) -> float: ...
+    def zeroRate(self, date: _native.Date, extrapolate: bool = ...) -> float: ...
 
 # END GENERATED COMPAT ALIASES
 
