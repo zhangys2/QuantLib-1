@@ -37,14 +37,22 @@ namespace QuantLib {
         virtual ~VarianceClockBundleSource() = default;
 
         /*! \brief Read the complete raw bytes for a flat bundle filename.
-            \param flatName One of `manifest.json`, `profiles.csv`, `market_days.csv`,
-                   `session_segments.csv`, `timezone_mapping.csv`, or `slot_evidence.csv`.
-            \param maxBytes Maximum permitted byte count for the returned file.
+
+            The loader calls this once per file, in this order: `manifest.json`,
+            `profiles.csv`, `market_days.csv`, `session_segments.csv`,
+            `timezone_mapping.csv`, `slot_evidence.csv`.
+            \param flatName One of the six names above.
+            \param maxBytes Maximum permitted byte count for this call. It can be smaller than
+                   the fixed per-file limit, and can differ between calls, because it also
+                   reflects the bundle-size and memory limits left at that point. It can be zero.
             \return The file's unmodified bytes. Implementations must reject files larger than
                     `maxBytes` before allocating or reading beyond that limit. The loader
-                    independently checks the returned vector's size.
+                    independently checks the returned vector's size, and charges its capacity to
+                    its memory budget, so return a vector no larger than needed. The CSV files
+                    are checked against digests in the manifest; the manifest itself has no digest.
             \throws Error for source failures such as a missing, unreadable, or oversized file.
-                    Other implementation exceptions can also propagate through the loader.
+                    The loader does not catch exceptions, so any other exception thrown by an
+                    implementation also propagates to the caller.
         */
         virtual std::vector<unsigned char> read(const std::string& flatName,
                                                 std::size_t maxBytes) const = 0;
@@ -54,7 +62,7 @@ namespace QuantLib {
 
         // Reads the six bundle files from a native directory path.
         //
-        // Contract for callers (the loader in B5):
+        // Contract for callers (the bundle loader):
         //  - Construct a new source inside every load. The root's entries are checked once,
         //    in the constructor, so a source kept across loads does not notice entries that
         //    are added or replaced afterwards.
