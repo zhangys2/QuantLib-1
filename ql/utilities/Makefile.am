@@ -15,9 +15,14 @@ this_include_HEADERS = \
     variants.hpp \
     vectors.hpp
 
+noinst_HEADERS = \
+    detail/thirdparty/nlohmann/json.hpp \
+    detail/variancesha256.hpp
+
 cpp_files = \
     dataformatters.cpp \
     dataparsers.cpp \
+    detail/variancesha256.cpp \
     tracing.cpp
 
 if UNITY_BUILD

@@ -912,6 +912,16 @@ set(QL_SOURCES
     time/businessdayconvention.cpp
     time/calendar.cpp
     time/variancecalendar.cpp
+    time/varianceclock.cpp
+    time/varianceclockbundle.cpp
+    time/varianceclockbundledata.cpp
+    time/varianceclockbundleevidence.cpp
+    time/varianceclockbundlesource.cpp
+    time/varianceclockcsv.cpp
+    time/varianceclockmanifest.cpp
+    # Keep this private header in the target without installing it.
+    time/varianceclockdetail.hpp
+    time/varianceclocktables.cpp
     time/calendars/argentina.cpp
     time/calendars/australia.cpp
     time/calendars/austria.cpp
@@ -985,6 +995,7 @@ set(QL_SOURCES
     timegrid.cpp
     utilities/dataformatters.cpp
     utilities/dataparsers.cpp
+    utilities/detail/variancesha256.cpp
     utilities/tracing.cpp
     version.cpp
 )
@@ -2244,6 +2255,12 @@ set(QL_HEADERS
     time/businessdayconvention.hpp
     time/calendar.hpp
     time/variancecalendar.hpp
+    time/varianceclock.hpp
+    time/varianceclockbundle.hpp
+    time/varianceclockbundlesource.hpp
+    time/varianceclockbundletypes.hpp
+    time/varianceclockinstant.hpp
+    time/varianceclocktables.hpp
     time/calendars/argentina.hpp
     time/calendars/australia.hpp
     time/calendars/austria.hpp
@@ -2338,6 +2355,16 @@ set(QL_HEADERS
     utilities/vectors.hpp
     version.hpp
     volatilitymodel.hpp
+)
+
+set(QL_PRIVATE_HEADERS
+    time/varianceclockbundlecapture.hpp
+    time/varianceclockbundledata.hpp
+    time/varianceclockbundleevidence.hpp
+    time/varianceclockcsv.hpp
+    time/varianceclockmanifest.hpp
+    utilities/detail/thirdparty/nlohmann/json.hpp
+    utilities/detail/variancesha256.hpp
 )
 
 set(QL_CONFIGURED_HEADERS
@@ -2466,12 +2493,14 @@ add_custom_command(OUTPUT ${QL_GENERATED_HEADERS}
         -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
         -DBINARY_DIR=${PROJECT_BINARY_DIR}
         -P ${PROJECT_SOURCE_DIR}/cmake/GenerateHeaders.cmake
+    DEPENDS ${PROJECT_SOURCE_DIR}/cmake/GenerateHeaders.cmake
     COMMENT "Generating headers..."
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 add_library(ql_library
     ${QL_SOURCES}
     ${QL_HEADERS}
+    ${QL_PRIVATE_HEADERS}
     ${QL_CONFIGURED_HEADERS}
     ${QL_GENERATED_HEADERS})
 

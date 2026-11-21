@@ -14,6 +14,12 @@
 #include <ql/time/schedule.hpp>
 #include <ql/time/timeunit.hpp>
 #include <ql/time/variancecalendar.hpp>
+#include <ql/time/varianceclock.hpp>
+#include <ql/time/varianceclockbundle.hpp>
+#include <ql/time/varianceclockbundlesource.hpp>
+#include <ql/time/varianceclockbundletypes.hpp>
+#include <ql/time/varianceclockinstant.hpp>
+#include <ql/time/varianceclocktables.hpp>
 #include <ql/time/weekday.hpp>
 
 #include <ql/time/calendars/all.hpp>

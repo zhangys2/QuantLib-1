@@ -24,6 +24,8 @@ set(QL_TEST_SOURCES
     businessdayconventions.cpp
     calendars.cpp
     variancecalendar.cpp
+    varianceclock.cpp
+    varianceclockbundle.cpp
     callablebonds.cpp
     capfloor.cpp
     capflooredcoupon.cpp
@@ -202,6 +204,8 @@ set(QL_TEST_HEADERS
 
 
 if (QL_BUILD_TEST_SUITE)
+    find_package(Threads REQUIRED)
+
     add_library(ql_test OBJECT ${QL_TEST_SOURCES} ${QL_TEST_HEADERS})
     if (NOT Boost_USE_STATIC_LIBS)
         target_compile_definitions(ql_test PUBLIC BOOST_ALL_DYN_LINK)
@@ -210,18 +214,23 @@ if (QL_BUILD_TEST_SUITE)
         # for Unity builds, we need to add /bigobj
         target_compile_options(ql_test PUBLIC "/bigobj")
     endif()
-    target_link_libraries(ql_test PUBLIC ql_library ${QL_THREAD_LIBRARIES})
+    target_link_libraries(ql_test PUBLIC ql_library ${QL_THREAD_LIBRARIES} Threads::Threads)
 
 
     add_executable(ql_test_suite quantlibtestsuite.cpp)
     set_source_files_properties(quantlibtestsuite.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION true)
     set_target_properties(ql_test_suite PROPERTIES OUTPUT_NAME "quantlib-test-suite")
-    target_link_libraries(ql_test_suite PRIVATE ql_test) 
+    target_link_libraries(ql_test_suite PRIVATE ql_test Threads::Threads)
 
     if (QL_INSTALL_TEST_SUITE)
         install(TARGETS ql_test_suite RUNTIME DESTINATION ${QL_INSTALL_BINDIR})
     endif()
     add_test(NAME quantlib_test_suite COMMAND ql_test_suite --log_level=message)
+    add_test(NAME quantlib_generated_header_visibility
+        COMMAND ${CMAKE_COMMAND}
+            "-DQL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+            "-DQL_BINARY_DIR=${PROJECT_BINARY_DIR}"
+            -P ${PROJECT_SOURCE_DIR}/cmake/CheckGeneratedHeaders.cmake)
 
 
     add_executable(ql_benchmark quantlibbenchmark.cpp)

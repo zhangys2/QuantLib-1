@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
     - name: Setup
       run: |
         sudo rm /etc/apt/sources.list.d/microsoft-prod.list
@@ -36,7 +39,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -GNinja -DBOOST_ROOT=/usr -DCMAKE_BUILD_TYPE=Release -DQL_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -L
+        cmake .. -GNinja -DBOOST_ROOT=/usr -DCMAKE_BUILD_TYPE=Release -DQL_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DQL_BUILD_VARIANCECLOCK_PROBE=ON -L
         cat ql/config.hpp
         cmake --build . --verbose
         sudo cmake --install .
@@ -44,6 +47,19 @@ jobs:
     - name: Test
       run: |
         quantlib-test-suite --log_level=message
+    - name: Run variance schedule C++ round trips
+      env:
+        QL_VARIANCE_CLOCK_BUNDLE_REQUIRE_CPP: "1"
+        QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE: ${{ github.workspace }}/build/test-suite/quantlib-test-suite
+      run: |
+        python -m pip install pytest -r tools/variance_schedule/intraday-requirements.txt
+        python -m pytest -q tools/variance_schedule/test_bundle.py tools/variance_schedule/test_bundle_extra.py
+    - name: Run variance-clock probe
+      run: |
+        ctest --test-dir build -R variance_clock_probe --output-on-failure
+    - name: Check generated header visibility
+      run: |
+        ctest --test-dir build -R '^quantlib_generated_header_visibility$' --output-on-failure --no-tests=error
     - name: Run benchmark
       run: |
         quantlib-benchmark --size=1
@@ -51,6 +67,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
     - name: Setup
       run: |
         sudo rm /etc/apt/sources.list.d/microsoft-prod.list
@@ -74,6 +93,13 @@ jobs:
     - name: Test
       run: |
         quantlib-test-suite --log_level=message
+    - name: Run variance schedule C++ round trips
+      env:
+        QL_VARIANCE_CLOCK_BUNDLE_REQUIRE_CPP: "1"
+        QL_VARIANCE_CLOCK_BUNDLE_TEST_EXECUTABLE: ${{ github.workspace }}/build/linux-ci-build-with-nonstandard-options/test-suite/quantlib-test-suite
+      run: |
+        python -m pip install pytest -r tools/variance_schedule/intraday-requirements.txt
+        python -m pytest -q tools/variance_schedule/test_bundle.py tools/variance_schedule/test_bundle_extra.py
   cmake-win:
     runs-on: windows-2022
     steps:

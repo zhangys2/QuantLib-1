@@ -27,7 +27,14 @@ EXTRA_DIST = \
 	QuantLib.vcxproj \
 	QuantLib.vcxproj.filters \
 	README.md \
-	autogen.sh
+	ql/utilities/detail/thirdparty/LICENSE-nlohmann-json.txt \
+	ql/utilities/detail/thirdparty/THIRD_PARTY_NOTICES.md \
+	autogen.sh \
+	test-probes/varianceclock/CMakeLists.txt \
+	test-probes/varianceclock/varianceclock_probe.hpp \
+	test-probes/varianceclock/varianceclock_probe_controls.cpp \
+	test-probes/varianceclock/varianceclock_probe_hooks.cpp \
+	test-probes/varianceclock/varianceclock_probe.vcxproj
 
 .PHONY: examples check-examples
 examples:
@@ -46,6 +53,7 @@ docs:
 dist-hook:
 	mkdir -p $(distdir)/build
 	mkdir -p $(distdir)/cmake
+	cp -p $(srcdir)/cmake/CheckGeneratedHeaders.cmake $(distdir)/cmake
 	cp -p $(srcdir)/cmake/GenerateHeaders.cmake $(distdir)/cmake
 	cp -p $(srcdir)/cmake/Platform.cmake $(distdir)/cmake
 	cp -p $(srcdir)/cmake/QuantLibConfig.cmake.in $(distdir)/cmake

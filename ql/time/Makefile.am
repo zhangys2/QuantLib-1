@@ -19,7 +19,18 @@ this_include_HEADERS = \
     schedule.hpp \
     timeunit.hpp \
     variancecalendar.hpp \
+    varianceclock.hpp \
+    varianceclockbundle.hpp \
+    varianceclockbundlesource.hpp \
+    varianceclockbundletypes.hpp \
+    varianceclockinstant.hpp \
+    varianceclocktables.hpp \
     weekday.hpp
+
+noinst_HEADERS = varianceclockbundlecapture.hpp varianceclockbundledata.hpp \
+    varianceclockbundleevidence.hpp varianceclockcsv.hpp \
+    varianceclockdetail.hpp \
+    varianceclockmanifest.hpp
 
 cpp_files = \
     asx.cpp \
@@ -34,6 +45,14 @@ cpp_files = \
     schedule.cpp \
     timeunit.cpp \
     variancecalendar.cpp \
+    varianceclock.cpp \
+    varianceclockbundle.cpp \
+    varianceclockbundledata.cpp \
+    varianceclockbundleevidence.cpp \
+    varianceclockbundlesource.cpp \
+    varianceclockcsv.cpp \
+    varianceclockmanifest.cpp \
+    varianceclocktables.cpp \
     weekday.cpp
 
 if UNITY_BUILD

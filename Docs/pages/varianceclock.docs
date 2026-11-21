@@ -1,0 +1,151 @@
+/*
+ Copyright (C) 2026 QuantLib contributors
+
+ This file is part of QuantLib, a free-software/open-source library
+ for financial quantitative analysts and developers - http://quantlib.org/
+
+ QuantLib is free software: you can redistribute it and/or modify it
+ under the terms of the QuantLib license.  You should have received a
+ copy of the license along with this program; if not, please email
+ <quantlib-dev@lists.sf.net>. The license is also available online at
+ <https://www.quantlib.org/license.shtml>.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE.  See the license for more details.
+*/
+
+/*! \page variance_clock Variance clock: fixed-snapshot runtime
+
+`VarianceClock` integrates a supplied, market-specific variance-rate schedule.
+Its unit is **weighted days**, not annualized volatility or price variance.
+It does not change the existing `VarianceCalendar::weight` API, which linearly
+interpolates point weights and applies category multipliers. A clock profile
+instead supplies the complete constant rate for each local five-minute slot.
+The cumulative clock is consequently linear *within* a slot, without
+interpolating the rates at its boundaries.
+
+## Inputs and time
+
+Construct `VarianceClockTables`, then pass it to
+`makeVarianceClockSnapshot(std::move(tables))`. Each profile contains 288
+nonnegative finite binary64 weights and a calibration-as-of instant. Local
+dates select profiles; explicit UTC intervals supply offsets and repeated-time
+fold markers. The caller supplies these market and time-zone mappings: the
+clock neither infers holidays and half days nor consults a time-zone database.
+Offsets must be divisible by 300 seconds.
+
+`VarianceClockInstant` represents POSIX seconds and a nonnegative nanosecond
+fraction. Days have 86,400 POSIX seconds and leap seconds are not represented.
+Use `tryCreate` to construct a valid instant; the default is invalid.
+Coverage is a nonempty `[start, end)` interval, and both endpoints are valid
+query instants. Endpoints and transitions can fall inside slots. Each actual
+elapsed interval is counted through spring-forward and fall-back transitions.
+Construction rejects invalid mappings and rates, and conservatively rejects
+`maxWeight * coverageDays > DBL_MAX / 4`.
+
+## Validated bundle loading
+
+`loadVarianceClockBundle(source)` validates the fixed six-file manifest and CSV
+bundle, verifies each CSV's SHA-256 against the manifest, and returns a complete
+`VarianceClockSnapshot` with structured warnings and provenance. The
+`loadVarianceClockBundleFromDirectory(nativeDirectory)` wrapper reads a native
+directory; it must be used on a control path. Both APIs default to
+`VarianceClockLoadMode::Strict`. Loading returns a candidate snapshot; activation
+remains an explicit caller operation. A failure returns no partial result and
+cannot mutate an active `VarianceClock`.
+
+Strict mode sets provenance `availableFrom` to `generated_at_utc` and requires
+`generated_at_utc < coverage_end_utc`. A regenerated historical bundle can
+therefore load in Strict mode when it still has future coverage, but an earlier
+valuation returns `BeforeCalibration`. An explicitly requested
+`VarianceClockLoadMode::Reconstruction` omits `generated_at_utc` from the
+availability maximum; it still validates all other evidence and cutoff rules.
+Reconstruction records `reconstructed=true` and the chosen mode in returned
+provenance only; neither is stored in the snapshot or `VarianceClock`.
+It can load a purely historical bundle when its evidence and remaining checks
+are valid.
+
+The loader reads and retains each input once, in manifest-then-fixed-CSV order,
+hashes the captured CSV bytes, and parses those same bytes. It enforces per-file
+and aggregate byte limits, strict CSV/JSON schemas, cross-file evidence
+relationships, and the load-memory budget. `VarianceClockBundleWarning` carries
+the derived warning code, severity, profile, target group, minute, and evidence
+IDs; provenance carries the snapshot ID, validated evidence IDs, availability,
+and load mode. SHA-256 establishes byte equality with the manifest, not publisher
+authenticity or the truth/completeness of the underlying market data. The query
+path continues to perform no file I/O.
+
+The directory wrapper builds a new source on every call and checks the bundle root
+when it does: the root must be a real directory (a symlink or reparse point as the
+final component is rejected), may contain only the six bundle files, and its path
+must not contain `.` or `..` components, including relative forms such as
+`./bundle`; pass an absolute or otherwise dot-free path. The root must not be
+modified while a load runs. The manifest has no digest of its own; it is validated
+structurally and the CSV files are verified against it.
+
+## Queries and numerical contract
+
+Construct a fixed owner with the snapshot, capture a `VarianceClockView`, and
+prepare a `VarianceClockExpiryToken` for each expiry. A token stores the expiry
+position and generation identity, not a rounded global cumulative value.
+Reuse the captured view and tokens for queries:
+
+- `view.remaining(t, token)` integrates directly over `[t, T)`. It is
+  mathematically `v(T) - v(t)`, but does **not** subtract rounded cumulative
+  values. It sums nonnegative partial slots and balanced range-tree nodes.
+- `view.cumulativeFromCoverageStart(t)` returns the clock from coverage start.
+  Subtracting two such rounded results does not have the error guarantee of
+  `remaining()`.
+- `view.coverageStart()` and `view.coverageEnd()` return invalid instants for
+  an invalid view. A failed `prepareExpiry` leaves its output token unchanged.
+
+For the default IEEE-754 binary64 configuration, the interval acceptance
+budget against an independent reference of at least 50 decimal digits is
+`abs(actual - reference) <= 1e-12 + 1e-10 * abs(reference)` weighted days.
+This is numerical error, not a bound on calibration or market-model error.
+Rate contributions are evaluated as `weight * (duration / 86400)` to avoid
+an avoidable intermediate overflow.
+
+For `remaining`, status precedence is `InvalidView`, `InvalidToken`,
+`StaleToken`, `InvalidInstant`, `OutOfCoverage`, `Expired`,
+`BeforeCalibration`, then `Ok`. A covered `t >= T` returns `Expired` without
+checking calibration. A nonempty interval requires the snapshot
+`availableFrom` and every used profile's calibration-as-of to be no later than
+the valuation instant, including profiles with zero rate. Cumulative queries
+apply the same rule over `[start, t)`. An empty cumulative interval is `Ok`.
+All non-`Ok` results have `weightedDays == 0.0`; an eligible zero-rate interval
+is `Ok` with zero. `varianceClockAsReal` separately converts an `Ok` or
+`Expired` result and rejects other statuses. Construction errors use QuantLib
+error macros; query methods instead return statuses and are `noexcept`.
+
+## Lifetime and scope
+
+Views and tokens retain their immutable activation generation. Activation is
+mutex-guarded; a new capture observes either the complete old generation or the
+complete new one. An old view remains paired with its old token, while using
+that token with a newly captured view returns `StaleToken`, including after an
+A-to-B-to-equivalent-A sequence. The owner retains each replaced generation
+before publishing its successor, so releasing a view or token cannot destroy
+retired snapshot storage on that reader thread. The retired list grows until
+`reclaim()` is called on a control thread; it removes generations owned only by
+the manager and destroys them after dropping the mutex. The list can therefore
+grow without bound if reclamation is not called.
+
+`shutdown()` returns `false` without changing the active state while any view or
+token retains a generation. Once handles are released, successful shutdown
+destroys all owned snapshots on the control thread, makes capture return an
+invalid view, and makes future activation fail. Shutdown is terminal. Destroy
+views and tokens before destroying the owner: a violation aborts in debug
+builds. In release builds, surviving handles retain and eventually destroy
+their generation, outside any off-query reclamation guarantee. Capture,
+activation, reclamation, and shutdown must not race with owner destruction.
+
+The numeric query implementation performs no intended clock-owned allocation
+or file I/O. Snapshot construction and activation are control-path operations
+and can allocate. Bundle loading, hashing, CSV/JSON parsing, historical
+calibration, and source provenance are outside this implementation. A supplied
+availability cutoff does not itself prove source authenticity or point-in-time
+provenance.
+
+*/

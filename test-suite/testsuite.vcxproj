@@ -669,6 +669,8 @@
     <ClCompile Include="businessdayconventions.cpp" />
     <ClCompile Include="calendars.cpp" />
     <ClCompile Include="variancecalendar.cpp" />
+    <ClCompile Include="varianceclock.cpp" />
+    <ClCompile Include="varianceclockbundle.cpp" />
     <ClCompile Include="callablebonds.cpp" />
     <ClCompile Include="capfloor.cpp" />
     <ClCompile Include="capflooredcoupon.cpp" />

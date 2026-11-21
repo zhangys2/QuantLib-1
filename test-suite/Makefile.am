@@ -25,6 +25,8 @@ QL_TEST_SRCS = \
 	businessdayconventions.cpp \
 	calendars.cpp \
 	variancecalendar.cpp \
+	varianceclock.cpp \
+	varianceclockbundle.cpp \
 	callablebonds.cpp \
 	capfloor.cpp \
 	capflooredcoupon.cpp \
@@ -244,9 +246,11 @@ EXTRA_DIST =
 
 endif 
 
+quantlib_test_suite_LDFLAGS = -pthread
 quantlib_test_suite_LDADD = ${top_builddir}/ql/libQuantLib.la \
                             ${PTHREAD_LIB} ${BOOST_INTERPROCESS_LIB}
 
+quantlib_benchmark_LDFLAGS = -pthread
 quantlib_benchmark_LDADD = ${top_builddir}/ql/libQuantLib.la \
                            ${PTHREAD_LIB} ${BOOST_INTERPROCESS_LIB}
 
