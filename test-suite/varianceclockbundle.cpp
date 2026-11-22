@@ -4083,7 +4083,7 @@ BOOST_AUTO_TEST_CASE(testFallbackApprovalRulesInTheValidator) {
         ",1,not_applicable,1,not_applicable,fallback,,not_applicable,fb,,";
     BOOST_CHECK_NO_THROW([&] {
         QuantLib::detail::VarianceClockLoadBudget budget;
-        return validateBundleEvidence(fallbackFixture(knownTail), budget);
+        (void)validateBundleEvidence(fallbackFixture(knownTail), budget);
     }());
     checkBundleEvidenceRejectedWith(fallbackFixture(knownTail, false),
                                     "fallback lacks manifest approval");
