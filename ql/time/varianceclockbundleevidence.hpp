@@ -27,6 +27,9 @@
 #include <ql/time/varianceclockbundletypes.hpp>
 #include <ql/time/varianceclockbundledata.hpp>
 #include <ql/time/varianceclockcsv.hpp>
+#include <map>
+#include <set>
+#include <string>
 #include <vector>
 
 namespace QuantLib {
@@ -39,12 +42,40 @@ namespace QuantLib {
             VarianceClockLoadBudget::Reservation storageCharge;
         };
 
-        VarianceClockValidatedBundle validateVarianceClockBundleEvidence(
-            const VarianceClockManifest& manifest,
-            const VarianceClockBundleCsvBytes& csv,
-            ParsedVarianceClockTables&& parsed,
-            VarianceClockLoadMode mode,
-            VarianceClockLoadBudget& budget);
+        class VarianceClockBundleEvidenceContext {
+          public:
+            VarianceClockBundleEvidenceContext(const VarianceClockManifest& manifest,
+                                               VarianceClockLoadMode mode,
+                                               VarianceClockLoadBudget& budget);
+            VarianceClockBundleEvidenceContext(const VarianceClockBundleEvidenceContext&) = delete;
+            VarianceClockBundleEvidenceContext& operator=(
+                const VarianceClockBundleEvidenceContext&) = delete;
+            VarianceClockBundleEvidenceContext(VarianceClockBundleEvidenceContext&&) = delete;
+            VarianceClockBundleEvidenceContext& operator=(
+                VarianceClockBundleEvidenceContext&&) = delete;
+
+            void attachStorageCharge(VarianceClockLoadBudget::Reservation& charge) noexcept;
+            void validateProfileCalibrations(
+                std::vector<VarianceClockProfileInput>& profiles);
+            void validateSessionRow(const VarianceClockSessionSegmentRow& row);
+            void validateSlotRow(const VarianceClockSlotEvidenceRow& row,
+                                 const std::vector<VarianceClockProfileInput>& profiles);
+            VarianceClockValidatedBundle finish(ParsedVarianceClockTables&& parsed);
+
+          private:
+            using EvidenceMap =
+                std::map<std::string, const VarianceClockManifestEvidence*>;
+
+            const VarianceClockManifest& manifest_;
+            VarianceClockLoadMode mode_;
+            VarianceClockLoadBudget& budget_;
+            VarianceClockLoadBudget::Reservation evidenceCharge_;
+            VarianceClockLoadBudget::Reservation* storageCharge_ = nullptr;
+            EvidenceMap evidence_;
+            std::set<std::string> used_;
+            std::vector<VarianceClockBundleWarning> warnings_;
+            VarianceClockInstant latestAvailability_;
+        };
 
     }
 }

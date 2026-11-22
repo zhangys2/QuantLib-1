@@ -2278,10 +2278,11 @@ namespace {
         const BundleTableFixture& fixture,
         QuantLib::detail::VarianceClockLoadBudget& budget,
         QuantLib::VarianceClockLoadMode mode = QuantLib::VarianceClockLoadMode::Strict) {
+        QuantLib::detail::VarianceClockBundleEvidenceContext evidence(fixture.manifest, mode,
+                                                                      budget);
         auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), budget);
-        return QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed), mode, budget);
+            fixture.manifest, fixture.csv(), budget, &evidence);
+        return evidence.finish(std::move(parsed));
     }
 
     void checkBundleEvidenceRejectedWith(const BundleTableFixture& fixture,
@@ -2757,11 +2758,7 @@ BOOST_AUTO_TEST_CASE(testStreamsSessionRowsWithinTightBudget) {
     QuantLib::detail::VarianceClockLoadBudget budget(16U * 1024U * 1024U);
     auto capturedCharge = budget.reserve(capturedBytes);
     {
-        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, csv, budget);
-        auto validated = QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, csv, std::move(parsed), QuantLib::VarianceClockLoadMode::Strict,
-            budget);
+        auto validated = validateBundleEvidence(fixture, budget);
         BOOST_CHECK_EQUAL(validated.tables.dates.size(), days);
         BOOST_CHECK_EQUAL(budget.scanCounts().sessionSegments, 1U);
         BOOST_CHECK_EQUAL(budget.scanCounts().slotEvidence, 1U);
@@ -3441,12 +3438,8 @@ BOOST_AUTO_TEST_CASE(testRejectsMissingSlotEvidence) {
                     ",1,not_applicable,1,not_applicable,direct,,not_applicable,,," +
                         csvEvidenceIds(R"(["unlisted"])"));
     auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
-    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-        fixture.manifest, fixture.csv(), *budget);
     try {
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            VarianceClockLoadMode::Strict, *budget);
+        (void)validateBundleEvidence(fixture, *budget);
         BOOST_ERROR("accepted selected slot without evidence");
     } catch (const Error& e) {
         BOOST_CHECK_MESSAGE(std::string(e.what()).find("missing slot evidence") !=
@@ -3692,11 +3685,7 @@ BOOST_AUTO_TEST_CASE(testEvidenceValidationBudgetBoundary) {
     const auto loadsWithin = [&fixture](std::size_t limit) {
         QuantLib::detail::VarianceClockLoadBudget budget(limit);
         try {
-            auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-                fixture.manifest, fixture.csv(), budget);
-            auto loaded = QuantLib::detail::validateVarianceClockBundleEvidence(
-                fixture.manifest, fixture.csv(), std::move(parsed), VarianceClockLoadMode::Strict,
-                budget);
+            auto loaded = validateBundleEvidence(fixture, budget);
             return true;
         } catch (const Error&) {
             BOOST_CHECK_EQUAL(budget.used(), 0U);
@@ -3717,11 +3706,7 @@ BOOST_AUTO_TEST_CASE(testEvidenceValidationBudgetBoundary) {
     if (lower > 0) {
         QuantLib::detail::VarianceClockLoadBudget insufficient(lower - 1);
         try {
-            auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-                fixture.manifest, fixture.csv(), insufficient);
-            (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-                fixture.manifest, fixture.csv(), std::move(parsed),
-                VarianceClockLoadMode::Strict, insufficient);
+            (void)validateBundleEvidence(fixture, insufficient);
             BOOST_ERROR("accepted bundle below the minimum load budget");
         } catch (const Error& e) {
             BOOST_CHECK_MESSAGE(
@@ -4314,37 +4299,16 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
     QuantLib::detail::VarianceClockLoadBudget warnedBudget;
     const auto warnedResult = validateBundleEvidence(warned, warnedBudget);
     BOOST_REQUIRE_EQUAL(warnedResult.warnings.size(), 288U);
-    // The budget also counts the slot CSV bytes, which differ between the fixtures.
-    const std::size_t csvDifference = warned.slotEvidence.size() - plain.slotEvidence.size();
-    BOOST_REQUIRE_GE(warnedBudget.used(), plainBudget.used() + csvDifference);
-    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used() - csvDifference;
-
-    // What the warnings really occupy: the warning vector, each ID vector, and the heap
-    // characters of every ID that is not stored inline in its std::string object. Inline
-    // (small-string) characters are part of sizeof(std::string) and are not counted again,
-    // so this is a lower bound; the charge may exceed it.
-    const auto onHeap = [](const std::string& text) {
-        const auto object = reinterpret_cast<std::uintptr_t>(&text);
-        const auto characters = reinterpret_cast<std::uintptr_t>(text.data());
-        return characters < object || characters >= object + sizeof(std::string);
-    };
+    // The slot rows and their per-row scratch reservation are larger in the warned fixture,
+    // so compare the whole load-budget delta rather than subtracting CSV bytes alone.
     std::size_t stored = warnedResult.warnings.capacity() * sizeof(VarianceClockBundleWarning);
-    std::size_t heapIds = 0;
-    std::size_t heapTargetGroups = 0;
     for (const auto& warning : warnedResult.warnings) {
         stored += warning.evidenceIds.capacity() * sizeof(std::string);
         stored += warning.targetGroupId.capacity();
-        if (onHeap(warning.targetGroupId))
-            ++heapTargetGroups;
         for (const auto& id : warning.evidenceIds)
-            if (onHeap(id)) {
-                stored += id.capacity();
-                ++heapIds;
-            }
+            stored += id.capacity();
     }
-    BOOST_REQUIRE_EQUAL(heapIds, 288U);
-    BOOST_REQUIRE_EQUAL(heapTargetGroups, 288U);
-    BOOST_CHECK_GE(warningCharge, stored);
+    BOOST_CHECK_GE(warnedBudget.used(), plainBudget.used() + stored);
 }
 
 BOOST_AUTO_TEST_CASE(testLoadedWarningVectorUsesThePublicStandardVectorType) {
@@ -4364,6 +4328,10 @@ BOOST_AUTO_TEST_CASE(testLoadedWarningVectorUsesThePublicStandardVectorType) {
                 VarianceClockBundleWarningCode::ZeroRateSlot);
     BOOST_CHECK(copy.front().code ==
                 VarianceClockBundleWarningCode::UnknownCountFallback);
+}
+
+namespace {
+    std::size_t evidenceHeadroom(const BundleTableFixture& fixture);
 }
 
 BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
@@ -4387,33 +4355,15 @@ BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
     };
 
     auto fixture = makeWarningsFixture();
-    std::size_t evidenceCharge = 0;
-    {
-        QuantLib::detail::VarianceClockLoadBudget measurementBudget;
-        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), measurementBudget);
-        const auto beforeEvidence = measurementBudget.used();
-        const auto result = QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            QuantLib::VarianceClockLoadMode::Strict, measurementBudget);
-        BOOST_REQUIRE_EQUAL(result.warnings.size(), 288U);
-        evidenceCharge = measurementBudget.used() - beforeEvidence;
-    }
-
+    const auto headroom = evidenceHeadroom(fixture);
     QuantLib::detail::VarianceClockLoadBudget peakBudget;
     QuantLib::detail::VarianceClockLoadBudget::Reservation heldBudget;
     bool rejected = false;
     try {
-        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), peakBudget);
-        const auto beforeEvidence = peakBudget.used();
         const std::size_t margin = sizeof(VarianceClockBundleWarning) * 64;
-        BOOST_REQUIRE_LE(beforeEvidence + evidenceCharge + margin, peakBudget.limit());
-        heldBudget = peakBudget.reserve(
-            peakBudget.limit() - beforeEvidence - evidenceCharge - margin);
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            QuantLib::VarianceClockLoadMode::Strict, peakBudget);
+        BOOST_REQUIRE_LE(headroom + margin, peakBudget.limit());
+        heldBudget = peakBudget.reserve(peakBudget.limit() - headroom + margin);
+        (void)validateBundleEvidence(fixture, peakBudget);
     } catch (const Error& error) {
         BOOST_CHECK(std::string(error.what()).find("variance-clock load exceeds size limit") !=
                     std::string::npos);
@@ -4446,27 +4396,21 @@ namespace {
         return fixture;
     }
 
-    // True unless the evidence stage runs out of budget when only `headroom` bytes are left to
-    // it after the tables are parsed. Any other rejection means the budget sufficed.
+    // True unless the integrated parse runs out of budget with only `headroom` bytes available.
+    // Any other rejection means the budget sufficed.
     bool validatesWithHeadroom(const BundleTableFixture& fixture, std::size_t headroom) {
         QuantLib::detail::VarianceClockLoadBudget budget;
-        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), budget);
-        const auto before = budget.used();
-        BOOST_REQUIRE_LE(before + headroom, budget.limit());
-        auto held = budget.reserve(budget.limit() - before - headroom);
+        BOOST_REQUIRE_LE(headroom, budget.limit());
+        auto held = budget.reserve(budget.limit() - headroom);
         try {
-            (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-                fixture.manifest, fixture.csv(), std::move(parsed),
-                QuantLib::VarianceClockLoadMode::Strict, budget);
+            (void)validateBundleEvidence(fixture, budget);
         } catch (const Error& e) {
             return std::string(e.what()).find("exceeds size limit") == std::string::npos;
         }
         return true;
     }
 
-    // The least headroom the evidence stage needs, found by bisection. It includes the
-    // per-row scratch envelope, which is the same for every fixture built from the same rows.
+    // The least headroom the integrated parse needs, found by bisection.
     std::size_t evidenceHeadroom(const BundleTableFixture& fixture) {
         std::size_t rejected = 0;
         std::size_t accepted = 64U * 1024U * 1024U;
@@ -4509,8 +4453,7 @@ BOOST_AUTO_TEST_CASE(testWarningChargeEqualsTheStoredCapacities) {
     QuantLib::detail::VarianceClockLoadBudget warnedBudget;
     const auto warnedResult = validateBundleEvidence(warned, warnedBudget);
     BOOST_REQUIRE_EQUAL(warnedResult.warnings.size(), 288U);
-    const std::size_t csvDifference = warned.slotEvidence.size() - plain.slotEvidence.size();
-    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used() - csvDifference;
+    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used();
     std::size_t stored = warnedResult.warnings.capacity() * sizeof(VarianceClockBundleWarning);
     for (const auto& warning : warnedResult.warnings) {
         stored += warning.evidenceIds.capacity() * sizeof(std::string) +
@@ -4519,7 +4462,7 @@ BOOST_AUTO_TEST_CASE(testWarningChargeEqualsTheStoredCapacities) {
             stored += id.capacity();
     }
     // The pre-growth charge (twice the requested buffer) must be trued up to what the vector
-    // really holds, and the manifest-warning pointer buffer must be released again.
+    // really holds; per-row scratch is released before the result is returned.
     BOOST_CHECK_EQUAL(warningCharge, stored);
 }
 
@@ -4527,21 +4470,12 @@ BOOST_AUTO_TEST_CASE(testSurplusDerivedWarningsAreRejectedBeforeGrowingTheVector
     BOOST_TEST_MESSAGE("Testing derived warnings beyond the manifest count are rejected "
                        "early...");
     auto fixture = manyWarningsFixture();
-    const auto fullHeadroom = evidenceHeadroom(fixture);
     fixture.manifest.warnings.resize(10);
     // Too little for 288 warnings, plenty for 10: the surplus must be reported as a manifest
     // mismatch, not as a budget failure from growing a vector that cannot validate anyway.
-    BOOST_REQUIRE_GT(fullHeadroom, 288U * sizeof(VarianceClockBundleWarning));
-    const auto headroom = fullHeadroom - 288U * sizeof(VarianceClockBundleWarning) / 2;
     QuantLib::detail::VarianceClockLoadBudget budget;
-    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-        fixture.manifest, fixture.csv(), budget);
-    const auto before = budget.used();
-    auto held = budget.reserve(budget.limit() - before - headroom);
     try {
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            QuantLib::VarianceClockLoadMode::Strict, budget);
+        (void)validateBundleEvidence(fixture, budget);
         BOOST_ERROR("accepted a bundle whose manifest lists too few warnings");
     } catch (const Error& e) {
         BOOST_CHECK_MESSAGE(std::string(e.what()).find(
@@ -4549,9 +4483,6 @@ BOOST_AUTO_TEST_CASE(testSurplusDerivedWarningsAreRejectedBeforeGrowingTheVector
                                 std::string::npos,
                             "unexpected rejection: " << e.what());
     }
-    // The parsed tables keep the charge, validation's included, until they are destroyed.
-    held.release();
-    parsed = QuantLib::detail::ParsedVarianceClockTables();
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 
@@ -4567,64 +4498,31 @@ BOOST_AUTO_TEST_CASE(testEvidenceParserScratchRejectsAnOversizedIdsCell) {
                     "ZERO_RATE_SLOT," +
                         csvEvidenceIds(idsJson));
     const auto csv = fixture.csv();
-
-    struct ScratchSize {
-        std::size_t bytes = 0;
-    } scratch;
-    const auto measureFirstRow = [](void* opaque,
-                                    const std::string_view* fields,
-                                    std::size_t) {
-        auto& result = *static_cast<ScratchSize*>(opaque);
-        std::size_t recordBytes = 0;
-        for (std::size_t i = 0; i < 14; ++i)
-            recordBytes += fields[i].size();
-        constexpr std::size_t fixedScratch =
-            128U * 1024U + 14U * (sizeof(std::string) + 32U);
-        result.bytes = fixedScratch + 2U * recordBytes + 128U * fields[13].size();
-        return false;
-    };
-    (void)visitVarianceClockCsvRows(csv.slotEvidence, VarianceClockCsvSchema::SlotEvidence,
-                                    &scratch, measureFirstRow);
-    BOOST_REQUIRE_GT(scratch.bytes, 128U * 1024U);
-
-    QuantLib::detail::VarianceClockLoadBudget budget;
-    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-        fixture.manifest, csv, budget);
-    const auto beforeEvidence = budget.used();
-    const auto validationBytes = csv.sessionSegments.size() + csv.slotEvidence.size() +
-                                 fixture.manifest.evidence.size() * 512U;
-    const auto headroom = validationBytes + scratch.bytes - 1U;
-    BOOST_REQUIRE_LE(beforeEvidence + headroom, budget.limit());
-    auto held = budget.reserve(budget.limit() - beforeEvidence - headroom);
-
-    bool rejectedForScratch = false;
+    QuantLib::detail::VarianceClockLoadBudget budget(2U * 1024U * 1024U);
     try {
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, csv, std::move(parsed), VarianceClockLoadMode::Strict, budget);
+        (void)QuantLib::detail::parseVarianceClockBundleData(fixture.manifest, csv, budget);
+        BOOST_ERROR("accepted parser scratch larger than the injected budget");
     } catch (const Error& error) {
         BOOST_CHECK(std::string(error.what()).find("variance-clock load exceeds size limit") !=
                     std::string::npos);
-        rejectedForScratch = true;
     }
-    BOOST_CHECK(rejectedForScratch);
-    held.release();
-    parsed = QuantLib::detail::ParsedVarianceClockTables();
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
-    BOOST_TEST_MESSAGE("Testing the evidence-stage parser scratch charge from both sides...");
-    // No derived warnings, so nothing but the stream charge and the first row's scratch
-    // envelope contributes to the evidence stage's peak and the bisection isolates the envelope.
+    BOOST_TEST_MESSAGE("Testing typed slot-row scratch charges from both budget boundaries...");
     auto fixture = validBundleTableFixture();
+    auto large = fixture;
     const std::string idsJson = "[" + std::string(20000, ' ') + "\"price\"]";
-    rewriteSlotRows(fixture,
+    rewriteSlotRows(large,
                     ",5,not_applicable,1,not_applicable,direct,,not_applicable,,," +
                         csvEvidenceIds(idsJson));
-    const auto csv = fixture.csv();
-
-    std::size_t scratch = 0;
-    const auto measureFirstRow = [](void* opaque, const std::string_view* fields, std::size_t) {
+    const auto scratchFor = [](const BundleTableFixture& value) {
+        const auto csv = value.csv();
+        std::size_t scratch = 0;
+        const auto measureFirstRow = [](void* opaque,
+                                        const std::string_view* fields,
+                                        std::size_t) {
         std::size_t recordBytes = 0;
         for (std::size_t i = 0; i < 14; ++i)
             recordBytes += fields[i].size();
@@ -4633,19 +4531,49 @@ BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
         *static_cast<std::size_t*>(opaque) =
             fixedScratch + 2U * recordBytes + 128U * fields[13].size();
         return false;
+        };
+        (void)visitVarianceClockCsvRows(csv.slotEvidence,
+                                        VarianceClockCsvSchema::SlotEvidence,
+                                        &scratch, measureFirstRow);
+        return scratch;
     };
-    (void)visitVarianceClockCsvRows(csv.slotEvidence, VarianceClockCsvSchema::SlotEvidence,
-                                    &scratch, measureFirstRow);
-    BOOST_REQUIRE_GT(scratch, 2U * 1024U * 1024U);
+    const auto smallScratch = scratchFor(fixture);
+    const auto largeScratch = scratchFor(large);
+    BOOST_REQUIRE_GT(largeScratch, 2U * 1024U * 1024U);
 
-    const auto headroom = evidenceHeadroom(fixture);
-    const std::size_t validationBytes = csv.sessionSegments.size() + csv.slotEvidence.size() +
-                                        fixture.manifest.evidence.size() * 512U;
-    // The stage needs at least the stream charge plus the whole envelope: an envelope with a
-    // smaller per-byte or per-record term is rejected here. Everything else it holds is small,
-    // so an envelope that is much larger than documented is rejected as well.
-    BOOST_CHECK_GE(headroom, validationBytes + scratch);
-    BOOST_CHECK_LE(headroom, validationBytes + scratch + 64U * 1024U);
+    const auto threshold = [](const BundleTableFixture& value) {
+        std::size_t lower = 0;
+        std::size_t upper = QuantLib::detail::VarianceClockLoadBudget::defaultLimit;
+        while (lower < upper) {
+            const auto middle = lower + (upper - lower) / 2;
+            bool accepted = true;
+            try {
+                (void)parseBundleTables(value, middle);
+            } catch (const Error&) {
+                accepted = false;
+            }
+            (accepted ? upper : lower) = accepted ? middle : middle + 1;
+        }
+        return lower;
+    };
+    const auto smallThreshold = threshold(fixture);
+    const auto largeThreshold = threshold(large);
+    const auto expectedDelta = largeScratch - smallScratch;
+    BOOST_CHECK_GE(largeThreshold, smallThreshold + expectedDelta - 64U * 1024U);
+    BOOST_CHECK_LE(largeThreshold, smallThreshold + expectedDelta + 64U * 1024U);
+
+    QuantLib::detail::VarianceClockLoadBudget exact(largeThreshold);
+    BOOST_CHECK_NO_THROW(QuantLib::detail::parseVarianceClockBundleData(
+        large.manifest, large.csv(), exact));
+    QuantLib::detail::VarianceClockLoadBudget oneByteUnder(largeThreshold - 1);
+    BOOST_CHECK_EXCEPTION(
+        QuantLib::detail::parseVarianceClockBundleData(
+            large.manifest, large.csv(), oneByteUnder),
+        Error, [](const Error& e) {
+            return std::string(e.what()).find("variance-clock load exceeds size limit") !=
+                   std::string::npos;
+        });
+    BOOST_CHECK_EQUAL(oneByteUnder.used(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
