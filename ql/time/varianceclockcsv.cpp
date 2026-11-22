@@ -186,11 +186,14 @@ namespace QuantLib {
 
             const auto format = varianceClockCsvFormat(schema);
             QL_REQUIRE(format.columnCount != 0, "invalid variance-clock CSV schema");
-            if (scanCounts) {
-                if (schema == VarianceClockCsvSchema::SessionSegments)
-                    ++scanCounts->sessionSegments;
-                else if (schema == VarianceClockCsvSchema::SlotEvidence)
-                    ++scanCounts->slotEvidence;
+            if (schema == VarianceClockCsvSchema::SessionSegments) {
+                QL_REQUIRE(scanCounts != nullptr,
+                           "session-segment CSV scan counter required");
+                ++scanCounts->sessionSegments;
+            } else if (schema == VarianceClockCsvSchema::SlotEvidence) {
+                QL_REQUIRE(scanCounts != nullptr,
+                           "slot-evidence CSV scan counter required");
+                ++scanCounts->slotEvidence;
             }
             const auto expectedCount = format.columnCount;
             const auto* header = format.header;

@@ -834,6 +834,9 @@ BOOST_AUTO_TEST_SUITE(VarianceBundleCsvTests)
 
 namespace {
 
+    const std::string sessionHeader =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
     const std::string tzHeader = "start_utc,end_utc,offset_seconds,fold\n";
     const std::string slotHeader =
         "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
@@ -866,7 +869,13 @@ namespace {
     CsvTestTable parseVarianceClockCsv(std::string_view bytes,
                                        VarianceClockCsvSchema schema) {
         CsvTestTable table;
-        QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &table, collectAllCsvRows),
+        QuantLib::detail::VarianceClockBundleScanCounts scanCounts;
+        auto* scanCountsPtr = schema == VarianceClockCsvSchema::SessionSegments ||
+                                      schema == VarianceClockCsvSchema::SlotEvidence
+                                  ? &scanCounts
+                                  : nullptr;
+        QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &table, collectAllCsvRows,
+                                             scanCountsPtr),
                    "test CSV visitor unexpectedly stopped");
         return table;
     }
@@ -1136,6 +1145,36 @@ BOOST_AUTO_TEST_CASE(testCsvRowVisitorContract) {
                                                 &thrower, stopAfterRows),
                       std::runtime_error);
     BOOST_CHECK_EQUAL(thrower.seen, 2U);
+}
+
+BOOST_AUTO_TEST_CASE(testSessionAndSlotScansRequireAndIncrementCounters) {
+    BOOST_TEST_MESSAGE("Testing session and slot CSV scans cannot bypass scan counting...");
+    const std::array<std::pair<VarianceClockCsvSchema, std::string_view>, 2> inputs{{
+        {VarianceClockCsvSchema::SessionSegments, sessionHeader},
+        {VarianceClockCsvSchema::SlotEvidence, slotHeader}
+    }};
+    for (const auto& input : inputs) {
+        CsvTestTable rows;
+        BOOST_CHECK_EXCEPTION(
+            visitVarianceClockCsvRows(input.second, input.first, &rows, collectAllCsvRows),
+            Error, [](const Error& e) {
+                return std::string(e.what()).find("scan counter required") != std::string::npos;
+            });
+
+        QuantLib::detail::VarianceClockBundleScanCounts counts;
+        BOOST_REQUIRE(visitVarianceClockCsvRows(input.second, input.first, &rows,
+                                                collectAllCsvRows, &counts));
+        BOOST_CHECK_EQUAL(counts.sessionSegments,
+                         input.first == VarianceClockCsvSchema::SessionSegments ? 1U : 0U);
+        BOOST_CHECK_EQUAL(counts.slotEvidence,
+                         input.first == VarianceClockCsvSchema::SlotEvidence ? 1U : 0U);
+        BOOST_REQUIRE(visitVarianceClockCsvRows(input.second, input.first, &rows,
+                                                collectAllCsvRows, &counts));
+        BOOST_CHECK_EQUAL(counts.sessionSegments,
+                         input.first == VarianceClockCsvSchema::SessionSegments ? 2U : 0U);
+        BOOST_CHECK_EQUAL(counts.slotEvidence,
+                         input.first == VarianceClockCsvSchema::SlotEvidence ? 2U : 0U);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsRecordsWithTooManyFields) {
@@ -4332,7 +4371,7 @@ namespace {
 }
 
 BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
-    BOOST_TEST_MESSAGE("Testing warning growth peak exceeds the retained warning charge...");
+    BOOST_TEST_MESSAGE("Testing whole-load transient peak exceeds retained warning charge...");
     const auto makeWarningsFixture = [] {
         const std::string longId(40, 'p');
         auto fixture = validBundleTableFixture();
@@ -4355,8 +4394,10 @@ BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
     QuantLib::detail::VarianceClockLoadBudget retainedBudget;
     const auto retained = validateBundleEvidence(fixture, retainedBudget);
     BOOST_REQUIRE_EQUAL(retained.warnings.size(), 288U);
-    // The least successful budget measures peak scratch plus retained output; budget.used()
-    // after return is the retained charge alone.
+    // This is a whole-load bound: the least successful budget includes table and parser scratch,
+    // evidence indexes, and warning storage, while budget.used() after return is retained output.
+    // The sibling testWarningGrowthPrechargeCoversOldAndTwiceTheNewBuffer is the
+    // warning-growth-specific guard.
     BOOST_CHECK_GT(evidenceHeadroom(fixture),
                    retainedBudget.used() + 64U * 1024U);
 }
@@ -4524,7 +4565,9 @@ BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
     rewriteSlotRows(large,
                     ",5,not_applicable,1,not_applicable,direct,,not_applicable,,," +
                         csvEvidenceIds(idsJson));
-    const auto scratchFor = [](const BundleTableFixture& value) {
+    constexpr std::size_t fixedParserScratch =
+        128U * 1024U + 14U * (sizeof(std::string) + 32U);
+    const auto scratchFor = [fixedParserScratch](const BundleTableFixture& value) {
         const auto csv = value.csv();
         std::size_t scratch = 0;
         const auto measureFirstRow = [](void* opaque,
@@ -4533,15 +4576,14 @@ BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
         std::size_t recordBytes = 0;
         for (std::size_t i = 0; i < 14; ++i)
             recordBytes += fields[i].size();
-        constexpr std::size_t fixedScratch =
-            128U * 1024U + 14U * (sizeof(std::string) + 32U);
         *static_cast<std::size_t*>(opaque) =
-            fixedScratch + 2U * recordBytes + 128U * fields[13].size();
+            fixedParserScratch + 2U * recordBytes + 128U * fields[13].size();
         return false;
         };
+        QuantLib::detail::VarianceClockBundleScanCounts scanCounts;
         (void)visitVarianceClockCsvRows(csv.slotEvidence,
                                         VarianceClockCsvSchema::SlotEvidence,
-                                        &scratch, measureFirstRow);
+                                        &scratch, measureFirstRow, &scanCounts);
         return scratch;
     };
     const auto smallScratch = scratchFor(fixture);
@@ -4565,8 +4607,10 @@ BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
     };
     const auto smallThreshold = threshold(fixture);
     const auto largeThreshold = threshold(large);
-    BOOST_CHECK_GE(smallThreshold, smallScratch);
-    BOOST_CHECK_GE(largeThreshold, largeScratch);
+    const auto smallRetained = parseBundleTables(fixture).budget->used();
+    const auto largeRetained = parseBundleTables(large).budget->used();
+    BOOST_CHECK_GE(smallThreshold, smallRetained + smallScratch);
+    BOOST_CHECK_GE(largeThreshold, largeRetained + largeScratch);
     const auto expectedDelta = largeScratch - smallScratch;
     BOOST_CHECK_GE(largeThreshold, smallThreshold + expectedDelta - 64U * 1024U);
     BOOST_CHECK_LE(largeThreshold, smallThreshold + expectedDelta + 64U * 1024U);
