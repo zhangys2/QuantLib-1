@@ -5338,6 +5338,50 @@ namespace {
         fixture.slotEvidence = std::move(rows);
     }
 
+    void replaceLoaderCsv(CompleteBundleSource& source,
+                          const std::string& name,
+                          const std::string& replacement) {
+        auto& bytes = source.files.at(name);
+        const std::string original(bytes.begin(), bytes.end());
+        std::string manifest(source.files.at("manifest.json").begin(),
+                             source.files.at("manifest.json").end());
+        replaceOnce(manifest, "\"" + name + "\": \"" + loaderSha256(original) + "\"",
+                    "\"" + name + "\": \"" + loaderSha256(replacement) + "\"");
+        auto& manifestBytes = source.files.at("manifest.json");
+        manifestBytes.assign(manifest.begin(), manifest.end());
+        bytes.assign(replacement.begin(), replacement.end());
+    }
+
+    std::string loaderErrorMessage(const CompleteBundleSource& source) {
+        try {
+            (void)loadVarianceClockBundle(source);
+        } catch (const Error& error) {
+            return error.what();
+        }
+        return {};
+    }
+
+    std::string loaderCsvEvidenceIds(std::string_view json) {
+        std::string result = "\"";
+        for (char c : json) {
+            if (c == '"')
+                result += "\"\"";
+            else
+                result += c;
+        }
+        result += '"';
+        return result;
+    }
+
+    void replaceLoaderManifest(CompleteBundleSource& source,
+                               const std::string& before,
+                               const std::string& after) {
+        auto& bytes = source.files.at("manifest.json");
+        std::string manifest(bytes.begin(), bytes.end());
+        replaceOnce(manifest, before, after);
+        bytes.assign(manifest.begin(), manifest.end());
+    }
+
     void checkLoaderRejected(const CompleteBundleSource& source, const std::string& message) {
         try {
             (void)loadVarianceClockBundle(source);
@@ -5466,6 +5510,98 @@ BOOST_AUTO_TEST_CASE(testReadsManifestThenCsvsInFixedOrder) {
         "manifest.json", "profiles.csv", "market_days.csv", "session_segments.csv",
         "timezone_mapping.csv", "slot_evidence.csv"};
     BOOST_CHECK(source.readOrder == expected);
+}
+
+BOOST_AUTO_TEST_CASE(testGoldenCurrentLoaderErrorPrecedence) {
+    BOOST_TEST_MESSAGE("Testing today's winners for the approved two-fault precedence pairs...");
+    struct Case {
+        std::string name;
+        CompleteBundleSource source;
+        std::string currentWinner;
+        std::string pinnedWinner;
+        bool pinnedOrderChangesWinner;
+    };
+    std::vector<Case> cases;
+
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        replaceLoaderManifest(source,
+                              "\"calendar_as_of_utc\": \"2024-01-01T00:00:00Z\"",
+                              "\"calendar_as_of_utc\": \"2024-01-02T00:00:00Z\"");
+        auto session = std::string(source.files.at("session_segments.csv").begin(),
+                                   source.files.at("session_segments.csv").end());
+        replaceOnce(session, "2024-01-01,2024-01-01T09:30:00Z",
+                    "2024-02-31,2024-01-01T09:30:00Z");
+        replaceLoaderCsv(source, "session_segments.csv", session);
+        cases.push_back({"manifest timeline + bad session", std::move(source),
+                         "invalid Gregorian date",
+                         "calendar as-of is after generated_at_utc", true});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto session = std::string(source.files.at("session_segments.csv").begin(),
+                                   source.files.at("session_segments.csv").end());
+        replaceOnce(session, "2024-01-01,2024-01-01T09:30:00Z",
+                    "2024-02-31,2024-01-01T09:30:00Z");
+        replaceLoaderCsv(source, "session_segments.csv", session);
+        auto slots = std::string(source.files.at("slot_evidence.csv").begin(),
+                                 source.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, ",direct,,not_applicable", ",invalid,,not_applicable");
+        replaceLoaderCsv(source, "slot_evidence.csv", slots);
+        cases.push_back({"bad slot row + bad session", std::move(source),
+                         "invalid estimation method", "invalid Gregorian date", true});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto session = std::string(source.files.at("session_segments.csv").begin(),
+                                   source.files.at("session_segments.csv").end());
+        replaceOnce(session, "2024-01-01,2024-01-01T09:30:00Z",
+                    "2024-02-31,2024-01-01T09:30:00Z");
+        replaceLoaderCsv(source, "session_segments.csv", session);
+        auto timezone = std::string(source.files.at("timezone_mapping.csv").begin(),
+                                    source.files.at("timezone_mapping.csv").end());
+        replaceOnce(timezone, "2024-01-02T00:00:00Z,0,0",
+                    "2024-01-01T00:00:00Z,0,0");
+        replaceLoaderCsv(source, "timezone_mapping.csv", timezone);
+        cases.push_back({"bad timezone row + bad session", std::move(source),
+                         "empty timezone mapping range", "empty timezone mapping range", false});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto slots = std::string(source.files.at("slot_evidence.csv").begin(),
+                                 source.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, loaderCsvEvidenceIds(R"(["price"])"),
+                    loaderCsvEvidenceIds(R"(["ghost"])"));
+        const auto headerEnd = slots.find('\n') + 1;
+        const auto firstRowEnd = slots.find('\n', headerEnd) + 1;
+        slots += slots.substr(headerEnd, firstRowEnd - headerEnd);
+        replaceLoaderCsv(source, "slot_evidence.csv", slots);
+        cases.push_back({"row-1 evidence error + row-N table error", std::move(source),
+                         "duplicate slot-evidence key", "missing slot evidence", true});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto slots = std::string(source.files.at("slot_evidence.csv").begin(),
+                                 source.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, loaderCsvEvidenceIds(R"(["price"])"),
+                    loaderCsvEvidenceIds(R"(["ghost"])"));
+        const auto lastRowStart = slots.rfind('\n', slots.size() - 2) + 1;
+        slots.erase(lastRowStart);
+        replaceLoaderCsv(source, "slot_evidence.csv", slots);
+        cases.push_back({"missing rows + row-1 evidence error", std::move(source),
+                         "selected pair does not have exactly 288 slot evidence rows",
+                         "missing slot evidence", true});
+    }
+
+    for (const auto& test : cases) {
+        const auto actual = loaderErrorMessage(test.source);
+        BOOST_CHECK_MESSAGE(!actual.empty(), test.name << ": expected a rejection");
+        BOOST_CHECK_MESSAGE(actual.find(test.currentWinner) != std::string::npos,
+                            test.name << ": today's expected winner \""
+                                      << test.currentWinner << "\", got \"" << actual << '"');
+        BOOST_CHECK_EQUAL(test.currentWinner != test.pinnedWinner,
+                          test.pinnedOrderChangesWinner);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
