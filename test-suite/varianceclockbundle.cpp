@@ -5604,6 +5604,60 @@ BOOST_AUTO_TEST_CASE(testGoldenCurrentLoaderErrorPrecedence) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(testFourHundredThousandSessionRowsHitDefaultLoadBudget) {
+    BOOST_TEST_MESSAGE("Testing today's default-budget result at the 400,000 session-row cap...");
+    constexpr std::size_t rows = 400000;
+    constexpr std::size_t days = 5;
+    constexpr std::size_t rowsPerDay = rows / days;
+    auto fixture = loaderFixture();
+    fixture.coverageEndText = "2024-01-06T00:00:00Z";
+    fixture.manifest.coverageEndUtc = testInstant(fixture.coverageEndText);
+    fixture.marketDays =
+        "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n";
+    fixture.sessionSegments =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
+    fixture.timezoneMapping =
+        "start_utc,end_utc,offset_seconds,fold\n"
+        "2024-01-01T00:00:00Z,2024-01-06T00:00:00Z,0,0\n";
+
+    const auto twoDigits = [](unsigned int value) {
+        return std::string(value < 10 ? "0" : "") + std::to_string(value);
+    };
+    const auto timestamp = [&twoDigits](const std::string& date, std::size_t second) {
+        const auto hour = static_cast<unsigned int>(second / 3600);
+        const auto minute = static_cast<unsigned int>((second / 60) % 60);
+        const auto remainder = static_cast<unsigned int>(second % 60);
+        return date + "T" + twoDigits(hour) + ":" + twoDigits(minute) + ":" +
+               twoDigits(remainder) + "Z";
+    };
+    std::size_t row = 0;
+    for (std::size_t day = 0; day < days; ++day) {
+        const Date date = Date(1, January, 2024) + static_cast<Integer>(day);
+        const std::string localDate =
+            std::to_string(date.year()) + "-" +
+            twoDigits(static_cast<unsigned int>(date.month())) + "-" +
+            twoDigits(static_cast<unsigned int>(date.dayOfMonth()));
+        fixture.marketDays += localDate + ",full_day,true,1,group,date_override\n";
+        for (std::size_t interval = 0; interval < rowsPerDay; ++interval, ++row) {
+            const std::size_t start = interval;
+            fixture.sessionSegments +=
+                localDate + "," + timestamp(localDate, start) + "," +
+                timestamp(localDate, start + 1) + ",s" + std::to_string(row) +
+                ",,,,calendar\n";
+        }
+    }
+    BOOST_REQUIRE_EQUAL(row, rows);
+    BOOST_REQUIRE_LE(fixture.sessionSegments.size(), 32U * 1024U * 1024U);
+    auto source = validCompleteBundleSource(fixture);
+    BOOST_REQUIRE_LE(source.files.at("session_segments.csv").size(),
+                     32U * 1024U * 1024U);
+    const auto error = loaderErrorMessage(source);
+    BOOST_CHECK_MESSAGE(error.find("variance-clock load exceeds size limit") !=
+                            std::string::npos,
+                        "expected default-budget refusal; got: " << error);
+}
+
 BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
     BOOST_TEST_MESSAGE("Testing the native-directory wrapper delegates to bundle loading...");
     const auto source = validCompleteBundleSource(loaderFixture());
