@@ -54,12 +54,14 @@ namespace QuantLib {
             VarianceClockBundleEvidenceContext& operator=(
                 VarianceClockBundleEvidenceContext&&) = delete;
 
-            void attachStorageCharge(VarianceClockLoadBudget::Reservation& charge) noexcept;
             void validateProfileCalibrations(
                 std::vector<VarianceClockProfileInput>& profiles);
-            void validateSessionRow(const VarianceClockSessionSegmentRow& row);
+            void validateSessionRow(
+                const VarianceClockSessionSegmentRow& row,
+                VarianceClockLoadBudget::Reservation& storageCharge);
             void validateSlotRow(const VarianceClockSlotEvidenceRow& row,
-                                 const std::vector<VarianceClockProfileInput>& profiles);
+                                 const std::vector<VarianceClockProfileInput>& profiles,
+                                 VarianceClockLoadBudget::Reservation& storageCharge);
             VarianceClockValidatedBundle finish(ParsedVarianceClockTables&& parsed);
 
           private:
@@ -70,7 +72,6 @@ namespace QuantLib {
             VarianceClockLoadMode mode_;
             VarianceClockLoadBudget& budget_;
             VarianceClockLoadBudget::Reservation evidenceCharge_;
-            VarianceClockLoadBudget::Reservation* storageCharge_ = nullptr;
             EvidenceMap evidence_;
             std::set<std::string> used_;
             std::vector<VarianceClockBundleWarning> warnings_;

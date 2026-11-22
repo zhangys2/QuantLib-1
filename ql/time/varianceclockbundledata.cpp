@@ -64,12 +64,9 @@ namespace QuantLib {
             std::size_t countRows(std::string_view bytes,
                                   VarianceClockCsvSchema schema,
                                   VarianceClockLoadBudget& budget) {
-                if (schema == VarianceClockCsvSchema::SessionSegments)
-                    budget.recordSessionSegmentsScan();
-                else if (schema == VarianceClockCsvSchema::SlotEvidence)
-                    budget.recordSlotEvidenceScan();
                 RowCount rows;
-                QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &rows, countRow),
+                QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &rows, countRow,
+                                                     &budget.scanCounts()),
                            "variance-clock CSV row visitor stopped unexpectedly");
                 return rows.value;
             }
@@ -105,11 +102,8 @@ namespace QuantLib {
                 Fields rows;
                 rows.reserve(count);
                 RowContext context{&rows};
-                if (schema == VarianceClockCsvSchema::SessionSegments)
-                    budget.recordSessionSegmentsScan();
-                else if (schema == VarianceClockCsvSchema::SlotEvidence)
-                    budget.recordSlotEvidenceScan();
-                QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &context, saveRow),
+                QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &context, saveRow,
+                                                     &budget.scanCounts()),
                            "variance-clock CSV row visitor stopped unexpectedly");
                 QL_ENSURE(rows.size() == count, "variance-clock CSV row count changed");
                 return rows;
@@ -406,12 +400,8 @@ namespace QuantLib {
             return scanCounts_;
         }
 
-        void VarianceClockLoadBudget::recordSessionSegmentsScan() noexcept {
-            ++scanCounts_.sessionSegments;
-        }
-
-        void VarianceClockLoadBudget::recordSlotEvidenceScan() noexcept {
-            ++scanCounts_.slotEvidence;
+        VarianceClockBundleScanCounts& VarianceClockLoadBudget::scanCounts() noexcept {
+            return scanCounts_;
         }
 
         void VarianceClockLoadBudget::increase(std::size_t bytes) {
@@ -518,7 +508,6 @@ namespace QuantLib {
             QL_REQUIRE(calibrations.size() == profiles.size(),
                        "manifest contains an unreferenced profile calibration");
             if (evidence) {
-                evidence->attachStorageCharge(result.storageCharge);
                 evidence->validateProfileCalibrations(result.profiles);
             }
             profiles.clear();
@@ -611,9 +600,10 @@ namespace QuantLib {
                 std::map<PairKey, std::array<bool, 288>>* evidenceSlots;
                 VarianceClockLoadBudget* budget;
                 VarianceClockLoadBudget::Reservation* indexCharge;
+                VarianceClockLoadBudget::Reservation* storageCharge;
                 VarianceClockBundleEvidenceContext* evidence;
             } evidenceContext{&manifest, &result.profiles, &selectedPairs, &evidenceSlots,
-                              &budget, &slotIndexCharge, evidence};
+                              &budget, &slotIndexCharge, &result.storageCharge, evidence};
             const auto consumeEvidenceRow =
                 [](void* opaque, const std::string_view* fields, std::size_t count) {
                     auto& context = *static_cast<SlotEvidenceContext*>(opaque);
@@ -800,7 +790,8 @@ namespace QuantLib {
                                        row[VarianceClockSlotEvidenceCsv::groupingLabel].empty(),
                                    "pooling metadata on non-pooled row");
                     if (context.evidence)
-                        context.evidence->validateSlotRow(typedRow, *context.profiles);
+                        context.evidence->validateSlotRow(
+                            typedRow, *context.profiles, *context.storageCharge);
                     return true;
                 };
             auto timezoneRowsCharge = budget.reserve(0);
@@ -846,14 +837,13 @@ namespace QuantLib {
                 SessionRanges* sessions;
                 VarianceClockLoadBudget* budget;
                 VarianceClockLoadBudget::Reservation* sessionsCharge;
+                VarianceClockLoadBudget::Reservation* storageCharge;
                 VarianceClockBundleEvidenceContext* evidence;
             } sessionContext{&marketDates, &result.offsets, &sessions, &budget, &sessionsCharge,
-                             evidence};
+                             &result.storageCharge, evidence};
             const auto consumeSessionRow =
                 [](void* opaque, const std::string_view* fields, std::size_t count) {
                     auto& context = *static_cast<SessionRowContext*>(opaque);
-                    QL_REQUIRE(count == VarianceClockSessionSegmentsCsv::columnCount,
-                               "wrong session-segment field count");
                     std::size_t recordBytes = 0;
                     for (std::size_t i = 0; i < count; ++i) {
                         QL_REQUIRE(fields[i].size() <=
@@ -946,13 +936,14 @@ namespace QuantLib {
                                                     VarianceClockInstant>));
                     sessionEntry->second.emplace_back(typedRow.start, typedRow.end);
                     if (context.evidence)
-                        context.evidence->validateSessionRow(typedRow);
+                        context.evidence->validateSessionRow(
+                            typedRow, *context.storageCharge);
                     return true;
                 };
-            budget.recordSessionSegmentsScan();
             QL_REQUIRE(visitVarianceClockCsvRows(csv.sessionSegments,
                                                  VarianceClockCsvSchema::SessionSegments,
-                                                 &sessionContext, consumeSessionRow),
+                                                 &sessionContext, consumeSessionRow,
+                                                 &budget.scanCounts()),
                        "variance-clock CSV row visitor stopped unexpectedly");
             for (auto& item : sessions) {
                 auto& ranges = item.second;
@@ -975,10 +966,10 @@ namespace QuantLib {
             Fields().swap(dateRows);
             dateRowsCharge.release();
 
-            budget.recordSlotEvidenceScan();
             QL_REQUIRE(visitVarianceClockCsvRows(csv.slotEvidence,
                                                  VarianceClockCsvSchema::SlotEvidence,
-                                                 &evidenceContext, consumeEvidenceRow),
+                                                 &evidenceContext, consumeEvidenceRow,
+                                                 &budget.scanCounts()),
                        "variance-clock CSV row visitor stopped unexpectedly");
             for (const auto& pair : selectedPairs) {
                 const auto slots = evidenceSlots.find(pair);

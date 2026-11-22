@@ -38,11 +38,6 @@
 namespace QuantLib {
     namespace detail {
 
-        struct VarianceClockBundleScanCounts {
-            std::size_t sessionSegments = 0;
-            std::size_t slotEvidence = 0;
-        };
-
         class VarianceClockLoadBudget {
           public:
             static constexpr std::size_t defaultLimit = 256U * 1024U * 1024U;
@@ -78,8 +73,7 @@ namespace QuantLib {
             std::size_t used() const noexcept;
             std::size_t remaining() const noexcept;
             const VarianceClockBundleScanCounts& scanCounts() const noexcept;
-            void recordSessionSegmentsScan() noexcept;
-            void recordSlotEvidenceScan() noexcept;
+            VarianceClockBundleScanCounts& scanCounts() noexcept;
           private:
             void increase(std::size_t bytes);
             void decrease(std::size_t bytes) noexcept;

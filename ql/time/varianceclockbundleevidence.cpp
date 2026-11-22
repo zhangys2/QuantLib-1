@@ -346,11 +346,6 @@ namespace QuantLib {
             }
         }
 
-        void VarianceClockBundleEvidenceContext::attachStorageCharge(
-            VarianceClockLoadBudget::Reservation& charge) noexcept {
-            storageCharge_ = &charge;
-        }
-
         void VarianceClockBundleEvidenceContext::validateProfileCalibrations(
             std::vector<VarianceClockProfileInput>& profiles) {
             for (const auto& calibration : manifest_.profileCalibrations) {
@@ -380,25 +375,24 @@ namespace QuantLib {
         }
 
         void VarianceClockBundleEvidenceContext::validateSessionRow(
-            const VarianceClockSessionSegmentRow& row) {
-            QL_REQUIRE(storageCharge_, "variance-clock evidence storage charge is not attached");
+            const VarianceClockSessionSegmentRow& row,
+            VarianceClockLoadBudget::Reservation& storageCharge) {
             StreamContext context{manifest_, evidence_, used_, nullptr, warnings_,
-                                  *storageCharge_};
+                                  storageCharge};
             checkSession(context, row);
         }
 
         void VarianceClockBundleEvidenceContext::validateSlotRow(
             const VarianceClockSlotEvidenceRow& row,
-            const std::vector<VarianceClockProfileInput>& profiles) {
-            QL_REQUIRE(storageCharge_, "variance-clock evidence storage charge is not attached");
+            const std::vector<VarianceClockProfileInput>& profiles,
+            VarianceClockLoadBudget::Reservation& storageCharge) {
             StreamContext context{manifest_, evidence_, used_, &profiles, warnings_,
-                                  *storageCharge_};
+                                  storageCharge};
             checkSlots(context, row);
         }
 
         VarianceClockValidatedBundle
         VarianceClockBundleEvidenceContext::finish(ParsedVarianceClockTables&& parsed) {
-            QL_REQUIRE(storageCharge_, "variance-clock evidence storage charge is not attached");
             QL_ENSURE(budget_.used() >= parsed.storageCharge.bytes(),
                      "variance-clock evidence load budget mismatch");
             const auto& manifest = manifest_;
@@ -523,7 +517,6 @@ namespace QuantLib {
             evidence_.clear();
             used_.clear();
             evidenceCharge_.release();
-            storageCharge_ = nullptr;
             return result;
         }
 

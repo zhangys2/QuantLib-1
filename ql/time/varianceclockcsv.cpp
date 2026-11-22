@@ -171,7 +171,8 @@ namespace QuantLib {
         bool visitVarianceClockCsvRows(std::string_view bytes,
                                        VarianceClockCsvSchema schema,
                                        void* context,
-                                       VarianceClockCsvRowVisitor visitor) {
+                                       VarianceClockCsvRowVisitor visitor,
+                                       VarianceClockBundleScanCounts* scanCounts) {
             QL_REQUIRE(bytes.size() <= maxCsvBytes,
                        "variance-clock CSV exceeds 32 MiB");
             QL_REQUIRE(visitor != nullptr, "null variance-clock CSV row visitor");
@@ -185,6 +186,12 @@ namespace QuantLib {
 
             const auto format = varianceClockCsvFormat(schema);
             QL_REQUIRE(format.columnCount != 0, "invalid variance-clock CSV schema");
+            if (scanCounts) {
+                if (schema == VarianceClockCsvSchema::SessionSegments)
+                    ++scanCounts->sessionSegments;
+                else if (schema == VarianceClockCsvSchema::SlotEvidence)
+                    ++scanCounts->slotEvidence;
+            }
             const auto expectedCount = format.columnCount;
             const auto* header = format.header;
             std::array<std::string_view, VarianceClockSlotEvidenceCsv::columnCount> fields{};
