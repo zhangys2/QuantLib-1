@@ -449,10 +449,12 @@ namespace QuantLib {
             std::vector<VarianceClockBundleWarning> warnings;
             StreamContext context{manifest, evidence, used, parsed.profiles, warnings, budget,
                                   parsed.storageCharge};
+            budget.recordSessionSegmentsScan();
             QL_REQUIRE(visitVarianceClockCsvRows(csv.sessionSegments,
                                                  VarianceClockCsvSchema::SessionSegments,
                                                  &context, checkSession),
                        "session evidence validation stopped");
+            budget.recordSlotEvidenceScan();
             QL_REQUIRE(visitVarianceClockCsvRows(csv.slotEvidence,
                                                  VarianceClockCsvSchema::SlotEvidence,
                                                  &context, checkSlots),

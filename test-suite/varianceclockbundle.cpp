@@ -2704,6 +2704,70 @@ BOOST_AUTO_TEST_CASE(testStreamsLargeSlotEvidenceWithinBudget) {
         fixture.manifest, csv, budget);
     BOOST_CHECK_EQUAL(parsed.dates.size(), targetGroups);
     BOOST_CHECK_LE(budget.used(), budget.limit());
+    BOOST_CHECK_EQUAL(budget.scanCounts().slotEvidence, 1U);
+}
+
+BOOST_AUTO_TEST_CASE(testScansSessionAndSlotEvidenceOnce) {
+    BOOST_TEST_MESSAGE("Testing session and slot evidence files are each scanned once...");
+    const auto fixture = validBundleTableFixture();
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    {
+        auto validated = validateBundleEvidence(fixture, budget);
+        BOOST_CHECK_EQUAL(validated.tables.profiles.size(), 1U);
+        BOOST_CHECK_EQUAL(budget.scanCounts().sessionSegments, 1U);
+        BOOST_CHECK_EQUAL(budget.scanCounts().slotEvidence, 1U);
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testStreamsSessionRowsWithinTightBudget) {
+    BOOST_TEST_MESSAGE("Testing a session-heavy bundle streams within a tight load budget...");
+    constexpr std::size_t rowsPerDay = 10000;
+    constexpr std::size_t days = 5;
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.coverageEndUtc = testInstant("2024-01-06T00:00:00Z");
+    fixture.marketDays =
+        "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n";
+    fixture.sessionSegments =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
+    fixture.timezoneMapping =
+        "start_utc,end_utc,offset_seconds,fold\n"
+        "2024-01-01T00:00:00Z,2024-01-06T00:00:00Z,0,0\n";
+    std::size_t row = 0;
+    for (std::size_t day = 0; day < days; ++day) {
+        const Date date = Date(1, January, 2024) + static_cast<Integer>(day);
+        const std::string localDate = isoDate(date);
+        fixture.marketDays += localDate + ",full_day,true,1,group,date_override\n";
+        const auto midnight = testInstant(localDate + "T00:00:00Z").unixSeconds();
+        for (std::size_t interval = 0; interval < rowsPerDay; ++interval, ++row) {
+            const auto start = midnight + static_cast<std::int64_t>(interval * 2);
+            fixture.sessionSegments +=
+                localDate + "," + utcTimestamp(start) + "," + utcTimestamp(start + 1) +
+                ",s" + std::to_string(row) + ",,,,calendar\n";
+        }
+    }
+    BOOST_REQUIRE_EQUAL(row, rowsPerDay * days);
+    BOOST_REQUIRE_LE(fixture.sessionSegments.size(), 32U * 1024U * 1024U);
+
+    const auto csv = fixture.csv();
+    const auto capturedBytes = csv.profiles.size() + csv.marketDays.size() +
+                               csv.sessionSegments.size() + csv.timezoneMapping.size() +
+                               csv.slotEvidence.size();
+    QuantLib::detail::VarianceClockLoadBudget budget(16U * 1024U * 1024U);
+    auto capturedCharge = budget.reserve(capturedBytes);
+    {
+        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
+            fixture.manifest, csv, budget);
+        auto validated = QuantLib::detail::validateVarianceClockBundleEvidence(
+            fixture.manifest, csv, std::move(parsed), QuantLib::VarianceClockLoadMode::Strict,
+            budget);
+        BOOST_CHECK_EQUAL(validated.tables.dates.size(), days);
+        BOOST_CHECK_EQUAL(budget.scanCounts().sessionSegments, 1U);
+        BOOST_CHECK_EQUAL(budget.scanCounts().slotEvidence, 1U);
+        BOOST_CHECK_LE(budget.used(), budget.limit());
+    }
+    BOOST_CHECK_EQUAL(budget.used(), capturedBytes);
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsSlotParserScratchBeforeMaterializingOversizedField) {
@@ -5512,8 +5576,8 @@ BOOST_AUTO_TEST_CASE(testReadsManifestThenCsvsInFixedOrder) {
     BOOST_CHECK(source.readOrder == expected);
 }
 
-BOOST_AUTO_TEST_CASE(testGoldenCurrentLoaderErrorPrecedence) {
-    BOOST_TEST_MESSAGE("Testing today's winners for the approved two-fault precedence pairs...");
+BOOST_AUTO_TEST_CASE(testPinnedLoaderErrorPrecedence) {
+    BOOST_TEST_MESSAGE("Testing the approved two-fault loader error precedence...");
     struct Case {
         std::string name;
         CompleteBundleSource source;
@@ -5596,16 +5660,16 @@ BOOST_AUTO_TEST_CASE(testGoldenCurrentLoaderErrorPrecedence) {
     for (const auto& test : cases) {
         const auto actual = loaderErrorMessage(test.source);
         BOOST_CHECK_MESSAGE(!actual.empty(), test.name << ": expected a rejection");
-        BOOST_CHECK_MESSAGE(actual.find(test.currentWinner) != std::string::npos,
-                            test.name << ": today's expected winner \""
-                                      << test.currentWinner << "\", got \"" << actual << '"');
+        BOOST_CHECK_MESSAGE(actual.find(test.pinnedWinner) != std::string::npos,
+                            test.name << ": expected pinned winner \"" << test.pinnedWinner
+                                      << "\", got \"" << actual << '"');
         BOOST_CHECK_EQUAL(test.currentWinner != test.pinnedWinner,
                           test.pinnedOrderChangesWinner);
     }
 }
 
-BOOST_AUTO_TEST_CASE(testFourHundredThousandSessionRowsHitDefaultLoadBudget) {
-    BOOST_TEST_MESSAGE("Testing today's default-budget result at the 400,000 session-row cap...");
+BOOST_AUTO_TEST_CASE(testFourHundredThousandSessionRowsFitDefaultLoadBudget) {
+    BOOST_TEST_MESSAGE("Testing 400,000 session rows fit the default load budget...");
     constexpr std::size_t rows = 400000;
     constexpr std::size_t days = 5;
     constexpr std::size_t rowsPerDay = rows / days;
@@ -5652,10 +5716,8 @@ BOOST_AUTO_TEST_CASE(testFourHundredThousandSessionRowsHitDefaultLoadBudget) {
     auto source = validCompleteBundleSource(fixture);
     BOOST_REQUIRE_LE(source.files.at("session_segments.csv").size(),
                      32U * 1024U * 1024U);
-    const auto error = loaderErrorMessage(source);
-    BOOST_CHECK_MESSAGE(error.find("variance-clock load exceeds size limit") !=
-                            std::string::npos,
-                        "expected default-budget refusal; got: " << error);
+    const auto loaded = QuantLib::loadVarianceClockBundle(source);
+    BOOST_CHECK(loaded.snapshot);
 }
 
 BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {
