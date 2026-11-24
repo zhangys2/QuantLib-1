@@ -4565,9 +4565,9 @@ BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
     rewriteSlotRows(large,
                     ",5,not_applicable,1,not_applicable,direct,,not_applicable,,," +
                         csvEvidenceIds(idsJson));
-    constexpr std::size_t fixedParserScratch =
+    static constexpr std::size_t fixedParserScratch =
         128U * 1024U + 14U * (sizeof(std::string) + 32U);
-    const auto scratchFor = [fixedParserScratch](const BundleTableFixture& value) {
+    const auto scratchFor = [](const BundleTableFixture& value) {
         const auto csv = value.csv();
         std::size_t scratch = 0;
         const auto measureFirstRow = [](void* opaque,
