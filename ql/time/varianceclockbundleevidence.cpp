@@ -21,7 +21,6 @@
 #include <ql/errors.hpp>
 #include <algorithm>
 #include <array>
-#include <charconv>
 #include <cstdint>
 #include <limits>
 #include <map>
@@ -40,10 +39,6 @@ namespace QuantLib {
             static_assert(std::is_nothrow_move_constructible<VarianceClockBundleWarning>::value,
                           "warning vector growth must not copy warning payloads");
 
-            std::string decode(const std::string_view* fields, std::size_t index) {
-                return decodeVarianceClockCsvField(fields[index]);
-            }
-
             const VarianceClockManifestEvidence& requireEvidence(
                 const EvidenceMap& evidence, const std::string& id, const char* message) {
                 const auto it = evidence.find(id);
@@ -61,54 +56,24 @@ namespace QuantLib {
                 const VarianceClockManifest& manifest;
                 const EvidenceMap& evidence;
                 std::set<std::string>& used;
-                const std::vector<VarianceClockProfileInput>& profiles;
+                const std::vector<VarianceClockProfileInput>* profiles;
                 std::vector<VarianceClockBundleWarning>& warnings;
-                VarianceClockLoadBudget& budget;
                 VarianceClockLoadBudget::Reservation& storageCharge;
             };
 
-            bool checkSession(void* opaque, const std::string_view* fields, std::size_t) {
-                auto& context = *static_cast<StreamContext*>(opaque);
-                const auto id = decode(fields, VarianceClockSessionSegmentsCsv::sourceEvidenceId);
-                const auto& item = requireEvidence(context.evidence, id,
+            void checkSession(StreamContext& context,
+                              const VarianceClockSessionSegmentRow& row) {
+                const auto& item = requireEvidence(context.evidence, row.sourceEvidenceId(),
                                                    "dangling session evidence ID");
                 requireRole(item, "calendar_source", "session segment");
-                context.used.insert(id);
-                return true;
+                context.used.insert(row.sourceEvidenceId());
             }
 
-            bool checkSlots(void* opaque, const std::string_view* fields, std::size_t) {
-                auto& context = *static_cast<StreamContext*>(opaque);
-                std::size_t recordBytes = 0;
-                for (std::size_t i = 0; i < VarianceClockSlotEvidenceCsv::columnCount; ++i) {
-                    QL_REQUIRE(fields[i].size() <=
-                                   std::numeric_limits<std::size_t>::max() - recordBytes,
-                               "variance-clock evidence accounting overflow");
-                    recordBytes += fields[i].size();
-                }
-                constexpr std::size_t fixedScratch =
-                    128U * 1024U + VarianceClockSlotEvidenceCsv::columnCount *
-                                        (sizeof(std::string) + 32U);
-                // Reserve before decoding/parsing so invalid large JSON cannot allocate first.
-                constexpr std::size_t parserScratchPerByte = 128U;
-                QL_REQUIRE(recordBytes <=
-                               (std::numeric_limits<std::size_t>::max() - fixedScratch) / 2U,
-                           "variance-clock evidence accounting overflow");
-                const auto rowScratchBase = fixedScratch + 2U * recordBytes;
-                QL_REQUIRE(fields[VarianceClockSlotEvidenceCsv::evidenceIdsJson].size() <=
-                               (std::numeric_limits<std::size_t>::max() - rowScratchBase) /
-                                   parserScratchPerByte,
-                           "variance-clock evidence accounting overflow");
-                auto rowScratch = context.budget.reserve(
-                    rowScratchBase + parserScratchPerByte *
-                                         fields[VarianceClockSlotEvidenceCsv::evidenceIdsJson]
-                                             .size());
-                const auto idsJson =
-                    decode(fields, VarianceClockSlotEvidenceCsv::evidenceIdsJson);
-                const auto evidenceIds = parseEvidenceIdsJson(idsJson);
-                const auto method = decode(fields, VarianceClockSlotEvidenceCsv::estimationMethod);
-                const auto fallbackId = decode(fields, VarianceClockSlotEvidenceCsv::fallbackId);
-                const auto warningCode = decode(fields, VarianceClockSlotEvidenceCsv::warningCodes);
+            void checkSlots(StreamContext& context, const VarianceClockSlotEvidenceRow& row) {
+                const auto& evidenceIds = row.evidenceIds;
+                const auto& method = row.estimationMethod();
+                const auto& fallbackId = row.fallbackId();
+                const auto& warningCode = row.warningCodes();
                 QL_REQUIRE(!evidenceIds.empty(), "missing slot evidence");
                 bool hasPriceInput = false;
                 for (const auto& id : evidenceIds) {
@@ -149,33 +114,15 @@ namespace QuantLib {
                         context.used.insert(id);
                     }
                 }
-                const std::uint32_t profile = [&]() {
-                    std::uint32_t result = 0;
-                    const auto text = decode(fields, VarianceClockSlotEvidenceCsv::profileId);
-                    const auto parsed = std::from_chars(text.data(), text.data() + text.size(),
-                                                        result);
-                    QL_REQUIRE(parsed.ec == std::errc() &&
-                                   parsed.ptr == text.data() + text.size(),
-                               "invalid slot profile ID");
-                    return result;
-                }();
-                auto target = decode(fields, VarianceClockSlotEvidenceCsv::targetGroupId);
-                const auto minute = [&]() {
-                    unsigned int result = 0;
-                    const auto text = decode(fields, VarianceClockSlotEvidenceCsv::minuteOfDay);
-                    const auto parsed = std::from_chars(text.data(), text.data() + text.size(),
-                                                        result);
-                    QL_REQUIRE(parsed.ec == std::errc() &&
-                                   parsed.ptr == text.data() + text.size(),
-                               "invalid slot minute");
-                    return result;
-                }();
+                const auto profile = row.profileId;
+                const auto minute = row.minuteOfDay;
                 QL_REQUIRE(minute < 1440 && minute % 5 == 0,
                            "invalid warning slot minute");
                 const auto profileInput = std::find_if(
-                    context.profiles.begin(), context.profiles.end(),
+                    context.profiles->begin(), context.profiles->end(),
                     [profile](const auto& value) { return value.id == profile; });
-                QL_REQUIRE(profileInput != context.profiles.end(), "orphan profile slot evidence");
+                QL_REQUIRE(profileInput != context.profiles->end(),
+                           "orphan profile slot evidence");
                 std::vector<VarianceClockBundleWarningCode> expectedWarnings;
                 if (method == "zero") {
                     QL_REQUIRE(profileInput->slots[minute / 5].weight == 0.0,
@@ -183,10 +130,8 @@ namespace QuantLib {
                     expectedWarnings.emplace_back(VarianceClockBundleWarningCode::ZeroRateSlot);
                 }
                 if (method == "fallback" &&
-                    (decode(fields, VarianceClockSlotEvidenceCsv::targetReturnCount) == "unknown" ||
-                     decode(fields,
-                            VarianceClockSlotEvidenceCsv::targetDistinctLocalDateCount) ==
-                         "unknown"))
+                    (row.targetReturnCount() == "unknown" ||
+                     row.targetDistinctLocalDateCount() == "unknown"))
                     expectedWarnings.emplace_back(
                         VarianceClockBundleWarningCode::UnknownCountFallback);
                 QL_REQUIRE(warningCode.empty() ||
@@ -206,6 +151,7 @@ namespace QuantLib {
                     // CSV row count.
                     QL_REQUIRE(context.warnings.size() < context.manifest.warnings.size(),
                                "manifest warnings differ from derived warnings");
+                    std::string target = row.targetGroupId();
                     auto ids = evidenceIds;
                     std::sort(ids.begin(), ids.end());
                     ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
@@ -299,164 +245,162 @@ namespace QuantLib {
                          profile, std::move(target),
                          static_cast<std::uint16_t>(minute), std::move(ids)});
                 }
-                return true;
             }
 
         } // namespace
 
-        VarianceClockValidatedBundle validateVarianceClockBundleEvidence(
+        VarianceClockBundleEvidenceContext::VarianceClockBundleEvidenceContext(
             const VarianceClockManifest& manifest,
-            const VarianceClockBundleCsvBytes& csv,
-            ParsedVarianceClockTables&& parsed,
             VarianceClockLoadMode mode,
-            VarianceClockLoadBudget& budget) {
-            QL_REQUIRE(mode == VarianceClockLoadMode::Strict ||
-                           mode == VarianceClockLoadMode::Reconstruction,
+            VarianceClockLoadBudget& budget)
+        : manifest_(manifest), mode_(mode), budget_(budget), evidenceCharge_(budget.reserve(0)) {
+            QL_REQUIRE(mode_ == VarianceClockLoadMode::Strict ||
+                           mode_ == VarianceClockLoadMode::Reconstruction,
                        "invalid variance-clock load mode");
-            QL_REQUIRE(manifest.evidence.size() <= 4000,
+            QL_REQUIRE(manifest_.evidence.size() <= 4000,
                        "evidence record limit (4,000) exceeded");
             constexpr std::size_t perEvidence = 512;
-            QL_REQUIRE(csv.sessionSegments.size() <=
-                           std::numeric_limits<std::size_t>::max() - csv.slotEvidence.size(),
+            QL_REQUIRE(manifest_.evidence.size() <=
+                           std::numeric_limits<std::size_t>::max() / perEvidence,
                        "variance-clock evidence accounting overflow");
-            const auto streamBytes = csv.sessionSegments.size() + csv.slotEvidence.size();
-            QL_REQUIRE(streamBytes <= std::numeric_limits<std::size_t>::max() -
-                                          parsed.storageCharge.bytes(),
-                       "variance-clock evidence accounting overflow");
-            QL_REQUIRE(manifest.evidence.size() <=
-                           (std::numeric_limits<std::size_t>::max() -
-                            parsed.storageCharge.bytes() - streamBytes) /
-                               perEvidence,
-                       "variance-clock evidence accounting overflow");
-            const auto validationBytes = streamBytes + manifest.evidence.size() * perEvidence;
-            parsed.storageCharge.resize(parsed.storageCharge.bytes() + validationBytes);
-            QL_ENSURE(budget.used() >= parsed.storageCharge.bytes(),
-                     "variance-clock evidence load budget mismatch");
-            const auto& generatedAt = manifest.generatedAtUtc;
-            const auto& coverageEnd = manifest.coverageEndUtc;
-            const auto& priceCutoff = manifest.priceCutoffUtc;
-            const auto& calendarAsOf = manifest.calendarAsOfUtc;
-            const auto& timezoneAsOf = manifest.timezoneAsOfUtc;
-            QL_REQUIRE(parsed.start == manifest.clockOriginUtc,
+
+            const auto& generatedAt = manifest_.generatedAtUtc;
+            const auto& coverageEnd = manifest_.coverageEndUtc;
+            const auto& priceCutoff = manifest_.priceCutoffUtc;
+            const auto& calendarAsOf = manifest_.calendarAsOfUtc;
+            const auto& timezoneAsOf = manifest_.timezoneAsOfUtc;
+            QL_REQUIRE(manifest_.coverageStartUtc == manifest_.clockOriginUtc,
                        "clock_origin_utc must equal coverage_start_utc");
-            QL_REQUIRE(mode != VarianceClockLoadMode::Strict || generatedAt < coverageEnd,
+            QL_REQUIRE(mode_ != VarianceClockLoadMode::Strict || generatedAt < coverageEnd,
                        "Strict generated_at_utc must be before coverage_end_utc");
             QL_REQUIRE(priceCutoff <= generatedAt, "price cutoff is after generated_at_utc");
             QL_REQUIRE(calendarAsOf <= generatedAt, "calendar as-of is after generated_at_utc");
             QL_REQUIRE(timezoneAsOf <= generatedAt, "timezone as-of is after generated_at_utc");
 
-            EvidenceMap evidence;
-            VarianceClockInstant latestAvailability;
-            for (const auto& item : manifest.evidence) {
-                QL_REQUIRE(evidence.emplace(item.evidenceId, &item).second,
+            evidenceCharge_.resize(manifest_.evidence.size() * perEvidence);
+            for (const auto& item : manifest_.evidence) {
+                QL_REQUIRE(evidence_.emplace(item.evidenceId, &item).second,
                            "duplicate evidence ID");
-                const auto& availableAt = item.availableAtUtc;
                 QL_REQUIRE(item.contentSha256 || item.attestationRef,
                            "evidence without content_sha256 requires attestation_ref");
-                QL_REQUIRE(availableAt <= generatedAt,
+                QL_REQUIRE(item.availableAtUtc <= generatedAt,
                            "evidence is available after generated_at_utc");
-                if (latestAvailability < availableAt)
-                    latestAvailability = availableAt;
+                if (latestAvailability_ < item.availableAtUtc)
+                    latestAvailability_ = item.availableAtUtc;
             }
 
-            std::set<std::string> used;
             VarianceClockInstant latestCalendar;
-            for (const auto& id : manifest.calendarEvidenceIds) {
-                const auto& item = requireEvidence(evidence, id, "dangling calendar evidence ID");
+            for (const auto& id : manifest_.calendarEvidenceIds) {
+                const auto& item =
+                    requireEvidence(evidence_, id, "dangling calendar evidence ID");
                 requireRole(item, "calendar_source", "calendar evidence");
-                used.insert(id);
-                const auto& availableAt = item.availableAtUtc;
-                if (latestCalendar < availableAt)
-                    latestCalendar = availableAt;
+                used_.insert(id);
+                if (latestCalendar < item.availableAtUtc)
+                    latestCalendar = item.availableAtUtc;
             }
-            QL_REQUIRE(!manifest.calendarEvidenceIds.empty(), "empty calendar evidence IDs");
+            QL_REQUIRE(!manifest_.calendarEvidenceIds.empty(), "empty calendar evidence IDs");
             QL_REQUIRE(latestCalendar <= calendarAsOf,
                        "calendar as-of precedes cited evidence");
 
             VarianceClockInstant latestTimezone;
-            for (const auto& id : manifest.timezoneEvidenceIds) {
-                const auto& item = requireEvidence(evidence, id, "dangling timezone evidence ID");
+            for (const auto& id : manifest_.timezoneEvidenceIds) {
+                const auto& item =
+                    requireEvidence(evidence_, id, "dangling timezone evidence ID");
                 requireRole(item, "timezone_rules", "timezone evidence");
-                used.insert(id);
-                const auto& availableAt = item.availableAtUtc;
-                if (latestTimezone < availableAt)
-                    latestTimezone = availableAt;
+                used_.insert(id);
+                if (latestTimezone < item.availableAtUtc)
+                    latestTimezone = item.availableAtUtc;
             }
-            QL_REQUIRE(!manifest.timezoneEvidenceIds.empty(), "empty timezone evidence IDs");
+            QL_REQUIRE(!manifest_.timezoneEvidenceIds.empty(), "empty timezone evidence IDs");
             QL_REQUIRE(latestTimezone <= timezoneAsOf,
                        "timezone as-of precedes cited evidence");
 
-            for (const auto& approval : manifest.fallbackApprovals) {
+            for (const auto& approval : manifest_.fallbackApprovals) {
                 QL_REQUIRE(!approval.fallbackId.empty(), "empty fallback approval ID");
                 for (const auto& id : approval.approvalEvidenceIds) {
-                    const auto& item = requireEvidence(evidence, id,
-                                                       "dangling fallback approval evidence ID");
+                    const auto& item =
+                        requireEvidence(evidence_, id, "dangling fallback approval evidence ID");
                     requireRole(item, "fallback_approval", "fallback approval");
-                    used.insert(id);
+                    used_.insert(id);
                 }
                 for (const auto& id : approval.sourceEvidenceIds) {
-                    const auto& item = requireEvidence(evidence, id,
-                                                       "dangling fallback source evidence ID");
+                    const auto& item =
+                        requireEvidence(evidence_, id, "dangling fallback source evidence ID");
                     QL_REQUIRE(item.role != "fallback_approval",
                                "fallback source evidence has fallback_approval role");
-                    used.insert(id);
+                    used_.insert(id);
                 }
             }
-            if (manifest.continuousFuturesLineage) {
-                for (const auto* ids : {&manifest.continuousFuturesLineage->rollScheduleEvidenceIds,
-                                        &manifest.continuousFuturesLineage->contractMappingEvidenceIds}) {
+            if (manifest_.continuousFuturesLineage) {
+                for (const auto* ids : {
+                         &manifest_.continuousFuturesLineage->rollScheduleEvidenceIds,
+                         &manifest_.continuousFuturesLineage->contractMappingEvidenceIds}) {
                     for (const auto& id : *ids) {
                         const auto& item = requireEvidence(
-                            evidence, id, "dangling continuous-futures evidence ID");
+                            evidence_, id, "dangling continuous-futures evidence ID");
                         requireRole(item, "continuous_roll_mapping",
                                     "continuous-futures lineage");
-                        used.insert(id);
+                        used_.insert(id);
                     }
                 }
             }
+        }
 
-            std::set<VarianceClockProfileId> calibratedProfiles;
-            for (const auto& calibration : manifest.profileCalibrations)
-                QL_REQUIRE(calibratedProfiles.insert(calibration.profileId).second,
-                           "duplicate profile calibration");
-            QL_REQUIRE(manifest.profileCalibrations.size() == parsed.profiles.size(),
-                       "profile calibration set does not match profiles");
-            for (const auto& calibration : manifest.profileCalibrations) {
+        void VarianceClockBundleEvidenceContext::validateProfileCalibrations(
+            std::vector<VarianceClockProfileInput>& profiles) {
+            for (const auto& calibration : manifest_.profileCalibrations) {
                 QL_REQUIRE(!calibration.evidenceIds.empty(),
                            "profile calibration has no evidence");
                 VarianceClockInstant calibrationEvidence;
                 for (const auto& id : calibration.evidenceIds) {
-                    const auto& item = requireEvidence(evidence, id,
-                                                       "dangling profile calibration evidence ID");
+                    const auto& item = requireEvidence(
+                        evidence_, id, "dangling profile calibration evidence ID");
                     requireRole(item, "price_input", "profile calibration");
-                    used.insert(id);
-                    const auto& availableAt = item.availableAtUtc;
-                    if (calibrationEvidence < availableAt)
-                        calibrationEvidence = availableAt;
+                    used_.insert(id);
+                    if (calibrationEvidence < item.availableAtUtc)
+                        calibrationEvidence = item.availableAtUtc;
                 }
-                const auto& calibrationAsOf = calibration.calibrationAsOfUtc;
-                QL_REQUIRE(calibrationEvidence <= calibrationAsOf,
+                QL_REQUIRE(calibrationEvidence <= calibration.calibrationAsOfUtc,
                            "calibration precedes cited evidence");
-                QL_REQUIRE(calibrationAsOf <= priceCutoff,
+                QL_REQUIRE(calibration.calibrationAsOfUtc <= manifest_.priceCutoffUtc,
                            "calibration is after price cutoff");
                 const auto profile = std::find_if(
-                    parsed.profiles.begin(), parsed.profiles.end(),
-                    [&calibration](const auto& value) { return value.id == calibration.profileId; });
-                QL_REQUIRE(profile != parsed.profiles.end(), "orphan profile calibration");
-                profile->calibrationAsOf = calibrationAsOf;
+                    profiles.begin(), profiles.end(),
+                    [&calibration](const auto& value) {
+                        return value.id == calibration.profileId;
+                    });
+                QL_REQUIRE(profile != profiles.end(), "orphan profile calibration");
+                profile->calibrationAsOf = calibration.calibrationAsOfUtc;
             }
+        }
 
-            std::vector<VarianceClockBundleWarning> warnings;
-            StreamContext context{manifest, evidence, used, parsed.profiles, warnings, budget,
-                                  parsed.storageCharge};
-            QL_REQUIRE(visitVarianceClockCsvRows(csv.sessionSegments,
-                                                 VarianceClockCsvSchema::SessionSegments,
-                                                 &context, checkSession),
-                       "session evidence validation stopped");
-            QL_REQUIRE(visitVarianceClockCsvRows(csv.slotEvidence,
-                                                 VarianceClockCsvSchema::SlotEvidence,
-                                                 &context, checkSlots),
-                       "slot evidence validation stopped");
+        void VarianceClockBundleEvidenceContext::validateSessionRow(
+            const VarianceClockSessionSegmentRow& row,
+            VarianceClockLoadBudget::Reservation& storageCharge) {
+            StreamContext context{manifest_, evidence_, used_, nullptr, warnings_,
+                                  storageCharge};
+            checkSession(context, row);
+        }
+
+        void VarianceClockBundleEvidenceContext::validateSlotRow(
+            const VarianceClockSlotEvidenceRow& row,
+            const std::vector<VarianceClockProfileInput>& profiles,
+            VarianceClockLoadBudget::Reservation& storageCharge) {
+            StreamContext context{manifest_, evidence_, used_, &profiles, warnings_,
+                                  storageCharge};
+            checkSlots(context, row);
+        }
+
+        VarianceClockValidatedBundle
+        VarianceClockBundleEvidenceContext::finish(ParsedVarianceClockTables&& parsed) {
+            QL_ENSURE(budget_.used() >= parsed.storageCharge.bytes(),
+                     "variance-clock evidence load budget mismatch");
+            const auto& manifest = manifest_;
+            const auto& generatedAt = manifest_.generatedAtUtc;
+            const auto& latestAvailability = latestAvailability_;
+            auto& warnings = warnings_;
+            auto& used = used_;
+            auto& budget = budget_;
             const auto warningOrder = [](const auto& left, const auto& right) {
                 return std::tie(left.code, left.profileId, left.targetGroupId,
                                 left.minuteOfDay, left.evidenceIds) <
@@ -515,20 +459,64 @@ namespace QuantLib {
             for (const auto& item : manifest.evidence)
                 QL_REQUIRE(used.count(item.evidenceId) != 0, "orphan evidence");
 
+            std::size_t retainedWarningBytes = 0;
+            QL_REQUIRE(warnings.capacity() <=
+                           std::numeric_limits<std::size_t>::max() /
+                               sizeof(VarianceClockBundleWarning),
+                       "variance-clock warning accounting overflow");
+            retainedWarningBytes =
+                warnings.capacity() * sizeof(VarianceClockBundleWarning);
+            for (const auto& warning : warnings) {
+                QL_REQUIRE(warning.evidenceIds.capacity() <=
+                               std::numeric_limits<std::size_t>::max() /
+                                   sizeof(std::string),
+                           "variance-clock warning accounting overflow");
+                const auto idVectorBytes =
+                    warning.evidenceIds.capacity() * sizeof(std::string);
+                QL_REQUIRE(idVectorBytes <=
+                               std::numeric_limits<std::size_t>::max() -
+                                   retainedWarningBytes,
+                           "variance-clock warning accounting overflow");
+                retainedWarningBytes += idVectorBytes;
+                QL_REQUIRE(warning.targetGroupId.capacity() <=
+                               std::numeric_limits<std::size_t>::max() -
+                                   retainedWarningBytes,
+                           "variance-clock warning accounting overflow");
+                retainedWarningBytes += warning.targetGroupId.capacity();
+                for (const auto& id : warning.evidenceIds) {
+                    QL_REQUIRE(id.capacity() <=
+                                   std::numeric_limits<std::size_t>::max() -
+                                       retainedWarningBytes,
+                               "variance-clock warning accounting overflow");
+                    retainedWarningBytes += id.capacity();
+                }
+            }
+            const std::size_t retainedTables =
+                parsed.profiles.capacity() * sizeof(VarianceClockProfileInput) +
+                parsed.dates.capacity() * sizeof(VarianceClockDateInput) +
+                parsed.offsets.capacity() * sizeof(VarianceClockOffsetInput);
+            QL_REQUIRE(retainedWarningBytes <=
+                           std::numeric_limits<std::size_t>::max() - retainedTables,
+                       "variance-clock warning accounting overflow");
+            parsed.storageCharge.resize(retainedTables + retainedWarningBytes);
+
             VarianceClockValidatedBundle result;
             result.tables.start = parsed.start;
             result.tables.end = parsed.end;
             result.tables.availableFrom =
-                mode == VarianceClockLoadMode::Strict ? generatedAt : latestAvailability;
+                mode_ == VarianceClockLoadMode::Strict ? generatedAt : latestAvailability;
             result.tables.profiles = std::move(parsed.profiles);
             result.tables.dates = std::move(parsed.dates);
             result.tables.offsets = std::move(parsed.offsets);
             result.provenance.snapshotId = manifest.snapshotId;
             result.provenance.availableFrom = result.tables.availableFrom;
-            result.provenance.mode = mode;
-            result.provenance.reconstructed = mode == VarianceClockLoadMode::Reconstruction;
+            result.provenance.mode = mode_;
+            result.provenance.reconstructed = mode_ == VarianceClockLoadMode::Reconstruction;
             result.warnings = std::move(warnings);
             result.storageCharge = std::move(parsed.storageCharge);
+            evidence_.clear();
+            used_.clear();
+            evidenceCharge_.release();
             return result;
         }
 

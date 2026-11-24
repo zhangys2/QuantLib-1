@@ -27,8 +27,13 @@
 #include <ql/time/varianceclockmanifest.hpp>
 #include <ql/time/varianceclockbundletypes.hpp>
 #include <ql/time/varianceclocktables.hpp>
+#include <ql/time/varianceclockcsv.hpp>
+#include <array>
 #include <cstddef>
+#include <cstdint>
+#include <string>
 #include <string_view>
+#include <vector>
 
 namespace QuantLib {
     namespace detail {
@@ -67,12 +72,15 @@ namespace QuantLib {
             std::size_t limit() const noexcept;
             std::size_t used() const noexcept;
             std::size_t remaining() const noexcept;
+            const VarianceClockBundleScanCounts& scanCounts() const noexcept;
+            VarianceClockBundleScanCounts& scanCounts() noexcept;
           private:
             void increase(std::size_t bytes);
             void decrease(std::size_t bytes) noexcept;
 
             std::size_t limit_;
             std::size_t used_ = 0;
+            VarianceClockBundleScanCounts scanCounts_;
         };
 
         struct VarianceClockBundleCsvBytes {
@@ -81,6 +89,48 @@ namespace QuantLib {
             std::string_view sessionSegments;
             std::string_view timezoneMapping;
             std::string_view slotEvidence;
+        };
+
+        class VarianceClockBundleEvidenceContext;
+
+        struct VarianceClockSessionSegmentRow {
+            std::array<std::string, VarianceClockSessionSegmentsCsv::columnCount> fields;
+            Date localDate;
+            VarianceClockInstant start;
+            VarianceClockInstant end;
+
+            const std::string& localDateText() const noexcept {
+                return fields[VarianceClockSessionSegmentsCsv::localDate];
+            }
+            const std::string& sourceEvidenceId() const noexcept {
+                return fields[VarianceClockSessionSegmentsCsv::sourceEvidenceId];
+            }
+        };
+
+        struct VarianceClockSlotEvidenceRow {
+            std::array<std::string, VarianceClockSlotEvidenceCsv::columnCount> fields;
+            std::uint32_t profileId = 0;
+            std::uint16_t minuteOfDay = 0;
+            std::vector<std::string> evidenceIds;
+
+            const std::string& targetGroupId() const noexcept {
+                return fields[VarianceClockSlotEvidenceCsv::targetGroupId];
+            }
+            const std::string& targetReturnCount() const noexcept {
+                return fields[VarianceClockSlotEvidenceCsv::targetReturnCount];
+            }
+            const std::string& targetDistinctLocalDateCount() const noexcept {
+                return fields[VarianceClockSlotEvidenceCsv::targetDistinctLocalDateCount];
+            }
+            const std::string& estimationMethod() const noexcept {
+                return fields[VarianceClockSlotEvidenceCsv::estimationMethod];
+            }
+            const std::string& fallbackId() const noexcept {
+                return fields[VarianceClockSlotEvidenceCsv::fallbackId];
+            }
+            const std::string& warningCodes() const noexcept {
+                return fields[VarianceClockSlotEvidenceCsv::warningCodes];
+            }
         };
 
         struct ParsedVarianceClockTables {
@@ -105,7 +155,8 @@ namespace QuantLib {
         ParsedVarianceClockTables parseVarianceClockBundleData(
             const VarianceClockManifest& manifest,
             const VarianceClockBundleCsvBytes& csv,
-            VarianceClockLoadBudget& budget);
+            VarianceClockLoadBudget& budget,
+            VarianceClockBundleEvidenceContext* evidence = nullptr);
 
     }
 }

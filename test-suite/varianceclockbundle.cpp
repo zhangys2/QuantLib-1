@@ -834,6 +834,9 @@ BOOST_AUTO_TEST_SUITE(VarianceBundleCsvTests)
 
 namespace {
 
+    const std::string sessionHeader =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
     const std::string tzHeader = "start_utc,end_utc,offset_seconds,fold\n";
     const std::string slotHeader =
         "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
@@ -866,7 +869,13 @@ namespace {
     CsvTestTable parseVarianceClockCsv(std::string_view bytes,
                                        VarianceClockCsvSchema schema) {
         CsvTestTable table;
-        QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &table, collectAllCsvRows),
+        QuantLib::detail::VarianceClockBundleScanCounts scanCounts;
+        auto* scanCountsPtr = schema == VarianceClockCsvSchema::SessionSegments ||
+                                      schema == VarianceClockCsvSchema::SlotEvidence
+                                  ? &scanCounts
+                                  : nullptr;
+        QL_REQUIRE(visitVarianceClockCsvRows(bytes, schema, &table, collectAllCsvRows,
+                                             scanCountsPtr),
                    "test CSV visitor unexpectedly stopped");
         return table;
     }
@@ -1136,6 +1145,36 @@ BOOST_AUTO_TEST_CASE(testCsvRowVisitorContract) {
                                                 &thrower, stopAfterRows),
                       std::runtime_error);
     BOOST_CHECK_EQUAL(thrower.seen, 2U);
+}
+
+BOOST_AUTO_TEST_CASE(testSessionAndSlotScansRequireAndIncrementCounters) {
+    BOOST_TEST_MESSAGE("Testing session and slot CSV scans cannot bypass scan counting...");
+    const std::array<std::pair<VarianceClockCsvSchema, std::string_view>, 2> inputs{{
+        {VarianceClockCsvSchema::SessionSegments, sessionHeader},
+        {VarianceClockCsvSchema::SlotEvidence, slotHeader}
+    }};
+    for (const auto& input : inputs) {
+        CsvTestTable rows;
+        BOOST_CHECK_EXCEPTION(
+            visitVarianceClockCsvRows(input.second, input.first, &rows, collectAllCsvRows),
+            Error, [](const Error& e) {
+                return std::string(e.what()).find("scan counter required") != std::string::npos;
+            });
+
+        QuantLib::detail::VarianceClockBundleScanCounts counts;
+        BOOST_REQUIRE(visitVarianceClockCsvRows(input.second, input.first, &rows,
+                                                collectAllCsvRows, &counts));
+        BOOST_CHECK_EQUAL(counts.sessionSegments,
+                         input.first == VarianceClockCsvSchema::SessionSegments ? 1U : 0U);
+        BOOST_CHECK_EQUAL(counts.slotEvidence,
+                         input.first == VarianceClockCsvSchema::SlotEvidence ? 1U : 0U);
+        BOOST_REQUIRE(visitVarianceClockCsvRows(input.second, input.first, &rows,
+                                                collectAllCsvRows, &counts));
+        BOOST_CHECK_EQUAL(counts.sessionSegments,
+                         input.first == VarianceClockCsvSchema::SessionSegments ? 2U : 0U);
+        BOOST_CHECK_EQUAL(counts.slotEvidence,
+                         input.first == VarianceClockCsvSchema::SlotEvidence ? 2U : 0U);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsRecordsWithTooManyFields) {
@@ -2278,10 +2317,11 @@ namespace {
         const BundleTableFixture& fixture,
         QuantLib::detail::VarianceClockLoadBudget& budget,
         QuantLib::VarianceClockLoadMode mode = QuantLib::VarianceClockLoadMode::Strict) {
+        QuantLib::detail::VarianceClockBundleEvidenceContext evidence(fixture.manifest, mode,
+                                                                      budget);
         auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), budget);
-        return QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed), mode, budget);
+            fixture.manifest, fixture.csv(), budget, &evidence);
+        return evidence.finish(std::move(parsed));
     }
 
     void checkBundleEvidenceRejectedWith(const BundleTableFixture& fixture,
@@ -2704,6 +2744,66 @@ BOOST_AUTO_TEST_CASE(testStreamsLargeSlotEvidenceWithinBudget) {
         fixture.manifest, csv, budget);
     BOOST_CHECK_EQUAL(parsed.dates.size(), targetGroups);
     BOOST_CHECK_LE(budget.used(), budget.limit());
+    BOOST_CHECK_EQUAL(budget.scanCounts().slotEvidence, 1U);
+}
+
+BOOST_AUTO_TEST_CASE(testScansSessionAndSlotEvidenceOnce) {
+    BOOST_TEST_MESSAGE("Testing session and slot evidence files are each scanned once...");
+    const auto fixture = validBundleTableFixture();
+    QuantLib::detail::VarianceClockLoadBudget budget;
+    {
+        auto validated = validateBundleEvidence(fixture, budget);
+        BOOST_CHECK_EQUAL(validated.tables.profiles.size(), 1U);
+        BOOST_CHECK_EQUAL(budget.scanCounts().sessionSegments, 1U);
+        BOOST_CHECK_EQUAL(budget.scanCounts().slotEvidence, 1U);
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(testStreamsSessionRowsWithinTightBudget) {
+    BOOST_TEST_MESSAGE("Testing a session-heavy bundle streams within a tight load budget...");
+    constexpr std::size_t rowsPerDay = 10000;
+    constexpr std::size_t days = 5;
+    auto fixture = validBundleTableFixture();
+    fixture.manifest.coverageEndUtc = testInstant("2024-01-06T00:00:00Z");
+    fixture.marketDays =
+        "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n";
+    fixture.sessionSegments =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
+    fixture.timezoneMapping =
+        "start_utc,end_utc,offset_seconds,fold\n"
+        "2024-01-01T00:00:00Z,2024-01-06T00:00:00Z,0,0\n";
+    std::size_t row = 0;
+    for (std::size_t day = 0; day < days; ++day) {
+        const Date date = Date(1, January, 2024) + static_cast<Integer>(day);
+        const std::string localDate = isoDate(date);
+        fixture.marketDays += localDate + ",full_day,true,1,group,date_override\n";
+        const auto midnight = testInstant(localDate + "T00:00:00Z").unixSeconds();
+        for (std::size_t interval = 0; interval < rowsPerDay; ++interval, ++row) {
+            const auto start = midnight + static_cast<std::int64_t>(interval * 2);
+            fixture.sessionSegments +=
+                localDate + "," + utcTimestamp(start) + "," + utcTimestamp(start + 1) +
+                ",s" + std::to_string(row) + ",,,,calendar\n";
+        }
+    }
+    BOOST_REQUIRE_EQUAL(row, rowsPerDay * days);
+    BOOST_REQUIRE_LE(fixture.sessionSegments.size(), 32U * 1024U * 1024U);
+
+    const auto csv = fixture.csv();
+    const auto capturedBytes = csv.profiles.size() + csv.marketDays.size() +
+                               csv.sessionSegments.size() + csv.timezoneMapping.size() +
+                               csv.slotEvidence.size();
+    QuantLib::detail::VarianceClockLoadBudget budget(16U * 1024U * 1024U);
+    auto capturedCharge = budget.reserve(capturedBytes);
+    {
+        auto validated = validateBundleEvidence(fixture, budget);
+        BOOST_CHECK_EQUAL(validated.tables.dates.size(), days);
+        BOOST_CHECK_EQUAL(budget.scanCounts().sessionSegments, 1U);
+        BOOST_CHECK_EQUAL(budget.scanCounts().slotEvidence, 1U);
+        BOOST_CHECK_LE(budget.used(), budget.limit());
+    }
+    BOOST_CHECK_EQUAL(budget.used(), capturedBytes);
 }
 
 BOOST_AUTO_TEST_CASE(testRejectsSlotParserScratchBeforeMaterializingOversizedField) {
@@ -2928,14 +3028,9 @@ BOOST_AUTO_TEST_CASE(testBundleTablesChargeAndReleaseTheLoadBudget) {
         (accepted ? high : low) = middle;
     }
     const std::size_t smallest = high;
-    // The parser holds decoded text for the rows it reads, so it must reserve at least the
-    // size of the CSV bytes before it starts.
-    const std::size_t inputBytes = fixture.profiles.size() + fixture.marketDays.size() +
-                                   fixture.sessionSegments.size() +
-                                   fixture.timezoneMapping.size() + fixture.slotEvidence.size();
-    BOOST_CHECK_GE(smallest, inputBytes);
-    BOOST_CHECK_LT(smallest, 64U * 1024U * 1024U);
 
+    // The scanner streams CSV rows.  The budget covers its active scratch and retained table
+    // objects, not a duplicate of every captured CSV byte.
     // At the threshold parsing succeeds and keeps charging exactly its retained output;
     // one byte less is refused before anything is retained.
     {
@@ -2947,8 +3042,10 @@ BOOST_AUTO_TEST_CASE(testBundleTablesChargeAndReleaseTheLoadBudget) {
                 sizeof(QuantLib::VarianceClockDateInput) +
             parsed.tables.offsets.capacity() *
                 sizeof(QuantLib::VarianceClockOffsetInput);
+        BOOST_CHECK_GE(smallest, retained);
         BOOST_CHECK_EQUAL(parsed.budget->used(), retained);
         BOOST_CHECK_EQUAL(parsed.tables.storageCharge.bytes(), retained);
+        BOOST_CHECK_LT(smallest, 64U * 1024U * 1024U);
         BOOST_CHECK_LE(parsed.budget->used(), smallest);
     }
     QuantLib::detail::VarianceClockLoadBudget refused(smallest - 1);
@@ -3377,12 +3474,8 @@ BOOST_AUTO_TEST_CASE(testRejectsMissingSlotEvidence) {
                     ",1,not_applicable,1,not_applicable,direct,,not_applicable,,," +
                         csvEvidenceIds(R"(["unlisted"])"));
     auto budget = std::make_unique<QuantLib::detail::VarianceClockLoadBudget>();
-    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-        fixture.manifest, fixture.csv(), *budget);
     try {
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            VarianceClockLoadMode::Strict, *budget);
+        (void)validateBundleEvidence(fixture, *budget);
         BOOST_ERROR("accepted selected slot without evidence");
     } catch (const Error& e) {
         BOOST_CHECK_MESSAGE(std::string(e.what()).find("missing slot evidence") !=
@@ -3628,11 +3721,7 @@ BOOST_AUTO_TEST_CASE(testEvidenceValidationBudgetBoundary) {
     const auto loadsWithin = [&fixture](std::size_t limit) {
         QuantLib::detail::VarianceClockLoadBudget budget(limit);
         try {
-            auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-                fixture.manifest, fixture.csv(), budget);
-            auto loaded = QuantLib::detail::validateVarianceClockBundleEvidence(
-                fixture.manifest, fixture.csv(), std::move(parsed), VarianceClockLoadMode::Strict,
-                budget);
+            auto loaded = validateBundleEvidence(fixture, budget);
             return true;
         } catch (const Error&) {
             BOOST_CHECK_EQUAL(budget.used(), 0U);
@@ -3653,11 +3742,7 @@ BOOST_AUTO_TEST_CASE(testEvidenceValidationBudgetBoundary) {
     if (lower > 0) {
         QuantLib::detail::VarianceClockLoadBudget insufficient(lower - 1);
         try {
-            auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-                fixture.manifest, fixture.csv(), insufficient);
-            (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-                fixture.manifest, fixture.csv(), std::move(parsed),
-                VarianceClockLoadMode::Strict, insufficient);
+            (void)validateBundleEvidence(fixture, insufficient);
             BOOST_ERROR("accepted bundle below the minimum load budget");
         } catch (const Error& e) {
             BOOST_CHECK_MESSAGE(
@@ -4034,7 +4119,7 @@ BOOST_AUTO_TEST_CASE(testFallbackApprovalRulesInTheValidator) {
         ",1,not_applicable,1,not_applicable,fallback,,not_applicable,fb,,";
     BOOST_CHECK_NO_THROW([&] {
         QuantLib::detail::VarianceClockLoadBudget budget;
-        return validateBundleEvidence(fallbackFixture(knownTail), budget);
+        (void)validateBundleEvidence(fallbackFixture(knownTail), budget);
     }());
     checkBundleEvidenceRejectedWith(fallbackFixture(knownTail, false),
                                     "fallback lacks manifest approval");
@@ -4250,37 +4335,16 @@ BOOST_AUTO_TEST_CASE(testWarningChargeCoversTheStoredWarnings) {
     QuantLib::detail::VarianceClockLoadBudget warnedBudget;
     const auto warnedResult = validateBundleEvidence(warned, warnedBudget);
     BOOST_REQUIRE_EQUAL(warnedResult.warnings.size(), 288U);
-    // The budget also counts the slot CSV bytes, which differ between the fixtures.
-    const std::size_t csvDifference = warned.slotEvidence.size() - plain.slotEvidence.size();
-    BOOST_REQUIRE_GE(warnedBudget.used(), plainBudget.used() + csvDifference);
-    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used() - csvDifference;
-
-    // What the warnings really occupy: the warning vector, each ID vector, and the heap
-    // characters of every ID that is not stored inline in its std::string object. Inline
-    // (small-string) characters are part of sizeof(std::string) and are not counted again,
-    // so this is a lower bound; the charge may exceed it.
-    const auto onHeap = [](const std::string& text) {
-        const auto object = reinterpret_cast<std::uintptr_t>(&text);
-        const auto characters = reinterpret_cast<std::uintptr_t>(text.data());
-        return characters < object || characters >= object + sizeof(std::string);
-    };
+    // The slot rows and their per-row scratch reservation are larger in the warned fixture,
+    // so compare the whole load-budget delta rather than subtracting CSV bytes alone.
     std::size_t stored = warnedResult.warnings.capacity() * sizeof(VarianceClockBundleWarning);
-    std::size_t heapIds = 0;
-    std::size_t heapTargetGroups = 0;
     for (const auto& warning : warnedResult.warnings) {
         stored += warning.evidenceIds.capacity() * sizeof(std::string);
         stored += warning.targetGroupId.capacity();
-        if (onHeap(warning.targetGroupId))
-            ++heapTargetGroups;
         for (const auto& id : warning.evidenceIds)
-            if (onHeap(id)) {
-                stored += id.capacity();
-                ++heapIds;
-            }
+            stored += id.capacity();
     }
-    BOOST_REQUIRE_EQUAL(heapIds, 288U);
-    BOOST_REQUIRE_EQUAL(heapTargetGroups, 288U);
-    BOOST_CHECK_GE(warningCharge, stored);
+    BOOST_CHECK_GE(warnedBudget.used(), plainBudget.used() + stored);
 }
 
 BOOST_AUTO_TEST_CASE(testLoadedWarningVectorUsesThePublicStandardVectorType) {
@@ -4302,8 +4366,12 @@ BOOST_AUTO_TEST_CASE(testLoadedWarningVectorUsesThePublicStandardVectorType) {
                 VarianceClockBundleWarningCode::UnknownCountFallback);
 }
 
+namespace {
+    std::size_t evidenceHeadroom(const BundleTableFixture& fixture);
+}
+
 BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
-    BOOST_TEST_MESSAGE("Testing warning growth reserves budget for old and new buffers...");
+    BOOST_TEST_MESSAGE("Testing whole-load transient peak exceeds retained warning charge...");
     const auto makeWarningsFixture = [] {
         const std::string longId(40, 'p');
         auto fixture = validBundleTableFixture();
@@ -4323,42 +4391,15 @@ BOOST_AUTO_TEST_CASE(testWarningGrowthBudgetCoversTransientBuffers) {
     };
 
     auto fixture = makeWarningsFixture();
-    std::size_t evidenceCharge = 0;
-    {
-        QuantLib::detail::VarianceClockLoadBudget measurementBudget;
-        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), measurementBudget);
-        const auto beforeEvidence = measurementBudget.used();
-        const auto result = QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            QuantLib::VarianceClockLoadMode::Strict, measurementBudget);
-        BOOST_REQUIRE_EQUAL(result.warnings.size(), 288U);
-        evidenceCharge = measurementBudget.used() - beforeEvidence;
-    }
-
-    QuantLib::detail::VarianceClockLoadBudget peakBudget;
-    QuantLib::detail::VarianceClockLoadBudget::Reservation heldBudget;
-    bool rejected = false;
-    try {
-        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), peakBudget);
-        const auto beforeEvidence = peakBudget.used();
-        const std::size_t margin = sizeof(VarianceClockBundleWarning) * 64;
-        BOOST_REQUIRE_LE(beforeEvidence + evidenceCharge + margin, peakBudget.limit());
-        heldBudget = peakBudget.reserve(
-            peakBudget.limit() - beforeEvidence - evidenceCharge - margin);
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            QuantLib::VarianceClockLoadMode::Strict, peakBudget);
-    } catch (const Error& error) {
-        BOOST_CHECK(std::string(error.what()).find("variance-clock load exceeds size limit") !=
-                    std::string::npos);
-        rejected = true;
-    }
-    BOOST_CHECK(rejected);
-    BOOST_CHECK_EQUAL(peakBudget.used(), heldBudget.bytes());
-    heldBudget.release();
-    BOOST_CHECK_EQUAL(peakBudget.used(), 0U);
+    QuantLib::detail::VarianceClockLoadBudget retainedBudget;
+    const auto retained = validateBundleEvidence(fixture, retainedBudget);
+    BOOST_REQUIRE_EQUAL(retained.warnings.size(), 288U);
+    // This is a whole-load bound: the least successful budget includes table and parser scratch,
+    // evidence indexes, and warning storage, while budget.used() after return is retained output.
+    // The sibling testWarningGrowthPrechargeCoversOldAndTwiceTheNewBuffer is the
+    // warning-growth-specific guard.
+    BOOST_CHECK_GT(evidenceHeadroom(fixture),
+                   retainedBudget.used() + 64U * 1024U);
 }
 
 namespace {
@@ -4382,27 +4423,21 @@ namespace {
         return fixture;
     }
 
-    // True unless the evidence stage runs out of budget when only `headroom` bytes are left to
-    // it after the tables are parsed. Any other rejection means the budget sufficed.
+    // True unless the integrated parse runs out of budget with only `headroom` bytes available.
+    // Any other rejection means the budget sufficed.
     bool validatesWithHeadroom(const BundleTableFixture& fixture, std::size_t headroom) {
         QuantLib::detail::VarianceClockLoadBudget budget;
-        auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-            fixture.manifest, fixture.csv(), budget);
-        const auto before = budget.used();
-        BOOST_REQUIRE_LE(before + headroom, budget.limit());
-        auto held = budget.reserve(budget.limit() - before - headroom);
+        BOOST_REQUIRE_LE(headroom, budget.limit());
+        auto held = budget.reserve(budget.limit() - headroom);
         try {
-            (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-                fixture.manifest, fixture.csv(), std::move(parsed),
-                QuantLib::VarianceClockLoadMode::Strict, budget);
+            (void)validateBundleEvidence(fixture, budget);
         } catch (const Error& e) {
             return std::string(e.what()).find("exceeds size limit") == std::string::npos;
         }
         return true;
     }
 
-    // The least headroom the evidence stage needs, found by bisection. It includes the
-    // per-row scratch envelope, which is the same for every fixture built from the same rows.
+    // The least headroom the integrated parse needs, found by bisection.
     std::size_t evidenceHeadroom(const BundleTableFixture& fixture) {
         std::size_t rejected = 0;
         std::size_t accepted = 64U * 1024U * 1024U;
@@ -4445,8 +4480,7 @@ BOOST_AUTO_TEST_CASE(testWarningChargeEqualsTheStoredCapacities) {
     QuantLib::detail::VarianceClockLoadBudget warnedBudget;
     const auto warnedResult = validateBundleEvidence(warned, warnedBudget);
     BOOST_REQUIRE_EQUAL(warnedResult.warnings.size(), 288U);
-    const std::size_t csvDifference = warned.slotEvidence.size() - plain.slotEvidence.size();
-    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used() - csvDifference;
+    const std::size_t warningCharge = warnedBudget.used() - plainBudget.used();
     std::size_t stored = warnedResult.warnings.capacity() * sizeof(VarianceClockBundleWarning);
     for (const auto& warning : warnedResult.warnings) {
         stored += warning.evidenceIds.capacity() * sizeof(std::string) +
@@ -4455,7 +4489,7 @@ BOOST_AUTO_TEST_CASE(testWarningChargeEqualsTheStoredCapacities) {
             stored += id.capacity();
     }
     // The pre-growth charge (twice the requested buffer) must be trued up to what the vector
-    // really holds, and the manifest-warning pointer buffer must be released again.
+    // really holds; per-row scratch is released before the result is returned.
     BOOST_CHECK_EQUAL(warningCharge, stored);
 }
 
@@ -4463,21 +4497,33 @@ BOOST_AUTO_TEST_CASE(testSurplusDerivedWarningsAreRejectedBeforeGrowingTheVector
     BOOST_TEST_MESSAGE("Testing derived warnings beyond the manifest count are rejected "
                        "early...");
     auto fixture = manyWarningsFixture();
-    const auto fullHeadroom = evidenceHeadroom(fixture);
     fixture.manifest.warnings.resize(10);
-    // Too little for 288 warnings, plenty for 10: the surplus must be reported as a manifest
-    // mismatch, not as a budget failure from growing a vector that cannot validate anyway.
-    BOOST_REQUIRE_GT(fullHeadroom, 288U * sizeof(VarianceClockBundleWarning));
-    const auto headroom = fullHeadroom - 288U * sizeof(VarianceClockBundleWarning) / 2;
-    QuantLib::detail::VarianceClockLoadBudget budget;
-    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-        fixture.manifest, fixture.csv(), budget);
-    const auto before = budget.used();
-    auto held = budget.reserve(budget.limit() - before - headroom);
+    // Measure the exact admitted work with ten real derived warnings. Without the early check,
+    // the corrupted fixture grows toward 288 warnings and exceeds this same limit.
+    auto tenWarnings = manyWarningsFixture();
+    tenWarnings.manifest.warnings.resize(10);
+    tenWarnings.profiles =
+        "profile_id,minute_of_day,variance_per_5m,weight\n";
+    tenWarnings.slotEvidence =
+        "profile_id,target_group_id,minute_of_day,source_group_id,target_return_count,"
+        "source_return_count,target_distinct_local_date_count,source_distinct_local_date_count,"
+        "estimation_method,grouping_label,gap_pool_return_count,fallback_id,warning_codes,"
+        "evidence_ids_json\n";
+    for (unsigned int minute = 0; minute < 1440; minute += 5) {
+        const bool zero = minute < 50;
+        tenWarnings.profiles +=
+            "1," + std::to_string(minute) + (zero ? ",0,0\n" : ",0.01,1\n");
+        tenWarnings.slotEvidence +=
+            "1,group," + std::to_string(minute) +
+            (zero ? ",,5,not_applicable,1,not_applicable,zero,,not_applicable,,"
+                        "ZERO_RATE_SLOT,"
+                  : ",,5,not_applicable,1,not_applicable,direct,,not_applicable,,,") +
+            csvEvidenceIds(R"(["pppppppppppppppppppppppppppppppppppppppp"])") + "\n";
+    }
+    const auto availableHeadroom = evidenceHeadroom(tenWarnings);
+    QuantLib::detail::VarianceClockLoadBudget budget(availableHeadroom);
     try {
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, fixture.csv(), std::move(parsed),
-            QuantLib::VarianceClockLoadMode::Strict, budget);
+        (void)validateBundleEvidence(fixture, budget);
         BOOST_ERROR("accepted a bundle whose manifest lists too few warnings");
     } catch (const Error& e) {
         BOOST_CHECK_MESSAGE(std::string(e.what()).find(
@@ -4485,103 +4531,102 @@ BOOST_AUTO_TEST_CASE(testSurplusDerivedWarningsAreRejectedBeforeGrowingTheVector
                                 std::string::npos,
                             "unexpected rejection: " << e.what());
     }
-    // The parsed tables keep the charge, validation's included, until they are destroyed.
-    held.release();
-    parsed = QuantLib::detail::ParsedVarianceClockTables();
     BOOST_CHECK_EQUAL(budget.used(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(testEvidenceParserScratchRejectsAnOversizedIdsCell) {
     BOOST_TEST_MESSAGE("Testing an oversized evidence-IDs cell is rejected by the scratch "
                        "charge...");
-    auto fixture = manyWarningsFixture();
-    const std::string longId(40, 'p');
-    const std::string idsJson =
-        "[" + std::string(20000, ' ') + "\"" + longId + "\"]";
-    rewriteSlotRows(fixture,
-                    ",5,not_applicable,1,not_applicable,zero,,not_applicable,,"
-                    "ZERO_RATE_SLOT," +
-                        csvEvidenceIds(idsJson));
-    const auto csv = fixture.csv();
-
-    struct ScratchSize {
-        std::size_t bytes = 0;
-    } scratch;
-    const auto measureFirstRow = [](void* opaque,
-                                    const std::string_view* fields,
-                                    std::size_t) {
-        auto& result = *static_cast<ScratchSize*>(opaque);
-        std::size_t recordBytes = 0;
-        for (std::size_t i = 0; i < 14; ++i)
-            recordBytes += fields[i].size();
-        constexpr std::size_t fixedScratch =
-            128U * 1024U + 14U * (sizeof(std::string) + 32U);
-        result.bytes = fixedScratch + 2U * recordBytes + 128U * fields[13].size();
-        return false;
-    };
-    (void)visitVarianceClockCsvRows(csv.slotEvidence, VarianceClockCsvSchema::SlotEvidence,
-                                    &scratch, measureFirstRow);
-    BOOST_REQUIRE_GT(scratch.bytes, 128U * 1024U);
-
-    QuantLib::detail::VarianceClockLoadBudget budget;
-    auto parsed = QuantLib::detail::parseVarianceClockBundleData(
-        fixture.manifest, csv, budget);
-    const auto beforeEvidence = budget.used();
-    const auto validationBytes = csv.sessionSegments.size() + csv.slotEvidence.size() +
-                                 fixture.manifest.evidence.size() * 512U;
-    const auto headroom = validationBytes + scratch.bytes - 1U;
-    BOOST_REQUIRE_LE(beforeEvidence + headroom, budget.limit());
-    auto held = budget.reserve(budget.limit() - beforeEvidence - headroom);
-
-    bool rejectedForScratch = false;
-    try {
-        (void)QuantLib::detail::validateVarianceClockBundleEvidence(
-            fixture.manifest, csv, std::move(parsed), VarianceClockLoadMode::Strict, budget);
-    } catch (const Error& error) {
-        BOOST_CHECK(std::string(error.what()).find("variance-clock load exceeds size limit") !=
-                    std::string::npos);
-        rejectedForScratch = true;
-    }
-    BOOST_CHECK(rejectedForScratch);
-    held.release();
-    parsed = QuantLib::detail::ParsedVarianceClockTables();
-    BOOST_CHECK_EQUAL(budget.used(), 0U);
-}
-
-BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
-    BOOST_TEST_MESSAGE("Testing the evidence-stage parser scratch charge from both sides...");
-    // No derived warnings, so nothing but the stream charge and the first row's scratch
-    // envelope contributes to the evidence stage's peak and the bisection isolates the envelope.
     auto fixture = validBundleTableFixture();
     const std::string idsJson = "[" + std::string(20000, ' ') + "\"price\"]";
     rewriteSlotRows(fixture,
                     ",5,not_applicable,1,not_applicable,direct,,not_applicable,,," +
                         csvEvidenceIds(idsJson));
-    const auto csv = fixture.csv();
+    const auto ordinaryHeadroom = evidenceHeadroom(validBundleTableFixture());
+    constexpr std::size_t allowance = 1024U * 1024U;
+    BOOST_REQUIRE_LE(ordinaryHeadroom + allowance,
+                     QuantLib::detail::VarianceClockLoadBudget::defaultLimit);
+    QuantLib::detail::VarianceClockLoadBudget budget(ordinaryHeadroom + allowance);
+    try {
+        (void)validateBundleEvidence(fixture, budget);
+        BOOST_ERROR("accepted parser scratch larger than the injected budget");
+    } catch (const Error& error) {
+        BOOST_CHECK(std::string(error.what()).find("variance-clock load exceeds size limit") !=
+                    std::string::npos);
+    }
+    BOOST_CHECK_EQUAL(budget.used(), 0U);
+}
 
-    std::size_t scratch = 0;
-    const auto measureFirstRow = [](void* opaque, const std::string_view* fields, std::size_t) {
+BOOST_AUTO_TEST_CASE(testEvidenceParserScratchIsChargedTightlyWithoutWarnings) {
+    BOOST_TEST_MESSAGE("Testing typed slot-row scratch charges from both budget boundaries...");
+    auto fixture = validBundleTableFixture();
+    auto large = fixture;
+    const std::string idsJson = "[" + std::string(20000, ' ') + "\"price\"]";
+    rewriteSlotRows(large,
+                    ",5,not_applicable,1,not_applicable,direct,,not_applicable,,," +
+                        csvEvidenceIds(idsJson));
+    static constexpr std::size_t fixedParserScratch =
+        128U * 1024U + 14U * (sizeof(std::string) + 32U);
+    const auto scratchFor = [](const BundleTableFixture& value) {
+        const auto csv = value.csv();
+        std::size_t scratch = 0;
+        const auto measureFirstRow = [](void* opaque,
+                                        const std::string_view* fields,
+                                        std::size_t) {
         std::size_t recordBytes = 0;
         for (std::size_t i = 0; i < 14; ++i)
             recordBytes += fields[i].size();
-        constexpr std::size_t fixedScratch =
-            128U * 1024U + 14U * (sizeof(std::string) + 32U);
         *static_cast<std::size_t*>(opaque) =
-            fixedScratch + 2U * recordBytes + 128U * fields[13].size();
+            fixedParserScratch + 2U * recordBytes + 128U * fields[13].size();
         return false;
+        };
+        QuantLib::detail::VarianceClockBundleScanCounts scanCounts;
+        (void)visitVarianceClockCsvRows(csv.slotEvidence,
+                                        VarianceClockCsvSchema::SlotEvidence,
+                                        &scratch, measureFirstRow, &scanCounts);
+        return scratch;
     };
-    (void)visitVarianceClockCsvRows(csv.slotEvidence, VarianceClockCsvSchema::SlotEvidence,
-                                    &scratch, measureFirstRow);
-    BOOST_REQUIRE_GT(scratch, 2U * 1024U * 1024U);
+    const auto smallScratch = scratchFor(fixture);
+    const auto largeScratch = scratchFor(large);
+    BOOST_REQUIRE_GT(largeScratch, 2U * 1024U * 1024U);
 
-    const auto headroom = evidenceHeadroom(fixture);
-    const std::size_t validationBytes = csv.sessionSegments.size() + csv.slotEvidence.size() +
-                                        fixture.manifest.evidence.size() * 512U;
-    // The stage needs at least the stream charge plus the whole envelope: an envelope with a
-    // smaller per-byte or per-record term is rejected here. Everything else it holds is small,
-    // so an envelope that is much larger than documented is rejected as well.
-    BOOST_CHECK_GE(headroom, validationBytes + scratch);
-    BOOST_CHECK_LE(headroom, validationBytes + scratch + 64U * 1024U);
+    const auto threshold = [](const BundleTableFixture& value) {
+        std::size_t lower = 0;
+        std::size_t upper = QuantLib::detail::VarianceClockLoadBudget::defaultLimit;
+        while (lower < upper) {
+            const auto middle = lower + (upper - lower) / 2;
+            bool accepted = true;
+            try {
+                (void)parseBundleTables(value, middle);
+            } catch (const Error&) {
+                accepted = false;
+            }
+            (accepted ? upper : lower) = accepted ? middle : middle + 1;
+        }
+        return lower;
+    };
+    const auto smallThreshold = threshold(fixture);
+    const auto largeThreshold = threshold(large);
+    const auto smallRetained = parseBundleTables(fixture).budget->used();
+    const auto largeRetained = parseBundleTables(large).budget->used();
+    BOOST_CHECK_GE(smallThreshold, smallRetained + smallScratch);
+    BOOST_CHECK_GE(largeThreshold, largeRetained + largeScratch);
+    const auto expectedDelta = largeScratch - smallScratch;
+    BOOST_CHECK_GE(largeThreshold, smallThreshold + expectedDelta - 64U * 1024U);
+    BOOST_CHECK_LE(largeThreshold, smallThreshold + expectedDelta + 64U * 1024U);
+
+    QuantLib::detail::VarianceClockLoadBudget exact(largeThreshold);
+    BOOST_CHECK_NO_THROW(QuantLib::detail::parseVarianceClockBundleData(
+        large.manifest, large.csv(), exact));
+    QuantLib::detail::VarianceClockLoadBudget oneByteUnder(largeThreshold - 1);
+    BOOST_CHECK_EXCEPTION(
+        QuantLib::detail::parseVarianceClockBundleData(
+            large.manifest, large.csv(), oneByteUnder),
+        Error, [](const Error& e) {
+            return std::string(e.what()).find("variance-clock load exceeds size limit") !=
+                   std::string::npos;
+        });
+    BOOST_CHECK_EQUAL(oneByteUnder.used(), 0U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -5338,6 +5383,50 @@ namespace {
         fixture.slotEvidence = std::move(rows);
     }
 
+    void replaceLoaderCsv(CompleteBundleSource& source,
+                          const std::string& name,
+                          const std::string& replacement) {
+        auto& bytes = source.files.at(name);
+        const std::string original(bytes.begin(), bytes.end());
+        std::string manifest(source.files.at("manifest.json").begin(),
+                             source.files.at("manifest.json").end());
+        replaceOnce(manifest, "\"" + name + "\": \"" + loaderSha256(original) + "\"",
+                    "\"" + name + "\": \"" + loaderSha256(replacement) + "\"");
+        auto& manifestBytes = source.files.at("manifest.json");
+        manifestBytes.assign(manifest.begin(), manifest.end());
+        bytes.assign(replacement.begin(), replacement.end());
+    }
+
+    std::string loaderErrorMessage(const CompleteBundleSource& source) {
+        try {
+            (void)loadVarianceClockBundle(source);
+        } catch (const Error& error) {
+            return error.what();
+        }
+        return {};
+    }
+
+    std::string loaderCsvEvidenceIds(std::string_view json) {
+        std::string result = "\"";
+        for (char c : json) {
+            if (c == '"')
+                result += "\"\"";
+            else
+                result += c;
+        }
+        result += '"';
+        return result;
+    }
+
+    void replaceLoaderManifest(CompleteBundleSource& source,
+                               const std::string& before,
+                               const std::string& after) {
+        auto& bytes = source.files.at("manifest.json");
+        std::string manifest(bytes.begin(), bytes.end());
+        replaceOnce(manifest, before, after);
+        bytes.assign(manifest.begin(), manifest.end());
+    }
+
     void checkLoaderRejected(const CompleteBundleSource& source, const std::string& message) {
         try {
             (void)loadVarianceClockBundle(source);
@@ -5466,6 +5555,301 @@ BOOST_AUTO_TEST_CASE(testReadsManifestThenCsvsInFixedOrder) {
         "manifest.json", "profiles.csv", "market_days.csv", "session_segments.csv",
         "timezone_mapping.csv", "slot_evidence.csv"};
     BOOST_CHECK(source.readOrder == expected);
+}
+
+BOOST_AUTO_TEST_CASE(testPinnedLoaderErrorPrecedence) {
+    BOOST_TEST_MESSAGE("Testing the approved two-fault loader error precedence...");
+    struct Case {
+        std::string name;
+        CompleteBundleSource source;
+        std::string currentWinner;
+        std::string pinnedWinner;
+        bool pinnedOrderChangesWinner;
+    };
+    std::vector<Case> cases;
+
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        replaceLoaderManifest(source,
+                              "\"calendar_as_of_utc\": \"2024-01-01T00:00:00Z\"",
+                              "\"calendar_as_of_utc\": \"2024-01-02T00:00:00Z\"");
+        auto session = std::string(source.files.at("session_segments.csv").begin(),
+                                   source.files.at("session_segments.csv").end());
+        replaceOnce(session, "2024-01-01,2024-01-01T09:30:00Z",
+                    "2024-02-31,2024-01-01T09:30:00Z");
+        replaceLoaderCsv(source, "session_segments.csv", session);
+        cases.push_back({"manifest timeline + bad session", std::move(source),
+                         "invalid Gregorian date",
+                         "calendar as-of is after generated_at_utc", true});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto session = std::string(source.files.at("session_segments.csv").begin(),
+                                   source.files.at("session_segments.csv").end());
+        replaceOnce(session, "2024-01-01,2024-01-01T09:30:00Z",
+                    "2024-02-31,2024-01-01T09:30:00Z");
+        replaceLoaderCsv(source, "session_segments.csv", session);
+        auto slots = std::string(source.files.at("slot_evidence.csv").begin(),
+                                 source.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, ",direct,,not_applicable", ",invalid,,not_applicable");
+        replaceLoaderCsv(source, "slot_evidence.csv", slots);
+        cases.push_back({"bad slot row + bad session", std::move(source),
+                         "invalid estimation method", "invalid Gregorian date", true});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto session = std::string(source.files.at("session_segments.csv").begin(),
+                                   source.files.at("session_segments.csv").end());
+        replaceOnce(session, "2024-01-01,2024-01-01T09:30:00Z",
+                    "2024-02-31,2024-01-01T09:30:00Z");
+        replaceLoaderCsv(source, "session_segments.csv", session);
+        auto timezone = std::string(source.files.at("timezone_mapping.csv").begin(),
+                                    source.files.at("timezone_mapping.csv").end());
+        replaceOnce(timezone, "2024-01-02T00:00:00Z,0,0",
+                    "2024-01-01T00:00:00Z,0,0");
+        replaceLoaderCsv(source, "timezone_mapping.csv", timezone);
+        cases.push_back({"bad timezone row + bad session", std::move(source),
+                         "empty timezone mapping range", "empty timezone mapping range", false});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto slots = std::string(source.files.at("slot_evidence.csv").begin(),
+                                 source.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, loaderCsvEvidenceIds(R"(["price"])"),
+                    loaderCsvEvidenceIds(R"(["ghost"])"));
+        const auto headerEnd = slots.find('\n') + 1;
+        const auto firstRowEnd = slots.find('\n', headerEnd) + 1;
+        slots += slots.substr(headerEnd, firstRowEnd - headerEnd);
+        replaceLoaderCsv(source, "slot_evidence.csv", slots);
+        cases.push_back({"row-1 evidence error + row-N table error", std::move(source),
+                         "duplicate slot-evidence key", "missing slot evidence", true});
+    }
+    {
+        auto source = validCompleteBundleSource(loaderFixture());
+        auto slots = std::string(source.files.at("slot_evidence.csv").begin(),
+                                 source.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, loaderCsvEvidenceIds(R"(["price"])"),
+                    loaderCsvEvidenceIds(R"(["ghost"])"));
+        const auto lastRowStart = slots.rfind('\n', slots.size() - 2) + 1;
+        slots.erase(lastRowStart);
+        replaceLoaderCsv(source, "slot_evidence.csv", slots);
+        cases.push_back({"missing rows + row-1 evidence error", std::move(source),
+                         "selected pair does not have exactly 288 slot evidence rows",
+                         "missing slot evidence", true});
+    }
+
+    for (const auto& test : cases) {
+        const auto actual = loaderErrorMessage(test.source);
+        BOOST_CHECK_MESSAGE(!actual.empty(), test.name << ": expected a rejection");
+        BOOST_CHECK_MESSAGE(actual.find(test.pinnedWinner) != std::string::npos,
+                            test.name << ": expected pinned winner \"" << test.pinnedWinner
+                                      << "\", got \"" << actual << '"');
+        BOOST_CHECK_EQUAL(test.currentWinner != test.pinnedWinner,
+                          test.pinnedOrderChangesWinner);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testPinnedLoaderStagePrecedenceAndWithinRowOrder) {
+    BOOST_TEST_MESSAGE("Testing independent faults for pinned loader stage and row precedence...");
+    const auto expectError = [](const CompleteBundleSource& source, const std::string& expected) {
+        const auto actual = loaderErrorMessage(source);
+        BOOST_CHECK_MESSAGE(!actual.empty(), "expected rejection containing " << expected);
+        BOOST_CHECK_MESSAGE(actual.find(expected) != std::string::npos,
+                            "expected \"" << expected << "\", got \"" << actual << '"');
+    };
+
+    // Within one slot row, table validation wins before evidence-ID lookup.
+    {
+        auto isolatedTableFault = validCompleteBundleSource(loaderFixture());
+        auto slots = std::string(isolatedTableFault.files.at("slot_evidence.csv").begin(),
+                                 isolatedTableFault.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, ",direct,,not_applicable", ",invalid,,not_applicable");
+        replaceLoaderCsv(isolatedTableFault, "slot_evidence.csv", slots);
+        expectError(isolatedTableFault, "invalid estimation method");
+
+        auto isolatedEvidenceFault = validCompleteBundleSource(loaderFixture());
+        slots = std::string(isolatedEvidenceFault.files.at("slot_evidence.csv").begin(),
+                            isolatedEvidenceFault.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, loaderCsvEvidenceIds(R"(["price"])" ),
+                    loaderCsvEvidenceIds(R"(["ghost"])" ));
+        replaceLoaderCsv(isolatedEvidenceFault, "slot_evidence.csv", slots);
+        expectError(isolatedEvidenceFault, "missing slot evidence");
+
+        auto both = validCompleteBundleSource(loaderFixture());
+        slots = std::string(both.files.at("slot_evidence.csv").begin(),
+                            both.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, ",direct,,not_applicable", ",invalid,,not_applicable");
+        replaceOnce(slots, loaderCsvEvidenceIds(R"(["price"])" ),
+                    loaderCsvEvidenceIds(R"(["ghost"])" ));
+        replaceLoaderCsv(both, "slot_evidence.csv", slots);
+        expectError(both, "invalid estimation method");
+    }
+
+    // Manifest-only checks precede any CSV table validation.
+    {
+        auto isolatedManifestFault = validCompleteBundleSource(loaderFixture());
+        replaceLoaderManifest(isolatedManifestFault,
+                              "\"calendar_as_of_utc\": \"2024-01-01T00:00:00Z\"",
+                              "\"calendar_as_of_utc\": \"2024-01-02T00:00:00Z\"");
+        expectError(isolatedManifestFault, "calendar as-of is after generated_at_utc");
+
+        auto isolatedProfileFault = validCompleteBundleSource(loaderFixture());
+        auto profiles = std::string(isolatedProfileFault.files.at("profiles.csv").begin(),
+                                    isolatedProfileFault.files.at("profiles.csv").end());
+        replaceOnce(profiles, ",0.01,1", ",0.01,2");
+        replaceLoaderCsv(isolatedProfileFault, "profiles.csv", profiles);
+        expectError(isolatedProfileFault, "profile weight does not match variance");
+
+        auto both = validCompleteBundleSource(loaderFixture());
+        replaceLoaderManifest(both,
+                              "\"calendar_as_of_utc\": \"2024-01-01T00:00:00Z\"",
+                              "\"calendar_as_of_utc\": \"2024-01-02T00:00:00Z\"");
+        profiles = std::string(both.files.at("profiles.csv").begin(),
+                               both.files.at("profiles.csv").end());
+        replaceOnce(profiles, ",0.01,1", ",0.01,2");
+        replaceLoaderCsv(both, "profiles.csv", profiles);
+        expectError(both, "calendar as-of is after generated_at_utc");
+    }
+
+    // Profiles precede market days; each table's losing fault is independently reachable.
+    {
+        auto isolatedProfileFault = validCompleteBundleSource(loaderFixture());
+        auto profiles = std::string(isolatedProfileFault.files.at("profiles.csv").begin(),
+                                    isolatedProfileFault.files.at("profiles.csv").end());
+        replaceOnce(profiles, ",0.01,1", ",0.01,2");
+        replaceLoaderCsv(isolatedProfileFault, "profiles.csv", profiles);
+        expectError(isolatedProfileFault, "profile weight does not match variance");
+
+        auto isolatedMarketFault = validCompleteBundleSource(loaderFixture());
+        auto market = std::string(isolatedMarketFault.files.at("market_days.csv").begin(),
+                                  isolatedMarketFault.files.at("market_days.csv").end());
+        replaceOnce(market, ",full_day,true,", ",full_day,TRUE,");
+        replaceLoaderCsv(isolatedMarketFault, "market_days.csv", market);
+        expectError(isolatedMarketFault, "invalid is_open value");
+
+        auto both = validCompleteBundleSource(loaderFixture());
+        profiles = std::string(both.files.at("profiles.csv").begin(),
+                               both.files.at("profiles.csv").end());
+        replaceOnce(profiles, ",0.01,1", ",0.01,2");
+        replaceLoaderCsv(both, "profiles.csv", profiles);
+        market = std::string(both.files.at("market_days.csv").begin(),
+                             both.files.at("market_days.csv").end());
+        replaceOnce(market, ",full_day,true,", ",full_day,TRUE,");
+        replaceLoaderCsv(both, "market_days.csv", market);
+        expectError(both, "profile weight does not match variance");
+    }
+
+    // Market days precede timezone mapping.
+    {
+        auto isolatedMarketFault = validCompleteBundleSource(loaderFixture());
+        auto market = std::string(isolatedMarketFault.files.at("market_days.csv").begin(),
+                                  isolatedMarketFault.files.at("market_days.csv").end());
+        replaceOnce(market, ",full_day,true,", ",full_day,TRUE,");
+        replaceLoaderCsv(isolatedMarketFault, "market_days.csv", market);
+        expectError(isolatedMarketFault, "invalid is_open value");
+
+        auto isolatedTimezoneFault = validCompleteBundleSource(loaderFixture());
+        auto timezone = std::string(isolatedTimezoneFault.files.at("timezone_mapping.csv").begin(),
+                                    isolatedTimezoneFault.files.at("timezone_mapping.csv").end());
+        replaceOnce(timezone, "2024-01-02T00:00:00Z,0,0",
+                    "2024-01-01T00:00:00Z,0,0");
+        replaceLoaderCsv(isolatedTimezoneFault, "timezone_mapping.csv", timezone);
+        expectError(isolatedTimezoneFault, "empty timezone mapping range");
+
+        auto both = validCompleteBundleSource(loaderFixture());
+        market = std::string(both.files.at("market_days.csv").begin(),
+                             both.files.at("market_days.csv").end());
+        replaceOnce(market, ",full_day,true,", ",full_day,TRUE,");
+        replaceLoaderCsv(both, "market_days.csv", market);
+        timezone = std::string(both.files.at("timezone_mapping.csv").begin(),
+                               both.files.at("timezone_mapping.csv").end());
+        replaceOnce(timezone, "2024-01-02T00:00:00Z,0,0",
+                    "2024-01-01T00:00:00Z,0,0");
+        replaceLoaderCsv(both, "timezone_mapping.csv", timezone);
+        expectError(both, "invalid is_open value");
+    }
+
+    // Timezone mapping precedes slot rows.
+    {
+        auto isolatedTimezoneFault = validCompleteBundleSource(loaderFixture());
+        auto timezone = std::string(isolatedTimezoneFault.files.at("timezone_mapping.csv").begin(),
+                                    isolatedTimezoneFault.files.at("timezone_mapping.csv").end());
+        replaceOnce(timezone, "2024-01-02T00:00:00Z,0,0",
+                    "2024-01-01T00:00:00Z,0,0");
+        replaceLoaderCsv(isolatedTimezoneFault, "timezone_mapping.csv", timezone);
+        expectError(isolatedTimezoneFault, "empty timezone mapping range");
+
+        auto isolatedSlotFault = validCompleteBundleSource(loaderFixture());
+        auto slots = std::string(isolatedSlotFault.files.at("slot_evidence.csv").begin(),
+                                 isolatedSlotFault.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, ",direct,,not_applicable", ",invalid,,not_applicable");
+        replaceLoaderCsv(isolatedSlotFault, "slot_evidence.csv", slots);
+        expectError(isolatedSlotFault, "invalid estimation method");
+
+        auto both = validCompleteBundleSource(loaderFixture());
+        timezone = std::string(both.files.at("timezone_mapping.csv").begin(),
+                               both.files.at("timezone_mapping.csv").end());
+        replaceOnce(timezone, "2024-01-02T00:00:00Z,0,0",
+                    "2024-01-01T00:00:00Z,0,0");
+        replaceLoaderCsv(both, "timezone_mapping.csv", timezone);
+        slots = std::string(both.files.at("slot_evidence.csv").begin(),
+                            both.files.at("slot_evidence.csv").end());
+        replaceOnce(slots, ",direct,,not_applicable", ",invalid,,not_applicable");
+        replaceLoaderCsv(both, "slot_evidence.csv", slots);
+        expectError(both, "empty timezone mapping range");
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testFourHundredThousandSessionRowsFitDefaultLoadBudget) {
+    BOOST_TEST_MESSAGE("Testing 400,000 session rows fit the default load budget...");
+    constexpr std::size_t rows = 400000;
+    constexpr std::size_t days = 5;
+    constexpr std::size_t rowsPerDay = rows / days;
+    auto fixture = loaderFixture();
+    fixture.coverageEndText = "2024-01-06T00:00:00Z";
+    fixture.manifest.coverageEndUtc = testInstant(fixture.coverageEndText);
+    fixture.marketDays =
+        "local_date,date_type,is_open,profile_id,target_group_id,selection_reason\n";
+    fixture.sessionSegments =
+        "local_date,start_utc,end_utc,session_id,trading_date,source_session_id,"
+        "claimed_local_offset_seconds,source_evidence_id\n";
+    fixture.timezoneMapping =
+        "start_utc,end_utc,offset_seconds,fold\n"
+        "2024-01-01T00:00:00Z,2024-01-06T00:00:00Z,0,0\n";
+
+    const auto twoDigits = [](unsigned int value) {
+        return std::string(value < 10 ? "0" : "") + std::to_string(value);
+    };
+    const auto timestamp = [&twoDigits](const std::string& date, std::size_t second) {
+        const auto hour = static_cast<unsigned int>(second / 3600);
+        const auto minute = static_cast<unsigned int>((second / 60) % 60);
+        const auto remainder = static_cast<unsigned int>(second % 60);
+        return date + "T" + twoDigits(hour) + ":" + twoDigits(minute) + ":" +
+               twoDigits(remainder) + "Z";
+    };
+    std::size_t row = 0;
+    for (std::size_t day = 0; day < days; ++day) {
+        const Date date = Date(1, January, 2024) + static_cast<Integer>(day);
+        const std::string localDate =
+            std::to_string(date.year()) + "-" +
+            twoDigits(static_cast<unsigned int>(date.month())) + "-" +
+            twoDigits(static_cast<unsigned int>(date.dayOfMonth()));
+        fixture.marketDays += localDate + ",full_day,true,1,group,date_override\n";
+        for (std::size_t interval = 0; interval < rowsPerDay; ++interval, ++row) {
+            const std::size_t start = interval;
+            fixture.sessionSegments +=
+                localDate + "," + timestamp(localDate, start) + "," +
+                timestamp(localDate, start + 1) + ",s" + std::to_string(row) +
+                ",,,,calendar\n";
+        }
+    }
+    BOOST_REQUIRE_EQUAL(row, rows);
+    BOOST_REQUIRE_LE(fixture.sessionSegments.size(), 32U * 1024U * 1024U);
+    auto source = validCompleteBundleSource(fixture);
+    BOOST_REQUIRE_LE(source.files.at("session_segments.csv").size(),
+                     32U * 1024U * 1024U);
+    const auto loaded = QuantLib::loadVarianceClockBundle(source);
+    BOOST_CHECK(loaded.snapshot);
 }
 
 BOOST_AUTO_TEST_CASE(testDirectoryWrapperLoadsACompleteBundle) {

@@ -80,10 +80,10 @@ namespace QuantLib {
         detail::VarianceClockLoadBudget budget;
         auto captured = detail::captureVarianceClockBundle(source, budget);
         const auto csv = captured.csvBytes();
+        detail::VarianceClockBundleEvidenceContext evidence(captured.manifest(), mode, budget);
         auto parsed =
-            detail::parseVarianceClockBundleData(captured.manifest(), csv, budget);
-        auto validated = detail::validateVarianceClockBundleEvidence(
-            captured.manifest(), csv, std::move(parsed), mode, budget);
+            detail::parseVarianceClockBundleData(captured.manifest(), csv, budget, &evidence);
+        auto validated = evidence.finish(std::move(parsed));
 
         auto resultCharge = budget.reserve(resultEstimate(validated, captured.manifest()));
         validated.provenance.validatedEvidenceIds.reserve(

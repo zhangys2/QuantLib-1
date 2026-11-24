@@ -32,6 +32,11 @@
 namespace QuantLib {
     namespace detail {
 
+        struct VarianceClockBundleScanCounts {
+            std::size_t sessionSegments = 0;
+            std::size_t slotEvidence = 0;
+        };
+
         enum class VarianceClockCsvSchema {
             Profiles,
             MarketDays,
@@ -120,7 +125,8 @@ namespace QuantLib {
         bool visitVarianceClockCsvRows(std::string_view bytes,
                                        VarianceClockCsvSchema schema,
                                        void* context,
-                                       VarianceClockCsvRowVisitor visitor);
+                                       VarianceClockCsvRowVisitor visitor,
+                                       VarianceClockBundleScanCounts* scanCounts = nullptr);
 
         // Decode one valid raw field lexeme, removing quote syntax and unescaping "".
         std::string decodeVarianceClockCsvField(std::string_view lexeme);
